@@ -1,6 +1,12 @@
 {
 	"name": "svelte-standard-site",
 	"version": "0.0.1",
+	"description": "A SvelteKit library for fetching site.standard.* records from the AT Protocol",
+	"license": "AGPL-3.0",
+	"author": {
+		"name": "Ewan Croft",
+		"url": "https://github.com/ewanc26"
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -27,6 +33,10 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"svelte": "./dist/index.js"
+		},
+		"./config/env": {
+			"types": "./dist/config/env.d.ts",
+			"default": "./dist/config/env.js"
 		}
 	},
 	"peerDependencies": {
@@ -50,6 +60,24 @@
 		"vite": "^7.2.6"
 	},
 	"keywords": [
-		"svelte"
-	]
+		"svelte",
+		"sveltekit",
+		"atproto",
+		"at-protocol",
+		"bluesky",
+		"site-standard",
+		"blog",
+		"cms"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ewanc26/svelte-standard-site.git"
+	},
+	"homepage": "https://github.com/ewanc26/svelte-standard-site#readme",
+	"bugs": {
+		"url": "https://github.com/ewanc26/svelte-standard-site/issues"
+	},
+	"dependencies": {
+		"@atproto/api": "^0.18.16"
+	}
 }
