@@ -14,7 +14,7 @@ Thank you for your interest in contributing! This document provides guidelines a
 1. Fork and clone the repository:
 
 ```bash
-git clone https://github.com/your-username/svelte-standard-site.git
+git clone https://github.com/ewanc26/svelte-standard-site.git
 cd svelte-standard-site
 ```
 
@@ -198,6 +198,6 @@ Feel free to:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the [AGPL-3.0](./LICENSE).
 
 Thank you for contributing to svelte-standard-site! 🎉
