@@ -323,7 +323,7 @@ export const load = async ({ params, fetch }) => {
 
 ## License
 
-MIT
+[AGPL-3.0](./LICENSE)
 
 ## Contributing
 
