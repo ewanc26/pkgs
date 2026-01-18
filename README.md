@@ -2,6 +2,8 @@
 
 A SvelteKit library for fetching and working with `site.standard.*` records from the AT Protocol.
 
+Also on [Tangled](https://tangled.org/did:plc:ofrbh253gwicbkc5nktqepol/svelte-standard-site).
+
 ## Features
 
 - 🔄 **Automatic PDS Resolution** - Resolves DIDs to their Personal Data Server endpoints
