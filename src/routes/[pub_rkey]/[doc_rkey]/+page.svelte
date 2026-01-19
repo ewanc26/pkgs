@@ -2,20 +2,15 @@
 	import type { PageData } from './$types.js';
 	import { getThemeVars } from '$lib/utils/theme.js';
 	import { extractRkey } from '$lib/utils/document.js';
+	import { ThemedContainer, ThemedText, DateDisplay, TagList } from '$lib/components/index.js';
+	import { mixThemeColor } from '$lib/utils/theme-helpers.js';
 
 	const { data }: { data: PageData } = $props();
 
 	const themeVars = $derived(
 		data.publication?.value.basicTheme ? getThemeVars(data.publication.value.basicTheme) : {}
 	);
-
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
-	}
+	const hasTheme = $derived(!!data.publication?.value.basicTheme);
 </script>
 
 <svelte:head>
@@ -23,182 +18,200 @@
 	{#if data.document.value.description}
 		<meta name="description" content={data.document.value.description} />
 	{/if}
+	{#if hasTheme}
+		<!-- prettier-ignore -->
+		<style>
+			body {{
+				background-color: {themeVars['--theme-background'] || 'var(--color-canvas-50)'} !important;
+			}}
+		</style>
+	{/if}
 </svelte:head>
 
-<div
-	class="min-h-screen"
-	style:background-color={data.publication?.value.basicTheme
-		? `var(--theme-background)`
-		: undefined}
-	style={Object.entries(themeVars)
-		.map(([k, v]) => `${k}:${v}`)
-		.join(';')}
->
-	<article class="mx-auto max-w-4xl px-4 py-12">
-		<!-- Back link -->
-		<a
-			href="/"
-			class="mb-8 inline-flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-70"
-			style:color={data.publication?.value.basicTheme ? `var(--theme-accent)` : undefined}
-		>
-			<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-			</svg>
-			Back to Home
-		</a>
-
-		<!-- Publication info if available -->
-		{#if data.publication}
-			<div class="mb-8 flex items-center gap-3">
-				{#if data.publication.value.icon}
-					<img
-						src={data.publication.value.icon}
-						alt="{data.publication.value.name} icon"
-						class="size-10 rounded-lg object-cover"
-					/>
-				{/if}
-				<div>
-					<div
-						class="text-sm font-medium"
-						style:color={data.publication.value.basicTheme ? `var(--theme-foreground)` : undefined}
-					>
-						{data.publication.value.name}
-					</div>
-					{#if data.publication.value.url}
-						<a
-							href={data.publication.value.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="text-xs transition-opacity hover:opacity-70"
-							style:color={data.publication.value.basicTheme ? `var(--theme-accent)` : undefined}
-						>
-							{data.publication.value.url}
-						</a>
-					{/if}
-				</div>
-			</div>
-		{/if}
-
-		<!-- Document header -->
-		<header class="mb-8">
-			<h1
-				class="mb-4 text-4xl leading-tight font-bold md:text-5xl"
-				style:color={data.publication?.value.basicTheme ? `var(--theme-foreground)` : undefined}
+<ThemedContainer theme={data.publication?.value.basicTheme} class="flex flex-col">
+	<!-- Header Bar -->
+	<header
+		class="sticky top-0 z-10 border-b backdrop-blur-sm"
+		style:border-color={hasTheme ? mixThemeColor('--theme-foreground', 15) : undefined}
+		style:background-color={hasTheme ? mixThemeColor('--theme-background', 80) : undefined}
+	>
+		<nav class="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
+			<a
+				href="/"
+				class="group flex items-center gap-2 text-sm font-medium transition-all hover:gap-3"
+				style:color={hasTheme ? 'var(--theme-accent)' : undefined}
 			>
+				<svg
+					class="size-4 transition-transform group-hover:-translate-x-0.5"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2.5"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+				</svg>
+				Back to Home
+			</a>
+
+			{#if data.publication}
+				<a
+					href={data.publication.value.url || '/'}
+					target={data.publication.value.url ? '_blank' : undefined}
+					rel={data.publication.value.url ? 'noopener noreferrer' : undefined}
+					class="flex items-center gap-2 transition-opacity hover:opacity-70"
+				>
+					{#if data.publication.value.icon}
+						<img
+							src={data.publication.value.icon}
+							alt="{data.publication.value.name} icon"
+							class="size-6 rounded object-cover"
+						/>
+					{/if}
+					<ThemedText {hasTheme} element="span" class="text-sm font-semibold">
+						{data.publication.value.name}
+					</ThemedText>
+				</a>
+			{/if}
+		</nav>
+	</header>
+
+	<!-- Main Content -->
+	<article class="mx-auto max-w-3xl px-6 py-12">
+		<!-- Title Section -->
+		<header class="mb-12">
+			<ThemedText {hasTheme} element="h1" class="mb-6 text-5xl font-bold leading-tight tracking-tight">
 				{data.document.value.title}
-			</h1>
+			</ThemedText>
 
 			<div
-				class="flex flex-wrap items-center gap-x-6 gap-y-2 border-b pb-6 text-sm"
-				style:border-color={data.publication?.value.basicTheme
-					? `var(--theme-foreground, rgb(229, 231, 235))`
-					: 'rgb(229, 231, 235)'}
-				style:opacity={data.publication?.value.basicTheme ? '0.3' : '1'}
+				class="flex flex-wrap items-center gap-4 text-sm"
+				style:color={hasTheme ? mixThemeColor('--theme-foreground', 60) : undefined}
 			>
-				<time
-					class="font-medium"
-					style:color={data.publication?.value.basicTheme
-						? `var(--theme-foreground)`
-						: 'rgb(17, 24, 39)'}
-				>
-					Published {formatDate(data.document.value.publishedAt)}
-				</time>
+				<DateDisplay date={data.document.value.publishedAt} />
 				{#if data.document.value.updatedAt}
 					<span
-						style:color={data.publication?.value.basicTheme
-							? `var(--theme-foreground)`
-							: 'rgb(107, 114, 128)'}
+						class="flex items-center gap-1.5"
+						style:color={hasTheme ? mixThemeColor('--theme-foreground', 50) : undefined}
 					>
-						Updated {formatDate(data.document.value.updatedAt)}
+						<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+							/>
+						</svg>
+						Updated <DateDisplay date={data.document.value.updatedAt} />
 					</span>
 				{/if}
 			</div>
 		</header>
 
-		<!-- Cover image -->
+		<!-- Cover Image -->
 		{#if data.document.value.coverImage}
-			<div class="mb-8">
+			<div class="-mx-6 mb-12 sm:mx-0">
 				<img
 					src={data.document.value.coverImage}
 					alt="{data.document.value.title} cover"
-					class="w-full rounded-lg object-cover shadow-lg"
-					style="max-height: 500px;"
+					class="w-full rounded-none object-cover sm:rounded-2xl"
+					style="max-height: 28rem; object-position: center;"
 				/>
 			</div>
 		{/if}
 
-		<!-- Document content -->
+		<!-- Content -->
 		<div
-			class="mx-auto prose prose-lg max-w-none"
-			style:color={data.publication?.value.basicTheme ? `var(--theme-foreground)` : undefined}
+			class="prose prose-lg max-w-none"
+			style:color={hasTheme ? 'var(--theme-foreground)' : undefined}
 		>
 			{#if data.document.value.textContent}
-				<div class="whitespace-pre-wrap">{data.document.value.textContent}</div>
+				<div class="leading-relaxed">{data.document.value.textContent}</div>
 			{:else if data.document.value.content}
-				<div class="rounded-lg border border-gray-200 bg-gray-50 p-6">
-					<p class="mb-2 text-sm font-medium text-gray-700">Raw Content:</p>
-					<pre class="overflow-x-auto text-xs">{JSON.stringify(
-							data.document.value.content,
-							null,
-							2
-						)}</pre>
+				<div
+					class="rounded-xl border p-6"
+					style:border-color={hasTheme ? mixThemeColor('--theme-foreground', 20) : undefined}
+					style:background-color={hasTheme ? mixThemeColor('--theme-foreground', 5) : undefined}
+				>
+					<p
+						class="mb-3 text-sm font-semibold uppercase tracking-wider"
+						style:color={hasTheme ? mixThemeColor('--theme-foreground', 60) : undefined}
+					>
+						Raw Content
+					</p>
+					<pre
+						class="overflow-x-auto text-xs leading-relaxed"
+						style:color={hasTheme ? 'var(--theme-foreground)' : undefined}>{JSON.stringify(data.document.value.content, null, 2)}</pre>
 				</div>
 			{:else}
-				<p class="text-gray-500 italic">No content available</p>
+				<ThemedText {hasTheme} opacity={50} element="p" class="italic">
+					No content available
+				</ThemedText>
 			{/if}
 		</div>
 
 		<!-- Tags -->
 		{#if data.document.value.tags && data.document.value.tags.length > 0}
-			<div
-				class="mt-12 border-t pt-8"
-				style:border-color={data.publication?.value.basicTheme
-					? `var(--theme-foreground, rgb(229, 231, 235))`
-					: 'rgb(229, 231, 235)'}
-				style:opacity={data.publication?.value.basicTheme ? '0.3' : '1'}
-			>
-				<h2
-					class="mb-4 text-sm font-medium tracking-wide uppercase"
-					style:color={data.publication?.value.basicTheme
-						? `var(--theme-foreground)`
-						: 'rgb(107, 114, 128)'}
-				>
-					Tags
-				</h2>
-				<div class="flex flex-wrap gap-2">
-					{#each data.document.value.tags as tag}
-						<span
-							class="rounded-full px-4 py-2 text-sm font-medium"
-							style:background-color={data.publication?.value.basicTheme
-								? `var(--theme-accent, rgb(243, 244, 246))`
-								: 'rgb(243, 244, 246)'}
-							style:color={data.publication?.value.basicTheme
-								? `var(--theme-accent-foreground, rgb(75, 85, 99))`
-								: 'rgb(75, 85, 99)'}
-						>
-							{tag}
-						</span>
-					{/each}
-				</div>
+			<div class="mt-16 pt-8">
+				<TagList tags={data.document.value.tags} {hasTheme} />
 			</div>
 		{/if}
 
-		<!-- Bluesky post reference -->
+		<!-- Bluesky Reference -->
 		{#if data.document.value.bskyPostRef}
-			<div class="mt-8 rounded-lg border border-blue-200 bg-blue-50 p-4">
-				<p class="text-sm text-blue-900">
-					<a
-						href="https://bsky.app/profile/{data.config?.did}/post/{extractRkey(
-							data.document.value.bskyPostRef.uri
-						)}"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="font-medium hover:underline"
-					>
-						View discussion on Bluesky →
-					</a>
-				</p>
+			<div
+				class="mt-12 rounded-2xl border p-6"
+				style:border-color={hasTheme ? mixThemeColor('--theme-accent', 30) : undefined}
+				style:background-color={hasTheme ? mixThemeColor('--theme-accent', 10) : undefined}
+			>
+				<a
+					href="https://bsky.app/profile/{data.config?.did}/post/{extractRkey(
+						data.document.value.bskyPostRef.uri
+					)}"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="flex items-center gap-3 font-medium transition-all hover:gap-4"
+					style:color={hasTheme ? 'var(--theme-accent)' : undefined}
+				>
+					<svg class="size-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+						<path
+							d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364.136-.02.275-.039.415-.056-.138.022-.276.04-.415.056-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078a8.741 8.741 0 0 1-.415-.056c.14.017.279.036.415.056 2.67.297 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z"
+						/>
+					</svg>
+					<span>Continue the conversation on Bluesky</span>
+					<svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M14 5l7 7m0 0l-7 7m7-7H3"
+						/>
+					</svg>
+				</a>
 			</div>
 		{/if}
 	</article>
-</div>
+
+	<!-- Footer -->
+	<footer
+		class="mt-auto border-t py-8"
+		style:border-color={hasTheme ? mixThemeColor('--theme-foreground', 15) : undefined}
+	>
+		<div class="mx-auto max-w-3xl px-6 text-center">
+			<p
+				class="text-sm"
+				style:color={hasTheme ? mixThemeColor('--theme-foreground', 50) : undefined}
+			>
+				Powered by
+				<a
+					href="https://atproto.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="font-medium underline decoration-1 underline-offset-2 transition-all hover:decoration-2"
+					style:color={hasTheme ? 'var(--theme-accent)' : undefined}
+				>
+					AT Protocol
+				</a>
+			</p>
+		</div>
+	</footer>
+</ThemedContainer>
