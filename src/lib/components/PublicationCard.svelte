@@ -1,37 +1,37 @@
 <script lang="ts">
 	import type { Publication, AtProtoRecord } from '../types.js';
-	import { getThemeVars } from '../utils/theme.js';
+	import { ThemedCard, ThemedText } from './index.js';
+	import { ExternalLink } from '@lucide/svelte';
 
 	interface Props {
 		publication: AtProtoRecord<Publication>;
 		class?: string;
+		showExternalIcon?: boolean;
 	}
 
-	const { publication, class: className = '' }: Props = $props();
+	const { publication, class: className = '', showExternalIcon = true }: Props = $props();
 
-	// Access value reactively through a getter
 	const value = $derived(publication.value);
-	const themeVars = $derived(value.basicTheme ? getThemeVars(value.basicTheme) : {});
+	const hasTheme = $derived(!!value.basicTheme);
 </script>
 
-<article
-	class="rounded-lg border border-gray-200 bg-white p-6 transition-all hover:shadow-lg {className}"
-	style={Object.entries(themeVars)
-		.map(([k, v]) => `${k}:${v}`)
-		.join(';')}
->
+<ThemedCard theme={value.basicTheme} class="focus-within:shadow-lg hover:shadow-lg {className}">
 	<div class="mb-4 flex gap-4">
 		{#if value.icon}
 			<img
 				src={value.icon}
 				alt="{value.name} icon"
-				class="size-16 flex-shrink-0 rounded-lg object-cover"
+				class="size-16 shrink-0 rounded-lg object-cover"
 			/>
 		{/if}
-		<div class="flex-1">
-			<h3 class="mb-2 text-xl font-semibold text-gray-900">{value.name}</h3>
+		<div class="min-w-0 flex-1">
+			<ThemedText {hasTheme} element="h3" class="mb-2 text-xl font-semibold">
+				{value.name}
+			</ThemedText>
 			{#if value.description}
-				<p class="text-sm text-gray-600">{value.description}</p>
+				<ThemedText {hasTheme} opacity={70} element="p" class="text-sm">
+					{value.description}
+				</ThemedText>
 			{/if}
 		</div>
 	</div>
@@ -39,12 +39,16 @@
 		href={value.url}
 		target="_blank"
 		rel="noopener noreferrer"
-		class="inline-flex items-center gap-1 font-medium transition-opacity hover:opacity-80"
-		style:color={value.basicTheme ? `var(--theme-accent)` : undefined}
+		class="inline-flex items-center gap-2 font-medium transition-opacity hover:opacity-80 focus-visible:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2"
+		class:text-primary-600={!hasTheme}
+		class:dark:text-primary-400={!hasTheme}
+		class:focus-visible:outline-primary-600={!hasTheme}
+		style:color={hasTheme ? 'var(--theme-accent)' : undefined}
+		style:outline-color={hasTheme ? 'var(--theme-accent)' : undefined}
 	>
 		Visit Site
-		<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-		</svg>
+		{#if showExternalIcon}
+			<ExternalLink class="size-4" aria-hidden="true" />
+		{/if}
 	</a>
-</article>
+</ThemedCard>

@@ -4,59 +4,302 @@ Complete API documentation for svelte-standard-site.
 
 ## Table of Contents
 
-- [SiteStandardClient](#sitestandardclient)
-- [Types](#types)
-- [Utility Functions](#utility-functions)
 - [Components](#components)
-- [Configuration](#configuration)
+- [Stores](#stores)
+- [Client](#client)
+- [Types](#types)
+- [Utilities](#utilities)
 
-## SiteStandardClient
+## Components
 
-The main client class for interacting with site.standard.\* records.
+### StandardSiteLayout
 
-### Constructor
+A complete page layout with header, footer, and built-in theme management.
 
 ```typescript
-constructor(config: SiteStandardConfig)
+interface StandardSiteLayoutProps {
+	/** Site title displayed in header */
+	title?: string;
+	/** Custom header content (replaces default header) */
+	header?: Snippet;
+	/** Custom footer content (replaces default footer) */
+	footer?: Snippet;
+	/** Main content */
+	children: Snippet;
+	/** Additional CSS classes for main container */
+	class?: string;
+	/** Show theme toggle button in default header */
+	showThemeToggle?: boolean;
+}
 ```
 
-Creates a new instance of the client.
+**Default Values:**
 
-**Parameters:**
+- `title`: `"My Site"`
+- `showThemeToggle`: `true`
 
-- `config` (SiteStandardConfig): Configuration object
+**Usage:**
 
-**Example:**
+```svelte
+<StandardSiteLayout title="My Site">
+	<h1>Content here</h1>
+</StandardSiteLayout>
+```
+
+**With Custom Header:**
+
+```svelte
+<StandardSiteLayout title="My Site">
+	{#snippet header()}
+		<nav>Custom header</nav>
+	{/snippet}
+
+	<h1>Content</h1>
+</StandardSiteLayout>
+```
+
+---
+
+### ThemeToggle
+
+A button component for toggling between light and dark modes with smooth animations.
+
+```typescript
+interface ThemeToggleProps {
+	/** Additional CSS classes */
+	class?: string;
+}
+```
+
+**Usage:**
+
+```svelte
+<ThemeToggle class="ml-auto" />
+```
+
+**Features:**
+
+- Smooth icon transitions
+- System preference detection
+- Persistent theme storage
+- Loading state indicator
+- Accessible ARIA labels
+
+---
+
+### DocumentCard
+
+Displays a `site.standard.document` record as a styled card with cover image, metadata, and tags.
+
+```typescript
+interface DocumentCardProps {
+	/** The document record to display */
+	document: AtProtoRecord<Document>;
+	/** Additional CSS classes */
+	class?: string;
+	/** Whether to show the cover image */
+	showCover?: boolean;
+	/** Custom href override (defaults to /[pub_rkey]/[doc_rkey]) */
+	href?: string;
+}
+```
+
+**Default Values:**
+
+- `showCover`: `true`
+- `href`: Auto-generated from document URI
+
+**Usage:**
+
+```svelte
+<DocumentCard {document} showCover={true} class="shadow-lg" />
+```
+
+**Features:**
+
+- Responsive design
+- Cover image display
+- Date formatting
+- Tag pills
+- Hover states
+- Dark mode support
+
+---
+
+### PublicationCard
+
+Displays a `site.standard.publication` record with icon, description, and external link.
+
+```typescript
+interface PublicationCardProps {
+	/** The publication record to display */
+	publication: AtProtoRecord<Publication>;
+	/** Additional CSS classes */
+	class?: string;
+	/** Whether to show external link icon */
+	showExternalIcon?: boolean;
+}
+```
+
+**Default Values:**
+
+- `showExternalIcon`: `true`
+
+**Usage:**
+
+```svelte
+<PublicationCard {publication} showExternalIcon={true} />
+```
+
+**Features:**
+
+- Icon display
+- Theme color support
+- External link indicator
+- Hover states
+- Dark mode support
+
+---
+
+## Stores
+
+### themeStore
+
+A Svelte store for managing light/dark theme state.
+
+```typescript
+interface ThemeState {
+	isDark: boolean;
+	mounted: boolean;
+}
+
+interface ThemeStore {
+	subscribe: (callback: (state: ThemeState) => void) => () => void;
+	init: () => void | (() => void);
+	toggle: () => void;
+	setTheme: (isDark: boolean) => void;
+}
+```
+
+**Methods:**
+
+#### `init()`
+
+Initialize the theme store. Automatically detects saved preference and system preference.
+
+```typescript
+import { themeStore } from 'svelte-standard-site';
+import { onMount } from 'svelte';
+
+onMount(() => {
+	themeStore.init();
+});
+```
+
+**Returns:** Optional cleanup function
+
+#### `toggle()`
+
+Toggle between light and dark modes.
+
+```typescript
+themeStore.toggle();
+```
+
+#### `setTheme(isDark: boolean)`
+
+Set a specific theme mode.
+
+```typescript
+themeStore.setTheme(true); // Dark mode
+themeStore.setTheme(false); // Light mode
+```
+
+#### `subscribe(callback)`
+
+Subscribe to theme changes.
+
+```typescript
+const unsubscribe = themeStore.subscribe((state) => {
+	console.log('Dark mode:', state.isDark);
+	console.log('Mounted:', state.mounted);
+});
+
+// Don't forget to unsubscribe
+unsubscribe();
+```
+
+**State Properties:**
+
+- `isDark: boolean` - Current theme state (true = dark, false = light)
+- `mounted: boolean` - Whether the store has been initialized
+
+---
+
+## Client
+
+### SiteStandardClient
+
+Main client for fetching AT Protocol records.
+
+```typescript
+class SiteStandardClient {
+	constructor(config: SiteStandardConfig);
+
+	// Fetch methods
+	fetchPublication(
+		rkey: string,
+		fetchFn?: typeof fetch
+	): Promise<AtProtoRecord<Publication> | null>;
+	fetchAllPublications(fetchFn?: typeof fetch): Promise<AtProtoRecord<Publication>[]>;
+	fetchDocument(rkey: string, fetchFn?: typeof fetch): Promise<AtProtoRecord<Document> | null>;
+	fetchAllDocuments(fetchFn?: typeof fetch): Promise<AtProtoRecord<Document>[]>;
+	fetchDocumentsByPublication(
+		publicationUri: string,
+		fetchFn?: typeof fetch
+	): Promise<AtProtoRecord<Document>[]>;
+	fetchByAtUri<T>(atUri: string, fetchFn?: typeof fetch): Promise<AtProtoRecord<T> | null>;
+
+	// Utility methods
+	clearCache(): void;
+	getPDS(fetchFn?: typeof fetch): Promise<string>;
+}
+```
+
+### createClient()
+
+Factory function for creating a client instance.
+
+```typescript
+function createClient(config: SiteStandardConfig): SiteStandardClient;
+```
+
+**Usage:**
 
 ```typescript
 import { createClient } from 'svelte-standard-site';
 
 const client = createClient({
-	did: 'did:plc:revjuqmkvrw6fnkxppqtszpv',
-	pds: 'https://cortinarius.us-west.host.bsky.network', // optional
-	cacheTTL: 300000 // optional, in ms
+	did: 'did:plc:your-did-here',
+	pds: 'https://your-pds.example.com', // optional
+	cacheTTL: 300000 // optional, 5 minutes
 });
 ```
 
+---
+
 ### Methods
 
-#### `fetchPublication`
+#### `fetchPublication(rkey, fetchFn?)`
 
-```typescript
-async fetchPublication(
-  rkey: string,
-  fetchFn?: typeof fetch
-): Promise<AtProtoRecord<Publication> | null>
-```
-
-Fetches a single publication by its record key.
+Fetch a single publication by record key.
 
 **Parameters:**
 
-- `rkey` (string): The record key (TID) of the publication
-- `fetchFn` (typeof fetch, optional): Custom fetch function for SSR
+- `rkey: string` - The record key
+- `fetchFn?: typeof fetch` - Optional custom fetch function (for SSR)
 
-**Returns:** Promise resolving to the publication record or null if not found
+**Returns:** `Promise<AtProtoRecord<Publication> | null>`
 
 **Example:**
 
@@ -67,140 +310,102 @@ if (pub) {
 }
 ```
 
-#### `fetchAllPublications`
+---
 
-```typescript
-async fetchAllPublications(
-  fetchFn?: typeof fetch
-): Promise<AtProtoRecord<Publication>[]>
-```
+#### `fetchAllPublications(fetchFn?)`
 
-Fetches all publications for the configured DID with automatic pagination.
+Fetch all publications for the configured DID.
 
 **Parameters:**
 
-- `fetchFn` (typeof fetch, optional): Custom fetch function for SSR
+- `fetchFn?: typeof fetch` - Optional custom fetch function
 
-**Returns:** Promise resolving to an array of publication records
+**Returns:** `Promise<AtProtoRecord<Publication>[]>`
 
 **Example:**
 
 ```typescript
-const publications = await client.fetchAllPublications(fetch);
-console.log(`Found ${publications.length} publications`);
+const pubs = await client.fetchAllPublications();
+console.log(`Found ${pubs.length} publications`);
 ```
 
-#### `fetchDocument`
+---
 
-```typescript
-async fetchDocument(
-  rkey: string,
-  fetchFn?: typeof fetch
-): Promise<AtProtoRecord<Document> | null>
-```
+#### `fetchDocument(rkey, fetchFn?)`
 
-Fetches a single document by its record key.
+Fetch a single document by record key.
 
 **Parameters:**
 
-- `rkey` (string): The record key (TID) of the document
-- `fetchFn` (typeof fetch, optional): Custom fetch function for SSR
+- `rkey: string` - The record key
+- `fetchFn?: typeof fetch` - Optional custom fetch function
 
-**Returns:** Promise resolving to the document record or null if not found
+**Returns:** `Promise<AtProtoRecord<Document> | null>`
+
+---
+
+#### `fetchAllDocuments(fetchFn?)`
+
+Fetch all documents, sorted by `publishedAt` (newest first).
+
+**Parameters:**
+
+- `fetchFn?: typeof fetch` - Optional custom fetch function
+
+**Returns:** `Promise<AtProtoRecord<Document>[]>`
 
 **Example:**
 
 ```typescript
-const doc = await client.fetchDocument('3lxbm5kqrs2s');
-if (doc) {
-	console.log(doc.value.title);
-}
+const docs = await client.fetchAllDocuments();
+const latest = docs[0]; // Most recent document
 ```
 
-#### `fetchAllDocuments`
+---
 
-```typescript
-async fetchAllDocuments(
-  fetchFn?: typeof fetch
-): Promise<AtProtoRecord<Document>[]>
-```
+#### `fetchDocumentsByPublication(publicationUri, fetchFn?)`
 
-Fetches all documents for the configured DID with automatic pagination. Results are sorted by `publishedAt` (newest first).
+Fetch all documents belonging to a specific publication.
 
 **Parameters:**
 
-- `fetchFn` (typeof fetch, optional): Custom fetch function for SSR
+- `publicationUri: string` - AT URI of the publication
+- `fetchFn?: typeof fetch` - Optional custom fetch function
 
-**Returns:** Promise resolving to an array of document records
-
-**Example:**
-
-```typescript
-const documents = await client.fetchAllDocuments(fetch);
-documents.forEach((doc) => {
-	console.log(doc.value.title, new Date(doc.value.publishedAt));
-});
-```
-
-#### `fetchDocumentsByPublication`
-
-```typescript
-async fetchDocumentsByPublication(
-  publicationUri: string,
-  fetchFn?: typeof fetch
-): Promise<AtProtoRecord<Document>[]>
-```
-
-Fetches all documents that belong to a specific publication.
-
-**Parameters:**
-
-- `publicationUri` (string): AT URI of the publication
-- `fetchFn` (typeof fetch, optional): Custom fetch function for SSR
-
-**Returns:** Promise resolving to an array of document records
+**Returns:** `Promise<AtProtoRecord<Document>[]>`
 
 **Example:**
 
 ```typescript
 const docs = await client.fetchDocumentsByPublication(
-	'at://did:plc:xxx/site.standard.publication/3lwafzkjqm25s'
+	'at://did:plc:xxx/site.standard.publication/rkey'
 );
 ```
 
-#### `fetchByAtUri`
+---
 
-```typescript
-async fetchByAtUri<T = Publication | Document>(
-  atUri: string,
-  fetchFn?: typeof fetch
-): Promise<AtProtoRecord<T> | null>
-```
+#### `fetchByAtUri<T>(atUri, fetchFn?)`
 
-Fetches a record by its full AT URI.
+Fetch any record by its AT URI.
 
 **Parameters:**
 
-- `atUri` (string): Full AT URI of the record
-- `fetchFn` (typeof fetch, optional): Custom fetch function for SSR
+- `atUri: string` - The AT URI
+- `fetchFn?: typeof fetch` - Optional custom fetch function
 
-**Returns:** Promise resolving to the record or null if not found
+**Returns:** `Promise<AtProtoRecord<T> | null>`
 
 **Example:**
 
 ```typescript
-const record = await client.fetchByAtUri(
-	'at://did:plc:xxx/site.standard.publication/3lwafzkjqm25s'
-);
+const record = await client.fetchByAtUri<Document>('at://did:plc:xxx/site.standard.document/rkey');
 ```
 
-#### `clearCache`
+---
 
-```typescript
-clearCache(): void
-```
+#### `clearCache()`
 
-Clears all cached data.
+Clear all cached data.
 
 **Example:**
 
@@ -208,43 +413,52 @@ Clears all cached data.
 client.clearCache();
 ```
 
-#### `getPDS`
+---
 
-```typescript
-async getPDS(fetchFn?: typeof fetch): Promise<string>
-```
+#### `getPDS(fetchFn?)`
 
-Gets the resolved PDS endpoint for the configured DID.
+Get the resolved PDS endpoint for the configured DID.
 
-**Returns:** Promise resolving to the PDS URL
+**Parameters:**
+
+- `fetchFn?: typeof fetch` - Optional custom fetch function
+
+**Returns:** `Promise<string>`
 
 **Example:**
 
 ```typescript
 const pds = await client.getPDS();
-console.log('Using PDS:', pds);
+console.log(`Using PDS: ${pds}`);
 ```
+
+---
 
 ## Types
 
-### SiteStandardConfig
-
-Configuration object for the client.
+### Core Types
 
 ```typescript
-interface SiteStandardConfig {
-	/** The DID to fetch records from */
-	did: string;
-	/** Optional custom PDS endpoint */
-	pds?: string;
-	/** Cache TTL in milliseconds (default: 5 minutes) */
-	cacheTTL?: number;
+interface AtProtoRecord<T> {
+	uri: string;
+	cid: string;
+	value: T;
+}
+
+interface AtProtoBlob {
+	$type: 'blob';
+	ref: { $link: string };
+	mimeType: string;
+	size: number;
+}
+
+interface StrongRef {
+	uri: string;
+	cid: string;
 }
 ```
 
-### Publication
-
-Represents a site.standard.publication record.
+### Publication Types
 
 ```typescript
 interface Publication {
@@ -256,373 +470,271 @@ interface Publication {
 	basicTheme?: BasicTheme;
 	preferences?: PublicationPreferences;
 }
+
+interface BasicTheme {
+	primary: RGBColor;
+	secondary: RGBColor;
+	accent: RGBColor;
+}
+
+interface RGBColor {
+	r: number; // 0-255
+	g: number; // 0-255
+	b: number; // 0-255
+}
+
+interface PublicationPreferences {
+	defaultShowCoverImage?: boolean;
+	allowComments?: boolean;
+	allowReactions?: boolean;
+}
 ```
 
-### Document
-
-Represents a site.standard.document record.
+### Document Types
 
 ```typescript
 interface Document {
 	$type: 'site.standard.document';
-	site: string; // AT URI or HTTPS URL
+	site: string; // AT URI or HTTPS URL to publication
 	title: string;
 	path?: string;
 	description?: string;
 	coverImage?: AtProtoBlob;
-	content?: any;
-	textContent?: string;
-	bskyPostRef?: StrongRef;
+	content?: any; // Rich content object
+	textContent?: string; // Plain text fallback
+	bskyPostRef?: StrongRef; // Reference to Bluesky post
 	tags?: string[];
 	publishedAt: string; // ISO 8601 datetime
 	updatedAt?: string; // ISO 8601 datetime
 }
 ```
 
-### AtProtoRecord
-
-Generic wrapper for AT Protocol records.
+### Configuration Types
 
 ```typescript
-interface AtProtoRecord<T> {
-	uri: string; // AT URI of the record
-	cid: string; // Content identifier
-	value: T; // The actual record value
+interface SiteStandardConfig {
+	did: string;
+	pds?: string; // Optional, auto-resolved if not provided
+	cacheTTL?: number; // Cache time-to-live in milliseconds
 }
-```
 
-### AtProtoBlob
-
-Represents a blob (file) in AT Protocol.
-
-```typescript
-interface AtProtoBlob {
-	$type: 'blob';
-	ref: {
-		$link: string; // CID or full URL after enhancement
-	};
-	mimeType: string;
-	size: number;
-}
-```
-
-### BasicTheme
-
-Theme configuration for a publication.
-
-```typescript
-interface BasicTheme {
-	$type: 'site.standard.theme.basic';
-	accentColor?: string; // Hex color
-	backgroundColor?: string; // Hex color
-	textColor?: string; // Hex color
-}
-```
-
-### StrongRef
-
-Reference to another AT Protocol record.
-
-```typescript
-interface StrongRef {
-	uri: string; // AT URI
-	cid: string; // Content identifier
-}
-```
-
-### ResolvedIdentity
-
-Result of DID resolution.
-
-```typescript
 interface ResolvedIdentity {
 	did: string;
-	pds: string; // PDS endpoint URL
-	handle?: string; // User handle
+	pds: string;
+	handle?: string;
 }
 ```
 
-## Utility Functions
+---
+
+## Utilities
 
 ### AT URI Utilities
 
-#### `parseAtUri`
+#### `parseAtUri(uri: string)`
+
+Parse an AT URI into its components.
 
 ```typescript
-function parseAtUri(atUri: string): ParsedAtUri | null;
-```
-
-Parses an AT URI into its components.
-
-**Example:**
-
-```typescript
-import { parseAtUri } from 'svelte-standard-site';
-
 const parsed = parseAtUri('at://did:plc:xxx/site.standard.publication/rkey');
-// { did: 'did:plc:xxx', collection: 'site.standard.publication', rkey: 'rkey' }
+// Returns: { did: 'did:plc:xxx', collection: 'site.standard.publication', rkey: 'rkey' }
 ```
 
-#### `atUriToHttps`
+#### `buildAtUri(did: string, collection: string, rkey: string)`
+
+Build an AT URI from components.
 
 ```typescript
-function atUriToHttps(atUri: string, pdsEndpoint: string): string | null;
+const uri = buildAtUri('did:plc:xxx', 'site.standard.publication', 'rkey');
+// Returns: 'at://did:plc:xxx/site.standard.publication/rkey'
 ```
 
-Converts an AT URI to an HTTPS URL for the getRecord XRPC endpoint.
+#### `extractRkey(uri: string)`
 
-**Example:**
+Extract the record key from an AT URI.
 
 ```typescript
-import { atUriToHttps } from 'svelte-standard-site';
+const rkey = extractRkey('at://did:plc:xxx/site.standard.publication/rkey');
+// Returns: 'rkey'
+```
 
+#### `isAtUri(value: string)`
+
+Check if a string is a valid AT URI.
+
+```typescript
+const valid = isAtUri('at://did:plc:xxx/site.standard.publication/rkey');
+// Returns: true
+```
+
+#### `atUriToHttps(atUri: string, pds: string)`
+
+Convert an AT URI to an HTTPS URL for API calls.
+
+```typescript
 const url = atUriToHttps(
 	'at://did:plc:xxx/site.standard.publication/rkey',
 	'https://pds.example.com'
 );
+// Returns: 'https://pds.example.com/xrpc/com.atproto.repo.getRecord?repo=...'
 ```
 
-#### `buildAtUri`
+---
+
+### Identity Resolution
+
+#### `resolveIdentity(did: string, fetchFn?: typeof fetch)`
+
+Resolve a DID to its PDS endpoint and handle.
 
 ```typescript
-function buildAtUri(did: string, collection: string, rkey: string): string;
-```
-
-Constructs an AT URI from components.
-
-**Example:**
-
-```typescript
-import { buildAtUri } from 'svelte-standard-site';
-
-const uri = buildAtUri('did:plc:xxx', 'site.standard.publication', 'rkey');
-// 'at://did:plc:xxx/site.standard.publication/rkey'
-```
-
-#### `extractRkey`
-
-```typescript
-function extractRkey(atUri: string): string | null;
-```
-
-Extracts the record key from an AT URI.
-
-**Example:**
-
-```typescript
-import { extractRkey } from 'svelte-standard-site';
-
-const rkey = extractRkey('at://did:plc:xxx/site.standard.publication/3lwafzkjqm25s');
-// '3lwafzkjqm25s'
-```
-
-#### `isAtUri`
-
-```typescript
-function isAtUri(uri: string): boolean;
-```
-
-Validates if a string is a valid AT URI.
-
-**Example:**
-
-```typescript
-import { isAtUri } from 'svelte-standard-site';
-
-console.log(isAtUri('at://did:plc:xxx/collection/rkey')); // true
-console.log(isAtUri('https://example.com')); // false
-```
-
-### Agent Utilities
-
-#### `resolveIdentity`
-
-```typescript
-async function resolveIdentity(did: string, fetchFn?: typeof fetch): Promise<ResolvedIdentity>;
-```
-
-Resolves a DID to its PDS endpoint using Slingshot.
-
-**Example:**
-
-```typescript
-import { resolveIdentity } from 'svelte-standard-site';
-
 const identity = await resolveIdentity('did:plc:xxx');
-console.log(identity.pds); // 'https://...'
+// Returns: { did: 'did:plc:xxx', pds: 'https://...', handle: 'user.bsky.social' }
 ```
 
-#### `buildPdsBlobUrl`
+---
+
+### Blob Utilities
+
+#### `buildPdsBlobUrl(pds: string, did: string, cid: string)`
+
+Build a URL for fetching blob content.
 
 ```typescript
-function buildPdsBlobUrl(pds: string, did: string, cid: string): string;
-```
-
-Constructs a blob URL for retrieving files from a PDS.
-
-**Example:**
-
-```typescript
-import { buildPdsBlobUrl } from 'svelte-standard-site';
-
 const url = buildPdsBlobUrl('https://pds.example.com', 'did:plc:xxx', 'bafyrei...');
 ```
 
-### Cache
+---
 
-#### `cache`
+### Theme Utilities
 
-Global cache instance used by the library.
+#### `rgbToCSS(color: RGBColor)`
+
+Convert an RGB color object to CSS rgb() string.
 
 ```typescript
-const cache: Cache;
+const css = rgbToCSS({ r: 100, g: 150, b: 200 });
+// Returns: 'rgb(100, 150, 200)'
 ```
 
-**Methods:**
+#### `rgbToHex(color: RGBColor)`
 
-- `get<T>(key: string): T | null` - Get cached value
-- `set<T>(key: string, value: T, ttl?: number): void` - Set cached value
-- `delete(key: string): void` - Delete cached value
-- `clear(): void` - Clear all cached values
-- `setDefaultTTL(ttl: number): void` - Set default TTL
+Convert an RGB color object to hex string.
 
-**Example:**
+```typescript
+const hex = rgbToHex({ r: 100, g: 150, b: 200 });
+// Returns: '#6496c8'
+```
+
+#### `getThemeVars(theme: BasicTheme)`
+
+Convert a BasicTheme to CSS custom properties object.
+
+```typescript
+const vars = getThemeVars({
+	primary: { r: 100, g: 150, b: 200 },
+	secondary: { r: 150, g: 100, b: 200 },
+	accent: { r: 200, g: 100, b: 150 }
+});
+// Returns: { '--theme-primary': 'rgb(100, 150, 200)', ... }
+```
+
+---
+
+### Document Utilities
+
+#### `getDocumentSlug(document: AtProtoRecord<Document>)`
+
+Generate a URL slug from a document's path or URI.
+
+```typescript
+const slug = getDocumentSlug(document);
+```
+
+#### `getDocumentUrl(document: AtProtoRecord<Document>, publicationRkey?: string)`
+
+Generate a full URL path for a document.
+
+```typescript
+const url = getDocumentUrl(document, 'pub123');
+// Returns: '/pub123/doc456' or custom path
+```
+
+---
+
+### Cache Utilities
+
+The library includes built-in caching with automatic expiration.
 
 ```typescript
 import { cache } from 'svelte-standard-site';
 
-// Manual cache manipulation
-const data = cache.get('my-key');
-cache.set('my-key', { some: 'data' }, 60000);
+// Get cached value
+const value = cache.get<MyType>('my-key');
+
+// Set cached value
+cache.set('my-key', myValue, 300000); // 5 minutes TTL
+
+// Delete cached value
+cache.delete('my-key');
+
+// Clear all cache
 cache.clear();
 ```
 
-## Components
+---
 
-### PublicationCard
+## Environment Configuration
 
-Displays a publication card with icon, name, description, and link.
+### getConfigFromEnv()
 
-**Props:**
-
-```typescript
-interface Props {
-	publication: AtProtoRecord<Publication>;
-	class?: string;
-}
-```
-
-**Example:**
-
-```svelte
-<script>
-	import { PublicationCard } from 'svelte-standard-site';
-
-	export let data;
-</script>
-
-<PublicationCard publication={data.publication} class="my-custom-class" />
-```
-
-**Styling:**
-
-The component uses scoped CSS but exposes the following classes for customization:
-
-- `.publication-card`
-- `.publication-header`
-- `.publication-icon`
-- `.publication-info`
-- `.publication-name`
-- `.publication-description`
-- `.publication-link`
-
-### DocumentCard
-
-Displays a document card with cover image, title, description, metadata, and tags.
-
-**Props:**
-
-```typescript
-interface Props {
-	document: AtProtoRecord<Document>;
-	class?: string;
-	showCover?: boolean;
-}
-```
-
-**Example:**
-
-```svelte
-<script>
-	import { DocumentCard } from 'svelte-standard-site';
-
-	export let data;
-</script>
-
-<DocumentCard document={data.document} showCover={true} class="my-custom-class" />
-```
-
-**Styling:**
-
-The component uses scoped CSS but exposes the following classes:
-
-- `.document-card`
-- `.document-content`
-- `.document-cover`
-- `.document-body`
-- `.document-title`
-- `.document-description`
-- `.document-meta`
-- `.document-date`
-- `.document-updated`
-- `.document-tags`
-- `.tag`
-
-## Configuration
-
-### Environment Variables
-
-#### `getConfigFromEnv`
-
-```typescript
-function getConfigFromEnv(): SiteStandardConfig | null;
-```
-
-Reads configuration from environment variables.
-
-**Environment Variables:**
-
-- `PUBLIC_ATPROTO_DID` (required): The DID to fetch records from
-- `PUBLIC_ATPROTO_PDS` (optional): Custom PDS endpoint
-- `PUBLIC_CACHE_TTL` (optional): Cache TTL in milliseconds
-
-**Example:**
+Read configuration from environment variables.
 
 ```typescript
 import { getConfigFromEnv } from 'svelte-standard-site/config/env';
 
 const config = getConfigFromEnv();
-if (config) {
-	const client = createClient(config);
-}
+// Returns: { did: '...', pds: '...', cacheTTL: ... } or null
 ```
 
-#### `validateEnv`
+**Environment Variables:**
 
-```typescript
-function validateEnv(): void;
-```
+- `PUBLIC_ATPROTO_DID` - Required DID
+- `PUBLIC_ATPROTO_PDS` - Optional PDS endpoint
+- `PUBLIC_CACHE_TTL` - Optional cache TTL in milliseconds
 
-Validates that required environment variables are set. Throws an error if validation fails.
+### validateEnv()
 
-**Example:**
+Validate that required environment variables are set. Throws if missing.
 
 ```typescript
 import { validateEnv } from 'svelte-standard-site/config/env';
 
+validateEnv(); // Throws if PUBLIC_ATPROTO_DID is not set
+```
+
+---
+
+## Error Handling
+
+All async methods can throw errors. Always use try-catch:
+
+```typescript
 try {
-	validateEnv();
+	const docs = await client.fetchAllDocuments();
+	// Handle success
 } catch (error) {
-	console.error('Missing required environment variables');
+	console.error('Failed to fetch documents:', error);
+	// Handle error
 }
 ```
+
+## Performance Tips
+
+1. **Pass fetch function in SSR** for proper request tracking
+2. **Use caching** - it's built-in and automatic
+3. **Batch requests** with `Promise.all()` when possible
+4. **Clear cache** strategically if data changes frequently
+5. **Pre-render static pages** for better performance
+
+For more examples, see [EXAMPLES.md](./EXAMPLES.md).
