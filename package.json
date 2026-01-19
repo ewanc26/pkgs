@@ -1,7 +1,7 @@
 {
 	"name": "svelte-standard-site",
 	"version": "0.0.1",
-	"description": "A SvelteKit library for fetching site.standard.* records from the AT Protocol",
+	"description": "A comprehensive SvelteKit library for building sites powered by site.standard.* records from the AT Protocol, with a complete design system and pre-built components",
 	"license": "AGPL-3.0",
 	"author": {
 		"name": "Ewan Croft",
@@ -37,10 +37,17 @@
 		"./config/env": {
 			"types": "./dist/config/env.d.ts",
 			"default": "./dist/config/env.js"
+		},
+		"./styles/base.css": {
+			"default": "./dist/styles/base.css"
+		},
+		"./styles/themes.css": {
+			"default": "./dist/styles/themes.css"
 		}
 	},
 	"peerDependencies": {
-		"svelte": "^5.0.0"
+		"svelte": "^5.0.0",
+		"@sveltejs/kit": "^2.0.0"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.0",
@@ -67,7 +74,12 @@
 		"bluesky",
 		"site-standard",
 		"blog",
-		"cms"
+		"cms",
+		"design-system",
+		"components",
+		"dark-mode",
+		"light-mode",
+		"theme"
 	],
 	"repository": {
 		"type": "git",
@@ -78,6 +90,7 @@
 		"url": "https://github.com/ewanc26/svelte-standard-site/issues"
 	},
 	"dependencies": {
-		"@atproto/api": "^0.18.16"
+		"@atproto/api": "^0.18.16",
+		"@lucide/svelte": "^0.562.0"
 	}
 }
