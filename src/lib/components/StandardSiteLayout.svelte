@@ -87,7 +87,8 @@
 			<div class="text-ink-700 dark:text-ink-200 container mx-auto px-4 text-center text-sm">
 				<p>
 					&copy; {new Date().getFullYear()}
-					{title}. Powered by svelte-standard-site and the AT Protocol. Created by <a
+					{title}. Powered by svelte-standard-site and the AT Protocol. Created by
+					<a
 						href="https://ewancroft.uk"
 						target="_blank"
 						rel="noopener noreferrer"

@@ -224,6 +224,7 @@ Consistently formats and displays dates with automatic locale detection.
 - `locale?: string` - Locale override (default: browser locale)
 
 **Features:**
+
 - Automatically detects user's browser locale
 - Supports custom locale override
 - Examples: "January 19, 2026" (en-US), "19 janvier 2026" (fr-FR)
@@ -264,12 +265,8 @@ Wraps content with theme CSS variables applied.
 Displays text with theme-aware colors.
 
 ```svelte
-<ThemedText hasTheme={!!theme} element="h1" class="text-4xl">
-	Title
-</ThemedText>
-<ThemedText hasTheme={!!theme} opacity={70} element="p">
-	Description
-</ThemedText>
+<ThemedText hasTheme={!!theme} element="h1" class="text-4xl">Title</ThemedText>
+<ThemedText hasTheme={!!theme} opacity={70} element="p">Description</ThemedText>
 ```
 
 **Props:**
