@@ -1,6 +1,6 @@
 {
 	"name": "svelte-standard-site",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"description": "A comprehensive SvelteKit library for building sites powered by site.standard.* records from the AT Protocol, with a complete design system and pre-built components",
 	"license": "AGPL-3.0",
 	"author": {
