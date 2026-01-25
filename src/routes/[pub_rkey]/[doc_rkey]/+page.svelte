@@ -4,6 +4,7 @@
 	import { extractRkey } from '$lib/utils/document.js';
 	import { ThemedContainer, ThemedText, DateDisplay, TagList } from '$lib/components/index.js';
 	import { mixThemeColor } from '$lib/utils/theme-helpers.js';
+	import DocumentRenderer from '$lib/components/document/DocumentRenderer.svelte';
 
 	const { data }: { data: PageData } = $props();
 
@@ -119,35 +120,8 @@
 			</div>
 		{/if}
 
-		<!-- Content -->
-		<div
-			class="prose prose-lg max-w-none"
-			style:color={hasTheme ? 'var(--theme-foreground)' : undefined}
-		>
-			{#if data.document.value.textContent}
-				<div class="leading-relaxed">{data.document.value.textContent}</div>
-			{:else if data.document.value.content}
-				<div
-					class="rounded-xl border p-6"
-					style:border-color={hasTheme ? mixThemeColor('--theme-foreground', 20) : undefined}
-					style:background-color={hasTheme ? mixThemeColor('--theme-foreground', 5) : undefined}
-				>
-					<p
-						class="mb-3 text-sm font-semibold uppercase tracking-wider"
-						style:color={hasTheme ? mixThemeColor('--theme-foreground', 60) : undefined}
-					>
-						Raw Content
-					</p>
-					<pre
-						class="overflow-x-auto text-xs leading-relaxed"
-						style:color={hasTheme ? 'var(--theme-foreground)' : undefined}>{JSON.stringify(data.document.value.content, null, 2)}</pre>
-				</div>
-			{:else}
-				<ThemedText {hasTheme} opacity={50} element="p" class="italic">
-					No content available
-				</ThemedText>
-			{/if}
-		</div>
+		<!-- Document Content -->
+		<DocumentRenderer document={data.document.value} {hasTheme} />
 
 		<!-- Tags -->
 		{#if data.document.value.tags && data.document.value.tags.length > 0}
