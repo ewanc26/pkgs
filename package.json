@@ -16,7 +16,9 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check ."
+		"lint": "prettier --check .",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"files": [
 		"dist",
@@ -33,6 +35,26 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"svelte": "./dist/index.js"
+		},
+		"./publisher": {
+			"types": "./dist/publisher.d.ts",
+			"default": "./dist/publisher.js"
+		},
+		"./content": {
+			"types": "./dist/utils/content.d.ts",
+			"default": "./dist/utils/content.js"
+		},
+		"./comments": {
+			"types": "./dist/utils/comments.d.ts",
+			"default": "./dist/utils/comments.js"
+		},
+		"./verification": {
+			"types": "./dist/utils/verification.d.ts",
+			"default": "./dist/utils/verification.js"
+		},
+		"./schemas": {
+			"types": "./dist/schemas.d.ts",
+			"default": "./dist/schemas.js"
 		},
 		"./config/env": {
 			"types": "./dist/config/env.d.ts",
@@ -56,6 +78,7 @@
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.1.17",
+		"@types/node": "^22.0.0",
 		"prettier": "^3.7.4",
 		"prettier-plugin-svelte": "^3.4.0",
 		"prettier-plugin-tailwindcss": "^0.7.2",
@@ -64,7 +87,8 @@
 		"svelte-check": "^4.3.4",
 		"tailwindcss": "^4.1.17",
 		"typescript": "^5.9.3",
-		"vite": "^7.2.6"
+		"vite": "^7.2.6",
+		"vitest": "^4.0.16"
 	},
 	"keywords": [
 		"svelte",
@@ -79,7 +103,10 @@
 		"components",
 		"dark-mode",
 		"light-mode",
-		"theme"
+		"theme",
+		"publishing",
+		"federation",
+		"comments"
 	],
 	"repository": {
 		"type": "git",
@@ -93,6 +120,7 @@
 		"@atproto/api": "^0.18.16",
 		"@lucide/svelte": "^0.562.0",
 		"katex": "^0.16.27",
-		"shiki": "^3.21.0"
+		"shiki": "^3.21.0",
+		"zod": "^3.24.0"
 	}
 }

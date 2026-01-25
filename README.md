@@ -1,308 +1,344 @@
 # svelte-standard-site
 
-A comprehensive SvelteKit library for building sites powered by `site.standard.*` records from the AT Protocol. Includes a complete design system with light/dark mode support and pre-built components.
+A comprehensive SvelteKit library for ATProto longform publishing. **Read AND write** to the federated web with `site.standard.*` records. Includes a complete design system, publishing tools, federated comments, and pre-built components.
 
 Also on [Tangled](https://tangled.org/did:plc:ofrbh253gwicbkc5nktqepol/svelte-standard-site).
 
 ## Features
 
-- 🎨 **Complete Design System** - Beautiful, accessible design language with ink, canvas, primary, secondary, and accent color palettes
-- 🌓 **Light/Dark Mode** - Built-in theme toggle with system preference detection and zero FOUC
-- 🧩 **Pre-built Components** - Ready-to-use cards, layouts, and UI elements
-- 🔧 **Modular Architecture** - Reusable utility components for consistent theming and formatting
+### Core Functionality
+- ✍️ **Publishing** - Publish content TO ATProto (Bluesky, Leaflet, WhiteWind)
+- 📖 **Reading** - Fetch and display content FROM ATProto
+- 💬 **Comments** - Federated Bluesky comments on your blog
+- ✅ **Verification** - Prove content ownership with `.well-known` endpoints
+- 🔄 **Content Transformation** - Convert markdown for ATProto compatibility
+
+### UI & Design
+- 🎨 **Complete Design System** - Beautiful, accessible color palettes (ink, canvas, primary, secondary, accent)
+- 🌓 **Light/Dark Mode** - Built-in theme toggle with system preference detection
+- 🧩 **Pre-built Components** - Cards, layouts, document renderers, and UI elements
+- 🔧 **Modular Architecture** - Reusable utility components for theming and formatting
 - 🌍 **Internationalization** - Automatic locale-aware date formatting
-- 🔄 **Automatic PDS Resolution** - Resolves DIDs to their Personal Data Server endpoints
-- 📦 **Type-Safe** - Full TypeScript support with complete type definitions
-- 🚀 **SSR Ready** - Works seamlessly with SvelteKit's server-side rendering
-- 💾 **Built-in Caching** - Reduces API calls with intelligent caching
-- 🎯 **Customizable** - All components respect `site.standard.*` lexicons while allowing full customization
-- 🔗 **AT URI Support** - Parse and convert AT URIs to HTTPS URLs
-- ♿ **Accessible** - WCAG compliant with proper ARIA labels and keyboard navigation
+- ♿ **Accessible** - WCAG compliant with proper ARIA labels
+
+### Developer Experience
+- 📦 **Type-Safe** - Full TypeScript support with Zod validation
+- 🚀 **SSR Ready** - Works seamlessly with SvelteKit
+- 💾 **Built-in Caching** - Reduces API calls intelligently
+- 🔄 **Automatic PDS Resolution** - Resolves DIDs to PDS endpoints
+- 🔗 **AT URI Support** - Parse and convert AT URIs
+- 🧪 **Tested** - Includes test suite with Vitest
+
+## Use Cases
+
+| You want to... | Use |
+|----------------|-----|
+| Show Bluesky replies as comments | `<Comments />` component |
+| Publish blog posts to ATProto | `StandardSitePublisher` |
+| Pull ATProto posts into your site | `SiteStandardClient` (reader) |
+| Verify you own your content | Verification helpers |
+| Transform markdown for ATProto | Content utilities |
+
+You can mix and match — use comments without publishing, or publish without reading, etc.
 
 ## Installation
 
 ```bash
-pnpm add svelte-standard-site
-# or
-npm install svelte-standard-site
-# or
-yarn add svelte-standard-site
+pnpm add svelte-standard-site && # THIS PACKAGE IS NOT YET PUBLISHED TO NPM
+pnpm add zod
 ```
 
 ## Quick Start
 
-### 1. Import Base Styles
+### Reading from ATProto
 
-In your root `+layout.svelte`:
-
-```svelte
-<script>
-	import 'svelte-standard-site/styles/base.css';
-</script>
-```
-
-### 2. Configure Environment Variables
-
-Create a `.env` file in your project root:
-
-```env
-PUBLIC_ATPROTO_DID=did:plc:your-did-here
-# Optional: specify a custom PDS endpoint
-PUBLIC_ATPROTO_PDS=https://your-pds.example.com
-# Optional: cache TTL in milliseconds (default: 300000 = 5 minutes)
-PUBLIC_CACHE_TTL=300000
-```
-
-### 3. Use the Layout Component
-
-The simplest way to get started is with the `StandardSiteLayout` component:
-
-```svelte
-<script lang="ts">
-	import { StandardSiteLayout } from 'svelte-standard-site';
-</script>
-
-<StandardSiteLayout title="My Site" showThemeToggle={true}>
-	<h1>Welcome to my site!</h1>
-	<p>Powered by site.standard records.</p>
-</StandardSiteLayout>
-```
-
-### 4. Fetch and Display Records
-
-```typescript
-// src/routes/+page.server.ts
-import { createClient } from 'svelte-standard-site';
-import { getConfigFromEnv } from 'svelte-standard-site/config/env';
-import type { PageServerLoad } from './$types';
-
-export const load: PageServerLoad = async ({ fetch }) => {
-	const config = getConfigFromEnv();
-	if (!config) {
-		throw new Error('Missing configuration');
-	}
-
-	const client = createClient(config);
-
-	const [publications, documents] = await Promise.all([
-		client.fetchAllPublications(fetch),
-		client.fetchAllDocuments(fetch)
-	]);
-
-	return {
-		publications,
-		documents
-	};
-};
-```
+Display content from Leaflet, WhiteWind, or other ATProto sources:
 
 ```svelte
 <!-- src/routes/+page.svelte -->
 <script lang="ts">
-	import { StandardSiteLayout, PublicationCard, DocumentCard } from 'svelte-standard-site';
+	import { StandardSiteLayout, DocumentCard } from 'svelte-standard-site';
 	import type { PageData } from './$types';
 
 	const { data }: { data: PageData } = $props();
 </script>
 
-<StandardSiteLayout title="My Publications">
-	<section>
-		<h2>Publications</h2>
-		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-			{#each data.publications as publication}
-				<PublicationCard {publication} />
-			{/each}
-		</div>
-	</section>
-
-	<section>
-		<h2>Recent Posts</h2>
-		<div class="space-y-6">
-			{#each data.documents as document}
-				<DocumentCard {document} showCover={true} />
-			{/each}
-		</div>
-	</section>
+<StandardSiteLayout title="My Blog">
+	{#each data.documents as document}
+		<DocumentCard {document} showCover={true} />
+	{/each}
 </StandardSiteLayout>
 ```
+
+```typescript
+// src/routes/+page.server.ts
+import { createClient } from 'svelte-standard-site';
+import { getConfigFromEnv } from 'svelte-standard-site/config/env';
+
+export const load = async ({ fetch }) => {
+	const config = getConfigFromEnv(); // Reads from env vars
+	const client = createClient(config);
+	const documents = await client.fetchAllDocuments(fetch);
+	
+	return { documents };
+};
+```
+
+### Publishing to ATProto
+
+Write content FROM your blog TO the ATProto network:
+
+```typescript
+// scripts/publish-post.ts
+import { StandardSitePublisher } from 'svelte-standard-site/publisher';
+import { transformContent } from 'svelte-standard-site/content';
+
+const publisher = new StandardSitePublisher({
+	identifier: 'you.bsky.social',
+	password: process.env.ATPROTO_APP_PASSWORD! // App password, not main password
+});
+
+await publisher.login();
+
+// Transform your markdown
+const transformed = transformContent(markdownContent, {
+	baseUrl: 'https://yourblog.com'
+});
+
+// Publish to ATProto
+const result = await publisher.publishDocument({
+	site: 'https://yourblog.com',
+	title: 'My Blog Post',
+	publishedAt: new Date().toISOString(),
+	content: {
+		$type: 'site.standard.content.markdown',
+		text: transformed.markdown,
+		version: '1.0'
+	},
+	textContent: transformed.textContent,
+	tags: ['blog', 'tutorial']
+});
+
+console.log('Published:', result.uri);
+```
+
+### Federated Comments
+
+Display Bluesky replies as comments:
+
+```svelte
+<script lang="ts">
+	import { Comments } from 'svelte-standard-site';
+</script>
+
+<article>
+	<h1>{post.title}</h1>
+	{@html post.content}
+</article>
+
+{#if post.bskyPostUri}
+	<Comments 
+		bskyPostUri={post.bskyPostUri}
+		canonicalUrl="https://yourblog.com/posts/{post.slug}"
+		maxDepth={3}
+	/>
+{/if}
+```
+
+### Content Verification
+
+Prove you own your content:
+
+```typescript
+// src/routes/.well-known/site.standard.publication/+server.ts
+import { text } from '@sveltejs/kit';
+import { generatePublicationWellKnown } from 'svelte-standard-site/verification';
+
+export function GET() {
+	return text(
+		generatePublicationWellKnown({
+			did: 'did:plc:your-did',
+			publicationRkey: '3abc123xyz'
+		})
+	);
+}
+```
+
+## Documentation
+
+### Core Guides
+- **[Publishing Guide](./docs/publishing.md)** - Publish content TO ATProto
+- **[Content Transformation](./docs/content-transformation.md)** - Transform markdown for ATProto
+- **[Verification](./docs/verification.md)** - Prove content ownership
+- **[Comments](./docs/comments.md)** - Federated Bluesky comments
+
+### Complete Examples
+- **[EXAMPLES.md](./EXAMPLES.md)** - Comprehensive usage examples
+- **[CLAUDE.md](./CLAUDE.md)** - AI assistant context and architecture
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Contribution guidelines
 
 ## Components
 
 ### Core Components
 
 #### StandardSiteLayout
-
-A complete page layout with header, footer, and theme management.
+Complete page layout with header, footer, and theme management.
 
 ```svelte
-<StandardSiteLayout title="My Site" showThemeToggle={true} class="custom-class">
-	{#snippet header()}
-		<!-- Custom header -->
-	{/snippet}
-
-	{#snippet footer()}
-		<!-- Custom footer -->
-	{/snippet}
-
-	<!-- Main content -->
+<StandardSiteLayout title="My Site" showThemeToggle={true}>
+	<slot />
 </StandardSiteLayout>
 ```
 
-**Props:**
-
-- `title?: string` - Site title (default: "My Site")
-- `showThemeToggle?: boolean` - Show theme toggle button (default: true)
-- `class?: string` - Additional CSS classes for main container
-- `header?: Snippet` - Custom header snippet (replaces default)
-- `footer?: Snippet` - Custom footer snippet (replaces default)
-- `children: Snippet` - Main content
-
-### ThemeToggle
-
-A button component for toggling between light and dark modes.
-
-```svelte
-<script>
-	import { ThemeToggle } from 'svelte-standard-site';
-</script>
-
-<ThemeToggle class="my-custom-class" />
-```
-
-**Props:**
-
-- `class?: string` - Additional CSS classes
-
 #### DocumentCard
-
-Displays a `site.standard.document` record with title, description, cover image, tags, and dates.
+Displays a `site.standard.document` with title, description, cover, tags, and dates.
 
 ```svelte
-<DocumentCard {document} showCover={true} href="/custom/path" class="custom-class" />
+<DocumentCard {document} showCover={true} />
 ```
-
-**Props:**
-
-- `document: AtProtoRecord<Document>` - The document record (required)
-- `publication?: AtProtoRecord<Publication>` - Optional publication for theme support
-- `showCover?: boolean` - Show cover image (default: true)
-- `href?: string` - Custom href override
-- `class?: string` - Additional CSS classes
 
 #### PublicationCard
-
-Displays a `site.standard.publication` record with icon, name, description, and link.
-
-```svelte
-<PublicationCard {publication} showExternalIcon={true} class="custom-class" />
-```
-
-**Props:**
-
-- `publication: AtProtoRecord<Publication>` - The publication record (required)
-- `showExternalIcon?: boolean` - Show external link icon (default: true)
-- `class?: string` - Additional CSS classes
-
-### Reusable Utility Components
-
-#### DateDisplay
-
-Consistently formats and displays dates with automatic locale detection.
+Displays a `site.standard.publication` with icon, name, and description.
 
 ```svelte
-<DateDisplay date={document.publishedAt} />
-<DateDisplay date={document.updatedAt} label="Updated " showIcon={true} locale="fr-FR" />
+<PublicationCard {publication} />
 ```
 
-**Props:**
-
-- `date: string` - ISO date string (required)
-- `label?: string` - Optional label prefix
-- `class?: string` - Additional CSS classes
-- `showIcon?: boolean` - Show update icon (default: false)
-- `style?: string` - Inline styles
-- `locale?: string` - Locale override (default: browser locale)
-
-**Features:**
-
-- Automatically detects user's browser locale
-- Supports custom locale override
-- Examples: "January 19, 2026" (en-US), "19 janvier 2026" (fr-FR)
-
-#### TagList
-
-Displays a list of tags with theme support.
+#### Comments
+Federated Bluesky comments on your blog posts.
 
 ```svelte
-<TagList tags={document.tags} hasTheme={!!publication?.basicTheme} />
+<Comments 
+	bskyPostUri="at://did:plc:xxx/app.bsky.feed.post/abc123"
+	canonicalUrl="https://yourblog.com/posts/my-post"
+/>
 ```
 
-**Props:**
+### Utility Components
 
-- `tags: string[]` - Array of tag strings (required)
-- `hasTheme?: boolean` - Whether to apply custom theme (default: false)
-- `class?: string` - Additional CSS classes
+- **DateDisplay** - Locale-aware date formatting
+- **TagList** - Theme-aware tag display
+- **ThemedContainer** - Wrap content with theme CSS variables
+- **ThemedText** - Text with theme-aware colors
+- **ThemedCard** - Base card with theme support
+- **ThemeToggle** - Dark/light mode toggle button
 
-#### ThemedContainer
+See [EXAMPLES.md](./EXAMPLES.md) for detailed usage.
 
-Wraps content with theme CSS variables applied.
+## API Reference
 
-```svelte
-<ThemedContainer theme={publication.basicTheme} element="article">
-	<!-- Content automatically inherits theme -->
-</ThemedContainer>
+### Reading (SiteStandardClient)
+
+```typescript
+import { createClient } from 'svelte-standard-site';
+
+const client = createClient({
+	did: 'did:plc:xxx',
+	pds: 'https://...',  // optional
+	cacheTTL: 300000     // optional
+});
+
+// Fetch methods
+await client.fetchPublication(rkey, fetch);
+await client.fetchAllPublications(fetch);
+await client.fetchDocument(rkey, fetch);
+await client.fetchAllDocuments(fetch);
+await client.fetchDocumentsByPublication(pubUri, fetch);
+await client.fetchByAtUri(atUri, fetch);
+
+// Utilities
+client.clearCache();
+await client.getPDS(fetch);
 ```
 
-**Props:**
+### Writing (StandardSitePublisher)
 
-- `theme?: BasicTheme` - Optional theme to apply
-- `children: Snippet` - Content to wrap (required)
-- `class?: string` - Additional CSS classes
-- `element?: 'div' | 'article' | 'section'` - HTML element type (default: 'div')
+```typescript
+import { StandardSitePublisher } from 'svelte-standard-site/publisher';
 
-#### ThemedText
+const publisher = new StandardSitePublisher({
+	identifier: 'you.bsky.social',
+	password: 'xxxx-xxxx-xxxx-xxxx'
+});
 
-Displays text with theme-aware colors.
+await publisher.login();
 
-```svelte
-<ThemedText hasTheme={!!theme} element="h1" class="text-4xl">Title</ThemedText>
-<ThemedText hasTheme={!!theme} opacity={70} element="p">Description</ThemedText>
+// Publish operations
+await publisher.publishPublication({ name, url, ... });
+await publisher.publishDocument({ site, title, ... });
+await publisher.updateDocument(rkey, { ... });
+await publisher.deleteDocument(rkey);
+
+// List operations
+await publisher.listPublications();
+await publisher.listDocuments();
+
+// Utilities
+publisher.getDid();
+publisher.getPdsUrl();
+publisher.getAtpAgent();
 ```
 
-**Props:**
+### Content Transformation
 
-- `hasTheme?: boolean` - Whether to apply custom theme (default: false)
-- `opacity?: number` - Opacity level 0-100 (default: 100)
-- `variant?: 'foreground' | 'accent'` - Color variant (default: 'foreground')
-- `element?: 'span' | 'p' | 'h1' | 'h2' | 'h3' | 'div'` - HTML element (default: 'span')
-- `class?: string` - Additional CSS classes
-- `children?: any` - Content to render
+```typescript
+import { transformContent } from 'svelte-standard-site/content';
 
-#### ThemedCard
+const result = transformContent(markdown, {
+	baseUrl: 'https://yourblog.com'
+});
 
-Base card component with theme support for building custom cards.
-
-```svelte
-<ThemedCard theme={publication.basicTheme} class="p-6">
-	<!-- Card content -->
-</ThemedCard>
-
-<!-- With link -->
-<ThemedCard theme={publication.basicTheme} href="/article" class="hover:shadow-lg">
-	<!-- Clickable card content -->
-</ThemedCard>
+// result.markdown      - Cleaned markdown for ATProto
+// result.textContent   - Plain text for search
+// result.wordCount     - Number of words
+// result.readingTime   - Estimated minutes
 ```
 
-**Props:**
+Individual functions:
+- `convertSidenotes(markdown)` - HTML sidenotes → markdown blockquotes
+- `resolveRelativeLinks(markdown, baseUrl)` - Relative → absolute URLs
+- `stripToPlainText(markdown)` - Extract plain text
+- `countWords(text)` - Count words
+- `calculateReadingTime(wordCount)` - Estimate reading time
 
-- `theme?: BasicTheme` - Optional theme to apply
-- `children: Snippet` - Card content (required)
-- `class?: string` - Additional CSS classes
-- `href?: string` - Optional link (wraps in anchor tag)
+### Comments
+
+```typescript
+import { fetchComments } from 'svelte-standard-site/comments';
+
+const comments = await fetchComments({
+	bskyPostUri: 'at://...',
+	canonicalUrl: 'https://...',
+	maxDepth: 3
+});
+```
+
+### Verification
+
+```typescript
+import { 
+	generatePublicationWellKnown,
+	generateDocumentLinkTag,
+	getDocumentAtUri,
+	verifyPublicationWellKnown
+} from 'svelte-standard-site/verification';
+
+// For .well-known endpoint
+generatePublicationWellKnown({ did, publicationRkey });
+
+// For <head> tag
+generateDocumentLinkTag({ did, documentRkey });
+
+// Build AT-URIs
+getDocumentAtUri(did, rkey);
+
+// Verify ownership
+await verifyPublicationWellKnown(siteUrl, did, rkey);
+```
 
 ## Design System
 
-The library uses a comprehensive color system with semantic naming:
+The library uses semantic color tokens that automatically adapt to light/dark mode:
 
 - **Ink** - Text colors (`ink-50` to `ink-950`)
 - **Canvas** - Background colors (`canvas-50` to `canvas-950`)
@@ -310,237 +346,119 @@ The library uses a comprehensive color system with semantic naming:
 - **Secondary** - Secondary brand colors (`secondary-50` to `secondary-950`)
 - **Accent** - Accent colors (`accent-50` to `accent-950`)
 
-All colors automatically adapt to light/dark mode using Tailwind's `light-dark()` function.
-
-### Example Usage
+All colors work with Tailwind v4's `light-dark()` function and automatically switch in dark mode.
 
 ```svelte
 <div class="bg-canvas-50 text-ink-900 dark:bg-canvas-950 dark:text-ink-50">
 	<h1 class="text-primary-600 dark:text-primary-400">Hello World</h1>
-	<p class="text-ink-700 dark:text-ink-200">Supporting text</p>
 </div>
 ```
 
-## Theme Store
+## Environment Variables
 
-Programmatically control the theme:
+```env
+# Required for reading
+PUBLIC_ATPROTO_DID=did:plc:your-did-here
 
-```typescript
-import { themeStore } from 'svelte-standard-site';
+# Optional
+PUBLIC_ATPROTO_PDS=https://your-pds.example.com
+PUBLIC_CACHE_TTL=300000
 
-// Initialize (automatically called by ThemeToggle)
-themeStore.init();
+# Required for publishing (use .env.local, never commit)
+ATPROTO_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
+ATPROTO_HANDLE=you.bsky.social
 
-// Toggle theme
-themeStore.toggle();
-
-// Set specific theme
-themeStore.setTheme(true); // dark mode
-themeStore.setTheme(false); // light mode
-
-// Subscribe to changes
-themeStore.subscribe((state) => {
-	console.log(state.isDark); // boolean
-	console.log(state.mounted); // boolean
-});
+# Required for verification
+PUBLIC_PUBLICATION_RKEY=3abc123xyz
 ```
 
-## Theme Utilities
+## Testing
 
-Helper functions for working with theme colors:
+Run the test publisher script:
 
-```typescript
-import {
-	mixThemeColor,
-	getThemedTextColor,
-	getThemedBackground,
-	getThemedBorder,
-	getThemedAccent,
-	themeToCssVars
-} from 'svelte-standard-site';
-
-// Generate color-mix CSS
-const semiTransparent = mixThemeColor('--theme-foreground', 50);
-// => 'color-mix(in srgb, var(--theme-foreground) 50%, transparent)'
-
-// Get theme-aware text color
-const textStyle = getThemedTextColor(hasTheme, 70);
-// => { color: 'color-mix(in srgb, var(--theme-foreground) 70%, transparent)' }
-
-// Get theme-aware background
-const bgStyle = getThemedBackground(hasTheme);
-// => { backgroundColor: 'var(--theme-background)' }
-
-// Get theme-aware border
-const borderStyle = getThemedBorder(hasTheme, 20);
-// => { borderColor: 'color-mix(in srgb, var(--theme-foreground) 20%, transparent)' }
-
-// Get theme-aware accent color
-const accentStyle = getThemedAccent(hasTheme, 15);
-// => { backgroundColor: '...', color: 'var(--theme-accent)' }
-
-// Convert BasicTheme to CSS vars
-const cssVars = themeToCssVars(publication.basicTheme);
-// => { '--theme-background': 'rgb(255, 245, 235)', ... }
+```bash
+ATPROTO_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" node scripts/test-publisher.js
 ```
 
-**Available Functions:**
+Run unit tests:
 
-- `mixThemeColor(variable: string, opacity: number, fallback?: string): string` - Generate color-mix CSS
-- `getThemedTextColor(hasTheme: boolean, opacity?: number): { color?: string }` - Get themed text color
-- `getThemedBackground(hasTheme: boolean, opacity?: number): { backgroundColor?: string }` - Get themed background
-- `getThemedBorder(hasTheme: boolean, opacity?: number): { borderColor?: string }` - Get themed border
-- `getThemedAccent(hasTheme: boolean, opacity?: number): { color?: string; backgroundColor?: string }` - Get themed accent
-- `themeToCssVars(theme?: BasicTheme): Record<string, string>` - Convert theme to CSS variables
-
-## Client API
-
-### Creating a Client
-
-```typescript
-import { createClient } from 'svelte-standard-site';
-
-const client = createClient({
-	did: 'did:plc:revjuqmkvrw6fnkxppqtszpv',
-	pds: 'https://cortinarius.us-west.host.bsky.network', // optional
-	cacheTTL: 300000 // optional, in milliseconds
-});
+```bash
+pnpm test
 ```
 
-### Methods
+## Important Notes
 
-- `fetchPublication(rkey: string, fetchFn?: typeof fetch): Promise<AtProtoRecord<Publication> | null>`
-- `fetchAllPublications(fetchFn?: typeof fetch): Promise<AtProtoRecord<Publication>[]>`
-- `fetchDocument(rkey: string, fetchFn?: typeof fetch): Promise<AtProtoRecord<Document> | null>`
-- `fetchAllDocuments(fetchFn?: typeof fetch): Promise<AtProtoRecord<Document>[]>`
-- `fetchDocumentsByPublication(publicationUri: string, fetchFn?: typeof fetch): Promise<AtProtoRecord<Document>[]>`
-- `fetchByAtUri<T>(atUri: string, fetchFn?: typeof fetch): Promise<AtProtoRecord<T> | null>`
-- `clearCache(): void`
-- `getPDS(fetchFn?: typeof fetch): Promise<string>`
+### Security
+- **Never commit app passwords** - Use environment variables
+- **Never use main password** - Always create app passwords at https://bsky.app/settings/app-passwords
+- **Validate input** - Always validate data before publishing
 
-## Types
+### TID Format
+Record keys (rkeys) MUST be TIDs (Timestamp Identifiers). The publisher generates these automatically. Do not manually create rkeys.
 
-```typescript
-interface Publication {
-	$type: 'site.standard.publication';
-	url: string;
-	name: string;
-	icon?: AtProtoBlob;
-	description?: string;
-	basicTheme?: BasicTheme;
-	preferences?: PublicationPreferences;
-}
+### PDS Resolution
+The publisher automatically resolves your PDS from your DID document. You don't need to specify it unless using a custom PDS.
 
-interface Document {
-	$type: 'site.standard.document';
-	site: string; // AT URI or HTTPS URL
-	title: string;
-	path?: string;
-	description?: string;
-	coverImage?: AtProtoBlob;
-	content?: any;
-	textContent?: string;
-	bskyPostRef?: StrongRef;
-	tags?: string[];
-	publishedAt: string;
-	updatedAt?: string;
-}
+### Caching
+The client caches responses for 5 minutes by default. Clear with `client.clearCache()` or adjust TTL in config.
 
-interface AtProtoRecord<T> {
-	uri: string;
-	cid: string;
-	value: T;
-}
-```
+### SSR
+All fetch operations support SvelteKit's `fetch` function for proper SSR and prerendering.
 
-## Customization
+## Workflows
 
-### Custom Styles
+### Complete Publishing Workflow
 
-Override CSS variables in your own stylesheet:
+1. **Create a publication** (once)
+2. **Write a blog post** in markdown
+3. **Transform content** for ATProto compatibility
+4. **Publish to ATProto** using the publisher
+5. **Share on Bluesky** to create an announcement post
+6. **Add AT-URI to post** for federated comments
+7. **Set up verification** with `.well-known` endpoint
 
-```css
-:root {
-	--color-primary-600: oklch(70% 0.15 280); /* Custom purple */
-}
+See [docs/publishing.md](./docs/publishing.md) for detailed steps.
 
-[data-theme='dark'] {
-	--color-primary-600: oklch(75% 0.15 280);
-}
-```
+### Adding Comments to Existing Posts
 
-### Custom Layout
+1. **Share post on Bluesky** (creates announcement post)
+2. **Get AT-URI** from the Bluesky post
+3. **Add to frontmatter** or database
+4. **Add Comments component** to post template
+5. **Comments load automatically** when users visit
 
-Create your own layout while using the theme system:
+See [docs/comments.md](./docs/comments.md) for detailed steps.
 
-```svelte
-<script lang="ts">
-	import { ThemeToggle, themeStore } from 'svelte-standard-site';
-	import 'svelte-standard-site/styles/base.css';
-	import { onMount } from 'svelte';
+## Troubleshooting
 
-	onMount(() => {
-		themeStore.init();
-	});
-</script>
+### "Failed to resolve handle"
+- Verify handle is correct
+- Check PDS is reachable
+- Ensure using app password
 
-<div class="bg-canvas-50 text-ink-900 dark:bg-canvas-950 dark:text-ink-50 min-h-screen">
-	<header>
-		<nav>
-			<a href="/">Home</a>
-			<ThemeToggle />
-		</nav>
-	</header>
+### "Schema validation failed"
+- Check data matches schema
+- Ensure dates are ISO 8601
+- Verify URLs are valid
 
-	<main>
-		<slot />
-	</main>
+### Comments not loading
+- Verify AT-URI format is correct
+- Check post exists and is public
+- Look for errors in console
 
-	<footer>
-		<!-- Your footer -->
-	</footer>
-</div>
-```
+### Verification 404
+- Ensure `.well-known` path is correct
+- Check hosting platform allows `.well-known`
+- Verify endpoint returns plain text
 
-### Extending Components
-
-All components accept a `class` prop for customization:
-
-```svelte
-<DocumentCard {document} class="border-primary-500 border-4 shadow-2xl" />
-```
-
-## Advanced Usage
-
-### Building a Blog
-
-See the [EXAMPLES.md](./EXAMPLES.md) file for a complete blog implementation example.
-
-### Using with Different Lexicons
-
-The library is built around `site.standard.*` lexicons but can be adapted:
-
-```typescript
-// Fetch any AT Proto record
-const customRecord = await client.fetchByAtUri<CustomType>('at://did:plc:xxx/custom.lexicon/rkey');
-```
-
-## Accessibility
-
-All components follow WCAG guidelines:
-
-- Proper semantic HTML
-- ARIA labels and roles
-- Keyboard navigation support
-- Focus visible indicators
-- High contrast mode support
-- Screen reader compatibility
+See documentation for more troubleshooting tips.
 
 ## Browser Support
 
 - Modern browsers with CSS `light-dark()` support
 - Tailwind CSS v4+ required
 - Svelte 5+ required
+- SvelteKit 2+ required
 
 ## License
 
@@ -548,7 +466,7 @@ All components follow WCAG guidelines:
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+Contributions welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ## Credits
 
@@ -561,6 +479,10 @@ Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for 
 
 - [GitHub Repository](https://github.com/ewanc26/svelte-standard-site)
 - [NPM Package](https://www.npmjs.com/package/svelte-standard-site)
-- [Documentation](https://github.com/ewanc26/svelte-standard-site#readme)
-- [AT Protocol Documentation](https://atproto.com)
-- [site.standard Specification](https://github.com/noeleon/site.standard)
+- [Documentation](./docs/)
+- [Examples](./EXAMPLES.md)
+- [AT Protocol](https://atproto.com)
+- [standard.site Specification](https://github.com/noeleon/site.standard)
+- [Bluesky](https://bsky.app)
+- [Leaflet](https://leaflet.pub)
+- [WhiteWind](https://whitewind.pages.dev)
