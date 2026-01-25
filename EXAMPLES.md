@@ -223,18 +223,18 @@ The modular utility components make it easy to build consistent, theme-aware UIs
 
 <article>
 	<h1>{data.post.value.title}</h1>
-	
+
 	<!-- Simple date display -->
 	<DateDisplay date={data.post.value.publishedAt} />
-	
+
 	<!-- With label and icon -->
-	<DateDisplay 
-		date={data.post.value.updatedAt} 
-		label="Last updated: " 
-		showIcon={true} 
-		class="text-sm text-ink-600 dark:text-ink-400"
+	<DateDisplay
+		date={data.post.value.updatedAt}
+		label="Last updated: "
+		showIcon={true}
+		class="text-ink-600 dark:text-ink-400 text-sm"
 	/>
-	
+
 	<!-- Custom locale -->
 	<DateDisplay date={data.post.value.publishedAt} locale="fr-FR" />
 </article>
@@ -255,11 +255,7 @@ The modular utility components make it easy to build consistent, theme-aware UIs
 <TagList tags={data.post.value.tags || []} />
 
 <!-- With theme support -->
-<TagList 
-	tags={data.post.value.tags || []} 
-	{hasTheme} 
-	class="mt-4"
-/>
+<TagList tags={data.post.value.tags || []} {hasTheme} class="mt-4" />
 ```
 
 ### Using ThemedText
@@ -274,7 +270,7 @@ The modular utility components make it easy to build consistent, theme-aware UIs
 </script>
 
 <!-- Title with theme -->
-<ThemedText {hasTheme} element="h1" class="text-4xl font-bold mb-4">
+<ThemedText {hasTheme} element="h1" class="mb-4 text-4xl font-bold">
 	{data.post.value.title}
 </ThemedText>
 
@@ -284,21 +280,14 @@ The modular utility components make it easy to build consistent, theme-aware UIs
 </ThemedText>
 
 <!-- Accent color for links -->
-<ThemedText {hasTheme} variant="accent" element="span">
-	Read more →
-</ThemedText>
+<ThemedText {hasTheme} variant="accent" element="span">Read more →</ThemedText>
 ```
 
 ### Combining Utility Components
 
 ```svelte
 <script lang="ts">
-	import { 
-		ThemedContainer, 
-		ThemedText, 
-		DateDisplay, 
-		TagList 
-	} from 'svelte-standard-site';
+	import { ThemedContainer, ThemedText, DateDisplay, TagList } from 'svelte-standard-site';
 	import type { PageData } from './$types';
 
 	const { data }: { data: PageData } = $props();
@@ -308,32 +297,28 @@ The modular utility components make it easy to build consistent, theme-aware UIs
 
 <ThemedContainer {theme} element="article" class="p-8">
 	<!-- Title -->
-	<ThemedText {hasTheme} element="h1" class="text-4xl font-bold mb-2">
+	<ThemedText {hasTheme} element="h1" class="mb-2 text-4xl font-bold">
 		{data.post.value.title}
 	</ThemedText>
-	
+
 	<!-- Description -->
-	<ThemedText {hasTheme} opacity={70} element="p" class="text-lg mb-4">
+	<ThemedText {hasTheme} opacity={70} element="p" class="mb-4 text-lg">
 		{data.post.value.description}
 	</ThemedText>
-	
+
 	<!-- Metadata -->
-	<div class="flex gap-4 mb-6">
+	<div class="mb-6 flex gap-4">
 		<DateDisplay date={data.post.value.publishedAt} />
 		{#if data.post.value.updatedAt}
-			<DateDisplay 
-				date={data.post.value.updatedAt} 
-				label="Updated " 
-				showIcon={true}
-			/>
+			<DateDisplay date={data.post.value.updatedAt} label="Updated " showIcon={true} />
 		{/if}
 	</div>
-	
+
 	<!-- Tags -->
 	<TagList tags={data.post.value.tags || []} {hasTheme} />
-	
+
 	<!-- Content -->
-	<div class="prose max-w-none mt-8">
+	<div class="prose mt-8 max-w-none">
 		{@html data.post.value.content}
 	</div>
 </ThemedContainer>
@@ -347,12 +332,7 @@ Use ThemedCard and utility components to build custom card layouts.
 
 ```svelte
 <script lang="ts">
-	import { 
-		ThemedCard, 
-		ThemedText, 
-		DateDisplay, 
-		TagList 
-	} from 'svelte-standard-site';
+	import { ThemedCard, ThemedText, DateDisplay, TagList } from 'svelte-standard-site';
 	import type { Document, Publication, AtProtoRecord } from 'svelte-standard-site';
 
 	interface Props {
@@ -361,37 +341,37 @@ Use ThemedCard and utility components to build custom card layouts.
 	}
 
 	let { document, publication }: Props = $props();
-	
+
 	const theme = $derived(publication?.value.basicTheme);
 	const hasTheme = $derived(!!theme);
 	const value = $derived(document.value);
 </script>
 
-<ThemedCard {theme} href="/blog/{document.uri.split('/').pop()}" class="hover:shadow-lg transition-shadow">
+<ThemedCard
+	{theme}
+	href="/blog/{document.uri.split('/').pop()}"
+	class="transition-shadow hover:shadow-lg"
+>
 	<div class="flex gap-6">
 		{#if value.coverImage}
-			<img 
-				src={value.coverImage} 
-				alt={value.title} 
-				class="w-32 h-32 object-cover rounded-lg"
-			/>
+			<img src={value.coverImage} alt={value.title} class="h-32 w-32 rounded-lg object-cover" />
 		{/if}
-		
+
 		<div class="flex-1">
-			<ThemedText {hasTheme} element="h3" class="text-2xl font-bold mb-2">
+			<ThemedText {hasTheme} element="h3" class="mb-2 text-2xl font-bold">
 				{value.title}
 			</ThemedText>
-			
+
 			{#if value.description}
 				<ThemedText {hasTheme} opacity={70} element="p" class="mb-4 line-clamp-2">
 					{value.description}
 				</ThemedText>
 			{/if}
-			
-			<div class="flex items-center gap-4 mb-3">
+
+			<div class="mb-3 flex items-center gap-4">
 				<DateDisplay date={value.publishedAt} class="text-sm" />
 			</div>
-			
+
 			{#if value.tags?.length}
 				<TagList tags={value.tags} {hasTheme} />
 			{/if}
@@ -405,14 +385,14 @@ Use ThemedCard and utility components to build custom card layouts.
 ```svelte
 <script lang="ts">
 	import { ThemedCard, ThemedText } from 'svelte-standard-site';
-	
+
 	interface Props {
 		name: string;
 		bio: string;
 		avatar?: string;
 		theme?: any;
 	}
-	
+
 	let { name, bio, avatar, theme }: Props = $props();
 	const hasTheme = $derived(!!theme);
 </script>
@@ -420,14 +400,14 @@ Use ThemedCard and utility components to build custom card layouts.
 <ThemedCard {theme} class="p-6">
 	<div class="flex items-start gap-4">
 		{#if avatar}
-			<img src={avatar} alt={name} class="w-16 h-16 rounded-full" />
+			<img src={avatar} alt={name} class="h-16 w-16 rounded-full" />
 		{/if}
-		
+
 		<div>
-			<ThemedText {hasTheme} element="h3" class="text-xl font-bold mb-2">
+			<ThemedText {hasTheme} element="h3" class="mb-2 text-xl font-bold">
 				{name}
 			</ThemedText>
-			
+
 			<ThemedText {hasTheme} opacity={70} element="p">
 				{bio}
 			</ThemedText>
@@ -442,27 +422,29 @@ Use ThemedCard and utility components to build custom card layouts.
 <script lang="ts">
 	import { ThemedCard, ThemedText } from 'svelte-standard-site';
 	import type { Snippet } from 'svelte';
-	
+
 	interface Props {
 		title: string;
 		description: string;
 		icon: Snippet;
 		theme?: any;
 	}
-	
+
 	let { title, description, icon, theme }: Props = $props();
 	const hasTheme = $derived(!!theme);
 </script>
 
 <ThemedCard {theme} class="p-6 text-center">
-	<div class="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-primary-100 dark:bg-primary-900">
+	<div
+		class="bg-primary-100 dark:bg-primary-900 mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full"
+	>
 		{@render icon()}
 	</div>
-	
-	<ThemedText {hasTheme} element="h3" class="text-xl font-bold mb-2">
+
+	<ThemedText {hasTheme} element="h3" class="mb-2 text-xl font-bold">
 		{title}
 	</ThemedText>
-	
+
 	<ThemedText {hasTheme} opacity={70} element="p">
 		{description}
 	</ThemedText>
@@ -498,7 +480,7 @@ Results:
 ```svelte
 <script lang="ts">
 	import { DateDisplay } from 'svelte-standard-site';
-	
+
 	// User preference from settings or profile
 	let userLocale = $state('fr-FR');
 </script>
@@ -510,50 +492,50 @@ Results:
 
 ```svelte
 <script lang="ts">
-	import { 
-		StandardSiteLayout, 
+	import {
+		StandardSiteLayout,
 		ThemedContainer,
 		ThemedText,
-		DateDisplay 
+		DateDisplay
 	} from 'svelte-standard-site';
 	import type { PageData } from './$types';
-	
+
 	const { data }: { data: PageData } = $props();
-	
+
 	// Detect user's language
 	let locale = $state('en-US');
-	
+
 	$effect(() => {
 		if (typeof navigator !== 'undefined') {
 			locale = navigator.language || 'en-US';
 		}
 	});
-	
+
 	const theme = $derived(data.publication?.value.basicTheme);
 	const hasTheme = $derived(!!theme);
 </script>
 
 <StandardSiteLayout title={data.publication?.value.name}>
 	<ThemedContainer {theme}>
-		<ThemedText {hasTheme} element="h1" class="text-4xl font-bold mb-4">
+		<ThemedText {hasTheme} element="h1" class="mb-4 text-4xl font-bold">
 			{data.post.value.title}
 		</ThemedText>
-		
+
 		<!-- Date automatically formats to user's locale -->
-		<DateDisplay 
-			date={data.post.value.publishedAt} 
+		<DateDisplay
+			date={data.post.value.publishedAt}
 			{locale}
-			class="text-sm text-ink-600 dark:text-ink-400"
+			class="text-ink-600 dark:text-ink-400 text-sm"
 		/>
-		
-		<div class="prose max-w-none mt-8">
+
+		<div class="prose mt-8 max-w-none">
 			{@html data.post.value.content}
 		</div>
 	</ThemedContainer>
 </StandardSiteLayout>
 ```
 
-##  Multi-Publication Site
+## Multi-Publication Site
 
 ```typescript
 // src/routes/+page.server.ts

@@ -9,3 +9,6 @@ export { default as TagList } from './common/TagList.svelte';
 export { default as ThemedContainer } from './common/ThemedContainer.svelte';
 export { default as ThemedText } from './common/ThemedText.svelte';
 export { default as ThemedCard } from './common/ThemedCard.svelte';
+
+// Document rendering
+export { default as DocumentRenderer } from './document/DocumentRenderer.svelte';
