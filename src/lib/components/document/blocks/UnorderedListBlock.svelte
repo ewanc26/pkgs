@@ -24,18 +24,15 @@
 	{#each block.children as item}
 		<li class="flex flex-row gap-2 pb-0">
 			<div
-				class="listMarker shrink-0 mx-2 z-1 mt-[14px] h-[5px] w-[5px]"
+				class="listMarker z-1 mx-2 mt-3.5 h-1.25 w-1.25 shrink-0"
 				class:has-content={item.content}
 				class:themed={hasTheme}
-			/>
-			<div class="flex flex-col w-full">
+			></div>
+
+			<div class="flex w-full flex-col">
 				{#if item.content}
 					<div class="textBlock mt-1 mb-2">
-						<RichText
-							plaintext={item.content.plaintext}
-							facets={item.content.facets}
-							{hasTheme}
-						/>
+						<RichText plaintext={item.content.plaintext} facets={item.content.facets} {hasTheme} />
 					</div>
 				{/if}
 				{#if item.children && item.children.length > 0}
@@ -56,16 +53,6 @@
 	@media (min-width: 640px) {
 		.unordered-list {
 			margin-left: 9px;
-		}
-	}
-
-	.unordered-list .unordered-list {
-		margin-left: -7px;
-	}
-
-	@media (min-width: 640px) {
-		.unordered-list .unordered-list {
-			margin-left: 7px;
 		}
 	}
 
