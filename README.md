@@ -468,6 +468,10 @@ See documentation for more troubleshooting tips.
 
 Contributions welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
+## ☕ Support
+
+If you found this useful, consider [buying me a ko-fi](https://ko-fi.com/ewancroft)!
+
 ## Credits
 
 - Built by [Ewan Croft](https://ewancroft.uk)
