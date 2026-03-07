@@ -1,0 +1,46 @@
+name: Publish packages
+
+on:
+  push:
+    tags:
+      - '*/v*.*.*'   # e.g. pds-landing/v1.0.0, tid/v1.1.0
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # needed for npm provenance
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve package from tag
+        id: pkg
+        run: |
+          # Tag format: <package-name>/v<semver>
+          TAG="${GITHUB_REF_NAME}"
+          PKG_NAME="${TAG%/v*}"
+          echo "name=${PKG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "path=packages/${PKG_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: pnpm --filter "@ewanc26/${{ steps.pkg.outputs.name }}" run build
+
+      - name: Publish
+        run: pnpm --filter "@ewanc26/${{ steps.pkg.outputs.name }}" publish --no-git-checks --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
