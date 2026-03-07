@@ -1,4 +1,4 @@
-import { copyFileSync, cpSync, mkdirSync } from 'fs'
+import { copyFileSync, cpSync, mkdirSync, renameSync } from 'fs'
 import { execSync } from 'child_process'
 import { join } from 'path'
 
@@ -10,6 +10,9 @@ mkdirSync(join(dist, 'assets'), { recursive: true })
 execSync('npx tsup src/script.ts --format iife --globalName pdsLanding --outDir dist --no-dts --clean', {
   stdio: 'inherit',
 })
+
+// tsup names IIFE output script.global.js — rename to script.js
+renameSync(join(dist, 'script.global.js'), join(dist, 'script.js'))
 
 // Compile Tailwind CSS
 execSync(
