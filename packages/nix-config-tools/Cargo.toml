@@ -8,6 +8,7 @@ license = "MIT"
 [dependencies]
 dialoguer = { version = "0.11", features = ["completion"] }
 console = { version = "0.15" }
+regex = { version = "1" }
 
 [lib]
 name = "tools_common"
