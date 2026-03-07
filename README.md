@@ -10,6 +10,7 @@ Ewan's personal package monorepo — managed with [pnpm workspaces](https://pnpm
 | [`@ewanc26/atproto`](./packages/atproto) | AT Protocol service layer |
 | [`@ewanc26/ui`](./packages/ui) | Svelte UI component library |
 | [`@ewanc26/utils`](./packages/utils) | Shared utility functions |
+| [`@ewanc26/svelte-standard-site`](./packages/svelte-standard-site) | SvelteKit library for site.standard.* AT Protocol records |
 
 ## Setup
 
@@ -26,8 +27,12 @@ pnpm build
 # Type-check all packages
 pnpm check
 
-# Build a single package
+# Test all packages
+pnpm test
+
+# Work on a single package
 pnpm --filter @ewanc26/tid build
+pnpm --filter @ewanc26/svelte-standard-site dev
 ```
 
 ## License
