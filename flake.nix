@@ -15,10 +15,8 @@
           nix-config-tools = pkgs.rustPlatform.buildRustPackage {
             pname = "nix-config-tools";
             version = "0.1.0";
-            src = ./.;
+            src = ./packages/nix-config-tools;
             cargoLock.lockFile = ./packages/nix-config-tools/Cargo.lock;
-            cargoBuildFlags = [ "--package" "nix-config-tools" ];
-            cargoTestFlags  = [ "--package" "nix-config-tools" ];
           };
 
           default = self.packages.${system}.nix-config-tools;
