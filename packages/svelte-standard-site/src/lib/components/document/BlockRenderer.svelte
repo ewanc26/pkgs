@@ -16,10 +16,12 @@
 
 	interface Props {
 		block: any;
+		did?: string;
+		pds?: string;
 		hasTheme?: boolean;
 	}
 
-	const { block, hasTheme = false }: Props = $props();
+	const { block, did = '', pds = '', hasTheme = false }: Props = $props();
 </script>
 
 {#if block.$type === 'pub.leaflet.blocks.text'}
@@ -29,7 +31,7 @@
 {:else if block.$type === 'pub.leaflet.blocks.blockquote'}
 	<BlockquoteBlock {block} {hasTheme} />
 {:else if block.$type === 'pub.leaflet.blocks.image'}
-	<ImageBlock {block} {hasTheme} />
+	<ImageBlock {block} {did} {pds} {hasTheme} />
 {:else if block.$type === 'pub.leaflet.blocks.code'}
 	<CodeBlock {block} {hasTheme} />
 {:else if block.$type === 'pub.leaflet.blocks.math'}
@@ -41,7 +43,7 @@
 {:else if block.$type === 'pub.leaflet.blocks.iframe'}
 	<IframeBlock {block} {hasTheme} />
 {:else if block.$type === 'pub.leaflet.blocks.website'}
-	<WebsiteBlock {block} {hasTheme} />
+	<WebsiteBlock {block} {did} {pds} {hasTheme} />
 {:else if block.$type === 'pub.leaflet.blocks.button'}
 	<ButtonBlock {block} {hasTheme} />
 {:else if block.$type === 'pub.leaflet.blocks.bskyPost'}
@@ -51,7 +53,6 @@
 {:else if block.$type === 'pub.leaflet.blocks.page'}
 	<PageBlock {block} {hasTheme} />
 {:else}
-	<!-- Unknown block type -->
 	<div class="my-2 rounded-lg border border-orange-500/20 bg-orange-500/5 p-3">
 		<p class="text-sm text-orange-600 dark:text-orange-400">
 			Unknown block type: <code class="font-mono text-xs">{block.$type}</code>

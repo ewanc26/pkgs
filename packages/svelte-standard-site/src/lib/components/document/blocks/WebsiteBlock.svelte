@@ -1,17 +1,32 @@
 <script lang="ts">
+	function blobUrl(pds: string, did: string, cid: string): string {
+		return `${pds}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`;
+	}
+
+	interface BlobRef {
+		$type?: 'blob';
+		ref?: { $link: string };
+	}
+
 	interface Props {
 		block: {
-			url: string;
+			/** Canonical field name per pub.leaflet.blocks.website lexicon */
+			src: string;
 			title?: string;
 			description?: string;
-			preview?: {
-				src: string;
-			};
+			previewImage?: BlobRef;
 		};
+		did?: string;
+		pds?: string;
 		hasTheme?: boolean;
 	}
 
-	const { block, hasTheme = false }: Props = $props();
+	const { block, did = '', pds = '', hasTheme = false }: Props = $props();
+
+	const previewCid = $derived(block.previewImage?.ref?.$link ?? '');
+	const previewSrc = $derived(
+		previewCid && did && pds ? blobUrl(pds, did, previewCid) : ''
+	);
 </script>
 
 <div
@@ -23,7 +38,7 @@
 	class:dark:hover:border-gray-600={!hasTheme}
 >
 	<a
-		href={block.url}
+		href={block.src}
 		target="_blank"
 		rel="noopener noreferrer"
 		class="flex h-full w-full text-inherit no-underline hover:no-underline"
@@ -46,19 +61,19 @@
 				{/if}
 
 				<div
-					class="line-clamp-1 w-full min-w-0 text-xs text-gray-500 italic group-hover/linkBlock:text-blue-600 dark:text-gray-500 dark:group-hover/linkBlock:text-blue-400"
+					class="line-clamp-1 w-full min-w-0 text-xs italic text-gray-500 group-hover/linkBlock:text-blue-600 dark:text-gray-500 dark:group-hover/linkBlock:text-blue-400"
 					style="word-break: break-word;"
 					style:color={hasTheme ? 'var(--theme-accent)' : undefined}
 				>
-					{block.url}
+					{block.src}
 				</div>
 			</div>
 		</div>
 
-		{#if block.preview?.src}
+		{#if previewSrc}
 			<div
 				class="m-2 -mb-2 w-[120px] shrink-0 origin-center rotate-[4deg] rounded-t-md border border-gray-200 bg-cover dark:border-gray-700"
-				style:background-image="url({block.preview.src})"
+				style:background-image="url({previewSrc})"
 				style:background-position="center"
 			></div>
 		{/if}
