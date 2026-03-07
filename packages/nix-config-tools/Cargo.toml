@@ -1,11 +1,13 @@
 [package]
 name = "nix-config-tools"
-version.workspace = true
-edition.workspace = true
+version = "0.1.0"
+edition = "2021"
+authors = ["Ewan Carver"]
+license = "MIT"
 
 [dependencies]
-dialoguer = { workspace = true, features = ["completion"] }
-console = { workspace = true }
+dialoguer = { version = "0.11", features = ["completion"] }
+console = { version = "0.15" }
 
 [lib]
 name = "tools_common"
