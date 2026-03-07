@@ -1,0 +1,9 @@
+node_modules
+
+# Output
+/.svelte-kit
+/dist
+
+# OS
+.DS_Store
+Thumbs.db
