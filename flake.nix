@@ -16,7 +16,7 @@
             pname = "nix-config-tools";
             version = "0.1.0";
             src = ./packages/nix-config-tools;
-            cargoLock.lockFile = ./packages/nix-config-tools/Cargo.lock;
+            cargoHash = "sha256-H0J+b0cA2UXCFw9vtYnFYDsiMzWrCWtE2xUgXhpsepM=";
           };
 
           default = self.packages.${system}.nix-config-tools;
@@ -26,24 +26,10 @@
       apps = forAllSystems (system:
         let pkg = self.packages.${system}.nix-config-tools; in
         {
-          # Show staleness of each flake input and bump selectively.
-          # Usage: nix run .#flake-bump [-- --update <input> | --update-all]
           flake-bump    = { type = "app"; program = "${pkg}/bin/flake-bump"; };
-
-          # Diff packages between nix generations.
-          # Usage: nix run .#gen-diff [-- --list | --from N --to M]
           gen-diff      = { type = "app"; program = "${pkg}/bin/gen-diff"; };
-
-          # Pre-rebuild preflight: daemon, lock, eval, git, age key, disk space.
-          # Usage: nix run .#health-check
           health-check  = { type = "app"; program = "${pkg}/bin/health-check"; };
-
-          # Interactive server configurator: service toggles, storage device,
-          # Cockpit, Forgejo, Matrix, PDS, Cloudflare settings.
-          # Usage: nix run .#server-config
-          #        nix run .#server-config -- --show  (read-only summary)
           server-config = { type = "app"; program = "${pkg}/bin/server-config"; };
-
           default = self.apps.${system}.flake-bump;
         }
       );
