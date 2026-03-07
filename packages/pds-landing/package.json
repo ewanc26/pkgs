@@ -1,0 +1,30 @@
+{
+  "name": "@ewanc26/pds-landing",
+  "version": "1.0.0",
+  "description": "Static landing page for Ewan's personal ATProto PDS at pds.ewancroft.uk",
+  "private": false,
+  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "tailwindcss --config tailwind.config.js --input styles/input.css --output dist/style.css --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "atproto",
+    "bluesky",
+    "pds",
+    "landing-page",
+    "static-site"
+  ],
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}
