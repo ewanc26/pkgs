@@ -1,24 +1,42 @@
-# pds-landing
+# sv
 
-Static landing page for [pds.ewancroft.uk](https://pds.ewancroft.uk) — a personal ATProto PDS.
+Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 
-Displays live PDS status by querying `/xrpc/_health` and
-`/xrpc/com.atproto.server.describeServer` on load.
+## Creating a project
 
-## Build
-
-```sh
-nix build
-```
-
-Output is a directory of static files suitable for serving directly with Caddy
-or any other file server.
-
-## Usage in nix-config
-
-Referenced via git subtree at `modules/server/pds-landing`. To pull upstream
-changes into nix-config:
+If you're seeing this, you've probably already done this step. Congrats!
 
 ```sh
-git subtree pull --prefix modules/server/pds-landing pkgs pds-landing-split --squash
+# create a new project
+npx sv create my-app
 ```
+
+To recreate this project with the same configuration:
+
+```sh
+# recreate this project
+pnpm dlx sv@0.12.5 create --template minimal --types ts --add prettier tailwindcss="plugins:typography" sveltekit-adapter="adapter:auto" --install pnpm ./
+```
+
+## Developing
+
+Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+
+```sh
+npm run dev
+
+# or start the server and open the app in a new browser tab
+npm run dev -- --open
+```
+
+## Building
+
+To create a production version of your app:
+
+```sh
+npm run build
+```
+
+You can preview the production build with `npm run preview`.
+
+> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
