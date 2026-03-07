@@ -1,7 +1,17 @@
 {
-	"name": "pds-landing",
-	"private": true,
+	"name": "@ewanc26/pds-landing",
 	"version": "0.1.0",
+	"description": "SvelteKit landing page for Ewan's personal ATProto PDS at pds.ewancroft.uk",
+	"author": "Ewan Croft",
+	"license": "AGPL-3.0-only",
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"files": [
+		"build",
+		"README.md"
+	],
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
