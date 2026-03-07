@@ -36,7 +36,11 @@ export const BasicThemeSchema = z.object({
  * Publication Preferences schema
  */
 export const PublicationPreferencesSchema = z.object({
-	showInDiscover: z.boolean().optional()
+	showInDiscover: z.boolean().optional(),
+	showComments: z.boolean().optional(),
+	showMentions: z.boolean().optional(),
+	showPrevNext: z.boolean().optional(),
+	showRecommends: z.boolean().optional()
 });
 
 /**
@@ -87,7 +91,8 @@ export const DocumentSchema = z.object({
 	coverImage: AtProtoBlobSchema.optional(),
 	textContent: z.string().optional(),
 	content: z.unknown().optional(),
-	bskyPostRef: StrongRefSchema.optional()
+	bskyPostRef: StrongRefSchema.optional(),
+	preferences: PublicationPreferencesSchema.optional()
 });
 
 /**

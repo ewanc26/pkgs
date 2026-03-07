@@ -138,6 +138,14 @@ export interface PublishDocumentInput {
 		mimeType: string;
 		size: number;
 	};
+	/** Document-level preferences (overrides publication defaults) */
+	preferences?: {
+		showInDiscover?: boolean;
+		showComments?: boolean;
+		showMentions?: boolean;
+		showPrevNext?: boolean;
+		showRecommends?: boolean;
+	};
 }
 
 export interface PublishPublicationInput {
@@ -164,6 +172,10 @@ export interface PublishPublicationInput {
 	/** Publication preferences */
 	preferences?: {
 		showInDiscover?: boolean;
+		showComments?: boolean;
+		showMentions?: boolean;
+		showPrevNext?: boolean;
+		showRecommends?: boolean;
 	};
 }
 
@@ -258,7 +270,8 @@ export class StandardSitePublisher {
 			textContent: input.textContent,
 			content: input.content,
 			bskyPostRef: input.bskyPostRef,
-			coverImage: input.coverImage
+			coverImage: input.coverImage,
+			preferences: input.preferences
 		};
 
 		// Remove undefined values
@@ -301,7 +314,8 @@ export class StandardSitePublisher {
 			textContent: input.textContent,
 			content: input.content,
 			bskyPostRef: input.bskyPostRef,
-			coverImage: input.coverImage
+			coverImage: input.coverImage,
+			preferences: input.preferences
 		};
 
 		const cleanRecord = Object.fromEntries(
