@@ -1,52 +1,34 @@
 # pkgs
 
-Ewan's personal package monorepo — language-agnostic, supporting TypeScript ([pnpm workspaces](https://pnpm.io/workspaces)) and Rust ([Cargo workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)).
+Ewan's personal package monorepo — managed with [pnpm workspaces](https://pnpm.io/workspaces) (TypeScript/Svelte) and [Cargo workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html) + [Nix flake](https://nixos.wiki/wiki/Flakes) (Rust).
 
 ## Packages
 
-### TypeScript
-
-| Package | Description |
-|---|---|
-| [`@ewanc26/tid`](./packages/tid) | Zero-dependency AT Protocol TID generation |
-| [`@ewanc26/atproto`](./packages/atproto) | AT Protocol service layer |
-| [`@ewanc26/ui`](./packages/ui) | Svelte UI component library |
-| [`@ewanc26/utils`](./packages/utils) | Shared utility functions |
-| [`@ewanc26/svelte-standard-site`](./packages/svelte-standard-site) | SvelteKit library for site.standard.* AT Protocol records |
-| [`@ewanc26/tangled-sync`](./packages/tangled-sync) | CLI tool for syncing GitHub repos to Tangled with ATProto records |
-
-### Rust
-
-| Package | Description |
-|---|---|
-| [`nix-config-tools`](./packages/nix-config-tools) | Management tools for nixos/nix-darwin configuration (flake-bump, health-check, gen-diff, server-config) |
-
-### Python
-
-| Package | Description |
-|---|---|
-| [`llm-analyser`](./packages/llm-analyser) | Document analysis tool using Ollama LLM |
+| Package | Lang | Description |
+|---|---|---|
+| [`@ewanc26/tid`](./packages/tid) | TypeScript | Zero-dependency AT Protocol TID generation |
+| [`@ewanc26/atproto`](./packages/atproto) | TypeScript | AT Protocol service layer |
+| [`@ewanc26/ui`](./packages/ui) | Svelte | Svelte UI component library |
+| [`@ewanc26/utils`](./packages/utils) | TypeScript | Shared utility functions |
+| [`@ewanc26/svelte-standard-site`](./packages/svelte-standard-site) | Svelte | SvelteKit library for site.standard.* AT Protocol records |
+| [`nix-config-tools`](./packages/nix-config-tools) | Rust | Nix config management tools (flake-bump, gen-diff, health-check, server-config) |
 
 ## Setup
 
-### TypeScript
-
 ```bash
+# TypeScript/Svelte packages
 pnpm install
-```
 
-### Rust
-
-No special setup needed; build/run via Cargo:
-
-```bash
-cargo build --release -p nix-config-tools
-cargo run -p nix-config-tools --bin flake-bump -- --help
+# Rust/Nix packages (no install needed — run directly)
+nix run github:ewanc26/pkgs#flake-bump
+nix run github:ewanc26/pkgs#gen-diff
+nix run github:ewanc26/pkgs#health-check
+nix run github:ewanc26/pkgs#server-config
 ```
 
 ## Common commands
 
-### TypeScript
+### TypeScript/Svelte
 
 ```bash
 # Build all packages
@@ -63,32 +45,19 @@ pnpm --filter @ewanc26/tid build
 pnpm --filter @ewanc26/svelte-standard-site dev
 ```
 
-### Rust
+### Rust/Nix
 
 ```bash
-# Build all Rust packages
-cargo build --release
+# Build (via Nix)
+nix build .#nix-config-tools
 
-# Build a specific tool
-cargo build -p nix-config-tools --bin health-check
+# Build (via Cargo, for development)
+cargo build --workspace
 
-# Run a tool
-cargo run -p nix-config-tools --bin flake-bump -- --update nixpkgs
-```
-
-### Python
-
-```bash
-# Install Python dependencies
-pnpm py:install
-
-# Check Python syntax
-pnpm py:check
-
-# Run a Python tool
-cd packages/llm-analyser && python3 main.py
+# Local run (uncommitted changes)
+nix run ./packages/nix-config-tools#flake-bump
 ```
 
 ## License
 
-AGPL-3.0-only
+AGPL-3.0-only (TypeScript/Svelte) · MIT (Rust)
