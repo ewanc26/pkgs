@@ -1,0 +1,16 @@
+{
+  "name": "@ewanc26/pkgs",
+  "private": true,
+  "description": "Ewan's personal package monorepo",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "dev": "pnpm -r run dev",
+    "check": "pnpm -r run check",
+    "typecheck": "pnpm -r run type-check",
+    "clean": "pnpm -r exec -- rm -rf dist node_modules"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=9"
+  }
+}
