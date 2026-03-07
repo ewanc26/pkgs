@@ -12,7 +12,9 @@ export {
 	TagList,
 	ThemedContainer,
 	ThemedText,
-	ThemedCard
+	ThemedCard,
+	DocumentRenderer,
+	MarkdownRenderer
 } from './components/index.js';
 
 // Comments component
