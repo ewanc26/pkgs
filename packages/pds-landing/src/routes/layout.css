@@ -1,22 +1,23 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
+@import '@ewanc26/ui/styles/pds-tokens.css';
 
-/* ─── design tokens ──────────────────────────────────────────────────────── */
+/* ─── local aliases → pds tokens ─────────────────────────────────────────── */
 :root {
-	--font-mono: 'JetBrains Mono', monospace;
+	--font-mono: var(--pds-font-mono);
 
-	--color-crust: #0d1210;
-	--color-mantle: #141c19;
-	--color-base: #1a2420;
-	--color-surface-0: #243028;
-	--color-surface-1: #2e3d34;
-	--color-overlay-0: #4d6b58;
-	--color-text: #cdd6f4;
-	--color-subtext-0: #93b09a;
-	--color-green: #a6e3a1;
-	--color-red: #f38ba8;
-	--color-yellow: #f9e2af;
-	--color-shadow: #000000;
+	--color-crust: var(--pds-color-crust);
+	--color-mantle: var(--pds-color-mantle);
+	--color-base: var(--pds-color-base);
+	--color-surface-0: var(--pds-color-surface-0);
+	--color-surface-1: var(--pds-color-surface-1);
+	--color-overlay-0: var(--pds-color-overlay-0);
+	--color-text: var(--pds-color-text);
+	--color-subtext-0: var(--pds-color-subtext-0);
+	--color-green: var(--pds-color-green);
+	--color-red: var(--pds-color-red);
+	--color-yellow: var(--pds-color-yellow);
+	--color-shadow: var(--pds-color-shadow);
 }
 
 /* ─── reset ──────────────────────────────────────────────────────────────── */
