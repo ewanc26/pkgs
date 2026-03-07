@@ -4,7 +4,10 @@
   "description": "Svelte UI component library extracted from ewancroft.uk — pluggable layout, UI primitives, stores, and SEO components.",
   "type": "module",
   "exports": {
-    "./styles/pds-tokens.css": "./dist/styles/pds-tokens.css",
+    "./styles/pds-tokens.css": {
+      "source": "./src/lib/styles/pds-tokens.css",
+      "default": "./dist/styles/pds-tokens.css"
+    },
     ".": {
       "source": "./src/lib/index.ts",
       "types": "./dist/index.d.ts",
