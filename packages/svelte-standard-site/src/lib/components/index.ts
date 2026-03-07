@@ -12,3 +12,4 @@ export { default as ThemedCard } from './common/ThemedCard.svelte';
 
 // Document rendering
 export { default as DocumentRenderer } from './document/DocumentRenderer.svelte';
+export { default as MarkdownRenderer } from './document/MarkdownRenderer.svelte';

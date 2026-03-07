@@ -13,13 +13,14 @@
 
 	interface Props {
 		page: LinearDocumentPage;
+		did?: string;
+		pds?: string;
 		hasTheme?: boolean;
 	}
 
-	const { page, hasTheme = false }: Props = $props();
+	const { page, did = '', pds = '', hasTheme = false }: Props = $props();
 
 	function getAlignmentClass(alignment?: string): string {
-		if (!alignment) return '';
 		switch (alignment) {
 			case '#textAlignLeft':
 				return 'text-left';
@@ -36,9 +37,9 @@
 </script>
 
 <div class="space-y-6">
-	{#each page.blocks as blockWrapper, index}
+	{#each page.blocks as blockWrapper}
 		<div class={getAlignmentClass(blockWrapper.alignment)}>
-			<BlockRenderer block={blockWrapper.block} {hasTheme} />
+			<BlockRenderer block={blockWrapper.block} {did} {pds} {hasTheme} />
 		</div>
 	{/each}
 </div>
