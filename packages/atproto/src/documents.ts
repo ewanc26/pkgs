@@ -8,6 +8,7 @@ import type {
 	StandardSiteDocumentsData,
 	StandardSiteBasicTheme,
 	StandardSiteThemeColor,
+	StandardSitePreferences,
 	BlogPost
 } from './types.js';
 
@@ -23,6 +24,7 @@ interface DocumentRecord {
 	tags?: string[];
 	publishedAt: string;
 	updatedAt?: string;
+	preferences?: StandardSitePreferences;
 }
 
 interface PublicationRecord {
@@ -36,7 +38,7 @@ interface PublicationRecord {
 		accent: StandardSiteThemeColor;
 		accentForeground: StandardSiteThemeColor;
 	};
-	preferences?: { showInDiscover?: boolean };
+	preferences?: StandardSitePreferences;
 }
 
 async function getBlobUrl(
@@ -112,6 +114,16 @@ export async function fetchPublications(
 				};
 			}
 
+			const preferences: StandardSitePreferences | undefined = pubValue.preferences
+				? {
+						showInDiscover: pubValue.preferences.showInDiscover,
+						showComments: pubValue.preferences.showComments,
+						showMentions: pubValue.preferences.showMentions,
+						showPrevNext: pubValue.preferences.showPrevNext,
+						showRecommends: pubValue.preferences.showRecommends
+				  }
+				: undefined;
+
 			publications.push({
 				name: pubValue.name,
 				rkey,
@@ -120,7 +132,7 @@ export async function fetchPublications(
 				description: pubValue.description,
 				icon: pubValue.icon ? await getBlobUrl(did, pubValue.icon, fetchFn) : undefined,
 				basicTheme,
-				preferences: pubValue.preferences
+				preferences
 			});
 		}
 
@@ -201,7 +213,8 @@ export async function fetchDocuments(
 				publishedAt: docValue.publishedAt,
 				updatedAt: docValue.updatedAt,
 				publicationName: publication?.name,
-				publicationRkey
+				publicationRkey,
+				preferences: docValue.preferences
 			});
 		}
 

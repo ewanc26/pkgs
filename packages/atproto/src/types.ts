@@ -233,6 +233,14 @@ export interface StandardSiteBasicTheme {
 	accentForeground: StandardSiteThemeColor;
 }
 
+export interface StandardSitePreferences {
+	showInDiscover?: boolean;
+	showComments?: boolean;
+	showMentions?: boolean;
+	showPrevNext?: boolean;
+	showRecommends?: boolean;
+}
+
 export interface StandardSitePublication {
 	name: string;
 	rkey: string;
@@ -241,7 +249,7 @@ export interface StandardSitePublication {
 	description?: string;
 	icon?: string;
 	basicTheme?: StandardSiteBasicTheme;
-	preferences?: { showInDiscover?: boolean };
+	preferences?: StandardSitePreferences;
 }
 
 export interface StandardSitePublicationsData {
@@ -265,6 +273,7 @@ export interface StandardSiteDocument {
 	updatedAt?: string;
 	publicationName?: string;
 	publicationRkey?: string;
+	preferences?: StandardSitePreferences;
 }
 
 export interface StandardSiteDocumentsData {
