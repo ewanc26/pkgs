@@ -1,10 +1,13 @@
 # Nix Config Tools
 
-Three Rust utilities for managing the nix config. Run via the flake — no
+Four Rust utilities for managing the nix config. Run via the flake — no
 `cargo build` required:
 
 ```bash
-nix run ~/.config/nix-config/tools#<tool>
+nix run github:ewanc26/pkgs#health-check
+nix run github:ewanc26/pkgs#flake-bump
+nix run github:ewanc26/pkgs#gen-diff
+nix run github:ewanc26/pkgs#server-config
 ```
 
 Or via the shell aliases set up by `home/programs/zsh.nix`:
@@ -13,6 +16,12 @@ Or via the shell aliases set up by `home/programs/zsh.nix`:
 health-check    # pre-rebuild preflight
 flake-bump      # inspect / update flake inputs
 gen-diff        # diff package changes between generations
+```
+
+For local dev (working tree, uncommitted changes):
+
+```bash
+nix run ./packages/nix-config-tools#flake-bump
 ```
 
 ---
@@ -65,6 +74,18 @@ Wraps `nix store diff-closures` with a friendlier interface and generation listi
 
 ---
 
+## `server-config`
+
+Interactive server configurator: service toggles, storage device, Cockpit,
+Forgejo, Matrix, PDS, Cloudflare settings.
+
+```bash
+server-config          # interactive configuration
+server-config --show   # read-only summary
+```
+
+---
+
 ## Retired tools
 
 The following tools were removed. Their source files remain in `src/bin/` for
@@ -92,8 +113,8 @@ reference but are no longer compiled.
    name = "your-tool"
    path = "src/bin/your-tool.rs"
    ```
-3. Expose in `flake.nix` under `apps`
-4. Add a shell alias in `settings/config/shell.nix` if used regularly
+3. Expose in the root `flake.nix` under `apps`
+4. Add a shell alias in `home/programs/zsh.nix` if used regularly
 
 ### Common utilities (`lib.rs`)
 
