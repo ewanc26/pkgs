@@ -1,14 +1,16 @@
 {
   "name": "@ewanc26/pkgs",
   "private": true,
-  "description": "Ewan's personal package monorepo",
+  "description": "Ewan's personal package monorepo — TypeScript, Rust, and Python",
   "scripts": {
     "build": "pnpm -r run build",
     "dev": "pnpm -r run dev",
     "check": "pnpm -r run check",
     "typecheck": "pnpm -r run type-check",
     "test": "pnpm -r run test",
-    "clean": "pnpm -r exec -- rm -rf dist node_modules"
+    "clean": "pnpm -r exec -- rm -rf dist node_modules",
+    "py:check": "python3 -m py_compile packages/*/main.py packages/*/src/*.py 2>/dev/null || echo 'Some Python files have syntax errors'",
+    "py:install": "pip install -r packages/llm-analyser/requirements.txt"
   },
   "engines": {
     "node": ">=18",
