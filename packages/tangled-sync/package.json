@@ -1,0 +1,40 @@
+{
+  "name": "@ewanc26/tangled-sync",
+  "version": "1.0.0",
+  "description": "Sync GitHub repos to Tangled with ATProto records",
+  "type": "module",
+  "bin": {
+    "tangled-sync": "./dist/index.js",
+    "tangled-sync-check": "./dist/check.js",
+    "tangled-sync-validate": "./dist/validate-config.js",
+    "tangled-sync-test-atproto": "./dist/test-atproto.js"
+  },
+  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md",
+    "USAGE.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/check.ts src/validate-config.ts src/test-atproto.ts --format esm --outDir dist --no-dts --clean",
+    "dev": "ts-node src/index.ts",
+    "check": "ts-node src/check.ts",
+    "validate": "ts-node src/validate-config.ts",
+    "test-atproto": "ts-node src/test-atproto.ts",
+    "sync": "ts-node src/index.ts",
+    "sync:force": "ts-node src/index.ts --force",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.17.2",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  },
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only"
+}
