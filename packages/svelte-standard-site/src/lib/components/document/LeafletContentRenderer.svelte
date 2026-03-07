@@ -35,20 +35,21 @@
 
 	interface Props {
 		content: LeafletContent;
+		did?: string;
+		pds?: string;
 		hasTheme?: boolean;
 	}
 
-	const { content, hasTheme = false }: Props = $props();
+	const { content, did = '', pds = '', hasTheme = false }: Props = $props();
 </script>
 
 {#if content.pages && content.pages.length > 0}
-	{#each content.pages as page, index}
+	{#each content.pages as page}
 		{#if page.$type === 'pub.leaflet.pages.linearDocument'}
-			<LinearDocumentRenderer {page} {hasTheme} />
+			<LinearDocumentRenderer {page} {did} {pds} {hasTheme} />
 		{:else if page.$type === 'pub.leaflet.pages.canvas'}
-			<CanvasRenderer {page} {hasTheme} />
+			<CanvasRenderer {page} {did} {pds} {hasTheme} />
 		{:else}
-			<!-- Unknown page type -->
 			<div class="my-4 rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-4">
 				<p class="text-sm text-yellow-600 dark:text-yellow-400">
 					Unknown page type: <code class="font-mono text-xs"

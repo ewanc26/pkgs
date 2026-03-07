@@ -17,15 +17,16 @@
 
 	interface Props {
 		page: CanvasPage;
+		did?: string;
+		pds?: string;
 		hasTheme?: boolean;
 	}
 
-	const { page, hasTheme = false }: Props = $props();
+	const { page, did = '', pds = '', hasTheme = false }: Props = $props();
 </script>
 
-<!-- Canvas layout uses absolute positioning -->
 <div class="relative min-h-screen w-full">
-	{#each page.blocks as blockWrapper, index}
+	{#each page.blocks as blockWrapper}
 		<div
 			class="absolute"
 			style:left="{blockWrapper.x}px"
@@ -34,7 +35,7 @@
 			style:height={blockWrapper.height ? `${blockWrapper.height}px` : 'auto'}
 			style:transform={blockWrapper.rotation ? `rotate(${blockWrapper.rotation}deg)` : undefined}
 		>
-			<BlockRenderer block={blockWrapper.block} {hasTheme} />
+			<BlockRenderer block={blockWrapper.block} {did} {pds} {hasTheme} />
 		</div>
 	{/each}
 </div>
