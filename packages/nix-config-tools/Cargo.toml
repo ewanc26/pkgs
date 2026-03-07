@@ -1,0 +1,39 @@
+[package]
+name = "nix-config-tools"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dialoguer = { workspace = true, features = ["completion"] }
+console = { workspace = true }
+
+[lib]
+name = "tools_common"
+path = "src/lib.rs"
+
+# ── Tools kept ────────────────────────────────────────────────────────────────
+
+[[bin]]
+name = "flake-bump"
+path = "src/bin/flake-bump.rs"
+
+[[bin]]
+name = "gen-diff"
+path = "src/bin/gen-diff.rs"
+
+[[bin]]
+name = "health-check"
+path = "src/bin/health-check.rs"
+
+[[bin]]
+name = "server-config"
+path = "src/bin/server-config.rs"
+
+# ── Removed tools (source kept for reference, not compiled) ──────────────────
+# darwin-export   — unnecessary: macOS settings are now fully declarative
+# gnome-export    — unnecessary: GNOME/dconf settings are now fully declarative
+# secrets-setup   — unnecessary: was a stub that only checked a file's existence
+# categorize-apps — brittle: nix search / brew info --cask lookups produce
+#                   false positives; config is hand-maintained
+# generate-app-config — same as above
+# sync-apps           — same; also mutated config files without review
