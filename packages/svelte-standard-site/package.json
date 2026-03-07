@@ -1,6 +1,6 @@
 {
 	"name": "@ewanc26/svelte-standard-site",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "SvelteKit library for reading and writing AT Protocol longform content via site.standard.* records — with a complete design system, federated comments, publishing tools, and content verification.",
 	"license": "AGPL-3.0-only",
 	"author": {
