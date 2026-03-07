@@ -16,7 +16,7 @@
             pname = "nix-config-tools";
             version = "0.1.0";
             src = ./packages/nix-config-tools;
-            cargoHash = "sha256-H0J+b0cA2UXCFw9vtYnFYDsiMzWrCWtE2xUgXhpsepM=";
+            cargoLock.lockFile = ./packages/nix-config-tools/Cargo.lock;
           };
 
           default = self.packages.${system}.nix-config-tools;
