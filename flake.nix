@@ -12,12 +12,11 @@
         let pkgs = nixpkgs.legacyPackages.${system}; in
         {
           # Nix config management tools (flake-bump, health-check, gen-diff, server-config)
-          # src points at the repo root so Cargo can find the workspace manifest.
           nix-config-tools = pkgs.rustPlatform.buildRustPackage {
             pname = "nix-config-tools";
             version = "0.1.0";
             src = ./.;
-            cargoLock.lockFile = ./Cargo.lock;
+            cargoLock.lockFile = ./packages/nix-config-tools/Cargo.lock;
             cargoBuildFlags = [ "--package" "nix-config-tools" ];
             cargoTestFlags  = [ "--package" "nix-config-tools" ];
           };
