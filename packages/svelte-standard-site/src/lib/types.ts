@@ -47,6 +47,10 @@ export interface BasicTheme {
  */
 export interface PublicationPreferences {
 	showInDiscover?: boolean;
+	showComments?: boolean;
+	showMentions?: boolean;
+	showPrevNext?: boolean;
+	showRecommends?: boolean;
 }
 
 /**
@@ -78,6 +82,7 @@ export interface Document {
 	tags?: string[];
 	publishedAt: string;
 	updatedAt?: string;
+	preferences?: PublicationPreferences;
 }
 
 /**
