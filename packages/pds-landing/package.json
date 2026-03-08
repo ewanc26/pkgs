@@ -1,6 +1,7 @@
 {
-	"name": "pds-landing",
-	"version": "0.0.1",
+	"name": "@ewanc26/pds-landing",
+	"version": "2.0.0",
+	"description": "Composable Svelte components for an ATProto PDS landing page — terminal-aesthetic UI with live status fetching.",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -26,11 +27,17 @@
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
-			"svelte": "./dist/index.js"
+			"svelte": "./dist/index.js",
+			"default": "./dist/index.js"
 		}
 	},
 	"peerDependencies": {
-		"svelte": "^5.0.0"
+		"@sveltejs/kit": ">=2.0.0",
+		"svelte": "^5.0.0",
+		"tailwindcss": ">=4.0.0"
+	},
+	"dependencies": {
+		"@ewanc26/ui": "workspace:*"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^3.0.10",
@@ -50,6 +57,13 @@
 		"vite": "^7.3.1"
 	},
 	"keywords": [
-		"svelte"
-	]
+		"svelte",
+		"atproto",
+		"bluesky",
+		"pds",
+		"landing-page"
+	],
+	"publishConfig": {
+		"access": "public"
+	}
 }
