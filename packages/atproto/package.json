@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/atproto",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AT Protocol service layer extracted from ewancroft.uk",
   "type": "module",
   "exports": {

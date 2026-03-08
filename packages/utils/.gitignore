@@ -1,0 +1,11 @@
+node_modules
+
+# Output
+/dist
+
+# TypeScript
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
