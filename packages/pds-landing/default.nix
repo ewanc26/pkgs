@@ -8,7 +8,7 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "pds-landing";
-  version = "2.0.1";
+  version = (builtins.fromJSON (builtins.readFile ./package.json)).version;
 
   # Build from the monorepo root so pnpm workspace deps (@ewanc26/ui) resolve.
   src = lib.cleanSource ../..;
