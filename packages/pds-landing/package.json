@@ -37,7 +37,7 @@
 		"tailwindcss": ">=4.0.0"
 	},
 	"dependencies": {
-		"@ewanc26/ui": "workspace:*"
+		"@ewanc26/ui": "github:ewanc26/pkgs#main&path:packages/ui"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^3.0.10",
