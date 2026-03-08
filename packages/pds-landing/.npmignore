@@ -1,7 +1,0 @@
-styles/
-assets/icon/instructions.txt
-build.mjs
-tailwind.config.js
-default.nix
-flake.nix
-flake.lock
