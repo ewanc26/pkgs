@@ -18,6 +18,10 @@ importers:
         version: 5.9.3
 
   packages/pds-landing:
+    dependencies:
+      '@ewanc26/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
