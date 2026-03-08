@@ -3,17 +3,18 @@
   stdenv,
   nodejs_22,
   pnpm_10,
+  fetchPnpmDeps,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "pds-landing";
-  version = "2.0.0";
+  version = "2.0.1";
 
   # Build from the monorepo root so pnpm workspace deps (@ewanc26/ui) resolve.
   src = lib.cleanSource ../..;
 
-  pnpmDeps = pnpm_10.fetchDeps {
-    inherit (finalAttrs) pname version src;
+  pnpmDeps = fetchPnpmDeps {
+    inherit (finalAttrs) src;
     fetcherVersion = 2;
     # Run `nix build` and replace with the hash from the error output.
     hash = lib.fakeHash;
