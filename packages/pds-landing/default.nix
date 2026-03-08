@@ -14,7 +14,7 @@ stdenv.mkDerivation (finalAttrs: {
   src = lib.cleanSource ../..;
 
   pnpmDeps = fetchPnpmDeps {
-    inherit (finalAttrs) src;
+    inherit (finalAttrs) pname version src;
     fetcherVersion = 2;
     # Run `nix build` and replace with the hash from the error output.
     hash = lib.fakeHash;
