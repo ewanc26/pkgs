@@ -37,8 +37,11 @@ jobs:
           echo "name=${PKG_NAME}" >> "$GITHUB_OUTPUT"
           echo "path=packages/${PKG_NAME}" >> "$GITHUB_OUTPUT"
 
+      - name: Build workspace dependencies
+        run: pnpm --filter "...^@ewanc26/${{ steps.pkg.outputs.name }}" run build
+
       - name: Build
         run: pnpm --filter "@ewanc26/${{ steps.pkg.outputs.name }}" run build
 
       - name: Publish
-        run: pnpm --filter "@ewanc26/${{ steps.pkg.outputs.name }}" publish --no-git-checks --provenance
+        run: pnpm --filter "@ewanc26/${{ steps.pkg.outputs.name }}" publish --no-git-checks --provenance --access public
