@@ -1,0 +1,49 @@
+{
+  lib,
+  stdenv,
+  nodejs_22,
+  pnpm_10,
+}:
+
+stdenv.mkDerivation (finalAttrs: {
+  pname = "pds-landing";
+  version = "2.0.0";
+
+  # Build from the monorepo root so pnpm workspace deps (@ewanc26/ui) resolve.
+  src = lib.cleanSource ../..;
+
+  pnpmDeps = pnpm_10.fetchDeps {
+    inherit (finalAttrs) pname version src;
+    # Run `nix build` and replace with the hash from the error output.
+    hash = lib.fakeHash;
+  };
+
+  nativeBuildInputs = [
+    nodejs_22
+    pnpm_10.configHook
+  ];
+
+  buildPhase = ''
+    runHook preBuild
+
+    # Build the UI library first (workspace dep of pds-landing).
+    pnpm --filter @ewanc26/ui build
+
+    # Build the SvelteKit static site.  Only run vite build — the prepack
+    # step (svelte-package / publint) is for npm publishing, not needed here.
+    pnpm --filter @ewanc26/pds-landing exec vite build
+
+    runHook postBuild
+  '';
+
+  installPhase = ''
+    runHook preInstall
+    cp -r packages/pds-landing/build $out
+    runHook postInstall
+  '';
+
+  meta = {
+    description = "ATProto PDS landing page — SvelteKit static build";
+    license = lib.licenses.agpl3Only;
+  };
+})

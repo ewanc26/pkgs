@@ -11,10 +11,8 @@
       packages = forAllSystems (system:
         let pkgs = nixpkgs.legacyPackages.${system}; in
         {
-          # PDS landing page static site
-          pds-landing = pkgs.callPackage ./packages/pds-landing/default.nix {
-            tailwindcss_3 = pkgs.tailwindcss_3;
-          };
+          # PDS landing page static site — SvelteKit adapter-static build.
+          pds-landing = pkgs.callPackage ./packages/pds-landing/default.nix {};
 
           # Nix config management tools (flake-bump, health-check, gen-diff, server-config)
           nix-config-tools = pkgs.rustPlatform.buildRustPackage {
