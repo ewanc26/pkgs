@@ -1,65 +1,132 @@
-# Svelte library
+# @ewanc26/pds-landing
 
-Everything you need to build a Svelte library, powered by [`sv`](https://npmjs.com/package/sv).
+Composable Svelte 5 components for an ATProto PDS landing page — terminal aesthetic, live status fetching, zero config to drop in.
 
-Read more about creating a library [in the docs](https://svelte.dev/docs/kit/packaging).
+## Install
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+```bash
+pnpm add @ewanc26/pds-landing @ewanc26/ui
 ```
 
-To recreate this project with the same configuration:
+## Quick start — full page
 
-```sh
-# recreate this project
-pnpm dlx sv@0.12.5 create --template library --types ts --add prettier tailwindcss="plugins:typography" sveltekit-adapter="adapter:static" --install pnpm ./packages/pds-landing
+```svelte
+<script>
+  import { PDSPage } from '@ewanc26/pds-landing';
+</script>
+
+<!-- Drop-in: renders the complete terminal landing page -->
+<PDSPage
+  cardTitle="ewan's pds"
+  promptUser="server"
+  promptHost="pds.ewancroft.uk"
+  tagline="Bluesky-compatible ATProto PDS · personal instance"
+  blueskyHandle="ewancroft.uk"
+/>
 ```
 
-## Developing
+Import the PDS design tokens and base styles once in your layout:
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```css
+/* app.css / layout.css */
+@import '@ewanc26/ui/styles/pds-tokens.css';
 ```
 
-Everything inside `src/lib` is part of your library, everything inside `src/routes` can be used as a showcase or preview app.
+---
 
-## Building
+## Mix-and-match — primitives
 
-To build your library:
+All primitives are exported individually so you can compose custom layouts.
 
-```sh
-npm pack
+```svelte
+<script>
+  import {
+    TerminalCard,
+    PromptLine,
+    Tagline,
+    SectionLabel,
+    Divider,
+    StatusGrid,
+    LinkList,
+    ContactSection,
+    PDSFooter,
+  } from '@ewanc26/pds-landing';
+</script>
+
+<TerminalCard title="my pds">
+  <PromptLine user="server" host="pds.example.com" />
+  <Tagline text="My custom tagline" />
+
+  <SectionLabel label="status" />
+  <StatusGrid />          <!-- fetches live from same origin -->
+
+  <Divider />
+
+  <SectionLabel label="links" />
+  <LinkList links={[
+    { href: 'https://bsky.app', label: 'Bluesky' },
+    { href: 'https://atproto.com', label: 'ATProto docs' },
+  ]} />
+
+  <Divider />
+
+  <SectionLabel label="contact" />
+  <ContactSection blueskyHandle="you.bsky.social" />
+</TerminalCard>
+
+<PDSFooter />
 ```
 
-To create a production version of your showcase app:
+### Use raw KV data
 
-```sh
-npm run build
+```svelte
+<script>
+  import { KVGrid } from '@ewanc26/pds-landing';
+  import type { KVItem } from '@ewanc26/pds-landing';
+
+  const items: KVItem[] = [
+    { key: 'status', value: '✓ online', status: 'ok' },
+    { key: 'region', value: 'eu-west-1' },
+    { key: 'invite', value: 'required', status: 'warn' },
+  ];
+</script>
+
+<KVGrid {items} />
 ```
 
-You can preview the production build with `npm run preview`.
+### Fetch status yourself
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```ts
+import { fetchPDSStatus } from '@ewanc26/pds-landing';
 
-## Publishing
+const { health, description, accountCount } = await fetchPDSStatus('https://pds.example.com');
+```
 
-Go into the `package.json` and give your package the desired name through the `"name"` option. Also consider adding a `"license"` field and point it to a `LICENSE` file which you can create from a template (one popular option is the [MIT license](https://opensource.org/license/mit/)).
+---
 
-To publish your library to [npm](https://www.npmjs.com):
+## Components
 
-```sh
-npm publish
+| Component | Description |
+|---|---|
+| `PDSPage` | Full assembled landing page (convenience) |
+| `TerminalCard` | Terminal window shell with traffic-light dots titlebar |
+| `PromptLine` | `user@host:path $` bash prompt header |
+| `Tagline` | Dimmed subtitle beneath the prompt |
+| `SectionLabel` | Uppercase section heading |
+| `Divider` | Thin green-tinted `<hr>` |
+| `KVGrid` | Key-value grid with ok/warn/err/loading states |
+| `StatusGrid` | Live-fetching PDS status grid (wraps `KVGrid`) |
+| `LinkList` | `→ link` list |
+| `ContactSection` | Bluesky mention + optional email |
+| `PDSFooter` | Footer with nixpkgs / atproto links |
+
+## Design tokens
+
+All components consume CSS custom properties from `@ewanc26/ui/styles/pds-tokens.css`:
+
+```
+--pds-font-mono
+--pds-color-crust / mantle / base / surface-0 / surface-1 / overlay-0
+--pds-color-text / subtext-0
+--pds-color-green / red / yellow / shadow
 ```
