@@ -17,7 +17,7 @@ stdenv.mkDerivation (finalAttrs: {
     inherit (finalAttrs) pname version src;
     fetcherVersion = 2;
     # Run `nix build` and replace with the hash from the error output.
-    hash = lib.fakeHash;
+    hash = "sha256-AWDUq0ysY/2XAEFajccDvWzfTkKnlov2UA4qa5SoiRU=";
   };
 
   nativeBuildInputs = [
