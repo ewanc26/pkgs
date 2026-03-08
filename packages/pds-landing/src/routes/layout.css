@@ -1,2 +1,29 @@
 @import 'tailwindcss';
-@plugin '@tailwindcss/typography';
+@import '@ewanc26/ui/styles/pds-tokens.css';
+
+/* ─── Global resets & base ───────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html,
+body {
+	min-height: 100dvh;
+	background-color: var(--pds-color-crust);
+	color: var(--pds-color-text);
+	font-family: var(--pds-font-mono);
+	font-size: clamp(13px, 3.5vw, 15px);
+	line-height: 1.6;
+}
+
+body {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: clamp(1.5rem, 6vw, 4rem) clamp(1rem, 4vw, 1.5rem) clamp(1.5rem, 6vw, 3rem);
+	gap: 2rem;
+}
