@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <!-- grid pattern background -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e3328" stroke-width="0.5" opacity="0.4"/>
+    </pattern>
+    <!-- subtle vignette -->
+    <radialGradient id="vignette" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="#0d1210" stop-opacity="0.6"/>
+    </radialGradient>
+    <!-- card shadow -->
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="24" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="1200" height="630" fill="#0d1210"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect width="1200" height="630" fill="url(#vignette)"/>
+
+  <!-- card -->
+  <g filter="url(#shadow)">
+    <rect x="160" y="90" width="880" height="450" rx="10" fill="#141c19" stroke="#2e3d34" stroke-width="1"/>
+    <!-- outer glow ring -->
+    <rect x="160" y="90" width="880" height="450" rx="10" fill="none" stroke="#a6e3a1" stroke-width="0.5" opacity="0.08"/>
+  </g>
+
+  <!-- titlebar -->
+  <rect x="160" y="90" width="880" height="44" rx="10" fill="#243028"/>
+  <rect x="160" y="114" width="880" height="20" fill="#243028"/>
+  <rect x="160" y="91" width="880" height="1" fill="#2e3d34"/>
+  <rect x="160" y="134" width="880" height="1" fill="#2e3d34"/>
+
+  <!-- traffic lights -->
+  <circle cx="196" cy="112" r="6" fill="#4a7a62" opacity="0.4"/>
+  <circle cx="218" cy="112" r="6" fill="#4a7a62" opacity="0.4"/>
+  <circle cx="240" cy="112" r="6" fill="#4a7a62" opacity="0.4"/>
+
+  <!-- titlebar label -->
+  <text x="264" y="117" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="13" fill="#4a7a62">ewan's pds</text>
+
+  <!-- prompt line -->
+  <text x="200" y="210" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="32" font-weight="700" fill="#a6e3a1">server@pds.ewancroft.uk</text>
+  <text x="200" y="210" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="32" font-weight="700" fill="#93b09a" opacity="0.6">:~</text>
+  <!-- measure approx: "server@pds.ewancroft.uk" at 32px mono ≈ 23 chars × ~19.2px = ~442px, then ":~" ≈ 38px -->
+  <text x="200" y="210" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="32" font-weight="700">
+    <tspan fill="#a6e3a1">server@pds.ewancroft.uk</tspan><tspan fill="#93b09a" opacity="0.6">:~</tspan><tspan fill="#93b09a"> $</tspan>
+  </text>
+
+  <!-- tagline -->
+  <text x="200" y="248" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="15" fill="#4d6b58">Bluesky-compatible ATProto PDS · personal instance</text>
+
+  <!-- divider -->
+  <line x1="200" y1="272" x2="1000" y2="272" stroke="#1e3328" stroke-width="1" opacity="0.8"/>
+
+  <!-- STATUS section -->
+  <text x="200" y="300" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="11" font-weight="700" letter-spacing="2" fill="#4d6b58">STATUS</text>
+
+  <!-- kv rows -->
+  <text x="200" y="328" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="15" fill="#4a7a62" opacity="0.7">reachable</text>
+  <text x="390" y="328" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="15" fill="#a6e3a1">✓ online</text>
+
+  <text x="200" y="356" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="15" fill="#4a7a62" opacity="0.7">did</text>
+  <text x="390" y="356" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="15" fill="#cdd6f4" opacity="0.85">did:web:pds.ewancroft.uk</text>
+
+  <text x="200" y="384" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="15" fill="#4a7a62" opacity="0.7">invite required</text>
+  <text x="390" y="384" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="15" fill="#f9e2af">yes</text>
+
+  <!-- divider -->
+  <line x1="200" y1="410" x2="1000" y2="410" stroke="#1e3328" stroke-width="1" opacity="0.8"/>
+
+  <!-- footer line -->
+  <text x="600" y="475" font-family="'JetBrains Mono', 'Fira Mono', monospace" font-size="13" fill="#2e3d34" text-anchor="middle">powered by nixpkgs#bluesky-pds · atproto.com</text>
+
+
+</svg>
