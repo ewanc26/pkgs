@@ -11,8 +11,9 @@
  *
  * Required environment variables:
  *   ATPROTO_DID           — your DID, e.g. did:plc:abc123
- *   ATPROTO_PDS_URL       — your PDS URL, e.g. https://pds.ewancroft.uk
  *   ATPROTO_APP_PASSWORD  — an app password from your PDS settings
+ *
+ * The PDS URL is resolved automatically from the DID via Slingshot.
  */
 
 import { AtpAgent } from '@atproto/api';
@@ -26,6 +27,9 @@ export interface KofiEventRecord {
 	name: string;
 	type: KofiEventType;
 	tier?: string;
+	isSubscriptionPayment?: true;
+	isFirstSubscriptionPayment?: true;
+	shopItems?: string[];
 }
 
 function requireEnv(key: string): string {
@@ -38,12 +42,23 @@ function dedupe<T>(arr: T[], extra: T): T[] {
 	return Array.from(new Set([...arr, extra]));
 }
 
+/** Resolve the PDS URL for a DID via the AT Protocol identity endpoint. */
+async function resolvePdsUrl(did: string): Promise<string> {
+	const res = await fetch(
+		`https://slingshot.microcosm.blue/xrpc/com.bad-example.identity.resolveMiniDoc?identifier=${encodeURIComponent(did)}`
+	);
+	if (!res.ok) throw new Error(`Failed to resolve PDS for ${did}: ${res.status}`);
+	const data = await res.json() as { pds?: string };
+	if (!data.pds) throw new Error(`No PDS found in identity document for ${did}`);
+	return data.pds;
+}
+
 /** Authenticated agent for write operations. */
 async function authedAgent(): Promise<{ agent: AtpAgent; did: string }> {
 	const did = requireEnv('ATPROTO_DID');
-	const pdsUrl = requireEnv('ATPROTO_PDS_URL');
 	const password = requireEnv('ATPROTO_APP_PASSWORD');
 
+	const pdsUrl = await resolvePdsUrl(did);
 	const agent = new AtpAgent({ service: pdsUrl });
 	await agent.login({ identifier: did, password });
 	return { agent, did };
@@ -55,7 +70,7 @@ async function authedAgent(): Promise<{ agent: AtpAgent; did: string }> {
  */
 export async function readStore(): Promise<KofiSupporter[]> {
 	const did = requireEnv('ATPROTO_DID');
-	const pdsUrl = requireEnv('ATPROTO_PDS_URL');
+	const pdsUrl = await resolvePdsUrl(did);
 
 	const agent = new AtpAgent({ service: pdsUrl });
 
@@ -100,26 +115,38 @@ function aggregateEvents(events: KofiEventRecord[]): KofiSupporter[] {
 
 /**
  * Write a single Ko-fi event as a new record.
- * rkey is a TID generated at call time.
+ * rkey is a TID generated from the event timestamp.
+ * Timestamp is normalised to UTC before encoding.
  */
 export async function appendEvent(
 	name: string,
 	type: KofiEventType,
 	tier: string | null,
-	timestamp: string
+	timestamp: string,
+	opts?: {
+		isSubscriptionPayment?: boolean;
+		isFirstSubscriptionPayment?: boolean;
+		shopItems?: string[];
+	}
 ): Promise<void> {
 	const { agent, did } = await authedAgent();
+
+	// Ko-fi timestamps have no timezone; normalise to UTC
+	const ts = timestamp.endsWith('Z') ? timestamp : timestamp + 'Z';
 
 	const record: KofiEventRecord = {
 		name,
 		type,
-		...(tier ? { tier } : {})
+		...(tier ? { tier } : {}),
+		...(opts?.isSubscriptionPayment ? { isSubscriptionPayment: true as const } : {}),
+		...(opts?.isFirstSubscriptionPayment ? { isFirstSubscriptionPayment: true as const } : {}),
+		...(opts?.shopItems?.length ? { shopItems: opts.shopItems } : {})
 	};
 
 	await agent.com.atproto.repo.putRecord({
 		repo: did,
 		collection: COLLECTION,
-		rkey: generateTID(timestamp),
+		rkey: generateTID(ts),
 		record: record as unknown as { [x: string]: unknown }
 	});
 }
