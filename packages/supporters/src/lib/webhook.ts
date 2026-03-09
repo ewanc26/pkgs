@@ -22,6 +22,7 @@ export class WebhookError extends Error {
 export async function parseWebhook(request: Request): Promise<KofiWebhookPayload> {
 	const secret = process.env.KOFI_VERIFICATION_TOKEN;
 	if (!secret) throw new WebhookError('KOFI_VERIFICATION_TOKEN is not set', 500);
+	const testToken = process.env.KOFI_TEST_TOKEN;
 
 	const contentType = request.headers.get('content-type') ?? '';
 	if (!contentType.includes('application/x-www-form-urlencoded')) {
@@ -39,7 +40,7 @@ export async function parseWebhook(request: Request): Promise<KofiWebhookPayload
 		throw new WebhookError('Invalid JSON in data field', 400);
 	}
 
-	if (payload.verification_token !== secret) {
+	if (payload.verification_token !== secret && payload.verification_token !== testToken) {
 		throw new WebhookError('Verification token mismatch', 401);
 	}
 
