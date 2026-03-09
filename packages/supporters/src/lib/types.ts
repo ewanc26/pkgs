@@ -21,7 +21,7 @@ export interface KofiWebhookPayload {
 	is_subscription_payment: boolean;
 	is_first_subscription_payment: boolean;
 	kofi_transaction_id: string;
-	shop_items: unknown | null;
+	shop_items: Array<{ direct_link_code: string }> | null;
 	tier_name: string | null;
 	shipping: unknown | null;
 }
