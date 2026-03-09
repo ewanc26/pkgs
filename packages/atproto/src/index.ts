@@ -5,11 +5,13 @@
 
 export type {
 	ProfileData,
+	StatusData,
 	SiteInfoData,
 	LinkData,
 	LinkCard,
 	BlueskyPost,
 	BlogPost,
+	BlogPostsData,
 	PostAuthor,
 	ExternalLink,
 	Facet,
