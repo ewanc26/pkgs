@@ -32,7 +32,7 @@ export async function parseWebhook(
 ): Promise<KofiWebhookPayload> {
 	const secret = options?.secret ?? process.env.KOFI_VERIFICATION_TOKEN;
 	if (!secret) throw new WebhookError('KOFI_VERIFICATION_TOKEN is not set', 500);
-	const testToken = options?.testToken ?? process.env.KOFI_TEST_TOKEN;
+	const testToken = options?.testToken;
 
 	const contentType = request.headers.get('content-type') ?? '';
 	if (!contentType.includes('application/x-www-form-urlencoded')) {
