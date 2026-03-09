@@ -19,10 +19,20 @@ export class WebhookError extends Error {
 	}
 }
 
-export async function parseWebhook(request: Request): Promise<KofiWebhookPayload> {
-	const secret = process.env.KOFI_VERIFICATION_TOKEN;
+export interface ParseWebhookOptions {
+	/** Override KOFI_VERIFICATION_TOKEN from process.env */
+	secret?: string;
+	/** Optional secondary token to accept (e.g. Ko-fi's hardcoded test token) */
+	testToken?: string;
+}
+
+export async function parseWebhook(
+	request: Request,
+	options?: ParseWebhookOptions
+): Promise<KofiWebhookPayload> {
+	const secret = options?.secret ?? process.env.KOFI_VERIFICATION_TOKEN;
 	if (!secret) throw new WebhookError('KOFI_VERIFICATION_TOKEN is not set', 500);
-	const testToken = process.env.KOFI_TEST_TOKEN;
+	const testToken = options?.testToken ?? process.env.KOFI_TEST_TOKEN;
 
 	const contentType = request.headers.get('content-type') ?? '';
 	if (!contentType.includes('application/x-www-form-urlencoded')) {
