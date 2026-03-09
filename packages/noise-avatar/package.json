@@ -1,0 +1,41 @@
+{
+  "name": "@ewanc26/noise-avatar",
+  "version": "0.1.0",
+  "description": "Deterministic value-noise avatar generation from a string seed. Zero dependencies, works in browsers and Node.js.",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "avatar",
+    "noise",
+    "procedural",
+    "canvas",
+    "deterministic"
+  ],
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
