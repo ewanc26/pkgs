@@ -1,65 +1,114 @@
-# Svelte library
+# @ewanc26/supporters
 
-Everything you need to build a Svelte library, powered by [`sv`](https://npmjs.com/package/sv).
+SvelteKit component library for displaying Ko-fi supporters, backed by an ATProto PDS.
 
-Read more about creating a library [in the docs](https://svelte.dev/docs/kit/packaging).
+Ko-fi's webhook pushes payment events to your endpoint. Each event is stored as a record under the `uk.ewancroft.kofi.supporter` lexicon on your PDS, with a TID rkey derived from the transaction timestamp. The component reads those records and renders them.
 
-## Creating a project
+---
 
-If you're seeing this, you've probably already done this step. Congrats!
+## How it works
 
-```sh
-# create a new project in the current directory
-npx sv create
+1. Ko-fi POSTs a webhook event to `/webhook` on each transaction
+2. The handler verifies the `verification_token`, respects `is_public`, and calls `appendEvent`
+3. `appendEvent` writes a record to your PDS under `uk.ewancroft.kofi.supporter`
+4. `readStore` fetches all records and aggregates them into `KofiSupporter` objects
+5. Pass the result to `<KofiSupporters>` or `<LunarContributors>`
 
-# create a new project in my-app
-npx sv create my-app
+---
+
+## Setup
+
+### 1. Environment variables
+
+```env
+# Required — copy from ko-fi.com/manage/webhooks → Advanced → Verification Token
+KOFI_VERIFICATION_TOKEN=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+# Required — your ATProto identity and a dedicated app password
+ATPROTO_DID=did:plc:yourdidhex
+ATPROTO_PDS_URL=https://your-pds.example.com
+ATPROTO_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
 ```
 
-To recreate this project with the same configuration:
+Generate an app password at your PDS under **Settings → App Passwords**.
 
-```sh
-# recreate this project
-pnpm dlx sv@0.12.5 create --template library --types ts --add prettier tailwindcss="plugins:typography" sveltekit-adapter="adapter:auto" --install pnpm ./supporters
+### 2. Register the webhook
+
+Go to **ko-fi.com/manage/webhooks** and set your webhook URL to:
+
+```
+https://your-domain.com/webhook
 ```
 
-## Developing
+### 3. Add the route
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Copy `src/routes/webhook/+server.ts` into your SvelteKit app's routes directory.
 
-```sh
-npm run dev
+### 4. Use the component
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```ts
+// +page.server.ts
+import { readStore } from '@ewanc26/supporters';
+
+export const load = async () => ({
+  supporters: await readStore()
+});
 ```
 
-Everything inside `src/lib` is part of your library, everything inside `src/routes` can be used as a showcase or preview app.
+```svelte
+<!-- +page.svelte -->
+<script lang="ts">
+  import { KofiSupporters } from '@ewanc26/supporters';
+  let { data } = $props();
+</script>
 
-## Building
-
-To build your library:
-
-```sh
-npm pack
+<KofiSupporters supporters={data.supporters} />
 ```
 
-To create a production version of your showcase app:
+---
 
-```sh
-npm run build
+## Components
+
+### `<KofiSupporters>`
+
+Displays all supporters with emoji type badges (☕ donation, ⭐ subscription, 🎨 commission, 🛍️ shop order).
+
+| Prop | Type | Default |
+|---|---|---|
+| `supporters` | `KofiSupporter[]` | `[]` |
+| `heading` | `string` | `'Supporters'` |
+| `description` | `string` | `'People who support my work on Ko-fi.'` |
+| `filter` | `KofiEventType[]` | `undefined` (show all) |
+| `loading` | `boolean` | `false` |
+| `error` | `string \| null` | `null` |
+
+### `<LunarContributors>`
+
+Convenience wrapper around `<KofiSupporters>` pre-filtered to `Subscription` events.
+
+---
+
+## Importing historical data
+
+Export your transaction history from **ko-fi.com/manage/transactions → Export CSV**, then:
+
+```bash
+ATPROTO_DID=... ATPROTO_PDS_URL=... ATPROTO_APP_PASSWORD=... \
+  node node_modules/@ewanc26/supporters/scripts/import-history.mjs transactions.csv --dry-run
 ```
 
-You can preview the production build with `npm run preview`.
+---
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Lexicon
 
-## Publishing
+Records are stored under `uk.ewancroft.kofi.supporter` (see `lexicons/`). Each record contains:
 
-Go into the `package.json` and give your package the desired name through the `"name"` option. Also consider adding a `"license"` field and point it to a `LICENSE` file which you can create from a template (one popular option is the [MIT license](https://opensource.org/license/mit/)).
-
-To publish your library to [npm](https://www.npmjs.com):
-
-```sh
-npm publish
+```ts
+{
+  name: string        // display name from Ko-fi
+  type: string        // "Donation" | "Subscription" | "Commission" | "Shop Order"
+  tier?: string       // subscription tier name, if applicable
+}
 ```
+
+rkeys are TIDs derived from the transaction timestamp via [`@ewanc26/tid`](https://npmjs.com/package/@ewanc26/tid).
