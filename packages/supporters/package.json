@@ -1,6 +1,6 @@
 {
 	"name": "@ewanc26/supporters",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"description": "SvelteKit component library for displaying Ko-fi supporters, backed by an ATProto PDS.",
 	"author": "Ewan Croft",
 	"license": "AGPL-3.0-only",
