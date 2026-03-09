@@ -17,6 +17,15 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/noise-avatar:
+    devDependencies:
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/pds-landing:
     dependencies:
       '@ewanc26/ui':
@@ -281,8 +290,8 @@ importers:
         version: 5.9.3
     optionalDependencies:
       '@ewanc26/atproto':
-        specifier: workspace:*
-        version: link:../atproto
+        specifier: '>=0.2.2'
+        version: 0.2.2(@atproto/api@0.18.21)
 
   packages/utils:
     devDependencies:
@@ -481,6 +490,11 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@ewanc26/atproto@0.2.2':
+    resolution: {integrity: sha512-rR0p30j/7vdZMcP/TrVewSF+HQBJYmhufHa76CwBf+TBKIenG/nZwqot0nDKDyHCyeb9p97dveDcYryz3908pw==}
+    peerDependencies:
+      '@atproto/api': '>=0.13.0'
 
   '@ewanc26/tid@1.1.1':
     resolution: {integrity: sha512-u/Ks251B+5Dy1lx1PC814mWpMg2TNly4b+bHMdLCz4TwiArD/se3iApL+L6pl16eKQQlqWS2yrVKhhSwThC3WA==}
@@ -2010,6 +2024,11 @@ snapshots:
     optional: true
 
   '@esbuild/win32-x64@0.27.3':
+    optional: true
+
+  '@ewanc26/atproto@0.2.2(@atproto/api@0.18.21)':
+    dependencies:
+      '@atproto/api': 0.18.21
     optional: true
 
   '@ewanc26/tid@1.1.1': {}
