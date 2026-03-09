@@ -14,6 +14,7 @@ export { filterPosts, groupPostsByDate, getSortedMonths, getSortedYears, getAllT
 export type { MonthData, GroupedPosts } from './helper/posts.js';
 export { getPostBadges, getBadgeClasses } from './helper/badges.js';
 export type { PostBadge } from './helper/badges.js';
+export { generateMetaTags, createSiteMeta } from './helper/metaTags.js';
 
 // ─── Layout toggles ───────────────────────────────────────────────────────────
 export { default as ThemeToggle } from './components/layout/ThemeToggle.svelte';

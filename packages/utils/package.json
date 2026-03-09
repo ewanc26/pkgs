@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/utils",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Shared utility functions extracted from ewancroft.uk",
   "type": "module",
   "exports": {
