@@ -5,8 +5,8 @@
     "outDir": "dist",
     "declaration": true,
     "declarationMap": true,
-    "moduleResolution": "bundler",
-    "module": "esnext",
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
     "target": "es2022"
   },
   "include": ["src"]
