@@ -33,7 +33,7 @@ export type {
 	StandardSiteDocumentsData,
 	StandardSiteBasicTheme,
 	StandardSiteThemeColor
-} from './types';
+} from './types.js';
 
 export {
 	fetchProfile,
@@ -42,20 +42,20 @@ export {
 	fetchMusicStatus,
 	fetchKibunStatus,
 	fetchTangledRepos
-} from './fetch';
+} from './fetch.js';
 
 export {
 	fetchPublications,
 	fetchDocuments,
 	fetchRecentDocuments,
 	fetchBlogPosts
-} from './documents';
+} from './documents.js';
 
-export { fetchLatestBlueskyPost, fetchPostFromUri } from './posts';
+export { fetchLatestBlueskyPost, fetchPostFromUri } from './posts.js';
 
-export { buildPdsBlobUrl, extractCidFromImageObject, extractImageUrlsFromValue } from './media';
+export { buildPdsBlobUrl, extractCidFromImageObject, extractImageUrlsFromValue } from './media.js';
 
-export { createAgent, constellationAgent, defaultAgent, resolveIdentity, getPublicAgent, getPDSAgent, withFallback, resetAgents } from './agents';
+export { createAgent, constellationAgent, defaultAgent, resolveIdentity, getPublicAgent, getPDSAgent, withFallback, resetAgents } from './agents.js';
 
 export {
 	searchMusicBrainzRelease,
@@ -64,11 +64,11 @@ export {
 	searchDeezerArtwork,
 	searchLastFmArtwork,
 	findArtwork
-} from './musicbrainz';
+} from './musicbrainz.js';
 
-export { fetchEngagementFromConstellation, fetchAllEngagement } from './engagement';
+export { fetchEngagementFromConstellation, fetchAllEngagement } from './engagement.js';
 
-export { cache, ATProtoCache, CACHE_TTL } from './cache';
+export { cache, ATProtoCache, CACHE_TTL } from './cache.js';
 
-export { fetchAllRecords, fetchAllUserRecords } from './pagination';
-export type { FetchRecordsConfig, AtProtoRecord } from './pagination';
+export { fetchAllRecords, fetchAllUserRecords } from './pagination/index.js';
+export type { FetchRecordsConfig, AtProtoRecord } from './pagination/index.js';
