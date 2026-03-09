@@ -1,4 +1,6 @@
 export { default as KofiSupporters } from './KofiSupporters.svelte';
+export { fetchEvents } from './events.js';
+export type { KofiSupportEvent } from './events.js';
 export { default as LunarContributors } from './LunarContributors.svelte';
 export { readStore, appendEvent } from './store.js';
 export type { KofiEventRecord } from './store.js';
