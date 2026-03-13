@@ -10,7 +10,6 @@ Import your Last.fm and Spotify listening history to the AT Protocol network usi
 - [⚠️ Important: Rate Limits](#️-important-rate-limits)
   - [How Dynamic Batch Sizing Works](#how-dynamic-batch-sizing-works)
 - [What's with the name?](#whats-with-the-name)
-- [Web App](#web-app)
 - [Quick Start](#quick-start)
   - [Interactive Mode (Recommended for First-Time Users)](#interactive-mode-recommended-for-first-time-users)
   - [Command Line Mode](#command-line-mode)
@@ -112,21 +111,9 @@ At the moment, the repository is still called `atproto-lastfm-importer` on Tangl
 
 **Malachite** is a greenish-blue copper mineral associated with preservation and transformation. That's exactly what this tool does: it preserves your scrobbles and transforms them into proper `fm.teal.alpha.feed.play` records on the AT Protocol. The colour match isn't an accident — malachite sits squarely in the teal/green range, a deliberate nod to the `teal` lexicon it publishes to.
 
-## Web App
+## Web Interface
 
-Malachite also ships a browser-based web app (`web/`) built with SvelteKit. It supports all five import modes and signs in via ATProto OAuth — no app password required.
-
-**Running the web app in development:**
-
-```bash
-cd web
-pnpm install
-pnpm dev          # starts at http://127.0.0.1:5173
-```
-
-> **Note:** The dev server must run on `127.0.0.1:5173` exactly. This is enforced in `vite.config.ts` because the OAuth loopback `redirect_uri` is pinned to that origin (RFC 8252 §7.3). Do not change the host or port without updating the OAuth client metadata.
-
-The web app fetches existing records using the same CAR-export path as the CLI (`com.atproto.sync.getRepo`) so it costs zero AppView write-quota points to check for duplicates.
+A browser-based UI is available at **[malachite.croft.click](https://malachite.croft.click)** — no installation required. It supports all five import modes and signs in via ATProto OAuth.
 
 ## Quick Start
 
@@ -197,7 +184,7 @@ node dist/index.js -i lastfm.csv -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx -y
 - ✅ **Dry Run Mode**: Preview records without publishing
 - ✅ **Interactive Mode**: Simple prompts guide you through the process
 - ✅ **Command Line Mode**: Full automation support for scripting
-- ✅ **Web App**: Browser-based UI with ATProto OAuth sign-in
+- ✅ **Web Interface**: Browser-based UI at [malachite.croft.click](https://malachite.croft.click) with ATProto OAuth sign-in
 
 ### Technical Features
 
