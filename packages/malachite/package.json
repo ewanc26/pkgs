@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/malachite",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "Malachite - Import Last.fm and Spotify listening history to ATProto with intelligent deduplication and rate limiting",
   "type": "module",
   "main": "./dist/index.js",
