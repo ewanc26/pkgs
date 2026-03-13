@@ -11,6 +11,7 @@ Ewan's personal package monorepo — managed with [pnpm workspaces](https://pnpm
 | [`@ewanc26/ui`](./packages/ui) | Svelte | Svelte UI component library |
 | [`@ewanc26/utils`](./packages/utils) | TypeScript | Shared utility functions |
 | [`@ewanc26/svelte-standard-site`](./packages/svelte-standard-site) | Svelte | SvelteKit library for site.standard.* AT Protocol records |
+| [`@ewanc26/tangled-sync`](./packages/tangled-sync) | TypeScript | CLI tool for syncing GitHub repos to Tangled with ATProto record publishing |
 | [`nix-config-tools`](./packages/nix-config-tools) | Rust | Nix config management tools (flake-bump, gen-diff, health-check, server-config) |
 
 ## Setup
