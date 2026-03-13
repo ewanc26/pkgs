@@ -1,124 +1,76 @@
-# Tangled Sync
+# @ewanc26/tangled-sync
 
-**Tangled Sync** is a TypeScript project that automates the process of syncing GitHub repositories to Tangled and publishing ATProto records for each repository. It is designed to streamline your workflow if you want your GitHub projects mirrored on Tangled while also maintaining structured metadata in ATProto.
+CLI tool that clones all repositories under a GitHub user, pushes them to [Tangled](https://tangled.sh) mirrors, injects a Tangled mirror link into each README, and publishes `sh.tangled.repo` records to AT Protocol.
 
-This tool is particularly useful for developers and organisations that want a decentralized or alternative hosting layer for their code repositories while keeping them discoverable via ATProto.
+Part of the [`@ewanc26/pkgs`](https://github.com/ewanc26/pkgs) monorepo.
 
----
-
-## Getting Started
-
-### Configuration
-
-Before running any scripts, you need to configure the project. Create a `src/.env` file based on `src/.env.example`:
+## Installation
 
 ```bash
-cp src/.env.example src/.env
+npm install -g @ewanc26/tangled-sync
+# or
+pnpm add -g @ewanc26/tangled-sync
 ```
 
-Then edit `src/.env` with your actual values:
-
-* `BASE_DIR` – the local directory where GitHub repositories will be cloned.
-* `GITHUB_USER` – your GitHub username or organisation.
-* `ATPROTO_DID` – your ATProto DID (Decentralized Identifier).
-* `BLUESKY_PDS` – the URL of your Bluesky PDS instance.
-* `BLUESKY_USERNAME` – your Bluesky username.
-* `BLUESKY_PASSWORD` – your Bluesky password.
-
-Make sure this file is properly set up before proceeding.
-
----
-
-### Installation
-
-1. Clone this repository locally.
-2. Navigate to the project directory.
-3. Run:
+Or run without installing:
 
 ```bash
-npm install
+npx @ewanc26/tangled-sync
 ```
 
-This will install all dependencies required for syncing GitHub repositories and interacting with ATProto.
+## Setup
 
----
+Create a `.env` file in your working directory:
 
-### Verify SSH Connection to Tangled
+```env
+BASE_DIR=/path/to/local/clone/directory
+GITHUB_USER=your-github-username
+ATPROTO_DID=did:plc:your-did
+BLUESKY_PDS=https://your-pds.example.com
+BLUESKY_USERNAME=you.bsky.social
+BLUESKY_PASSWORD=xxxx-xxxx-xxxx-xxxx
+```
 
-* If the Tangled remote does not exist for a repository, the script will attempt to create it on first run. This requires a working SSH key associated with your account.
+Ensure your Tangled SSH key is configured — the script will attempt to create Tangled remotes, which requires valid SSH authentication.
 
-Without proper SSH authentication, repository creation and pushing will fail.
+## Usage
 
----
-
-### Testing AT Proto Connection
-
-**Before running the full sync**, test your AT Proto connection:
+Test your AT Protocol connection first:
 
 ```bash
-npm run test-atproto
+tangled-sync-test-atproto
 ```
 
-This will:
-- Verify your Bluesky credentials
-- Confirm your DID matches the configuration
-- List any existing `sh.tangled.repo` records
-- Validate the connection to the PDS
-
-### Running the Sync Script
-
-Once configuration, SSH verification, and AT Proto testing are complete, run:
+Run the health check:
 
 ```bash
-npm run sync
+tangled-sync-check
 ```
 
-What happens during the sync:
-
-1. **Login to Bluesky:** The script authenticates using your credentials to allow publishing ATProto records.
-2. **Clone GitHub Repositories:** All repositories under your configured GitHub user are cloned locally (excluding a repository with the same name as your username to avoid recursion).
-3. **Ensure Tangled Remotes:** For each repository, a `tangled` remote is added if it doesn’t exist.
-4. **Push to Tangled:** The script pushes the `main` branch to Tangled. If your `origin` remote’s push URL points to Tangled, it will reset it back to GitHub.
-5. **Update README:** Each repository’s README is updated to include a link to its Tangled mirror, if it isn’t already present.
-6. **Create ATProto Records:** Each repository gets a structured record published in ATProto under your DID, including metadata like description, creation date, and source URL.
-
----
-
-### Notes & Best Practices
-
-* **Directory Management:** The script ensures that your `BASE_DIR` exists and creates it if necessary.
-* **Record Uniqueness:** ATProto records use a time-based, sortable ID (TID) to ensure uniqueness. Duplicate IDs are avoided automatically.
-* **Error Handling:** If a repository cannot be pushed to Tangled, the script logs a warning but continues processing the remaining repositories.
-* **Idempotency:** Running the script multiple times is safe; existing remotes and ATProto records are checked before creation to prevent duplicates.
-
----
-
-### Example Workflow
+Run the sync:
 
 ```bash
-# Run the sync script
-npm run sync
+tangled-sync          # sync new repos only
+tangled-sync --force  # force sync all repos
 ```
 
-After execution, you’ll see logs detailing which repositories were cloned, which remotes were added, which READMEs were updated, and which ATProto records were created.
+What happens:
 
-This allows you to quickly confirm that all GitHub repositories have been mirrored and documented properly on Tangled.
+1. Authenticates with Bluesky
+2. Clones all GitHub repos under `GITHUB_USER` (skips the `<username>/<username>` profile repo)
+3. Adds a `tangled` remote to each repo if missing
+4. Pushes the `main` branch to Tangled
+5. Injects a Tangled mirror link into each README if not already present
+6. Creates `sh.tangled.repo` ATProto records for each repo
 
----
+The sync is idempotent — existing remotes and ATProto records are checked before creation.
 
-### Contribution & Development
+## Notes
 
-If you plan to contribute:
+- Record keys use TIDs (Timestamp Identifiers) to ensure uniqueness
+- Repos that fail to push to Tangled are logged and skipped; the rest continue
+- `BASE_DIR` is created automatically if it doesn't exist
 
-* Ensure Node.js v18+ and npm v9+ are installed.
-* Test the script in a separate directory to avoid accidentally overwriting your production repositories.
-* Use `console.log` statements to debug or track progress during development.
-* Maintain proper `.env` configuration to avoid leaking credentials.
+## Licence
 
----
-
-**Tangled Sync** bridges GitHub and Tangled efficiently, providing automatic mirroring, record management, and easy discoverability. Following these steps will ensure a smooth, automated workflow for syncing and publishing your repositories.
-
-## ☕ Support
-
-If you found this useful, consider [buying me a ko-fi](https://ko-fi.com/ewancroft)!
+AGPL-3.0-only.
