@@ -5,7 +5,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const webPkg = JSON.parse(readFileSync(resolve('package.json'), 'utf-8'));
-const cliPkg = JSON.parse(readFileSync(resolve('../package.json'), 'utf-8'));
+const cliPkg = JSON.parse(readFileSync(resolve('../malachite/package.json'), 'utf-8'));
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
@@ -17,7 +17,7 @@ export default defineConfig({
 			// importing file (../src/core/) and never finds web/node_modules on Vercel.
 			'@ipld/car':      resolve('node_modules/@ipld/car'),
 			'@ipld/dag-cbor': resolve('node_modules/@ipld/dag-cbor'),
-			'@ewanc26/tid':   resolve('../packages/tid/dist/index.js'),
+			'@ewanc26/tid':   resolve('../tid/dist/index.js'),
 		},
 	},
 
