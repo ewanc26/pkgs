@@ -1,5 +1,5 @@
 {
-  "name": "malachite",
+  "name": "@ewanc26/malachite",
   "version": "0.10.3",
   "description": "Malachite - Import Last.fm and Spotify listening history to ATProto with intelligent deduplication and rate limiting",
   "type": "module",
@@ -45,7 +45,8 @@
     "multiformats": "^13.3.1",
     "cli-progress": "^3.12.0",
     "csv-parse": "^6.1.0",
-    "ora": "^9.0.0"
+    "ora": "^9.0.0",
+    "@ewanc26/tid": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.19.27",
