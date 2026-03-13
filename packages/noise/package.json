@@ -1,7 +1,7 @@
 {
-  "name": "@ewanc26/noise-avatar",
-  "version": "0.2.0",
-  "description": "Deterministic value-noise avatar generation from a string seed. Thin wrapper around @ewanc26/noise. Zero extra dependencies, works in any environment with a Canvas API.",
+  "name": "@ewanc26/noise",
+  "version": "0.1.0",
+  "description": "Generic deterministic value-noise generation. Arbitrary dimensions, multi-octave FBM, multiple colour modes. Zero runtime dependencies, works in browsers and Node.js.",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -25,15 +25,13 @@
     "type-check": "tsc --noEmit"
   },
   "keywords": [
-    "avatar",
     "noise",
     "procedural",
     "canvas",
-    "deterministic"
+    "deterministic",
+    "fbm",
+    "value-noise"
   ],
-  "dependencies": {
-    "@ewanc26/noise": "workspace:*"
-  },
   "devDependencies": {
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"

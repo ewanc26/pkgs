@@ -1,6 +1,6 @@
 # @ewanc26/noise-avatar
 
-Deterministic value-noise avatar generation from a string seed. Zero runtime dependencies, works in any environment with a Canvas API (browsers, jsdom).
+Deterministic value-noise avatar generation from a string seed. Thin opinionated wrapper around [`@ewanc26/noise`](../noise). Zero extra runtime dependencies, works in any environment with a Canvas API (browsers, jsdom).
 
 Part of the [`@ewanc26/pkgs`](https://github.com/ewanc26/pkgs) monorepo.
 
@@ -36,7 +36,7 @@ renderNoiseAvatar(canvas, 'Alice|Subscription');
 
 ### `renderNoiseAvatar(canvas, seed, options?)`
 
-Renders a deterministic value-noise texture onto `canvas`. Resizes the canvas to `options.displaySize` (default `64`).
+Renders a deterministic HSL value-noise texture onto `canvas` at `displaySize × displaySize` pixels.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
@@ -48,19 +48,15 @@ Renders a deterministic value-noise texture onto `canvas`. Resizes the canvas to
 
 ### `noiseAvatarAction(canvas, seed, options?)`
 
-Svelte action wrapper around `renderNoiseAvatar`. Re-renders when `seed` changes via `update`.
+Svelte action wrapper. Re-renders when `seed` changes via `update`.
 
-### `hash32(str)`
+### Re-exported primitives
 
-djb2 hash — returns an unsigned 32-bit integer. Exported for custom seed construction.
+`hash32`, `makePrng`, `hslToRgb`, `makeValueNoiseSampler`, and `generateNoisePixels`
+are all re-exported from `@ewanc26/noise` for convenience.
 
-### `makePrng(seed)`
-
-Seeded LCG PRNG — returns a `() => number` producing floats in `[0, 1)`.
-
-### `hslToRgb(h, s, l)`
-
-Converts HSL (components in `[0, 1]`) to an RGB triple (`[0, 255]` each).
+For full control over dimensions, FBM octaves, and colour modes, use
+[`@ewanc26/noise`](../noise) directly.
 
 ## Licence
 
