@@ -28,13 +28,13 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@atproto/api": "^0.17.2",
+    "@atproto/api": "^0.19.3",
     "dotenv": "^16.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^25.5.0",
     "ts-node": "^10.9.2",
-    "tsup": "^8.5.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   },
   "author": "Ewan Croft",
