@@ -5,7 +5,8 @@
     "outDir": "dist",
     "declaration": true,
     "declarationMap": true,
-    "resolveJsonModule": false
+    "resolveJsonModule": false,
+    "moduleResolution": "bundler"
   },
   "include": ["src"]
 }

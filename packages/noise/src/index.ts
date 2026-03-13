@@ -299,7 +299,7 @@ export function renderNoise(
 	if (!ctx) return;
 
 	const pixels = generateNoisePixels(width, height, seed, noiseOpts);
-	const imageData = new ImageData(pixels, width, height);
+	const imageData = new ImageData(new Uint8ClampedArray(pixels), width, height);
 	ctx.putImageData(imageData, 0, 0);
 }
 
