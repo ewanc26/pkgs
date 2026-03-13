@@ -35,17 +35,17 @@
     "tailwindcss": ">=4.0.0"
   },
   "dependencies": {
-    "@lucide/svelte": "^0.554.0"
+    "@lucide/svelte": "^0.577.0"
   },
   "optionalDependencies": {
     "@ewanc26/atproto": ">=0.2.2"
   },
   "devDependencies": {
-    "@sveltejs/kit": "^2.49.0",
+    "@sveltejs/kit": "^2.55.0",
     "@sveltejs/package": "^2.3.10",
     "@sveltejs/vite-plugin-svelte": "^6.2.1",
-    "svelte": "^5.43.14",
-    "svelte-check": "^4.3.4",
+    "svelte": "^5.53.11",
+    "svelte-check": "^4.4.5",
     "typescript": "^5.9.3"
   }
 }
