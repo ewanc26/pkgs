@@ -7,7 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   kit: {
-    adapter: adapter(),
+    adapter: adapter({ runtime: 'nodejs22.x' }),
     alias: {
       // Shared, environment-agnostic core — single source of truth.
       // CLI uses src/core/ directly; web imports via this alias so there is
