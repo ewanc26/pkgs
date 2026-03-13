@@ -36,7 +36,7 @@
       <a href="/import" class="btn-primary">
         Start importing <ArrowRight size={16} />
       </a>
-      <a href="https://github.com/ewanc26/malachite" target="_blank" rel="noopener" class="btn-ghost">
+      <a href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite" target="_blank" rel="noopener" class="btn-ghost">
         <Github size={15} /> View on GitHub
       </a>
     </div>
@@ -118,7 +118,7 @@
   <footer>
     <a href="/about">About &amp; privacy</a>
     <span class="sep">·</span>
-    <a href="https://github.com/ewanc26/malachite" target="_blank" rel="noopener">↗ GitHub</a>
+    <a href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite" target="_blank" rel="noopener">↗ GitHub</a>
     <span class="sep">·</span>
     <a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener">♥ Support</a>
   </footer>

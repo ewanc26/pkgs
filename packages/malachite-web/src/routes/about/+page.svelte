@@ -80,8 +80,8 @@
     <h3>Install &amp; build</h3>
     <div class="code-block">
       <pre><code># Clone the repository
-git clone https://github.com/ewanc26/malachite.git
-cd malachite
+git clone https://github.com/ewanc26/pkgs.git
+cd pkgs/packages/malachite
 
 # Install dependencies
 pnpm install
@@ -170,7 +170,7 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
     </p>
     <p>
       The full licence text is included in the
-      <a href="https://github.com/ewanc26/malachite/blob/main/LICENCE" target="_blank" rel="noopener">
+      <a href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite/LICENCE" target="_blank" rel="noopener">
         repository
       </a>.
     </p>
@@ -196,7 +196,7 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
     <h3>Contributors</h3>
     <p class="contrib-note">
       Contributions via
-      <a href="https://github.com/ewanc26/malachite/graphs/contributors" target="_blank" rel="noopener">
+      <a href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite" target="_blank" rel="noopener">
         GitHub
       </a>
       are always welcome. The full contributor list is maintained there.
@@ -232,7 +232,7 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
   </section>
 
   <footer>
-    <a href="https://github.com/ewanc26/malachite" target="_blank" rel="noopener">↗ View on GitHub</a>
+    <a href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite" target="_blank" rel="noopener">↗ View on GitHub</a>
     <span class="sep">·</span>
     <a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener">♥ Support Malachite</a>
   </footer>
