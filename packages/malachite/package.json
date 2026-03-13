@@ -8,10 +8,16 @@
   "bin": {
     "malachite": "./dist/index.js"
   },
-  "workspaces": [
-    "packages/*",
-    "web"
+  "files": [
+    "dist",
+    "lexicons",
+    "scripts",
+    "README.md",
+    "LICENCE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "build:packages": "pnpm --filter './packages/*' build",
@@ -37,7 +43,7 @@
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
   "dependencies": {
-    "@atproto/api": "^0.18.13",
+    "@atproto/api": "^0.19.3",
     "@atproto/common-web": "^0.4.12",
     "@ipld/car": "^5.3.2",
     "@ipld/dag-cbor": "^9.2.2",
@@ -49,7 +55,7 @@
     "@ewanc26/tid": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^20.19.27",
+    "@types/node": "^25.5.0",
     "typescript": "^5.9.3"
   }
 }
