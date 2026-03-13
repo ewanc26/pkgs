@@ -2,7 +2,7 @@
 
 Import your Last.fm and Spotify listening history to the AT Protocol network using the `fm.teal.alpha.feed.play` lexicon.
 
-**Repository:** [malachite](https://github.com/ewanc26/malachite)  
+**Repository:** [ewanc26/pkgs — packages/malachite](https://github.com/ewanc26/pkgs/tree/main/packages/malachite)  
 [Also available on Tangled](https://tangled.org/did:plc:ofrbh253gwicbkc5nktqepol/atproto-lastfm-importer)
 
 ## Table of Contents
