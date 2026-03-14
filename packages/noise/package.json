@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/noise",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Generic deterministic value-noise generation. Arbitrary dimensions, multi-octave FBM, multiple colour modes. Zero runtime dependencies, works in browsers and Node.js.",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
