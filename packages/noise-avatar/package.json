@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/noise-avatar",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Deterministic value-noise avatar generation from a string seed. Thin wrapper around @ewanc26/noise. Zero extra dependencies, works in any environment with a Canvas API.",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
