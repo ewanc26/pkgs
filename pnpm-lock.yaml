@@ -130,8 +130,8 @@ importers:
   packages/noise-avatar:
     dependencies:
       '@ewanc26/noise':
-        specifier: workspace:*
-        version: link:../noise
+        specifier: ^0.1.1
+        version: 0.1.1
     devDependencies:
       tsup:
         specifier: ^8.5.1
@@ -804,6 +804,9 @@ packages:
     resolution: {integrity: sha512-rR0p30j/7vdZMcP/TrVewSF+HQBJYmhufHa76CwBf+TBKIenG/nZwqot0nDKDyHCyeb9p97dveDcYryz3908pw==}
     peerDependencies:
       '@atproto/api': '>=0.13.0'
+
+  '@ewanc26/noise@0.1.1':
+    resolution: {integrity: sha512-XeAc0vFrcDHQA7K8xoVVCTYhB2opeBnvGj4s+6SqDS/E3IAP6V32mGf+H2U0JcQHsH4hvpVehYEFt0i1Blnrfg==}
 
   '@ewanc26/tid@1.1.1':
     resolution: {integrity: sha512-u/Ks251B+5Dy1lx1PC814mWpMg2TNly4b+bHMdLCz4TwiArD/se3iApL+L6pl16eKQQlqWS2yrVKhhSwThC3WA==}
@@ -2756,6 +2759,8 @@ snapshots:
     dependencies:
       '@atproto/api': 0.19.3
     optional: true
+
+  '@ewanc26/noise@0.1.1': {}
 
   '@ewanc26/tid@1.1.1': {}
 
