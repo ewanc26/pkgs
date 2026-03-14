@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/tangled-sync",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Sync GitHub repos to Tangled with ATProto records",
   "type": "module",
   "bin": {
