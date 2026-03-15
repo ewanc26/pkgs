@@ -1,11 +1,11 @@
 {
   "name": "@ewanc26/malachite-web",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "prebuild": "pnpm --filter @ewanc26/malachite build",
+    "prebuild": "pnpm --filter @ewanc26/tid build && pnpm --filter @ewanc26/malachite build",
     "build": "vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
