@@ -3,6 +3,14 @@ import { parseArgs } from 'node:util';
 import { AtpAgent } from '@atproto/api';
 import type { PlayRecord, Config, CommandLineArgs, PublishResult } from '../types.js';
 import { login } from './auth.js';
+import {
+  loginWithOAuth,
+  restoreOAuthSession,
+  listOAuthSessions,
+  listOAuthSessionsWithHandles,
+  deleteOAuthSession,
+  getOAuthHandle,
+} from './oauth-login.js';
 import { parseLastFmCsv, convertToPlayRecord } from '../lib/csv.js';
 import { parseSpotifyJson, convertSpotifyToPlayRecord } from '../lib/spotify.js';
 import { parseCombinedExports } from '../lib/merge.js';
@@ -44,7 +52,10 @@ ${'\x1b[1m'}USAGE:${'\x1b[0m'}
   malachite [options]            Same as above when installed globally
 
 ${'\x1b[1m'}AUTHENTICATION:${'\x1b[0m'}
-  -h, --handle <handle>          ATProto handle or DID (e.g., user.bsky.social)
+  --oauth-login                  Sign in via OAuth (opens browser) — recommended
+  --logout [did]                 Remove a stored OAuth session (omit DID to pick interactively)
+  --list-sessions                List stored OAuth sessions
+  -h, --handle <handle>          ATProto handle or DID for app-password auth
   -p, --password <password>      ATProto app password
   --pds <url>                    PDS base URL to bypass identity resolution (optional)
 
@@ -72,7 +83,7 @@ ${'\x1b[1m'}IMPORT OPTIONS:${'\x1b[0m'}
   --fresh                        Start fresh (ignore cache & previous import state)
   --clear-cache                  Clear cached records for current user
   --clear-all-caches             Clear all cached records
-  --clear-credentials            Clear saved credentials
+  --clear-credentials            Clear saved app-password credentials
 
 ${'\x1b[1m'}OUTPUT:${'\x1b[0m'}
   -v, --verbose                  Enable verbose logging (debug level)
@@ -81,45 +92,48 @@ ${'\x1b[1m'}OUTPUT:${'\x1b[0m'}
   --help                         Show this help message
 
 ${'\x1b[1m'}EXAMPLES:${'\x1b[0m'}
-  ${'\x1b[2m'}# Import Last.fm export${'\x1b[0m'}
+  ${'\\x1b[2m'}# Sign in with OAuth (recommended)${'\\x1b[0m'}
+  malachite --oauth-login
+
+  ${'\\x1b[2m'}# Import Last.fm export (uses stored OAuth session automatically)${'\\x1b[0m'}
+  pnpm start -i lastfm-export.csv
+
+  ${'\\x1b[2m'}# Import with app-password${'\\x1b[0m'}
   pnpm start -i lastfm-export.csv -h user.bsky.social -p app-password
 
-  ${'\x1b[2m'}# Import Spotify export${'\x1b[0m'}
-  pnpm start -i spotify-export/ -m spotify -h user.bsky.social -p app-password
+  ${'\\x1b[2m'}# Import Spotify export${'\\x1b[0m'}
+  pnpm start -i spotify-export/ -m spotify
 
-  ${'\x1b[2m'}# Combined import (merge both sources)${'\x1b[0m'}
-  pnpm start -i lastfm.csv --spotify-input spotify/ -m combined -h user.bsky.social -p pass
+  ${'\\x1b[2m'}# Combined import (merge both sources)${'\\x1b[0m'}
+  pnpm start -i lastfm.csv --spotify-input spotify/ -m combined
 
-  ${'\x1b[2m'}# Sync mode (only import new records)${'\x1b[0m'}
-  pnpm start -i lastfm.csv -m sync -h user.bsky.social -p app-password
+  ${'\\x1b[2m'}# Sync mode (only import new records)${'\\x1b[0m'}
+  pnpm start -i lastfm.csv -m sync
 
-  ${'\x1b[2m'}# Dry run with verbose logging${'\x1b[0m'}
+  ${'\\x1b[2m'}# Dry run with verbose logging${'\\x1b[0m'}
   pnpm start -i lastfm.csv --dry-run -v
 
-  ${'\x1b[2m'}# Development mode (verbose + file logging + debug batches)${'\x1b[0m'}
-  pnpm start -i lastfm.csv --dev --dry-run
+  ${'\\x1b[2m'}# Remove duplicate records${'\\x1b[0m'}
+  pnpm start -m deduplicate
 
-  ${'\x1b[2m'}# Remove duplicate records${'\x1b[0m'}
-  pnpm start -m deduplicate -h user.bsky.social -p app-password
+  ${'\\x1b[2m'}# List stored OAuth sessions${'\\x1b[0m'}
+  malachite --list-sessions
 
-  ${'\x1b[2m'}# Clear cache for current user${'\x1b[0m'}
-  pnpm start --clear-cache -h user.bsky.social -p app-password
+  ${'\\x1b[2m'}# Sign out${'\\x1b[0m'}
+  malachite --logout
 
-  ${'\x1b[2m'}# Clear all caches${'\x1b[0m'}
+  ${'\\x1b[2m'}# Clear all caches${'\\x1b[0m'}
   pnpm start --clear-all-caches
 
-  ${'\x1b[2m'}# Clear saved credentials${'\x1b[0m'}
-  pnpm start --clear-credentials
-
 ${'\x1b[1m'}NOTES:${'\x1b[0m'}
+  • OAuth sessions are stored at ~/.malachite/oauth.json and refresh automatically
   • Rate limits: Max 10,000 records/day to avoid PDS rate limiting
   • Import will auto-pause between days for large datasets
   • Press Ctrl+C during import to stop gracefully after current batch
-  • Sync mode requires authentication even with --dry-run
 
 ${'\x1b[1m'}MORE INFO:${'\x1b[0m'}
-  Repository: https://github.com/ewanc26/malachite
-  Issues: https://github.com/ewanc26/malachite/issues
+  Repository: https://github.com/ewanc26/pkgs/tree/main/packages/malachite
+  Issues: https://github.com/ewanc26/pkgs/tree/main/packages/malachite/issues
 `);
 }
 
@@ -145,6 +159,9 @@ export function parseCommandLineArgs(): CommandLineArgs {
     'clear-cache': { type: 'boolean', default: false },
     'clear-all-caches': { type: 'boolean', default: false },
     'clear-credentials': { type: 'boolean', default: false },
+    'oauth-login': { type: 'boolean', default: false },
+    'logout': { type: 'string' },
+    'list-sessions': { type: 'boolean', default: false },
     verbose: { type: 'boolean', short: 'v', default: false },
     quiet: { type: 'boolean', short: 'q', default: false },
     dev: { type: 'boolean', default: false },
@@ -164,7 +181,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
       help: values.help,
       handle: values.handle || values.identifier,
       password: values.password,
-        pds: values.pds,
+      pds: values.pds,
       input: values.input || values.file,
       'spotify-input': values['spotify-input'] || values['spotify-file'],
       'batch-size': values['batch-size'],
@@ -177,6 +194,9 @@ export function parseCommandLineArgs(): CommandLineArgs {
       'clear-cache': values['clear-cache'],
       'clear-all-caches': values['clear-all-caches'],
       'clear-credentials': values['clear-credentials'],
+      'oauth-login': values['oauth-login'],
+      'logout': values['logout'],
+      'list-sessions': values['list-sessions'],
       verbose: values.verbose,
       quiet: values.quiet,
       dev: values.dev,
@@ -253,13 +273,19 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   console.log('\x1b[33m│\x1b[0m    │ \x1b[2mRemove cached Teal records\x1b[0m                \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m  \x1b[1m7\x1b[0m │ Clear saved credentials                    \x1b[33m│\x1b[0m');
-  console.log('\x1b[33m│\x1b[0m    │ \x1b[2mRemove stored login info\x1b[0m                  \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m    │ \x1b[2mRemove stored app-password login info\x1b[0m     \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m  \x1b[1m8\x1b[0m │ Sign in with OAuth                         \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m    │ \x1b[2mBrowser-based login — recommended\x1b[0m         \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m  \x1b[1m9\x1b[0m │ Sign out (OAuth)                           \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m    │ \x1b[2mRemove a stored OAuth session\x1b[0m             \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
   console.log('\x1b[33m╰─────────────────────────────────────────────────╯\x1b[0m\n');
   
   console.log('\x1b[90m  0 │ Exit\x1b[0m\n');
   
-  const mode = await prompt('\x1b[1mEnter your choice [0-7]:\x1b[0m ');
+  const mode = await prompt('\x1b[1mEnter your choice [0-9]:\x1b[0m ');
   
   if (mode === '0' || !mode) {
     console.log('\nGoodbye!');
@@ -267,8 +293,8 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   }
   
   // Validate input
-  if (!['1', '2', '3', '4', '5', '6', '7'].includes(mode)) {
-    console.log('\nInvalid choice. Please run again and select a valid option (0-7).');
+  if (!['1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(mode)) {
+    console.log('\nInvalid choice. Please run again and select a valid option (0-9).');
     process.exit(1);
   }
   
@@ -288,12 +314,37 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
     args['clear-credentials'] = true;
     return args;
   }
+  else if (mode === '8') {
+    args['oauth-login'] = true;
+    return args;
+  }
+  else if (mode === '9') {
+    args['logout'] = '';
+    return args;
+  }
   
   console.log('');
   
   // Get authentication (not needed for clear cache)
   if (args.mode === 'deduplicate' || args.mode === 'sync' || args.mode === 'combined' || args.mode === 'lastfm' || args.mode === 'spotify') {
-    // Check for saved credentials
+    // Prefer stored OAuth sessions
+    const oauthDids = await listOAuthSessions();
+    if (oauthDids.length > 0) {
+      console.log('\n🔑 Stored OAuth session(s) found:');
+      for (const did of oauthDids) {
+        const handle = await getOAuthHandle(did);
+        console.log(`   ${handle ?? did}`);
+      }
+      const useOAuth = await confirm('Use stored OAuth session?', true);
+      if (useOAuth) {
+        args.handle = oauthDids[0];
+        console.log('✓ Will use stored OAuth session');
+        console.log('');
+        return args;
+      }
+    }
+
+    // Fall back to app-password credentials
     const savedCreds = hasStoredCredentials();
     let useSavedCreds = false;
     
@@ -333,9 +384,6 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
         }
       }
       args.password = password;
-      
-      // Note: Credentials will be automatically saved after successful login
-      // No need to prompt the user
     }
     
     console.log('');
@@ -483,6 +531,41 @@ export async function runCLI(): Promise<void> {
       return;
     }
 
+    if (args['list-sessions']) {
+      log.section('OAuth Sessions');
+      const sessions = await listOAuthSessionsWithHandles();
+      if (sessions.length === 0) {
+        log.info('No stored OAuth sessions');
+      } else {
+        for (const { did, handle } of sessions) {
+          log.info(`  ${handle ?? did}${handle ? ` (${did})` : ''}`);
+        }
+      }
+      return;
+    }
+
+    if (args['logout'] !== undefined) {
+      log.section('OAuth Logout');
+      const sessions = await listOAuthSessions();
+      if (sessions.length === 0) {
+        log.info('No stored OAuth sessions');
+        return;
+      }
+      const target = args['logout'] || sessions[0]!;
+      const deleted = await deleteOAuthSession(target);
+      if (deleted) {
+        log.success(`Removed OAuth session for ${target}`);
+      } else {
+        log.info(`No session found for ${target}`);
+      }
+      return;
+    }
+
+    if (args['oauth-login']) {
+      await loginWithOAuth(args.handle);
+      return;
+    }
+
     if (args['clear-cache']) {
       if (!args.handle || !args.password) {
         throw new Error('--clear-cache requires --handle and --password to identify the cache');
@@ -515,19 +598,31 @@ export async function runCLI(): Promise<void> {
     }
 
     if (mode === 'deduplicate') {
-      // Try to load saved credentials if not provided
-      if (!args.handle || !args.password) {
-        const creds = loadCredentials();
-        if (creds) {
-          args.handle = creds.handle;
-          args.password = creds.password;
-          log.info(`Using saved credentials for: ${creds.handle}`);
-        } else {
-          throw new Error('Deduplicate mode requires --handle and --password (or saved credentials)');
+      // OAuth first, then app-password credentials
+      const oauthDids = await listOAuthSessions();
+      if (oauthDids.length >= 1 && !args.password) {
+        const did = args.handle && args.handle.startsWith('did:') ? args.handle : oauthDids[0]!;
+        const handle = await getOAuthHandle(did);
+        log.info(`Using OAuth session for ${handle ?? did}`);
+        const oauthAgent = await restoreOAuthSession(did);
+        if (oauthAgent) {
+          agent = oauthAgent as unknown as AtpAgent;
         }
       }
+      if (!agent) {
+        if (!args.handle || !args.password) {
+          const creds = loadCredentials();
+          if (creds) {
+            args.handle = creds.handle;
+            args.password = creds.password;
+            log.info(`Using saved credentials for: ${creds.handle}`);
+          } else {
+            throw new Error('Deduplicate mode requires authentication. Run --oauth-login or pass --handle and --password.');
+          }
+        }
+        agent = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER) as AtpAgent;
+      }
       log.section('Remove Duplicate Records');
-      agent = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER) as AtpAgent;
       const result = await removeDuplicates(agent, cfg, dryRun);
       if (result.totalDuplicates === 0) {
         return;
@@ -550,19 +645,33 @@ export async function runCLI(): Promise<void> {
       return;
     }
 
-    // Try to load saved credentials if not provided
-    if (!args.handle || !args.password) {
-      const creds = loadCredentials();
-      if (creds) {
-        args.handle = creds.handle;
-        args.password = creds.password;
-        log.info(`Using saved credentials for: ${creds.handle}`);
+    // Authenticate — OAuth sessions take priority over app-password credentials.
+    const oauthDids = await listOAuthSessions();
+    if (oauthDids.length >= 1 && !args.password) {
+      const did = args.handle && args.handle.startsWith('did:') ? args.handle : oauthDids[0]!;
+      const handle = await getOAuthHandle(did);
+      log.info(`Using OAuth session for ${handle ?? did}`);
+      const oauthAgent = await restoreOAuthSession(did);
+      if (oauthAgent) {
+        agent = oauthAgent as unknown as AtpAgent;
       } else {
-        throw new Error('Missing required arguments: --handle and --password (or saved credentials)');
+        log.warn('OAuth session could not be restored — falling back to app-password credentials.');
       }
     }
-    log.debug('Authenticating...');
-    agent = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER) as AtpAgent;
+    if (!agent) {
+      if (!args.handle || !args.password) {
+        const creds = loadCredentials();
+        if (creds) {
+          args.handle = creds.handle;
+          args.password = creds.password;
+          log.info(`Using saved credentials for: ${creds.handle}`);
+        } else {
+          throw new Error('No stored OAuth session and no app-password credentials found. Run --oauth-login to authenticate.');
+        }
+      }
+      log.debug('Authenticating...');
+      agent = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER) as AtpAgent;
+    }
     log.debug('Authentication successful');
 
     log.section('Loading Records');
@@ -601,13 +710,6 @@ export async function runCLI(): Promise<void> {
     if (agent) {
       const originalRecords = [...records];
 
-      // CAR export (com.atproto.sync.getRepo) sits on a separate, far more
-      // generous rate-limit bucket and costs zero write-quota points — prefer
-      // it for the dedup check so we only call applyWrites for new records.
-      // If CAR is unavailable for any reason (network error, auth, PDS doesn't
-      // support it), fall back gracefully: proceed with the full record set and
-      // let applyWrites handle everything.  The PDS rejects creates for rkeys
-      // that already exist, but new records still land and the import continues.
       let carSyncOk = true;
       let existingMap: Awaited<ReturnType<typeof fetchExistingRecords>>;
       try {
@@ -795,8 +897,6 @@ export async function runCLI(): Promise<void> {
     }
     process.exit(1);
   } finally {
-    // Close log file if it was opened
-    // Using \x1b[2m for dim/faint text, which is often more subtle than gray
     console.log('\x1b[2mEnjoying Malachite? Support development: https://ko-fi.com/ewancroft\x1b[0m\n');
     log.closeLogFile();
   }

@@ -62,7 +62,12 @@ export interface CommandLineArgs {
   'clear-cache'?: boolean;
   'clear-all-caches'?: boolean;
   'clear-credentials'?: boolean;
-  
+
+  // OAuth
+  'oauth-login'?: boolean;
+  'logout'?: string;
+  'list-sessions'?: boolean;
+
   // Output
   verbose?: boolean;
   quiet?: boolean;
