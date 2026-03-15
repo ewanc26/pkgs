@@ -51,7 +51,7 @@ The key architectural rule is that **`src/core/` is the single source of truth**
 
 ```sh
 # Clone and install everything in one shot — pnpm workspaces handles all three projects
-git clone https://github.com/ewanc26/malachite
+git clone https://github.com/ewanc26/pkgs/tree/main/packages/malachite
 cd malachite
 pnpm install
 ```

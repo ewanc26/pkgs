@@ -244,7 +244,7 @@
     <span class="sep">·</span>
     <a href="/about">About &amp; privacy</a>
     <span class="sep">·</span>
-    <a href="https://github.com/ewanc26/malachite" target="_blank" rel="noopener">↗ GitHub</a>
+    <a href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite" target="_blank" rel="noopener">↗ GitHub</a>
     <span class="sep">·</span>
     <a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener">♥ Support</a>
   </footer>
