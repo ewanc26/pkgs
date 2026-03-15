@@ -23,7 +23,7 @@ export async function login(
   ui.header('ATProto Login');
 
   if (!identifier) {
-    identifier = await prompt('Handle or DID: ');
+    identifier = await prompt('Handle, DID (did:plc or did:web): ');
   } else {
     ui.keyValue('Handle or DID', identifier);
   }

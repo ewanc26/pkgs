@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { resolve } from 'path'; // used for package.json reads below
 
 const webPkg = JSON.parse(readFileSync(resolve('package.json'), 'utf-8'));
 const cliPkg = JSON.parse(readFileSync(resolve('../malachite/package.json'), 'utf-8'));
@@ -10,25 +10,9 @@ const cliPkg = JSON.parse(readFileSync(resolve('../malachite/package.json'), 'ut
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 
-	resolve: {
-		alias: {
-			// src/core/ files import these packages, but they live in web/node_modules.
-			// Without explicit aliases, Rollup resolves bare specifiers relative to the
-			// importing file (../src/core/) and never finds web/node_modules on Vercel.
-			'@ipld/car':      resolve('node_modules/@ipld/car'),
-			'@ipld/dag-cbor': resolve('node_modules/@ipld/dag-cbor'),
-			'@ewanc26/tid':   resolve('../tid/dist/index.js'),
-		},
-	},
-
 	server: {
 		host: '127.0.0.1',
 		port: 5173,
-		fs: {
-			allow: [
-				resolve('..') // allow workspace root
-			]
-		}
 	},
 
 	define: {
@@ -43,6 +27,10 @@ export default defineConfig({
 
 	build: {
 		target: 'es2022',
-		chunkSizeWarningLimit: 1000
+		// The /import page chunk is large because it bundles @atproto/api, the OAuth
+		// client, and the IPLD/CAR parser — all unavoidable for an ATProto import tool.
+		// The page is client-only (ssr=false, prerender=false) so it's never on the
+		// critical path; gzipped it's ~350 kB which is acceptable.
+		chunkSizeWarningLimit: 2000
 	}
 });

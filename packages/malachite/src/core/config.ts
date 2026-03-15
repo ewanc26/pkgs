@@ -8,4 +8,4 @@ export const SLINGSHOT_RESOLVER = 'https://slingshot.microcosm.blue';
 export const MAX_PDS_BATCH_SIZE = 200;
 export const POINTS_PER_RECORD = 3;
 // Single source of truth for the version string — keep in sync with package.json.
-export const VERSION = '0.10.0';
+export const VERSION = '0.11.0';
