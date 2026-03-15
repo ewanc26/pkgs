@@ -65,7 +65,7 @@ export interface CommandLineArgs {
 
   // OAuth
   'oauth-login'?: boolean;
-  'logout'?: string;
+  'logout'?: string;  // undefined = not requested; '' = logout first session; DID string = logout specific
   'list-sessions'?: boolean;
 
   // Output
