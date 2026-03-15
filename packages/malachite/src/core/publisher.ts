@@ -146,7 +146,7 @@ export async function publishRecords(
       try {
         const response = await withRetry(
           () => agent.com.atproto.repo.applyWrites(
-            { repo: agent.did ?? '', writes: writes as any },
+            { repo: agent.did ?? (agent as any).sessionManager?.did ?? '', writes: writes as any },
             { signal: ac.signal }
           ),
           3,

@@ -28,13 +28,18 @@ export function recordKey(r: PlayRecord): string {
 /** In-session memory cache — avoids re-fetching within the same process/page. */
 const sessionCache = new Map<string, Map<string, ExistingRecord>>();
 
+/** Extract DID from any agent shape (credential session or OAuth session manager). */
+function getDid(agent: Agent): string | undefined {
+  return agent.did ?? (agent as any).sessionManager?.did;
+}
+
 export async function fetchExistingRecords(
   agent: Agent,
   onProgress?: (fetched: number) => void,
   forceRefresh = false,
   signal?: AbortSignal
 ): Promise<Map<string, ExistingRecord>> {
-  const did = agent.did;
+  const did = getDid(agent);
   if (!did) throw new Error('No authenticated session');
 
   if (!forceRefresh && sessionCache.has(did)) {
@@ -102,7 +107,7 @@ export async function fetchAllRecordsForDedup(
   onProgress?: (fetched: number) => void,
   signal?: AbortSignal
 ): Promise<ExistingRecord[]> {
-  const did = agent.did;
+  const did = getDid(agent);
   if (!did) throw new Error('No authenticated session');
 
   signal?.throwIfAborted();
@@ -174,7 +179,7 @@ export async function removeDuplicateRecords(
       signal?.throwIfAborted();
       try {
         await agent.com.atproto.repo.deleteRecord(
-          { repo: agent.did ?? '', collection: RECORD_TYPE, rkey: rec.uri.split('/').pop()! },
+          { repo: getDid(agent) ?? '', collection: RECORD_TYPE, rkey: rec.uri.split('/').pop()! },
           { signal }
         );
         removed++;
