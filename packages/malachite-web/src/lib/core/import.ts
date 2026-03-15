@@ -8,11 +8,11 @@
  */
 
 import type { Agent } from '@atproto/api';
-import type { ImportMode, LogEntry, PlayRecord } from '$core/types.js';
+import type { ImportMode, LogEntry, PlayRecord } from '$lib/types.js';
 import { CLIENT_AGENT } from '../config.js';
 import { parseLastFmFile, convertToPlayRecord } from './csv.js';
 import { parseSpotifyFiles, convertSpotifyToPlayRecord } from './spotify.js';
-import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '$core/merge.js';
+import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '$lib/core/merge.js';
 import {
   fetchExistingRecords,
   filterNewRecords,
@@ -20,8 +20,8 @@ import {
   findDuplicateGroups,
   removeDuplicateRecords,
   type ExistingRecord,
-} from '$core/sync.js';
-import { publishRecords, type PublishProgress } from '$core/publisher.js';
+} from '$lib/core/sync.js';
+import { publishRecords, type PublishProgress } from '$lib/core/publisher.js';
 
 export type { PublishProgress };
 

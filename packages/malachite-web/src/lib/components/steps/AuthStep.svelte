@@ -78,7 +78,7 @@
         <input
           type="text"
           bind:value={oauthHandle}
-          placeholder="you.bsky.social"
+          placeholder="you.bsky.social or did:web:example.com"
           autocomplete="username"
           spellcheck="false"
           onkeydown={(e) => e.key === 'Enter' && !oauthLoading && oauthHandle && doOAuth()}
@@ -110,11 +110,11 @@
 
     <div class="form">
       <label class="field">
-        <span class="field-label">Handle</span>
+        <span class="field-label">Handle or DID</span>
         <input
           type="text"
           bind:value={handle}
-          placeholder="you.bsky.social"
+          placeholder="you.bsky.social or did:web:example.com"
           autocomplete="username"
           spellcheck="false"
         />
