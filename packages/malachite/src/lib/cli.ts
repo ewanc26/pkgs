@@ -53,7 +53,7 @@ ${'\x1b[1m'}USAGE:${'\x1b[0m'}
 
 ${'\x1b[1m'}AUTHENTICATION:${'\x1b[0m'}
   --oauth-login                  Sign in via OAuth (opens browser) — recommended
-  --logout [did]                 Remove a stored OAuth session (omit DID to pick interactively)
+  --logout                       Remove a stored OAuth session (use --handle <did> to target one)
   --list-sessions                List stored OAuth sessions
   -h, --handle <handle>          ATProto handle or DID for app-password auth
   -p, --password <password>      ATProto app password
@@ -160,7 +160,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
     'clear-all-caches': { type: 'boolean', default: false },
     'clear-credentials': { type: 'boolean', default: false },
     'oauth-login': { type: 'boolean', default: false },
-    'logout': { type: 'string' },
+    'logout': { type: 'boolean', default: false },
     'list-sessions': { type: 'boolean', default: false },
     verbose: { type: 'boolean', short: 'v', default: false },
     quiet: { type: 'boolean', short: 'q', default: false },
@@ -195,7 +195,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
       'clear-all-caches': values['clear-all-caches'],
       'clear-credentials': values['clear-credentials'],
       'oauth-login': values['oauth-login'],
-      'logout': values['logout'],
+      'logout': values['logout'] ? (values.handle ?? '') : undefined,
       'list-sessions': values['list-sessions'],
       verbose: values.verbose,
       quiet: values.quiet,
@@ -319,7 +319,7 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
     return args;
   }
   else if (mode === '9') {
-    args['logout'] = '';
+    args['logout'] = ''; // empty string = logout first/only session
     return args;
   }
   
