@@ -24,7 +24,8 @@ export { default as WolfToggle } from './components/layout/WolfToggle.svelte';
 export { DynamicLinks, ScrollToTop, TangledRepos } from './components/layout/main/index.js';
 
 // ─── Cards ────────────────────────────────────────────────────────────────────
-export { LinkCard, ProfileCard, PostCard, BlueskyPostCard, TangledRepoCard, MusicStatusCard, KibunStatusCard } from './components/layout/main/card/index.js';
+export { LinkCard, ProfileCard, PostCard, BlueskyPostCard, TangledRepoCard, MusicStatusCard, KibunStatusCard, FeedCard } from './components/layout/main/card/index.js';
+export type { FeedItem } from './components/layout/main/card/index.js';
 
 // ─── SEO ──────────────────────────────────────────────────────────────────────
 export { MetaTags } from './components/seo/index.js';
