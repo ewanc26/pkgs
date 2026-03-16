@@ -2,6 +2,15 @@
   "name": "@ewanc26/pkgs",
   "private": true,
   "description": "Ewan's personal package monorepo — TypeScript, Rust, and Python",
+  "author": "Ewan Croft",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
   "scripts": {
     "build": "pnpm -r run build",
     "dev": "pnpm -r run dev",

@@ -1,8 +1,31 @@
 {
   "name": "@ewanc26/utils",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Shared utility functions extracted from ewancroft.uk",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
   "type": "module",
+  "keywords": [
+    "typescript",
+    "utilities",
+    "helpers"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/utils"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/utils",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "exports": {
     ".": {
       "source": "./src/index.ts",
@@ -12,13 +35,6 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "src"
-  ],
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "dev": "tsc --project tsconfig.json --watch",

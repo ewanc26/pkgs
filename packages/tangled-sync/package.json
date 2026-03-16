@@ -1,13 +1,25 @@
 {
   "name": "@ewanc26/tangled-sync",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Sync GitHub repos to Tangled with ATProto records",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
   "type": "module",
-  "bin": {
-    "tangled-sync": "./dist/index.js",
-    "tangled-sync-check": "./dist/check.js",
-    "tangled-sync-validate": "./dist/validate-config.js",
-    "tangled-sync-test-atproto": "./dist/test-atproto.js"
+  "keywords": [
+    "atproto",
+    "bluesky",
+    "github",
+    "tangled",
+    "sync"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/tangled-sync"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/tangled-sync",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
   },
   "publishConfig": {
     "access": "public"
@@ -17,6 +29,12 @@
     "README.md",
     "USAGE.md"
   ],
+  "bin": {
+    "tangled-sync": "./dist/index.js",
+    "tangled-sync-check": "./dist/check.js",
+    "tangled-sync-validate": "./dist/validate-config.js",
+    "tangled-sync-test-atproto": "./dist/test-atproto.js"
+  },
   "scripts": {
     "build": "tsup src/index.ts src/check.ts src/validate-config.ts src/test-atproto.ts --format esm --outDir dist --no-dts --clean",
     "dev": "ts-node src/index.ts",
@@ -36,7 +54,5 @@
     "ts-node": "^10.9.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
-  },
-  "author": "Ewan Croft",
-  "license": "AGPL-3.0-only"
+  }
 }
