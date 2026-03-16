@@ -1,10 +1,33 @@
 {
   "name": "@ewanc26/noise-avatar",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Deterministic value-noise avatar generation from a string seed. Thin wrapper around @ewanc26/noise. Zero extra dependencies, works in any environment with a Canvas API.",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
   "type": "module",
+  "keywords": [
+    "avatar",
+    "noise",
+    "procedural",
+    "canvas",
+    "deterministic"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/noise-avatar"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/noise-avatar",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -15,30 +38,16 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "README.md"
-  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
     "type-check": "tsc --noEmit"
   },
-  "keywords": [
-    "avatar",
-    "noise",
-    "procedural",
-    "canvas",
-    "deterministic"
-  ],
   "dependencies": {
-    "@ewanc26/noise": "^0.1.1"
+    "@ewanc26/noise": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

@@ -1,19 +1,28 @@
 {
   "name": "@ewanc26/malachite",
-  "version": "0.12.0",
-  "description": "Malachite - Import Last.fm and Spotify listening history to ATProto with intelligent deduplication and rate limiting",
+  "version": "0.12.1",
+  "description": "Import Last.fm and Spotify listening history to ATProto with intelligent deduplication and rate limiting",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": "./dist/index.js",
-    "./core": {
-      "types": "./dist/core/index.d.ts",
-      "import": "./dist/core/index.js"
-    }
+  "keywords": [
+    "lastfm",
+    "atproto",
+    "bluesky",
+    "import",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/malachite"
   },
-  "bin": {
-    "malachite": "./dist/index.js"
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/malachite",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "files": [
     "dist",
@@ -22,8 +31,17 @@
     "README.md",
     "LICENCE"
   ],
-  "publishConfig": {
-    "access": "public"
+  "exports": {
+    ".": "./dist/index.js",
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "malachite": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -31,37 +49,28 @@
     "build:all": "pnpm run build:packages && pnpm run build",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
-    "dry-run": "npm run build && node dist/index.js --dry-run",
+    "dry-run": "pnpm run build && node dist/index.js --dry-run",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
-    "test": "npm run build && node --test dist/tests/**/*.test.js",
-    "test:tid": "npm run build && node --test dist/tests/tid.test.js",
-    "test:watch": "npm run build && node --watch --test dist/tests/**/*.test.js",
+    "test": "pnpm run build && node --test dist/tests/**/*.test.js",
+    "test:tid": "pnpm run build && node --test dist/tests/tid.test.js",
+    "test:watch": "pnpm run build && node --watch --test dist/tests/**/*.test.js",
     "monitor:rate-limit": "node scripts/rate-limit-monitor.js",
     "check-limits": "node scripts/rate-limit-monitor.js"
   },
-  "keywords": [
-    "lastfm",
-    "atproto",
-    "bluesky",
-    "import",
-    "typescript"
-  ],
-  "author": "Ewan Croft",
-  "license": "AGPL-3.0-only",
   "dependencies": {
     "@atproto/api": "^0.19.3",
     "@atproto/oauth-client-node": "^0.3.16",
-    "open": "^11.0.0",
     "@atproto/common-web": "^0.4.12",
+    "@ewanc26/tid": "workspace:*",
     "@ipld/car": "^5.3.2",
     "@ipld/dag-cbor": "^9.2.2",
     "chalk": "^5.6.2",
-    "multiformats": "^13.3.1",
     "cli-progress": "^3.12.0",
     "csv-parse": "^6.1.0",
-    "ora": "^9.0.0",
-    "@ewanc26/tid": "workspace:*"
+    "multiformats": "^13.3.1",
+    "open": "^11.0.0",
+    "ora": "^9.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

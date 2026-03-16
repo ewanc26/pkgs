@@ -1,8 +1,27 @@
 {
   "name": "@ewanc26/malachite-web",
+  "version": "0.4.2",
+  "description": "Web frontend for Malachite — import Last.fm and Spotify listening history to ATProto",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
   "private": true,
-  "version": "0.4.1",
   "type": "module",
+  "keywords": [
+    "lastfm",
+    "atproto",
+    "bluesky",
+    "svelte",
+    "sveltekit"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/malachite-web"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/malachite-web",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
   "scripts": {
     "dev": "vite dev",
     "prebuild": "pnpm --filter @ewanc26/tid build && pnpm --filter @ewanc26/malachite build",
@@ -15,10 +34,10 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@ewanc26/malachite": "workspace:*",
     "@atproto/api": "^0.18.13",
     "@atproto/common-web": "^0.4.12",
     "@atproto/oauth-client-browser": "^0.3.41",
+    "@ewanc26/malachite": "workspace:*",
     "@lucide/svelte": "^0.575.0"
   },
   "devDependencies": {

@@ -1,8 +1,31 @@
 {
   "name": "@ewanc26/atproto",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "AT Protocol service layer extracted from ewancroft.uk",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
   "type": "module",
+  "keywords": [
+    "atproto",
+    "bluesky",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/atproto"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/atproto",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "exports": {
     ".": {
       "source": "./src/index.ts",
@@ -12,13 +35,6 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "src"
-  ],
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "dev": "tsc --project tsconfig.json --watch",
