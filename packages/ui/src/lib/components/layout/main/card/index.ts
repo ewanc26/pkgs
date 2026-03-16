@@ -5,3 +5,5 @@ export { default as BlueskyPostCard } from './BlueskyPostCard.svelte';
 export { default as TangledRepoCard } from './TangledRepoCard.svelte';
 export { default as MusicStatusCard } from './MusicStatusCard.svelte';
 export { default as KibunStatusCard } from './KibunStatusCard.svelte';
+export { default as FeedCard } from './FeedCard.svelte';
+export type { FeedItem } from './FeedCard.svelte';
