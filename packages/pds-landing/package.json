@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/pds-landing",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "description": "Composable Svelte components for an ATProto PDS landing page — terminal-aesthetic UI with live status fetching.",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
