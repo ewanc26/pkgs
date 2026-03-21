@@ -1,0 +1,34 @@
+{
+  "name": "@ewanc26/wafrn-theme",
+  "version": "1.0.0",
+  "description": "A WAFRN theme using the pds-landing Catppuccin terminal aesthetic — dark forest-green palette, JetBrains Mono, soft rounded cards.",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
+  "keywords": [
+    "wafrn",
+    "theme",
+    "css",
+    "catppuccin",
+    "fediverse"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/wafrn-theme"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/wafrn-theme",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    "./theme.css": "./src/theme.css"
+  }
+}
