@@ -24,11 +24,11 @@ export { default as WolfToggle } from './components/layout/WolfToggle.svelte';
 export { DynamicLinks, ScrollToTop, TangledRepos } from './components/layout/main/index.js';
 
 // ─── Cards ────────────────────────────────────────────────────────────────────
-export { LinkCard, ProfileCard, PostCard, BlueskyPostCard, TangledRepoCard, MusicStatusCard, KibunStatusCard, FeedCard } from './components/layout/main/card/index.js';
+export { PopfeedCard, LinkCard, ProfileCard, PostCard, BlueskyPostCard, TangledRepoCard, MusicStatusCard, KibunStatusCard, FeedCard } from './components/layout/main/card/index.js';
 export type { FeedItem } from './components/layout/main/card/index.js';
 
 // ─── SEO ──────────────────────────────────────────────────────────────────────
 export { MetaTags } from './components/seo/index.js';
 
 // ─── UI primitives ────────────────────────────────────────────────────────────
-export { Card, InternalCard, Dropdown, Pagination, SearchBar, Tabs, PostsGroupedView, DocumentCard, BlogPostCard } from './components/ui/index.js';
+export { NoiseImage, Card, InternalCard, Dropdown, Pagination, SearchBar, Tabs, PostsGroupedView, DocumentCard, BlogPostCard } from './components/ui/index.js';
