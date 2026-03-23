@@ -279,3 +279,46 @@ export interface StandardSiteDocument {
 export interface StandardSiteDocumentsData {
 	documents: StandardSiteDocument[];
 }
+
+export type PopfeedCreativeWorkType =
+	| 'movie'
+	| 'tv_show'
+	| 'video_game'
+	| 'album'
+	| 'book'
+	| 'book_series'
+	| 'episode'
+	| 'ep'
+	| 'tv_season'
+	| 'tv_episode'
+	| 'track';
+
+export type PopfeedMainCreditRole =
+	| 'director'
+	| 'author'
+	| 'artist'
+	| 'showrunner'
+	| 'lead_actor'
+	| 'creator'
+	| 'studio'
+	| 'publisher'
+	| 'developer'
+	| 'performer'
+	| 'network';
+
+export interface PopfeedReview {
+	rkey: string;
+	uri: string;
+	title?: string;
+	creativeWorkType: PopfeedCreativeWorkType;
+	rating: number;
+	text?: string;
+	posterUrl?: string;
+	mainCredit?: string;
+	mainCreditRole?: PopfeedMainCreditRole;
+	genres?: string[];
+	tags?: string[];
+	createdAt: string;
+	containsSpoilers?: boolean;
+	isRevisit?: boolean;
+}

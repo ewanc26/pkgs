@@ -4,6 +4,9 @@
 //   now accept `did: string` as their first argument.
 
 export type {
+	PopfeedReview,
+	PopfeedCreativeWorkType,
+	PopfeedMainCreditRole,
 	ProfileData,
 	StatusData,
 	SiteInfoData,
@@ -43,7 +46,8 @@ export {
 	fetchLinks,
 	fetchMusicStatus,
 	fetchKibunStatus,
-	fetchTangledRepos
+	fetchTangledRepos,
+	fetchRecentPopfeedReviews
 } from './fetch.js';
 
 export {
