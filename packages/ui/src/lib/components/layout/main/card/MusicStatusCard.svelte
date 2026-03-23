@@ -1,13 +1,12 @@
 <script lang="ts">
 	import Card from '../../../ui/Card.svelte';
+	import NoiseImage from '../../../ui/NoiseImage.svelte';
 	import type { MusicStatusData } from '@ewanc26/atproto';
 	import { formatRelativeTime } from '../../../../utils/locale.js';
-	import { Music, Disc3, Users, Album, Clock, Radio } from '@lucide/svelte';
+	import { Music, Users, Album, Clock, Radio } from '@lucide/svelte';
 
 	interface Props { musicStatus?: MusicStatusData | null; }
 	let { musicStatus = null }: Props = $props();
-
-	let artworkError = $state(false);
 
 	function formatArtists(artists: { artistName: string }[]): string {
 		if (!artists?.length) return 'Unknown Artist';
@@ -58,13 +57,12 @@
 					</div>
 					<div class="flex items-start gap-3">
 						<div class="shrink-0">
-							{#if s.artworkUrl && !artworkError}
-								<img src={s.artworkUrl} alt="Album artwork for {s.releaseName || s.trackName}" class="h-20 w-20 rounded-lg object-cover shadow-md" loading="lazy" onerror={() => (artworkError = true)} />
-							{:else}
-								<div class="flex h-20 w-20 items-center justify-center rounded-lg bg-canvas-200 shadow-md dark:bg-canvas-700">
-									<Disc3 class="h-10 w-10 text-ink-500 dark:text-ink-400" aria-hidden="true" />
-								</div>
-							{/if}
+							<NoiseImage
+								src={s.artworkUrl}
+								seed={`${s.trackName}|${s.artists?.[0]?.artistName ?? ''}`}
+								alt="Album artwork for {s.releaseName || s.trackName}"
+								class="h-20 w-20 rounded-lg object-cover shadow-md"
+							/>
 						</div>
 						<div class="min-w-0 flex-1">
 							<div class="mb-4">

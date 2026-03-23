@@ -9,7 +9,10 @@ import type {
 	MusicStatusData,
 	KibunStatusData,
 	TangledRepo,
-	TangledReposData
+	TangledReposData,
+	PopfeedReview,
+	PopfeedCreativeWorkType,
+	PopfeedMainCreditRole
 } from './types.js';
 
 export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise<ProfileData> {
@@ -303,6 +306,60 @@ export async function fetchKibunStatus(
 		return null;
 	} catch {
 		return null;
+	}
+}
+
+export async function fetchRecentPopfeedReviews(
+	did: string,
+	limit = 5,
+	fetchFn?: typeof fetch
+): Promise<PopfeedReview[]> {
+	const cacheKey = `popfeed-reviews:${did}:${limit}`;
+	const cached = cache.get<PopfeedReview[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'social.popfeed.feed.review',
+					limit
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		if (!records?.length) return [];
+
+		const data: PopfeedReview[] = records.map((record) => {
+			const value = record.value as any;
+			const rkey = record.uri.split('/').pop() ?? record.uri;
+			return {
+				rkey,
+				uri: record.uri,
+				title: value.title,
+				creativeWorkType: value.creativeWorkType as PopfeedCreativeWorkType,
+				rating: value.rating,
+				text: value.text,
+				posterUrl: value.posterUrl,
+				mainCredit: value.mainCredit,
+				mainCreditRole: value.mainCreditRole as PopfeedMainCreditRole | undefined,
+				genres: value.genres,
+				tags: value.tags,
+				createdAt: value.createdAt,
+				containsSpoilers: value.containsSpoilers,
+				isRevisit: value.isRevisit
+			};
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
 	}
 }
 

@@ -377,6 +377,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@ewanc26/noise-avatar':
+        specifier: workspace:*
+        version: link:../noise-avatar
       '@lucide/svelte':
         specifier: ^0.577.0
         version: 0.577.0(svelte@5.53.11)
@@ -412,6 +415,8 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  packages/wafrn-theme: {}
 
 packages:
 

@@ -1,3 +1,4 @@
+export { default as NoiseImage } from './NoiseImage.svelte';
 export { default as Card } from './Card.svelte';
 export { default as InternalCard } from './InternalCard.svelte';
 export { default as Dropdown } from './Dropdown.svelte';
