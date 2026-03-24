@@ -1,6 +1,7 @@
 import { cache } from './cache.js';
 import { withFallback, resolveIdentity } from './agents.js';
 import { buildPdsBlobUrl } from './media.js';
+import { fetchAllRecords } from './pagination/index.js';
 import type {
 	StandardSitePublication,
 	StandardSitePublicationsData,
@@ -86,19 +87,11 @@ export async function fetchPublications(
 	const publications: StandardSitePublication[] = [];
 
 	try {
-		const publicationsRecords = await withFallback(
-			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
-					repo: did,
-					collection: 'site.standard.publication',
-					limit: 100
-				});
-				return response.data.records;
-			},
-			true,
+		const publicationsRecords = await fetchAllRecords({
+			repo: did,
+			collection: 'site.standard.publication',
 			fetchFn
-		);
+		});
 
 		for (const pubRecord of publicationsRecords) {
 			const pubValue = pubRecord.value as unknown as PublicationRecord;
@@ -161,19 +154,11 @@ export async function fetchDocuments(
 			publicationsMap.set(pub.uri, pub);
 		}
 
-		const documentsRecords = await withFallback(
-			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
-					repo: did,
-					collection: 'site.standard.document',
-					limit: 100
-				});
-				return response.data.records;
-			},
-			true,
+		const documentsRecords = await fetchAllRecords({
+			repo: did,
+			collection: 'site.standard.document',
 			fetchFn
-		);
+		});
 
 		for (const docRecord of documentsRecords) {
 			const docValue = docRecord.value as unknown as DocumentRecord;
