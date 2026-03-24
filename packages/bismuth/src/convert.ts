@@ -1,0 +1,154 @@
+/**
+ * High-level converters:
+ *   contentToMarkdown  — pub.leaflet.content → Markdown string
+ *   documentToMarkdown — site.standard.document → Markdown string (with optional YAML front matter)
+ */
+
+import { blockToMarkdown } from './blocks.js'
+import type { FootnoteDef } from './facets.js'
+import type { LeafletContent, LinearDocumentPage, StandardDocument } from './types.js'
+
+// ─── Options ──────────────────────────────────────────────────────────────────
+
+export interface ConvertOptions {
+  /**
+   * Prepend YAML front matter derived from the document metadata.
+   * Only relevant for `documentToMarkdown`.
+   * @default false
+   */
+  frontmatter?: boolean
+
+  /**
+   * Separator inserted between pages of a multi-page document.
+   * @default '\n\n---\n\n'
+   */
+  pageBreak?: string
+}
+
+// ─── contentToMarkdown ────────────────────────────────────────────────────────
+
+/**
+ * Convert a `pub.leaflet.content` object to a Markdown string.
+ *
+ * Canvas pages are emitted as HTML comments because they have no
+ * meaningful linear representation.
+ */
+export function contentToMarkdown(
+  content: LeafletContent,
+  opts: ConvertOptions = {},
+): string {
+  const sep = opts.pageBreak ?? '\n\n---\n\n'
+  const pageParts: string[] = []
+
+  for (const page of content.pages) {
+    if (page.$type === 'pub.leaflet.pages.canvas') {
+      pageParts.push('<!-- Canvas page: spatial layout cannot be represented in Markdown -->')
+      continue
+    }
+
+    if (page.$type !== 'pub.leaflet.pages.linearDocument') {
+      pageParts.push(
+        `<!-- Unknown page type: ${(page as { $type: string }).$type} -->`,
+      )
+      continue
+    }
+
+    pageParts.push(linearPageToMarkdown(page))
+  }
+
+  return pageParts.join(sep)
+}
+
+function linearPageToMarkdown(page: LinearDocumentPage): string {
+  const blockParts: string[] = []
+  const allFootnotes: FootnoteDef[] = []
+
+  for (const { block } of page.blocks) {
+    const r = blockToMarkdown(block)
+    if (r.markdown.trim()) blockParts.push(r.markdown)
+    allFootnotes.push(...r.footnotes)
+  }
+
+  let text = blockParts.join('\n\n')
+
+  if (allFootnotes.length > 0) {
+    const defs = allFootnotes
+      .map((fn) => `[^${fn.index}]: ${fn.content}`)
+      .join('\n')
+    text += `\n\n${defs}`
+  }
+
+  return text
+}
+
+// ─── documentToMarkdown ───────────────────────────────────────────────────────
+
+/**
+ * Convert a `site.standard.document` to a Markdown string.
+ *
+ * When `opts.frontmatter` is true, a YAML front matter block is prepended
+ * containing the document metadata (title, publishedAt, etc.). This mirrors
+ * the format Sequoia expects when ingesting Markdown files.
+ *
+ * If the document has a `content` field (pub.leaflet.content), that is
+ * converted. Otherwise the `textContent` plain-text fallback is used.
+ */
+export function documentToMarkdown(
+  doc: StandardDocument,
+  opts: ConvertOptions = {},
+): string {
+  const parts: string[] = []
+
+  if (opts.frontmatter) {
+    parts.push(buildFrontmatter(doc))
+  }
+
+  if (doc.content) {
+    parts.push(contentToMarkdown(doc.content, opts))
+  } else if (doc.textContent) {
+    parts.push(doc.textContent)
+  }
+
+  return parts.join('\n\n')
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function yamlString(value: string): string {
+  // Wrap in double quotes if the value contains characters that need escaping.
+  const needsQuoting = /[:#\-{}\[\],&*!|>'"%@`]|^\s|\s$/.test(value) ||
+    value.includes('\n')
+  if (needsQuoting) {
+    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+  }
+  return value
+}
+
+function buildFrontmatter(doc: StandardDocument): string {
+  const lines: string[] = ['---']
+
+  lines.push(`title: ${yamlString(doc.title)}`)
+  lines.push(`publishedAt: ${doc.publishedAt}`)
+
+  if (doc.updatedAt) {
+    lines.push(`updatedAt: ${doc.updatedAt}`)
+  }
+
+  if (doc.description) {
+    lines.push(`description: ${yamlString(doc.description)}`)
+  }
+
+  if (doc.tags && doc.tags.length > 0) {
+    lines.push('tags:')
+    for (const tag of doc.tags) {
+      lines.push(`  - ${yamlString(tag)}`)
+    }
+  }
+
+  if (doc.path) {
+    lines.push(`path: ${yamlString(doc.path)}`)
+  }
+
+  lines.push('---')
+  return lines.join('\n')
+}
