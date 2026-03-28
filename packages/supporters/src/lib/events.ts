@@ -15,7 +15,7 @@ import type { KofiEventType } from './types.js';
 
 export type { KofiEventType };
 
-const COLLECTION = 'uk.ewancroft.kofi.supporter';
+const COLLECTION = 'uk.ewancroft.support.kofi';
 
 export interface KofiSupportEvent {
 	rkey: string;
