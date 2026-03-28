@@ -65,7 +65,7 @@ const COL_TIER       = 'item'; // only meaningful for subscriptions
 
 // ── ATProto write ────────────────────────────────────────────────────────────
 
-const COLLECTION = 'uk.ewancroft.kofi.supporter';
+const COLLECTION = 'uk.ewancroft.support.kofi';
 
 function requireEnv(key) {
 	const val = process.env[key];
