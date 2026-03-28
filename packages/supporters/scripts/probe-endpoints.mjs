@@ -4,7 +4,13 @@
  * Usage: node scripts/probe-endpoints.mjs YOUR_KOFI_PAGE_ID
  */
 
-const pageId = process.argv[2] ?? 'ewancroft';
+const pageId = process.argv[2] ?? process.env.KOFI_PAGE_ID;
+
+if (!pageId) {
+	console.error('Usage: node scripts/probe-endpoints.mjs YOUR_KOFI_PAGE_ID');
+	console.error('       (or set KOFI_PAGE_ID in your environment)');
+	process.exit(1);
+}
 
 const candidates = [
 	`https://api.ko-fi.tools/v2/${pageId}/supporters`,
