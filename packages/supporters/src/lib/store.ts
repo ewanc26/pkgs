@@ -20,7 +20,7 @@ import { AtpAgent } from '@atproto/api';
 import { generateTID } from '@ewanc26/tid';
 import type { KofiSupporter, KofiEventType } from './types.js';
 
-const COLLECTION = 'uk.ewancroft.kofi.supporter';
+const COLLECTION = 'uk.ewancroft.support.kofi';
 
 /** The shape of a raw record stored in the PDS. */
 export interface KofiEventRecord {
