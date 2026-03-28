@@ -55,7 +55,11 @@ while [[ $# -gt 0 ]]; do
     -d|--downstream)
       shift
       while [[ $# -gt 0 && ! "$1" =~ ^- ]]; do
-        DOWNSTREAM+=("$1"); shift
+        if [[ "$1" == */* || "$1" == .* || -d "$1" ]]; then
+          DOWNSTREAM+=("$1"); shift
+        else
+          break
+        fi
       done
       ;;
     -w|--wait)
@@ -128,7 +132,7 @@ for target in "${TARGETS[@]}"; do
 
   # Publish
   info "Publishing..."
-  pnpm --filter "$pkg_name" publish --no-git-checks
+  pnpm --filter "$pkg_name" publish --no-git-checks --access public
   success "Published $pkg_name@$new_ver"
 
   RELEASED+=("$pkg_name@$new_ver")
