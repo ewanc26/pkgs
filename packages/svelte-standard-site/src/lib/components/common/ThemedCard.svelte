@@ -9,9 +9,14 @@
 		children: Snippet;
 		class?: string;
 		href?: string;
+		/**
+		 * If true, renders only the themed wrapper without default styles.
+		 * Useful for custom layouts — pass your own classes via `class`.
+		 */
+		headless?: boolean;
 	}
 
-	let { theme, children, class: className = '', href }: Props = $props();
+	let { theme, children, class: className = '', href, headless = false }: Props = $props();
 
 	const themeVars = $derived(theme ? getThemeVars(theme) : {});
 	const hasTheme = $derived(!!theme);
@@ -30,20 +35,19 @@
 		}
 		return base;
 	});
+
+	// Default styles for non-headless mode
+	const defaultStyles = $derived(
+		headless
+			? ''
+			: 'rounded-lg border p-6 transition-all bg-canvas-50 dark:bg-canvas-950 border-canvas-200 dark:border-canvas-800 hover:border-primary-300 dark:hover:border-primary-700 focus-within:border-primary-300 dark:focus-within:border-primary-700'
+	);
 </script>
 
 {#if href}
 	<a {href} class="group block">
 		<article
-			class="rounded-lg border p-6 transition-all {className}"
-			class:bg-canvas-50={!hasTheme}
-			class:dark:bg-canvas-950={!hasTheme}
-			class:border-canvas-200={!hasTheme}
-			class:dark:border-canvas-800={!hasTheme}
-			class:hover:border-primary-300={!hasTheme}
-			class:dark:hover:border-primary-700={!hasTheme}
-			class:focus-within:border-primary-300={!hasTheme}
-			class:dark:focus-within:border-primary-700={!hasTheme}
+			class="{defaultStyles} {className}"
 			style:background-color={hasTheme ? 'var(--theme-background)' : undefined}
 			style={allStyles()}
 		>
@@ -52,11 +56,7 @@
 	</a>
 {:else}
 	<article
-		class="rounded-lg border p-6 transition-all {className}"
-		class:bg-canvas-50={!hasTheme}
-		class:dark:bg-canvas-950={!hasTheme}
-		class:border-canvas-200={!hasTheme}
-		class:dark:border-canvas-800={!hasTheme}
+		class="{defaultStyles} {className}"
 		style:background-color={hasTheme ? 'var(--theme-background)' : undefined}
 		style={allStyles()}
 	>
