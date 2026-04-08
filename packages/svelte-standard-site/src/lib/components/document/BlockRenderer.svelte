@@ -6,6 +6,7 @@
 	import CodeBlock from './blocks/CodeBlock.svelte';
 	import MathBlock from './blocks/MathBlock.svelte';
 	import UnorderedListBlock from './blocks/UnorderedListBlock.svelte';
+	import OrderedListBlock from './blocks/OrderedListBlock.svelte';
 	import HorizontalRuleBlock from './blocks/HorizontalRuleBlock.svelte';
 	import IframeBlock from './blocks/IframeBlock.svelte';
 	import WebsiteBlock from './blocks/WebsiteBlock.svelte';
@@ -38,6 +39,8 @@
 	<MathBlock {block} {hasTheme} />
 {:else if block.$type === 'pub.leaflet.blocks.unorderedList'}
 	<UnorderedListBlock {block} {hasTheme} />
+{:else if block.$type === 'pub.leaflet.blocks.orderedList'}
+	<OrderedListBlock {block} {hasTheme} {did} {pds} />
 {:else if block.$type === 'pub.leaflet.blocks.horizontalRule'}
 	<HorizontalRuleBlock {hasTheme} />
 {:else if block.$type === 'pub.leaflet.blocks.iframe'}

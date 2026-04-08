@@ -484,6 +484,257 @@ export class StandardSitePublisher {
 	getAtpAgent(): AtpAgent {
 		return this.getAgent();
 	}
+
+	// ============================================
+	// Comment Methods (pub.leaflet.comment)
+	// ============================================
+
+	/**
+	 * Publish a comment on a document
+	 */
+	async publishComment(input: {
+		/** AT-URI of the document being commented on */
+		subject: string;
+		/** Comment text */
+		plaintext: string;
+		/** Facets for rich text */
+		facets?: any[];
+		/** Parent comment AT-URI if replying */
+		parent?: string;
+		/** Page ID if commenting on a specific page */
+		onPage?: string;
+		/** Quote attachment */
+		attachment?: {
+			document: string;
+			quote?: {
+				start: { block: number[]; offset: number };
+				end: { block: number[]; offset: number };
+			};
+		};
+	}): Promise<PublishResult> {
+		const did = this.getDid();
+		const agent = this.getAgent();
+
+		const record: any = {
+			$type: 'pub.leaflet.comment',
+			subject: input.subject,
+			plaintext: input.plaintext,
+			createdAt: new Date().toISOString()
+		};
+
+		if (input.parent) {
+			record.reply = {
+				$type: 'pub.leaflet.comment#replyRef',
+				parent: input.parent
+			};
+		}
+
+		if (input.facets) {
+			record.facets = input.facets;
+		}
+
+		if (input.onPage) {
+			record.onPage = input.onPage;
+		}
+
+		if (input.attachment) {
+			record.attachment = {
+				$type: 'pub.leaflet.comment#linearDocumentQuote',
+				...input.attachment
+			};
+		}
+
+		const rkey = generateTid();
+
+		const response = await agent.api.com.atproto.repo.createRecord({
+			repo: did,
+			collection: 'pub.leaflet.comment',
+			rkey,
+			record
+		});
+
+		return {
+			uri: response.data.uri,
+			cid: response.data.cid
+		};
+	}
+
+	/**
+	 * Delete a comment
+	 */
+	async deleteComment(rkey: string): Promise<void> {
+		const did = this.getDid();
+		const agent = this.getAgent();
+
+		await agent.api.com.atproto.repo.deleteRecord({
+			repo: did,
+			collection: 'pub.leaflet.comment',
+			rkey
+		});
+	}
+
+	// ============================================
+	// Recommend Methods (pub.leaflet.interactions.recommend)
+	// ============================================
+
+	/**
+	 * Recommend a document
+	 */
+	async recommendDocument(subject: string): Promise<PublishResult> {
+		const did = this.getDid();
+		const agent = this.getAgent();
+
+		const record = {
+			$type: 'pub.leaflet.interactions.recommend',
+			subject,
+			createdAt: new Date().toISOString()
+		};
+
+		const rkey = generateTid();
+
+		const response = await agent.api.com.atproto.repo.createRecord({
+			repo: did,
+			collection: 'pub.leaflet.interactions.recommend',
+			rkey,
+			record
+		});
+
+		return {
+			uri: response.data.uri,
+			cid: response.data.cid
+		};
+	}
+
+	/**
+	 * Remove a recommendation
+	 */
+	async unrecommendDocument(rkey: string): Promise<void> {
+		const did = this.getDid();
+		const agent = this.getAgent();
+
+		await agent.api.com.atproto.repo.deleteRecord({
+			repo: did,
+			collection: 'pub.leaflet.interactions.recommend',
+			rkey
+		});
+	}
+
+	/**
+	 * Check if the current user has recommended a document
+	 */
+	async hasRecommended(subject: string): Promise<{ recommended: boolean; rkey?: string }> {
+		const did = this.getDid();
+		const agent = this.getAgent();
+
+		const response = await agent.api.com.atproto.repo.listRecords({
+			repo: did,
+			collection: 'pub.leaflet.interactions.recommend',
+			limit: 100
+		});
+
+		const record = response.data.records.find(
+			(r: any) => r.value?.subject === subject
+		);
+
+		if (record) {
+			const rkey = record.uri.split('/').pop();
+			return { recommended: true, rkey };
+		}
+
+		return { recommended: false };
+	}
+
+	// ============================================
+	// Subscription Methods (site.standard.graph.subscription)
+	// ============================================
+
+	/**
+	 * Subscribe to a publication
+	 */
+	async subscribeToPublication(publication: string): Promise<PublishResult> {
+		const did = this.getDid();
+		const agent = this.getAgent();
+
+		const record = {
+			$type: 'site.standard.graph.subscription',
+			publication
+		};
+
+		const rkey = generateTid();
+
+		const response = await agent.api.com.atproto.repo.createRecord({
+			repo: did,
+			collection: 'site.standard.graph.subscription',
+			rkey,
+			record
+		});
+
+		return {
+			uri: response.data.uri,
+			cid: response.data.cid
+		};
+	}
+
+	/**
+	 * Unsubscribe from a publication
+	 */
+	async unsubscribeFromPublication(rkey: string): Promise<void> {
+		const did = this.getDid();
+		const agent = this.getAgent();
+
+		await agent.api.com.atproto.repo.deleteRecord({
+			repo: did,
+			collection: 'site.standard.graph.subscription',
+			rkey
+		});
+	}
+
+	/**
+	 * List subscriptions for the current user
+	 */
+	async listSubscriptions(
+		limit = 100
+	): Promise<Array<{ uri: string; cid: string; value: { publication: string } }>> {
+		const did = this.getDid();
+		const agent = this.getAgent();
+
+		const response = await agent.api.com.atproto.repo.listRecords({
+			repo: did,
+			collection: 'site.standard.graph.subscription',
+			limit
+		});
+
+		return response.data.records.map((r) => ({
+			uri: r.uri,
+			cid: r.cid,
+			value: r.value as { publication: string }
+		}));
+	}
+
+	/**
+	 * Check if subscribed to a publication
+	 */
+	async isSubscribed(publication: string): Promise<{ subscribed: boolean; rkey?: string }> {
+		const did = this.getDid();
+		const agent = this.getAgent();
+
+		const response = await agent.api.com.atproto.repo.listRecords({
+			repo: did,
+			collection: 'site.standard.graph.subscription',
+			limit: 100
+		});
+
+		const record = response.data.records.find(
+			(r: any) => r.value?.publication === publication
+		);
+
+		if (record) {
+			const rkey = record.uri.split('/').pop();
+			return { subscribed: true, rkey };
+		}
+
+		return { subscribed: false };
+	}
 }
 
 export type { PublisherConfig };

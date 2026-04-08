@@ -2,7 +2,7 @@
 	import RichText from '../RichText.svelte';
 	import UnorderedListBlock from './UnorderedListBlock.svelte';
 
-	export interface ListItem {
+	interface ListItem {
 		content?: {
 			plaintext: string;
 			facets?: any[];
