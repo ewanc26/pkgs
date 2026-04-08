@@ -14,7 +14,35 @@ export {
 	ThemedText,
 	ThemedCard,
 	DocumentRenderer,
-	MarkdownRenderer
+	MarkdownRenderer,
+	LinearDocumentRenderer,
+	CanvasRenderer,
+	BlockRenderer,
+	RichText,
+	TextBlock,
+	HeaderBlock,
+	BlockquoteBlock,
+	ImageBlock,
+	CodeBlock,
+	MathBlock,
+	UnorderedListBlock,
+	OrderedListBlock,
+	HorizontalRuleBlock,
+	IframeBlock,
+	WebsiteBlock,
+	ButtonBlock,
+	BskyPostBlock,
+	PollBlock,
+	PageBlock,
+	Avatar,
+	Toast,
+	Watermark,
+	ActionBar,
+	RecommendButton,
+	ThemeProvider,
+	Footnotes,
+	Comment,
+	CommentsSection
 } from './components/index.js';
 
 // Comments component
@@ -28,13 +56,66 @@ export type {
 	AtProtoBlob,
 	StrongRef,
 	RGBColor,
+	RGBAColor,
+	Color,
+	BackgroundImage,
 	BasicTheme,
+	ExtendedTheme,
 	PublicationPreferences,
 	Publication,
 	Document,
 	AtProtoRecord,
 	ResolvedIdentity,
-	SiteStandardConfig
+	SiteStandardConfig,
+	// Rich text types
+	ByteSlice,
+	LinkFeature,
+	DidMentionFeature,
+	AtMentionFeature,
+	CodeFeature,
+	HighlightFeature,
+	UnderlineFeature,
+	StrikethroughFeature,
+	BoldFeature,
+	ItalicFeature,
+	IdFeature,
+	FootnoteFeature,
+	FacetFeature,
+	Facet,
+	// Block types
+	TextBlock,
+	HeaderBlock,
+	BlockquoteBlock,
+	ImageBlock,
+	CodeBlock,
+	MathBlock,
+	OrderedListItem,
+	OrderedListBlock,
+	UnorderedListItem,
+	UnorderedListBlock,
+	HorizontalRuleBlock,
+	IframeBlock,
+	WebsiteBlock,
+	ButtonBlock,
+	BskyPostBlock,
+	PollBlock,
+	PageBlock,
+	Block,
+	// Content types
+	Position,
+	Quote,
+	LinearDocumentPage,
+	CanvasPage,
+	Content,
+	// Comment types
+	LinearDocumentQuote,
+	CommentReplyRef,
+	CommentRecord,
+	// Interaction types
+	RecommendRecord,
+	// Graph types
+	SubscriptionRecord,
+	LeafletSubscriptionRecord
 } from './types.js';
 
 // Schema exports
@@ -53,7 +134,21 @@ export { resolveIdentity, buildPdsBlobUrl } from './utils/agents.js';
 
 export { cache } from './utils/cache.js';
 
-export { rgbToCSS, rgbToHex, getThemeVars } from './utils/theme.js';
+export {
+	rgbToCSS,
+	rgbaToCSS,
+	colorToCSS,
+	rgbToHex,
+	rgbaToHex,
+	getThemeVars,
+	isRGBA,
+	basicThemeToCssVars,
+	extendedThemeToCssVars,
+	themeToCssVars as anyThemeToCssVars,
+	getFontFamilyCSS,
+	getGoogleFontsUrl,
+	getAllThemeVars
+} from './utils/theme.js';
 
 export {
 	mixThemeColor,
@@ -61,7 +156,14 @@ export {
 	getThemedBackground,
 	getThemedBorder,
 	getThemedAccent,
-	themeToCssVars
+	getThemedPageBackground,
+	getBackgroundImageStyles,
+	getFontStyles,
+	getHeadingFontStyles,
+	getPageWidthStyles,
+	themeToCssVars,
+	extendedThemeToCssVars,
+	anyThemeToCssVars
 } from './utils/theme-helpers.js';
 
 export {
@@ -83,10 +185,22 @@ export {
 
 export type { TransformOptions, TransformResult } from './utils/content.js';
 
-// Comments exports
+// Comments exports (Bluesky replies)
 export { fetchComments, fetchMentionComments, formatRelativeTime } from './utils/comments.js';
 
 export type { Comment, CommentAuthor, FetchCommentsOptions } from './utils/comments.js';
+
+// Native comments exports
+export {
+	COMMENTS_COLLECTION,
+	createCommentRecord,
+	parseCommentUri,
+	buildCommentUri,
+	fetchComments as fetchNativeComments,
+	organizeCommentsIntoThreads,
+	countThreadComments,
+	extractQuotedText
+} from './utils/native-comments.js';
 
 // Verification exports
 export {

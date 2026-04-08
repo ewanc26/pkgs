@@ -1,8 +1,16 @@
 <script lang="ts">
+	import { setContext, getContext } from 'svelte';
 	import type { Document } from '$lib/types.js';
 	import LeafletContentRenderer from './LeafletContentRenderer.svelte';
 	import MarkdownRenderer from './MarkdownRenderer.svelte';
+	import Footnotes from '../Footnotes.svelte';
 	import { mixThemeColor } from '$lib/utils/theme-helpers.js';
+
+	interface FootnoteData {
+		footnoteId: string;
+		contentPlaintext: string;
+		contentFacets?: any[];
+	}
 
 	interface Props {
 		document: Document;
@@ -19,6 +27,34 @@
 	}
 
 	const { document, did = '', pds = '', hasTheme = false, prerenderedHtml }: Props = $props();
+
+	// Footnote collection state
+	let footnoteCounter = $state(0);
+	let footnotes = $state<Array<FootnoteData & { number: number }>>([]);
+
+	// Reset footnotes when document changes
+	$effect(() => {
+		footnoteCounter = 0;
+		footnotes = [];
+	});
+
+	// Set up footnote context for child components
+	function registerFootnote(footnote: FootnoteData): number {
+		// Check if footnote already registered
+		const existing = footnotes.find((f) => f.footnoteId === footnote.footnoteId);
+		if (existing) {
+			return existing.number;
+		}
+		footnoteCounter++;
+		const newFootnote = { ...footnote, number: footnoteCounter };
+		footnotes = [...footnotes, newFootnote];
+		return footnoteCounter;
+	}
+
+	setContext('footnotes', {
+		registerFootnote,
+		getFootnotes: () => footnotes
+	});
 
 	// Content priority:
 	//  1. pub.leaflet.content — rich Leaflet block tree
@@ -60,9 +96,13 @@
 					document.content,
 					null,
 					2
-				)}</pre>
+				)}</pre
+			>
 		</div>
 	{:else}
 		<p class="italic opacity-50">No content available</p>
 	{/if}
+
+	<!-- Footnotes section -->
+	<Footnotes {footnotes} {hasTheme} />
 </div>

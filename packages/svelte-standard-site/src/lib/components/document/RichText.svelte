@@ -1,6 +1,7 @@
 <script lang="ts">
 	import InlineMath from './InlineMath.svelte';
 	import { UnicodeString } from '@atproto/api';
+	import { getContext, setContext } from 'svelte';
 
 	interface Facet {
 		index: {
@@ -13,13 +14,32 @@
 		}>;
 	}
 
+	interface FootnoteData {
+		footnoteId: string;
+		contentPlaintext: string;
+		contentFacets?: Facet[];
+	}
+
 	interface Props {
 		plaintext: string;
 		facets?: Facet[];
 		hasTheme?: boolean;
+		/** Footnote index in the document (for numbering) */
+		footnoteIndex?: number;
 	}
 
-	const { plaintext, facets = [], hasTheme = false }: Props = $props();
+	const { plaintext, facets = [], hasTheme = false, footnoteIndex = 0 }: Props = $props();
+
+	// Footnote context - allows parent components to collect footnotes
+	interface FootnoteContext {
+		registerFootnote: (footnote: FootnoteData) => number;
+		getFootnotes: () => Array<FootnoteData & { number: number }>;
+	}
+
+	const footnoteContext = getContext<FootnoteContext | undefined>('footnotes');
+
+	// Track footnotes found in this text
+	const foundFootnotes: Map<string, number> = new Map();
 
 	interface RichTextSegment {
 		text: string;
@@ -96,10 +116,13 @@
 		isMath: boolean;
 		isDidMention: boolean;
 		isAtMention: boolean;
+		isFootnote: boolean;
 		link?: string;
 		id?: string;
 		did?: string;
 		atURI?: string;
+		footnote?: FootnoteData;
+		footnoteNumber?: number;
 	}
 
 	function processSegments(): ProcessedSegment[] {
@@ -131,6 +154,26 @@
 			);
 			const isMath = segment.facet?.some((f) => f.$type === 'pub.leaflet.richtext.facet#math');
 
+			// Handle footnote
+			const footnoteFeature = segment.facet?.find(
+				(f) => f.$type === 'pub.leaflet.richtext.facet#footnote'
+			) as FootnoteFeature | undefined;
+
+			let footnoteNumber: number | undefined;
+			if (footnoteFeature && footnoteContext) {
+				if (!foundFootnotes.has(footnoteFeature.footnoteId)) {
+					const num = footnoteContext.registerFootnote({
+						footnoteId: footnoteFeature.footnoteId,
+						contentPlaintext: footnoteFeature.contentPlaintext,
+						contentFacets: footnoteFeature.contentFacets
+					});
+					foundFootnotes.set(footnoteFeature.footnoteId, num);
+					footnoteNumber = num;
+				} else {
+					footnoteNumber = foundFootnotes.get(footnoteFeature.footnoteId);
+				}
+			}
+
 			// Split text by newlines and mark br elements - handle undefined segment.text
 			const segmentText = segment.text || '';
 			const textParts = segmentText.split('\n');
@@ -154,10 +197,19 @@
 				isMath: isMath || false,
 				isDidMention: !!isDidMention,
 				isAtMention: !!isAtMention,
+				isFootnote: !!footnoteFeature,
 				link: link?.uri,
 				id: id?.id,
 				did: isDidMention?.did,
-				atURI: isAtMention?.atURI
+				atURI: isAtMention?.atURI,
+				footnote: footnoteFeature
+					? {
+							footnoteId: footnoteFeature.footnoteId,
+							contentPlaintext: footnoteFeature.contentPlaintext,
+							contentFacets: footnoteFeature.contentFacets
+						}
+					: undefined,
+				footnoteNumber
 			});
 		}
 
@@ -165,12 +217,30 @@
 	}
 
 	const segments = $derived(processSegments());
+
+	// Footnote feature type
+	interface FootnoteFeature {
+		$type: 'pub.leaflet.richtext.facet#footnote';
+		footnoteId: string;
+		contentPlaintext: string;
+		contentFacets?: Facet[];
+	}
 </script>
 
 {#each segments as segment, i}
 	{#each segment.parts as part, j}
 		{#if part.isBr}
 			<br />
+		{:else if segment.isFootnote}
+			<!-- Footnote reference -->
+			<a
+				href="#{segment.footnote?.footnoteId}"
+				class="footnote-ref"
+				class:themed={hasTheme}
+				id="{segment.footnote?.footnoteId}-ref"
+			>
+				<sup>{segment.footnoteNumber ?? '*'}</sup>
+			</a>
 		{:else if segment.isMath}
 			<InlineMath tex={part.text} {hasTheme} />
 		{:else}
@@ -268,5 +338,20 @@
 		box-decoration-break: clone;
 		-webkit-box-decoration-break: clone;
 		background-color: rgb(255, 177, 177);
+	}
+
+	.footnote-ref {
+		text-decoration: none;
+		color: rgb(0 0 225);
+		font-size: 0.75em;
+		padding: 0 0.1em;
+	}
+
+	.footnote-ref.themed {
+		color: var(--theme-accent);
+	}
+
+	.footnote-ref:hover {
+		text-decoration: underline;
 	}
 </style>
