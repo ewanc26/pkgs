@@ -1,8 +1,12 @@
 <script lang="ts">
 	import type { SiteMetadata } from '../../types/index.js';
 
-	interface Props { meta: SiteMetadata; siteMeta: SiteMetadata; }
-	let { meta, siteMeta }: Props = $props();
+	interface Props {
+		meta: SiteMetadata;
+		siteMeta: SiteMetadata;
+		fediverseCreator?: string | null;
+	}
+	let { meta, siteMeta, fediverseCreator }: Props = $props();
 
 	const finalMeta = $derived({
 		title: meta.title || siteMeta.title,
@@ -30,6 +34,9 @@
 	{/if}
 	{#if finalMeta.imageHeight}
 		<meta property="og:image:height" content={finalMeta.imageHeight.toString()} />
+	{/if}
+	{#if fediverseCreator}
+		<meta name="fediverse:creator" content={fediverseCreator} />
 	{/if}
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:url" content={finalMeta.url} />
