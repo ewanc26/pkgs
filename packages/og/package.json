@@ -1,6 +1,6 @@
 {
 	"name": "@ewanc26/og",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"description": "Dynamic OpenGraph image generator with noise backgrounds, bold typography, and Satori-based rendering. Works in SvelteKit endpoints, edge runtimes, and build scripts.",
 	"author": "Ewan Croft",
 	"license": "AGPL-3.0-only",

@@ -8,6 +8,7 @@ export default defineConfig({
 	sourcemap: true,
 	platform: 'node',
 	target: 'es2022',
+	shims: true,
 	external: ['satori', '@resvg/resvg-js', '@ewanc26/noise'],
 	esbuildOptions(options) {
 		options.jsxFactory = 'h'
