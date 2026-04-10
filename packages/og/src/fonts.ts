@@ -68,12 +68,6 @@ export const BUNDLED_FONTS = {
 	},
 } as const
 
-// Google Fonts CDN fallback URLs
-const FONT_FALLBACKS = {
-	heading: 'https://github.com/rsms/inter/raw/refs/heads/main/docs/font-files/Inter-Bold.ttf',
-	body: 'https://github.com/rsms/inter/raw/refs/heads/main/docs/font-files/Inter-Regular.ttf',
-}
-
 // ─── Font Loading ──────────────────────────────────────────────────────────────
 
 export interface LoadedFonts {
@@ -82,53 +76,44 @@ export interface LoadedFonts {
 }
 
 /**
- * Load fonts from config, falling back to bundled fonts,
- * with CDN fallback for serverless environments.
+ * Load fonts from config, falling back to bundled fonts.
+ * In serverless environments, falls back to fetching from upstream CDN.
  */
 export async function loadFonts(config?: OgFontConfig): Promise<LoadedFonts> {
 	const headingPath = config?.heading ?? BUNDLED_FONTS.heading
 	const bodyPath = config?.body ?? BUNDLED_FONTS.body
 
 	const [heading, body] = await Promise.all([
-		loadFontFileWithFallback(headingPath, FONT_FALLBACKS.heading),
-		loadFontFileWithFallback(bodyPath, FONT_FALLBACKS.body),
+		loadFontFile(headingPath),
+		loadFontFile(bodyPath),
 	])
 
 	return { heading, body }
 }
 
 /**
- * Load a font file, falling back to CDN if local file fails.
- */
-async function loadFontFileWithFallback(path: string, fallbackUrl: string): Promise<ArrayBuffer> {
-	try {
-		return await loadFontFile(path)
-	} catch (error) {
-		console.warn(`Failed to load local font at ${path}, trying CDN fallback:`, error)
-		try {
-			return await loadFontFile(fallbackUrl)
-		} catch (fallbackError) {
-			throw new Error(`Failed to load font from both local path (${path}) and CDN (${fallbackUrl}): ${fallbackError}`)
-		}
-	}
-}
-
-/**
- * Load a font from file path or URL.
+ * Load a font from file path.
+ * Falls back to fetching from github raw if local file not found.
  */
 async function loadFontFile(source: string): Promise<ArrayBuffer> {
-	// Handle URLs
-	if (source.startsWith('http://') || source.startsWith('https://')) {
-		const response = await fetch(source)
-		if (!response.ok) {
-			throw new Error(`Failed to load font from URL: ${source}`)
-		}
-		return response.arrayBuffer()
-	}
+	try {
+		const buffer = await readFile(source)
+		return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+	} catch (error) {
+		// In serverless, fonts might not be at expected path - fetch from CDN
+		const filename = source.split('/').pop()
+		const cdnUrl = `https://raw.githubusercontent.com/rsms/inter/master/docs/font-files/${filename}`
 
-	// Handle file paths
-	const buffer = await readFile(source)
-	return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+		try {
+			const response = await fetch(cdnUrl)
+			if (!response.ok) {
+				throw new Error(`CDN fetch failed: ${response.status}`)
+			}
+			return response.arrayBuffer()
+		} catch (cdnError) {
+			throw new Error(`Failed to load font ${filename} from both local path and CDN: ${cdnError}`)
+		}
+	}
 }
 
 // ─── Font Registration for Satori ─────────────────────────────────────────────
