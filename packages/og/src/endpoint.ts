@@ -3,7 +3,7 @@
  */
 
 import { generateOgResponse } from './generate.js'
-import type { OgEndpointOptions, OgTemplate } from './types.js'
+import type { OgEndpointOptions, OgGenerateOptions, OgTemplate } from './types.js'
 
 /**
  * Create a SvelteKit GET handler for OG image generation.
@@ -42,6 +42,8 @@ export function createOgEndpoint(options: OgEndpointOptions) {
 		const description = url.searchParams.get('description') ?? undefined
 		const image = url.searchParams.get('image') ?? undefined
 		const noiseSeed = url.searchParams.get('seed') ?? undefined
+		const templateParam = url.searchParams.get('template') as 'blog' | 'profile' | 'default' | null
+		const resolvedTemplate: OgGenerateOptions['template'] = templateParam ?? template
 
 		if (!title) {
 			return new Response('Missing title parameter', { status: 400 })
@@ -54,7 +56,7 @@ export function createOgEndpoint(options: OgEndpointOptions) {
 					description,
 					siteName,
 					image,
-					template: template as OgTemplate,
+					template: resolvedTemplate,
 					colors,
 					fonts,
 					noise,

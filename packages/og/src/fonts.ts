@@ -9,6 +9,7 @@ import { existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { OgFontConfig } from './types.js'
+import { loadEmbeddedFonts } from './fonts-data.js'
 
 // Declare __dirname for CJS contexts (injected by bundlers)
 declare const __dirname: string | undefined
@@ -76,8 +77,14 @@ export interface LoadedFonts {
 }
 
 /**
+ * Helper to convert Buffer to ArrayBuffer
+ */
+function toArrayBuffer(buf: Buffer): ArrayBuffer {
+	return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
+}
+
+/**
  * Load fonts from config, falling back to bundled fonts.
- * In serverless environments, falls back to fetching from upstream CDN.
  */
 export async function loadFonts(config?: OgFontConfig): Promise<LoadedFonts> {
 	const headingPath = config?.heading ?? BUNDLED_FONTS.heading
@@ -93,26 +100,19 @@ export async function loadFonts(config?: OgFontConfig): Promise<LoadedFonts> {
 
 /**
  * Load a font from file path.
- * Falls back to fetching from github raw if local file not found.
+ * Falls back to alternative locations if local file not found.
  */
 async function loadFontFile(source: string): Promise<ArrayBuffer> {
 	try {
 		const buffer = await readFile(source)
-		return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+		return toArrayBuffer(buffer)
 	} catch (error) {
-		// In serverless, fonts might not be at expected path - fetch from CDN
-		const filename = source.split('/').pop()
-		const cdnUrl = `https://raw.githubusercontent.com/rsms/inter/master/docs/font-files/${filename}`
-
-		try {
-			const response = await fetch(cdnUrl)
-			if (!response.ok) {
-				throw new Error(`CDN fetch failed: ${response.status}`)
-			}
-			return response.arrayBuffer()
-		} catch (cdnError) {
-			throw new Error(`Failed to load font ${filename} from both local path and CDN: ${cdnError}`)
+		// Try embedded fonts (loaded from alternative locations)
+		const embedded = await loadEmbeddedFonts()
+		if (embedded) {
+			return source.includes('Bold') ? embedded.heading : embedded.body
 		}
+		throw new Error(`Failed to load font from ${source}`)
 	}
 }
 
