@@ -11,13 +11,14 @@ export function profileTemplate({
 	siteName,
 	image,
 	colors,
+	noiseDataUrl,
 	width,
 	height,
 }: OgTemplateProps) {
-	const children: unknown[] = []
+	const contentChildren: unknown[] = []
 
 	if (image) {
-		children.push({
+		contentChildren.push({
 			type: 'img',
 			props: {
 				src: image,
@@ -32,7 +33,7 @@ export function profileTemplate({
 		})
 	}
 
-	children.push({
+	contentChildren.push({
 		type: 'h1',
 		props: {
 			style: {
@@ -50,7 +51,7 @@ export function profileTemplate({
 	})
 
 	if (description) {
-		children.push({
+		contentChildren.push({
 			type: 'p',
 			props: {
 				style: {
@@ -68,7 +69,7 @@ export function profileTemplate({
 		})
 	}
 
-	children.push({
+	contentChildren.push({
 		type: 'p',
 		props: {
 			style: {
@@ -88,6 +89,7 @@ export function profileTemplate({
 		type: 'div',
 		props: {
 			style: {
+				position: 'relative',
 				display: 'flex',
 				flexDirection: 'column',
 				alignItems: 'center',
@@ -96,7 +98,39 @@ export function profileTemplate({
 				height,
 				backgroundColor: colors.background,
 			},
-			children,
+			children: [
+				noiseDataUrl ? {
+					type: 'img',
+					props: {
+						src: noiseDataUrl,
+						width,
+						height,
+						style: {
+							position: 'absolute',
+							top: 0,
+							left: 0,
+							width,
+							height,
+						},
+					},
+				} : null,
+				{
+					type: 'div',
+					props: {
+						style: {
+							position: 'relative',
+							display: 'flex',
+							flexDirection: 'column',
+							alignItems: 'center',
+							justifyContent: 'center',
+							width,
+							height,
+							padding: '0 60px',
+						},
+						children: contentChildren,
+					},
+				},
+			].filter(Boolean),
 		},
 	}
 }
