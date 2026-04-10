@@ -3,7 +3,7 @@
  */
 
 import { generateOgResponse } from './generate.js'
-import type { OgEndpointOptions, OgGenerateOptions, OgTemplate } from './types.js'
+import type { OgEndpointOptions, OgGenerateOptions } from './types.js'
 
 /**
  * Create a SvelteKit GET handler for OG image generation.
