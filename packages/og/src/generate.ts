@@ -49,7 +49,7 @@ export async function generateOgImage(options: OgGenerateOptions): Promise<Buffe
 	const satoriFonts = createSatoriFonts(fonts)
 
 	// Generate noise background
-	const noiseEnabled = noiseConfig?.enabled !== false
+	const noiseEnabled = noiseConfig?.enabled === true
 	const noiseSeedValue = noiseSeed || noiseConfig?.seed || title
 	const noiseDataUrl = noiseEnabled
 		? generateNoiseDataUrl({
