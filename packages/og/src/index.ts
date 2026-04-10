@@ -41,7 +41,7 @@ export { defaultColors } from './types.js'
 export { generateNoiseDataUrl, generateCircleNoiseDataUrl } from './noise.js'
 
 // Fonts (for advanced customization)
-export { loadFonts, createSatoriFonts, BUNDLED_FONTS } from './fonts.js'
+export { loadFonts, createSatoriFonts } from './fonts.js'
 
 // Endpoint helpers
 export { createOgEndpoint } from './endpoint.js'
