@@ -14,13 +14,4 @@ export default defineConfig({
 		options.jsxFactory = 'h'
 		options.jsxFragment = 'Fragment'
 	},
-	onSuccess: async () => {
-		// Copy font files to dist after build
-		const { mkdir, cp } = await import('node:fs/promises')
-		const { resolve } = await import('node:path')
-		const fontsDir = resolve('fonts')
-		const distFontsDir = resolve('dist/fonts')
-		await mkdir(distFontsDir, { recursive: true })
-		await cp(fontsDir, distFontsDir, { recursive: true })
-	},
 })
