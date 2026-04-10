@@ -65,8 +65,9 @@ export function createOgEndpoint(options: OgEndpointOptions) {
 				cacheMaxAge
 			)
 		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error)
 			console.error('Failed to generate OG image:', error)
-			return new Response('Failed to generate image', { status: 500 })
+			return new Response(`Failed to generate image: ${errorMessage}`, { status: 500 })
 		}
 	}
 }
