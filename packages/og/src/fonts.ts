@@ -5,6 +5,7 @@
  */
 
 import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { OgFontConfig } from './types.js'
@@ -33,9 +34,26 @@ function getModuleDir(): string {
 
 /**
  * Resolve the fonts directory relative to the installed package.
+ * Tries multiple possible locations for serverless compatibility.
  */
 function getFontsDir(): string {
-	return resolve(getModuleDir(), '../fonts')
+	const candidates = [
+		// Standard: fonts next to dist
+		resolve(getModuleDir(), '../fonts'),
+		// Vercel serverless: fonts inside dist
+		resolve(getModuleDir(), 'fonts'),
+		// Fallback: node_modules path
+		resolve(process.cwd(), 'node_modules/@ewanc26/og/fonts'),
+	]
+
+	for (const dir of candidates) {
+		if (existsSync(dir)) {
+			return dir
+		}
+	}
+
+	// Return first candidate as fallback (will fail gracefully)
+	return candidates[0]
 }
 
 /**
@@ -50,6 +68,12 @@ export const BUNDLED_FONTS = {
 	},
 } as const
 
+// Google Fonts CDN fallback URLs
+const FONT_FALLBACKS = {
+	heading: 'https://github.com/rsms/inter/raw/refs/heads/main/docs/font-files/Inter-Bold.ttf',
+	body: 'https://github.com/rsms/inter/raw/refs/heads/main/docs/font-files/Inter-Regular.ttf',
+}
+
 // ─── Font Loading ──────────────────────────────────────────────────────────────
 
 export interface LoadedFonts {
@@ -58,18 +82,35 @@ export interface LoadedFonts {
 }
 
 /**
- * Load fonts from config, falling back to bundled DM Sans.
+ * Load fonts from config, falling back to bundled fonts,
+ * with CDN fallback for serverless environments.
  */
 export async function loadFonts(config?: OgFontConfig): Promise<LoadedFonts> {
 	const headingPath = config?.heading ?? BUNDLED_FONTS.heading
 	const bodyPath = config?.body ?? BUNDLED_FONTS.body
 
 	const [heading, body] = await Promise.all([
-		loadFontFile(headingPath),
-		loadFontFile(bodyPath),
+		loadFontFileWithFallback(headingPath, FONT_FALLBACKS.heading),
+		loadFontFileWithFallback(bodyPath, FONT_FALLBACKS.body),
 	])
 
 	return { heading, body }
+}
+
+/**
+ * Load a font file, falling back to CDN if local file fails.
+ */
+async function loadFontFileWithFallback(path: string, fallbackUrl: string): Promise<ArrayBuffer> {
+	try {
+		return await loadFontFile(path)
+	} catch (error) {
+		console.warn(`Failed to load local font at ${path}, trying CDN fallback:`, error)
+		try {
+			return await loadFontFile(fallbackUrl)
+		} catch (fallbackError) {
+			throw new Error(`Failed to load font from both local path (${path}) and CDN (${fallbackUrl}): ${fallbackError}`)
+		}
+	}
 }
 
 /**
