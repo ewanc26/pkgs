@@ -1,73 +1,13 @@
 /**
  * @ewanc26/og fonts
  *
- * Font loading utilities. Bundles Inter font by default.
+ * Font loading utilities. Fonts are inlined as base64 at build time so this
+ * works in serverless environments (Vercel, Netlify, etc.) without any
+ * filesystem access to node_modules.
  */
 
-import { readFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { INTER_BOLD_B64, INTER_REGULAR_B64 } from './fonts-base64.js'
 import type { OgFontConfig } from './types.js'
-import { loadEmbeddedFonts } from './fonts-data.js'
-
-// Declare __dirname for CJS contexts (injected by bundlers)
-declare const __dirname: string | undefined
-
-// ─── Paths ────────────────────────────────────────────────────────────────────
-
-/**
- * Get the directory of the current module.
- * Works in both ESM and bundled contexts.
- */
-function getModuleDir(): string {
-	// ESM context
-	if (typeof import.meta !== 'undefined' && import.meta.url) {
-		return dirname(fileURLToPath(import.meta.url))
-	}
-	// Bundled CJS context - __dirname is injected by bundlers
-	if (typeof __dirname !== 'undefined') {
-		return __dirname
-	}
-	// Fallback
-	return resolve(process.cwd(), 'node_modules/@ewanc26/og/dist')
-}
-
-/**
- * Resolve the fonts directory relative to the installed package.
- * Tries multiple possible locations for serverless compatibility.
- */
-function getFontsDir(): string {
-	const candidates = [
-		// Standard: fonts next to dist
-		resolve(getModuleDir(), '../fonts'),
-		// Vercel serverless: fonts inside dist
-		resolve(getModuleDir(), 'fonts'),
-		// Fallback: node_modules path
-		resolve(process.cwd(), 'node_modules/@ewanc26/og/fonts'),
-	]
-
-	for (const dir of candidates) {
-		if (existsSync(dir)) {
-			return dir
-		}
-	}
-
-	// Return first candidate as fallback (will fail gracefully)
-	return candidates[0]
-}
-
-/**
- * Resolve bundled font paths. Uses getters to defer resolution until runtime.
- */
-export const BUNDLED_FONTS = {
-	get heading() {
-		return resolve(getFontsDir(), 'Inter-Bold.ttf')
-	},
-	get body() {
-		return resolve(getFontsDir(), 'Inter-Regular.ttf')
-	},
-} as const
 
 // ─── Font Loading ──────────────────────────────────────────────────────────────
 
@@ -76,43 +16,36 @@ export interface LoadedFonts {
 	body: ArrayBuffer
 }
 
-/**
- * Helper to convert Buffer to ArrayBuffer
- */
-function toArrayBuffer(buf: Buffer): ArrayBuffer {
+function base64ToArrayBuffer(b64: string): ArrayBuffer {
+	const buf = Buffer.from(b64, 'base64')
 	return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
 }
 
 /**
- * Load fonts from config, falling back to bundled fonts.
+ * Load fonts from config, falling back to the bundled Inter font.
+ * If custom paths are provided they are loaded from disk; otherwise the
+ * pre-inlined base64 data is used (safe in any serverless runtime).
  */
 export async function loadFonts(config?: OgFontConfig): Promise<LoadedFonts> {
-	const headingPath = config?.heading ?? BUNDLED_FONTS.heading
-	const bodyPath = config?.body ?? BUNDLED_FONTS.body
-
-	const [heading, body] = await Promise.all([
-		loadFontFile(headingPath),
-		loadFontFile(bodyPath),
-	])
-
-	return { heading, body }
-}
-
-/**
- * Load a font from file path.
- * Falls back to alternative locations if local file not found.
- */
-async function loadFontFile(source: string): Promise<ArrayBuffer> {
-	try {
-		const buffer = await readFile(source)
-		return toArrayBuffer(buffer)
-	} catch (error) {
-		// Try embedded fonts (loaded from alternative locations)
-		const embedded = await loadEmbeddedFonts()
-		if (embedded) {
-			return source.includes('Bold') ? embedded.heading : embedded.body
+	if (config?.heading || config?.body) {
+		const { readFile } = await import('node:fs/promises')
+		const [headingBuf, bodyBuf] = await Promise.all([
+			config.heading ? readFile(config.heading) : Buffer.from(INTER_BOLD_B64, 'base64'),
+			config.body    ? readFile(config.body)    : Buffer.from(INTER_REGULAR_B64, 'base64'),
+		])
+		return {
+			heading: headingBuf instanceof Buffer
+				? (headingBuf.buffer.slice(headingBuf.byteOffset, headingBuf.byteOffset + headingBuf.byteLength) as ArrayBuffer)
+				: headingBuf.buffer,
+			body: bodyBuf instanceof Buffer
+				? (bodyBuf.buffer.slice(bodyBuf.byteOffset, bodyBuf.byteOffset + bodyBuf.byteLength) as ArrayBuffer)
+				: bodyBuf.buffer,
 		}
-		throw new Error(`Failed to load font from ${source}`)
+	}
+
+	return {
+		heading: base64ToArrayBuffer(INTER_BOLD_B64),
+		body:    base64ToArrayBuffer(INTER_REGULAR_B64),
 	}
 }
 
@@ -127,21 +60,10 @@ export type SatoriFontConfig = {
 
 /**
  * Create Satori-compatible font config from loaded fonts.
- * Uses Inter font family with weight 700 for headings and 400 for body.
  */
 export function createSatoriFonts(fonts: LoadedFonts): SatoriFontConfig[] {
 	return [
-		{
-			name: 'Inter',
-			data: fonts.heading,
-			weight: 700,
-			style: 'normal',
-		},
-		{
-			name: 'Inter',
-			data: fonts.body,
-			weight: 400,
-			style: 'normal',
-		},
+		{ name: 'Inter', data: fonts.heading, weight: 700, style: 'normal' },
+		{ name: 'Inter', data: fonts.body,    weight: 400, style: 'normal' },
 	]
 }

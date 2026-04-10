@@ -1,6 +1,6 @@
 {
 	"name": "@ewanc26/og",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"description": "Dynamic OpenGraph image generator with noise backgrounds, bold typography, and Satori-based rendering. Works in SvelteKit endpoints, edge runtimes, and build scripts.",
 	"author": "Ewan Croft",
 	"license": "AGPL-3.0-only",
@@ -46,8 +46,9 @@
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
+		"prebuild": "node scripts/prebuild.mjs",
 		"build": "tsup",
-		"dev": "tsup --watch",
+		"dev": "node scripts/prebuild.mjs && tsup --watch",
 		"check": "tsc --noEmit"
 	},
 	"dependencies": {
