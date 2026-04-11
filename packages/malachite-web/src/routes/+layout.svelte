@@ -33,6 +33,12 @@
 
 {@render children()}
 
+<footer>
+	<span>privacy-first analytics</span>
+	<span class="sep">·</span>
+	<a href="https://github.com/ewanc26/malachite" target="_blank" rel="noopener">source</a>
+</footer>
+
 <style>
 	header {
 		position: sticky;
@@ -62,5 +68,20 @@
 	.sep {
 		margin: 0 0.4rem;
 		color: var(--muted);
+	}
+	footer {
+		text-align: center;
+		padding: 1rem 1.5rem;
+		font-size: 0.7rem;
+		font-family: 'JetBrains Mono', monospace;
+		color: var(--muted);
+		border-top: 1px solid var(--border);
+	}
+	footer a {
+		color: var(--accent);
+		text-decoration: none;
+	}
+	footer a:hover {
+		text-decoration: underline;
 	}
 </style>
