@@ -44,7 +44,14 @@ export type {
 	SifaLanguage,
 	SifaCertification,
 	SifaExternalAccount,
-	SifaLocation
+	SifaLocation,
+	SifaPosition,
+	SifaEducation,
+	SifaVolunteering,
+	SifaHonor,
+	SifaCourse,
+	SifaPublication,
+	SifaPublicationAuthor
 } from './types.js';
 
 export {
@@ -60,7 +67,13 @@ export {
 	fetchSifaProjects,
 	fetchSifaLanguages,
 	fetchSifaCertifications,
-	fetchSifaExternalAccounts
+	fetchSifaExternalAccounts,
+	fetchSifaPositions,
+	fetchSifaEducation,
+	fetchSifaVolunteering,
+	fetchSifaHonors,
+	fetchSifaCourses,
+	fetchSifaPublications
 } from './fetch.js';
 
 export {
