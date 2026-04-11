@@ -377,3 +377,75 @@ export interface SifaExternalAccount {
 	isPrimary?: boolean;
 	uri: string;
 }
+
+export interface SifaPosition {
+	company: string;
+	companyDid?: string;
+	title: string;
+	description?: string;
+	employmentType?: string;
+	workplaceType?: string;
+	location?: SifaLocation;
+	startedAt: string;
+	endedAt?: string;
+	skills?: string[];
+	isPrimary?: boolean;
+	uri: string;
+}
+
+export interface SifaEducation {
+	institution: string;
+	institutionDid?: string;
+	degree?: string;
+	fieldOfStudy?: string;
+	grade?: string;
+	activities?: string;
+	description?: string;
+	location?: SifaLocation;
+	startedAt?: string;
+	endedAt?: string;
+	uri: string;
+}
+
+export interface SifaVolunteering {
+	organization: string;
+	organizationDid?: string;
+	role?: string;
+	cause?: string;
+	description?: string;
+	startedAt?: string;
+	endedAt?: string;
+	uri: string;
+}
+
+export interface SifaHonor {
+	title: string;
+	issuer?: string;
+	issuerDid?: string;
+	description?: string;
+	awardedAt?: string;
+	uri: string;
+}
+
+export interface SifaCourse {
+	name: string;
+	number?: string;
+	institution?: string;
+	education?: string;
+	uri: string;
+}
+
+export interface SifaPublicationAuthor {
+	name: string;
+	did?: string;
+}
+
+export interface SifaPublication {
+	title: string;
+	publisher?: string;
+	url?: string;
+	description?: string;
+	authors?: SifaPublicationAuthor[];
+	publishedAt?: string;
+	uri: string;
+}
