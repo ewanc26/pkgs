@@ -12,7 +12,13 @@ import type {
 	TangledReposData,
 	PopfeedReview,
 	PopfeedCreativeWorkType,
-	PopfeedMainCreditRole
+	PopfeedMainCreditRole,
+	SifaProfileData,
+	SifaSkill,
+	SifaProject,
+	SifaLanguage,
+	SifaCertification,
+	SifaExternalAccount
 } from './types.js';
 
 export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise<ProfileData> {
@@ -408,5 +414,262 @@ export async function fetchTangledRepos(
 		return data;
 	} catch {
 		return null;
+	}
+}
+
+// Sifa Professional Profile fetch functions
+
+export async function fetchSifaProfile(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaProfileData | null> {
+	const cacheKey = `sifa:profile:${did}`;
+	const cached = cache.get<SifaProfileData>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const result = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.getRecord({
+					repo: did,
+					collection: 'id.sifa.profile.self',
+					rkey: 'self'
+				});
+				return response.data;
+			},
+			true,
+			fetchFn
+		);
+
+		if (!result?.value) return null;
+		const value = result.value as any;
+		const data: SifaProfileData = {
+			headline: value.headline,
+			about: value.about,
+			industry: value.industry,
+			location: value.location,
+			openTo: value.openTo || [],
+			preferredWorkplace: value.preferredWorkplace || [],
+			langs: value.langs || [],
+			createdAt: value.createdAt
+		};
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return null;
+	}
+}
+
+export async function fetchSifaSkills(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaSkill[]> {
+	const cacheKey = `sifa:skills:${did}`;
+	const cached = cache.get<SifaSkill[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.skill',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaSkill[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				name: value.name,
+				category: value.category,
+				uri: record.uri
+			};
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSifaProjects(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaProject[]> {
+	const cacheKey = `sifa:projects:${did}`;
+	const cached = cache.get<SifaProject[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.project',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaProject[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				name: value.name,
+				description: value.description,
+				url: value.url,
+				startedAt: value.startedAt,
+				uri: record.uri
+			};
+		});
+
+		data.sort((a, b) => {
+			if (!a.startedAt) return 1;
+			if (!b.startedAt) return -1;
+			return new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime();
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSifaLanguages(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaLanguage[]> {
+	const cacheKey = `sifa:languages:${did}`;
+	const cached = cache.get<SifaLanguage[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.language',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaLanguage[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				name: value.name,
+				proficiency: value.proficiency,
+				uri: record.uri
+			};
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSifaCertifications(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaCertification[]> {
+	const cacheKey = `sifa:certifications:${did}`;
+	const cached = cache.get<SifaCertification[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.certification',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaCertification[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				name: value.name,
+				authority: value.authority,
+				issuedAt: value.issuedAt,
+				uri: record.uri
+			};
+		});
+
+		data.sort((a, b) => {
+			if (!a.issuedAt) return 1;
+			if (!b.issuedAt) return -1;
+			return new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime();
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSifaExternalAccounts(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaExternalAccount[]> {
+	const cacheKey = `sifa:externalAccounts:${did}`;
+	const cached = cache.get<SifaExternalAccount[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.externalAccount',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaExternalAccount[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				platform: value.platform,
+				url: value.url,
+				label: value.label,
+				feedUrl: value.feedUrl,
+				isPrimary: value.isPrimary,
+				uri: record.uri
+			};
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
 	}
 }

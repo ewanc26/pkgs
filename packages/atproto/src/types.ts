@@ -322,3 +322,58 @@ export interface PopfeedReview {
 	containsSpoilers?: boolean;
 	isRevisit?: boolean;
 }
+
+// Sifa Professional Profile Types
+
+export interface SifaLocation {
+	countryCode: string;
+	region?: string;
+	city?: string;
+}
+
+export interface SifaProfileData {
+	headline: string;
+	about: string;
+	industry?: string;
+	location?: SifaLocation;
+	openTo: string[];
+	preferredWorkplace: string[];
+	langs: string[];
+	createdAt: string;
+}
+
+export interface SifaSkill {
+	name: string;
+	category: string;
+	uri: string;
+}
+
+export interface SifaProject {
+	name: string;
+	description?: string;
+	url?: string;
+	startedAt?: string;
+	uri: string;
+}
+
+export interface SifaLanguage {
+	name: string;
+	proficiency: string;
+	uri: string;
+}
+
+export interface SifaCertification {
+	name: string;
+	authority?: string;
+	issuedAt?: string;
+	uri: string;
+}
+
+export interface SifaExternalAccount {
+	platform: string;
+	url: string;
+	label?: string;
+	feedUrl?: string;
+	isPrimary?: boolean;
+	uri: string;
+}
