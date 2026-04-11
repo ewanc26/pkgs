@@ -18,7 +18,13 @@ import type {
 	SifaProject,
 	SifaLanguage,
 	SifaCertification,
-	SifaExternalAccount
+	SifaExternalAccount,
+	SifaPosition,
+	SifaEducation,
+	SifaVolunteering,
+	SifaHonor,
+	SifaCourse,
+	SifaPublication
 } from './types.js';
 
 export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise<ProfileData> {
@@ -360,6 +366,295 @@ export async function fetchRecentPopfeedReviews(
 				containsSpoilers: value.containsSpoilers,
 				isRevisit: value.isRevisit
 			};
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSifaPositions(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaPosition[]> {
+	const cacheKey = `sifa:positions:${did}`;
+	const cached = cache.get<SifaPosition[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.position',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaPosition[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				company: value.company,
+				companyDid: value.companyDid,
+				title: value.title,
+				description: value.description,
+				employmentType: value.employmentType,
+				workplaceType: value.workplaceType,
+				location: value.location,
+				startedAt: value.startedAt,
+				endedAt: value.endedAt,
+				skills: value.skills,
+				isPrimary: value.isPrimary,
+				uri: record.uri
+			};
+		});
+
+		data.sort((a, b) => {
+			if (!a.startedAt) return 1;
+			if (!b.startedAt) return -1;
+			return new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime();
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSifaEducation(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaEducation[]> {
+	const cacheKey = `sifa:education:${did}`;
+	const cached = cache.get<SifaEducation[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.education',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaEducation[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				institution: value.institution,
+				institutionDid: value.institutionDid,
+				degree: value.degree,
+				fieldOfStudy: value.fieldOfStudy,
+				grade: value.grade,
+				activities: value.activities,
+				description: value.description,
+				location: value.location,
+				startedAt: value.startedAt,
+				endedAt: value.endedAt,
+				uri: record.uri
+			};
+		});
+
+		data.sort((a, b) => {
+			const aEnd = a.endedAt ? new Date(a.endedAt).getTime() : Date.now();
+			const bEnd = b.endedAt ? new Date(b.endedAt).getTime() : Date.now();
+			return bEnd - aEnd;
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSifaVolunteering(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaVolunteering[]> {
+	const cacheKey = `sifa:volunteering:${did}`;
+	const cached = cache.get<SifaVolunteering[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.volunteering',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaVolunteering[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				organization: value.organization,
+				organizationDid: value.organizationDid,
+				role: value.role,
+				cause: value.cause,
+				description: value.description,
+				startedAt: value.startedAt,
+				endedAt: value.endedAt,
+				uri: record.uri
+			};
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSifaHonors(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaHonor[]> {
+	const cacheKey = `sifa:honors:${did}`;
+	const cached = cache.get<SifaHonor[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.honor',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaHonor[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				title: value.title,
+				issuer: value.issuer,
+				issuerDid: value.issuerDid,
+				description: value.description,
+				awardedAt: value.awardedAt,
+				uri: record.uri
+			};
+		});
+
+		data.sort((a, b) => {
+			if (!a.awardedAt) return 1;
+			if (!b.awardedAt) return -1;
+			return new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime();
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSifaCourses(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaCourse[]> {
+	const cacheKey = `sifa:courses:${did}`;
+	const cached = cache.get<SifaCourse[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.course',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaCourse[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				name: value.name,
+				number: value.number,
+				institution: value.institution,
+				education: value.education,
+				uri: record.uri
+			};
+		});
+
+		cache.set(cacheKey, data);
+		return data;
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSifaPublications(
+	did: string,
+	fetchFn?: typeof fetch
+): Promise<SifaPublication[]> {
+	const cacheKey = `sifa:publications:${did}`;
+	const cached = cache.get<SifaPublication[]>(cacheKey);
+	if (cached) return cached;
+
+	try {
+		const records = await withFallback(
+			did,
+			async (agent) => {
+				const response = await agent.com.atproto.repo.listRecords({
+					repo: did,
+					collection: 'id.sifa.profile.publication',
+					limit: 100
+				});
+				return response.data.records;
+			},
+			true,
+			fetchFn
+		);
+
+		const data: SifaPublication[] = records.map((record) => {
+			const value = record.value as any;
+			return {
+				title: value.title,
+				publisher: value.publisher,
+				url: value.url,
+				description: value.description,
+				authors: value.authors,
+				publishedAt: value.publishedAt,
+				uri: record.uri
+			};
+		});
+
+		data.sort((a, b) => {
+			if (!a.publishedAt) return 1;
+			if (!b.publishedAt) return -1;
+			return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
 		});
 
 		cache.set(cacheKey, data);
