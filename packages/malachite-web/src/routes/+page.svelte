@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Music2, Disc3, Layers2, RefreshCw, ListFilter, ArrowRight, Github } from '@lucide/svelte';
+  import { Music2, Disc3, Layers2, RefreshCw, ListFilter, ArrowRight, Github, Heart, Coffee } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -28,6 +28,7 @@
     <div class="logo-wrap" title="The Malachite sigil: sacred circles of protection and cycles of listening; the pentagram binds the elements, each point a moment in time; the centre holds the listener as witness, the still point around which music revolves. A stone of transformation, gathering scattered plays into sorcery — records bound into a coherent whole">
       <img src="/logo/Malachite.svg" alt="Malachite" class="hero-logo" />
     </div>
+    <p class="wordmark">malachite</p>
     <p class="eyebrow">Open source · Runs in your browser</p>
     <h1>Your listening history,<br />on ATProto.</h1>
     <p class="sub">
@@ -41,6 +42,12 @@
       </a>
       <a href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite" target="_blank" rel="noopener" class="btn-ghost">
         <Github size={15} /> View on GitHub
+      </a>
+      <a href="https://github.com/sponsors/ewanc26" target="_blank" rel="noopener" class="btn-ghost btn-sponsor-inline">
+        <Heart size={14} /> Sponsor
+      </a>
+      <a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener" class="btn-ghost btn-kofi-inline">
+        <Coffee size={14} /> Ko-fi
       </a>
     </div>
   </section>
@@ -144,8 +151,16 @@
   .hero-logo {
     width: clamp(96px, 18vw, 160px);
     height: clamp(96px, 18vw, 160px);
-    margin: 0 auto 1.5rem;
+    margin: 0 auto 0.75rem;
     display: block;
+  }
+
+  .wordmark {
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin: 0 0 0.5rem;
   }
 
   .eyebrow {
@@ -158,9 +173,9 @@
   }
 
   h1 {
-    font-size: clamp(2rem, 5vw, 3rem);
+    font-size: clamp(1.65rem, 4vw, 2.5rem);
     font-weight: 600;
-    line-height: 1.15;
+    line-height: 1.2;
     letter-spacing: -0.03em;
     color: var(--text);
     margin: 0 0 1.25rem;
@@ -330,6 +345,20 @@
     color: var(--muted);
     margin: 0 0 1.75rem;
   }
+
+  .btn-sponsor-inline {
+    color: #db61a2;
+    border-color: rgba(219, 97, 162, 0.3);
+  }
+
+  .btn-sponsor-inline:hover { border-color: #db61a2; color: #db61a2; }
+
+  .btn-kofi-inline {
+    color: #ff5e5b;
+    border-color: rgba(255, 94, 91, 0.3);
+  }
+
+  .btn-kofi-inline:hover { border-color: #ff5e5b; color: #ff5e5b; }
 
   /* ── Footer ───────────────────────────────────────────────────────────────── */
   footer {
