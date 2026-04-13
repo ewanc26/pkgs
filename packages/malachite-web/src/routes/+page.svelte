@@ -25,6 +25,9 @@
 
   <!-- ── Hero ───────────────────────────────────────────────────────────────── -->
   <section class="hero">
+    <div class="logo-wrap" title="The Malachite sigil: sacred circles of protection and cycles of listening; the pentagram binds the elements, each point a moment in time; the centre holds the listener as witness, the still point around which music revolves. A stone of transformation, gathering scattered plays into sorcery — records bound into a coherent whole">
+      <img src="/logo/Malachite.svg" alt="Malachite" class="hero-logo" />
+    </div>
     <p class="eyebrow">Open source · Runs in your browser</p>
     <h1>Your listening history,<br />on ATProto.</h1>
     <p class="sub">
@@ -136,6 +139,13 @@
   .hero {
     text-align: center;
     padding: 3rem 0 3.5rem;
+  }
+
+  .hero-logo {
+    width: clamp(96px, 18vw, 160px);
+    height: clamp(96px, 18vw, 160px);
+    margin: 0 auto 1.5rem;
+    display: block;
   }
 
   .eyebrow {
