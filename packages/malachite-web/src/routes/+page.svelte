@@ -26,7 +26,7 @@
   <!-- ── Hero ───────────────────────────────────────────────────────────────── -->
   <section class="hero">
     <div class="logo-wrap" title="The Malachite sigil: sacred circles of protection and cycles of listening; the pentagram binds the elements, each point a moment in time; the centre holds the listener as witness, the still point around which music revolves. A stone of transformation, gathering scattered plays into sorcery — records bound into a coherent whole">
-      <img src="/logo/Malachite.svg" alt="Malachite" class="hero-logo" />
+      <img src="/logo/Malachite.svg" alt="The Malachite sigil: a circular emblem of concentric teal and green rings forming a sacred circle, overlaid with a pale green pentagram binding five points, centred on a single dot representing the listener as witness" class="hero-logo" />
     </div>
     <p class="wordmark">malachite</p>
     <p class="eyebrow">Open source · Runs in your browser</p>
