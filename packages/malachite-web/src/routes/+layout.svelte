@@ -23,7 +23,10 @@
 </svelte:head>
 
 <header>
-	<span class="wordmark">malachite</span>
+	<a href="/" class="brand">
+		<img src="/logo/Malachite.svg" alt="Malachite" class="logo-mark" />
+		<span class="wordmark">malachite</span>
+	</a>
 	<div class="version-strip">
 	<span>web v{webVersion}</span>
 	<span class="sep">–</span>
@@ -50,6 +53,18 @@
 		padding: 0.6rem 1.5rem;
 		background: var(--bg);
 		border-bottom: 1px solid var(--border);
+	}
+	.brand {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		text-decoration: none;
+	}
+	.logo-mark {
+		width: 22px;
+		height: 22px;
+		display: block;
+		flex-shrink: 0;
 	}
 	.wordmark {
 		font-size: 0.85rem;

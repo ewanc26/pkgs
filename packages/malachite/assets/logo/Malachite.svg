@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <clipPath id="circleClip">
+      <circle cx="250" cy="250" r="220" />
+    </clipPath>
+    
+    <linearGradient id="tealGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#008080" />
+      <stop offset="100%" stop-color="#004d4d" />
+    </linearGradient>
+  </defs>
+
+  <circle cx="250" cy="250" r="220" fill="#011a11" />
+
+  <g clip-path="url(#circleClip)">
+    <circle cx="130" cy="160" r="240.0" fill="none" stroke="#008080" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="226.66666666666666" fill="none" stroke="#10875d" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="213.33333333333334" fill="none" stroke="#0d754f" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="200.0" fill="none" stroke="#096341" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="186.66666666666666" fill="none" stroke="#065234" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="173.33333333333334" fill="none" stroke="#034027" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="160.0" fill="none" stroke="#013220" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="146.66666666666666" fill="none" stroke="#008080" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="133.33333333333334" fill="none" stroke="#10875d" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="120.0" fill="none" stroke="#0d754f" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="106.66666666666667" fill="none" stroke="#096341" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="93.33333333333333" fill="none" stroke="#065234" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="80.0" fill="none" stroke="#034027" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="66.66666666666667" fill="none" stroke="#013220" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="53.333333333333336" fill="none" stroke="#008080" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="40.0" fill="none" stroke="#10875d" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="26.666666666666668" fill="none" stroke="#0d754f" stroke-width="8.0" />
+    <circle cx="130" cy="160" r="13.333333333333334" fill="none" stroke="#096341" stroke-width="8.0" />
+    <circle cx="380" cy="320" r="260.0" fill="none" stroke="#0d754f" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="248.1818181818182" fill="none" stroke="#096341" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="236.36363636363637" fill="none" stroke="#065234" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="224.54545454545453" fill="none" stroke="#034027" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="212.72727272727272" fill="none" stroke="#013220" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="200.9090909090909" fill="none" stroke="#008080" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="189.0909090909091" fill="none" stroke="#10875d" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="177.27272727272728" fill="none" stroke="#0d754f" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="165.45454545454547" fill="none" stroke="#096341" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="153.63636363636363" fill="none" stroke="#065234" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="141.8181818181818" fill="none" stroke="#034027" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="130.0" fill="none" stroke="#013220" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="118.18181818181819" fill="none" stroke="#008080" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="106.36363636363636" fill="none" stroke="#10875d" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="94.54545454545455" fill="none" stroke="#0d754f" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="82.72727272727273" fill="none" stroke="#096341" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="70.9090909090909" fill="none" stroke="#065234" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="59.09090909090909" fill="none" stroke="#034027" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="47.27272727272727" fill="none" stroke="#013220" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="35.45454545454545" fill="none" stroke="#008080" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="23.636363636363637" fill="none" stroke="#10875d" stroke-width="7.0909" />
+    <circle cx="380" cy="320" r="11.818181818181818" fill="none" stroke="#0d754f" stroke-width="7.0909" />
+    <circle cx="250" cy="480" r="180.0" fill="none" stroke="#013220" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="167.14285714285714" fill="none" stroke="#008080" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="154.28571428571428" fill="none" stroke="#10875d" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="141.42857142857142" fill="none" stroke="#0d754f" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="128.57142857142856" fill="none" stroke="#096341" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="115.71428571428571" fill="none" stroke="#065234" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="102.85714285714286" fill="none" stroke="#034027" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="90.0" fill="none" stroke="#013220" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="77.14285714285714" fill="none" stroke="#008080" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="64.28571428571428" fill="none" stroke="#10875d" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="51.42857142857143" fill="none" stroke="#0d754f" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="38.57142857142857" fill="none" stroke="#096341" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="25.714285714285715" fill="none" stroke="#065234" stroke-width="7.7143" />
+    <circle cx="250" cy="480" r="12.857142857142858" fill="none" stroke="#034027" stroke-width="7.7143" />
+  </g>
+
+  <circle cx="250" cy="250" r="220" fill="none" stroke="url(#tealGlow)" stroke-width="14" />
+  
+  <circle cx="250" cy="250" r="235" fill="none" stroke="#008080" stroke-width="3" stroke-dasharray="6, 8" />
+
+  <path d="M 250 30 L 379.3 428 L 40.8 182 L 459.2 182 L 120.7 428 Z" 
+        fill="none" 
+        stroke="#a0ffc1" 
+        stroke-width="6" 
+        stroke-linejoin="round"
+        opacity="0.95" />
+
+  <circle cx="250" cy="250" r="16" fill="#011a11" stroke="#008080" stroke-width="5" />
+  <circle cx="250" cy="250" r="6" fill="#a0ffc1" />
+
+  <circle cx="250" cy="30" r="10" fill="#013220" stroke="#a0ffc1" stroke-width="3" />
+  <circle cx="379.3" cy="428" r="10" fill="#013220" stroke="#a0ffc1" stroke-width="3" />
+  <circle cx="40.8" cy="182" r="10" fill="#013220" stroke="#a0ffc1" stroke-width="3" />
+  <circle cx="459.2" cy="182" r="10" fill="#013220" stroke="#a0ffc1" stroke-width="3" />
+  <circle cx="120.7" cy="428" r="10" fill="#013220" stroke="#a0ffc1" stroke-width="3" />
+</svg>
