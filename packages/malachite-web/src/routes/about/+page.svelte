@@ -58,7 +58,7 @@
       </li>
     </ul>
     <p>
-      No analytics, no cookies, no local storage, no fingerprinting.
+      No cookies, no local storage, no fingerprinting. The only analytical tool used is <a href="https://umami.is" target="_blank" rel="noopener">Umami</a>
     </p>
   </section>
 
