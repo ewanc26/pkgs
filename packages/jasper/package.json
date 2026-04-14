@@ -1,0 +1,63 @@
+{
+  "name": "@ewanc26/jasper",
+  "version": "0.1.0",
+  "description": "Convert Instagram data exports into posts on Grain.social",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "keywords": [
+    "instagram",
+    "grain",
+    "atproto",
+    "import",
+    "migration",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/jasper"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/jasper",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "PRIVACY.md",
+    "LICENCE"
+  ],
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "jasper": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc && node dist/index.js",
+    "dry-run": "pnpm run build && node dist/index.js --dry-run",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.19.3",
+    "@atproto/oauth-client-node": "^0.3.16",
+    "@ewanc26/tid": "workspace:*",
+    "@zip.js/zip.js": "^2.7.57",
+    "chalk": "^5.6.2",
+    "ora": "^9.0.0",
+    "sharp": "^0.34.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3"
+  }
+}
