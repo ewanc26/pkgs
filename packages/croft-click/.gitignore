@@ -1,0 +1,7 @@
+node_modules
+
+# SvelteKit build / generate output
+.svelte-kit
+
+# Vercel
+.vercel
