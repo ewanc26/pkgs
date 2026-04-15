@@ -1,5 +1,6 @@
 <script lang="ts">
 	import './layout.css';
+	import { Image } from '@lucide/svelte';
 	let { children } = $props();
 </script>
 
@@ -14,7 +15,7 @@
 
 <header>
 	<a href="/" class="brand">
-		<span class="logo-mark">📸</span>
+		<Image class="logo-mark" size={22} />
 		<span class="wordmark">jasper</span>
 	</a>
 	<nav>
@@ -50,7 +51,7 @@
 		text-decoration: none;
 	}
 	.logo-mark {
-		font-size: 1.2rem;
+		color: var(--accent);
 	}
 	.wordmark {
 		font-size: 0.85rem;
