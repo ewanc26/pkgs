@@ -18,7 +18,7 @@
 
 <header>
 	<a href="/" class="brand">
-		<Image class="logo-mark" size={22} />
+		<span class="logo-mark"><Image size={22} /></span>
 		<span class="wordmark">jasper</span>
 	</a>
 	<div class="version-strip">
@@ -56,7 +56,6 @@
 	}
 	.logo-mark {
 		color: var(--accent);
-		flex-shrink: 0;
 	}
 	.wordmark {
 		font-size: 0.85rem;
