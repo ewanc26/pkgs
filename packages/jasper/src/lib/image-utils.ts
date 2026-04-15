@@ -208,7 +208,9 @@ export async function validateImage(
 /**
  * Browser-compatible processImage that accepts Uint8Array
  */
-export async function processImageBrowser(data: Uint8Array): Promise<ProcessedImage> {
+export async function processImageBrowser(
+  data: Uint8Array,
+): Promise<ProcessedImage> {
   // For browser, we'll skip resizing for now and just return the original
   // TODO: Implement browser-based image resizing using Canvas API
 
@@ -233,7 +235,9 @@ export async function processImageBrowser(data: Uint8Array): Promise<ProcessedIm
 /**
  * Get image dimensions in browser using Image API
  */
-export async function getImageDimensionsBrowser(data: Uint8Array): Promise<{ width: number; height: number }> {
+export async function getImageDimensionsBrowser(
+  data: Uint8Array,
+): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const img = new (globalThis as any).Image();
     const url = URL.createObjectURL(new Blob([data as any]));
@@ -245,7 +249,7 @@ export async function getImageDimensionsBrowser(data: Uint8Array): Promise<{ wid
 
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('Failed to load image'));
+      reject(new Error("Failed to load image"));
     };
 
     img.src = url;
@@ -258,22 +262,34 @@ export async function getImageDimensionsBrowser(data: Uint8Array): Promise<{ wid
 function getMimeTypeFromData(data: Uint8Array): string {
   // Check magic bytes
   if (data.length >= 2) {
-    const firstBytes = data[0] << 8 | data[1];
-    if (firstBytes === 0xFFD8) return 'image/jpeg';
-    if (firstBytes === 0x8950) return 'image/png';
-    if (data.length >= 4 && data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46) return 'image/webp';
+    const firstBytes = (data[0] << 8) | data[1];
+    if (firstBytes === 0xffd8) return "image/jpeg";
+    if (firstBytes === 0x8950) return "image/png";
+    if (
+      data.length >= 4 &&
+      data[0] === 0x52 &&
+      data[1] === 0x49 &&
+      data[2] === 0x46 &&
+      data[3] === 0x46
+    )
+      return "image/webp";
   }
-  return 'image/jpeg'; // fallback
+  return "image/jpeg"; // fallback
 }
 
 /**
  * Browser-compatible validateImage
  */
-export async function validateImageBrowser(data: Uint8Array): Promise<{ valid: boolean; error?: string }> {
+export async function validateImageBrowser(
+  data: Uint8Array,
+): Promise<{ valid: boolean; error?: string }> {
   try {
     await getImageDimensionsBrowser(data);
     return { valid: true };
   } catch (error) {
-    return { valid: false, error: `Invalid image: ${(error as Error).message}` };
+    return {
+      valid: false,
+      error: `Invalid image: ${(error as Error).message}`,
+    };
   }
 }
