@@ -2,6 +2,9 @@
 	import './layout.css';
 	import { Image } from '@lucide/svelte';
 	let { children } = $props();
+
+	const webVersion: string = __WEB_VERSION__;
+	const cliVersion: string = __CLI_VERSION__;
 </script>
 
 <svelte:head>
@@ -18,18 +21,19 @@
 		<Image class="logo-mark" size={22} />
 		<span class="wordmark">jasper</span>
 	</a>
-	<nav>
-		<a href="/about">About</a>
-		<a href="https://docs.ewancroft.uk/projects/jasper" target="_blank" rel="noopener">Docs</a>
-	</nav>
+	<div class="version-strip">
+		<span>web v{webVersion}</span>
+		<span class="sep">–</span>
+		<span>cli v{cliVersion}</span>
+	</div>
 </header>
 
 {@render children()}
 
 <footer>
-	<span>Made by Ewan Croft</span>
+	<span>your photos, your data</span>
 	<span class="sep">·</span>
-	<a href="https://github.com/ewanc26/pkgs" target="_blank" rel="noopener">Source</a>
+	<a href="https://github.com/ewanc26/pkgs" target="_blank" rel="noopener">source</a>
 </footer>
 
 <style>
@@ -52,6 +56,7 @@
 	}
 	.logo-mark {
 		color: var(--accent);
+		flex-shrink: 0;
 	}
 	.wordmark {
 		font-size: 0.85rem;
@@ -60,17 +65,12 @@
 		color: var(--accent);
 		letter-spacing: -0.02em;
 	}
-	nav {
-		display: flex;
-		gap: 1rem;
-		font-size: 0.8rem;
-	}
-	nav a {
+	.version-strip {
+		font-size: 0.7rem;
+		font-family: 'JetBrains Mono', monospace;
 		color: var(--muted);
-		text-decoration: none;
-	}
-	nav a:hover {
-		color: var(--accent);
+		letter-spacing: 0.03em;
+		user-select: none;
 	}
 	.sep {
 		margin: 0 0.4rem;

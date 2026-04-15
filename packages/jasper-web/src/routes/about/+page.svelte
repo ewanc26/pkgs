@@ -8,15 +8,39 @@
 
 <main>
 	<h1>About Jasper</h1>
-	
+
 	<p>Jasper imports your Instagram photos to <a href="https://grain.social" target="_blank" rel="noopener">Grain.social</a> while preserving original timestamps.</p>
 
 	<h2>How it works</h2>
-	<ol>
-		<li><strong>Export</strong> — Download your Instagram data as JSON</li>
-		<li><strong>Upload</strong> — Drag your ZIP file or extracted folder</li>
-		<li><strong>Authenticate</strong> — Sign in with your ATProto identity via OAuth</li>
-		<li><strong>Import</strong> — Photos are uploaded directly to Grain</li>
+	<ol class="steps-list">
+		<li>
+			<span class="step-num">1</span>
+			<div>
+				<strong>Export</strong>
+				<p>Download your Instagram data as JSON from their download page.</p>
+			</div>
+		</li>
+		<li>
+			<span class="step-num">2</span>
+			<div>
+				<strong>Upload</strong>
+				<p>Drag your ZIP file or extracted folder into the import tool.</p>
+			</div>
+		</li>
+		<li>
+			<span class="step-num">3</span>
+			<div>
+				<strong>Authenticate</strong>
+				<p>Sign in with your AT Protocol identity via OAuth.</p>
+			</div>
+		</li>
+		<li>
+			<span class="step-num">4</span>
+			<div>
+				<strong>Import</strong>
+				<p>Photos are uploaded directly to Grain with original timestamps.</p>
+			</div>
+		</li>
 	</ol>
 
 	<h2>Privacy</h2>
@@ -33,12 +57,31 @@
 	<p class="not-imported"><X size={16} /> <strong>Not imported:</strong> Videos, Stories, or Reels (not supported by Grain yet).</p>
 
 	<h2>Getting your Instagram export</h2>
-	<ol>
-		<li>Go to <a href="https://accountscenter.instagram.com/info_and_permissions/dgp/" target="_blank" rel="noopener">Instagram's download page</a></li>
-		<li>Request a download of your information</li>
-		<li>Select "Some of your information" → "Posts" and "Archived posts"</li>
-		<li>Choose JSON format</li>
-		<li>Download the ZIP file when ready</li>
+	<ol class="steps-list">
+		<li>
+			<span class="step-num">1</span>
+			<div>
+				<p>Go to <a href="https://accountscenter.instagram.com/info_and_permissions/dgp/" target="_blank" rel="noopener">Instagram's download page</a></p>
+			</div>
+		</li>
+		<li>
+			<span class="step-num">2</span>
+			<div>
+				<p>Request a download of your information</p>
+			</div>
+		</li>
+		<li>
+			<span class="step-num">3</span>
+			<div>
+				<p>Select "Some of your information" → "Posts" and "Archived posts"</p>
+			</div>
+		</li>
+		<li>
+			<span class="step-num">4</span>
+			<div>
+				<p>Choose JSON format and download the ZIP file</p>
+			</div>
+		</li>
 	</ol>
 
 	<h2>OAuth Scope</h2>
@@ -51,32 +94,111 @@
 </main>
 
 <style>
-	ol, ul {
-		padding-left: 1.5rem;
+	main {
+		max-width: 720px;
+		margin: 0 auto;
+		padding: 2rem 1.5rem 4rem;
 	}
-	li {
-		margin-bottom: 0.5rem;
+
+	h1 {
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: var(--text);
+		margin: 0 0 1.5rem;
 	}
+
 	h2 {
-		margin-top: 2rem;
+		font-size: 1.125rem;
+		font-weight: 500;
+		color: var(--text);
+		margin: 2.5rem 0 1rem;
 	}
+
+	p {
+		color: var(--muted);
+		line-height: 1.6;
+		margin: 0 0 1rem;
+	}
+
+	code {
+		display: inline-block;
+		font-family: 'JetBrains Mono', monospace;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		padding: 0.4rem 0.75rem;
+		border-radius: 6px;
+		font-size: 0.8rem;
+		color: var(--accent);
+	}
+
 	.check-list {
 		list-style: none;
-		padding-left: 0;
+		padding: 0;
+		margin: 0 0 1.5rem;
 	}
+
 	.check-list li {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		color: var(--success);
+		padding: 0.4rem 0;
+		color: var(--accent);
 	}
+
 	.not-imported {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 		color: var(--muted);
 	}
+
 	.not-imported strong {
-		color: var(--fg);
+		color: var(--text);
+	}
+
+	.steps-list {
+		list-style: none;
+		padding: 0;
+		margin: 0 0 1.5rem;
+	}
+
+	.steps-list li {
+		display: flex;
+		gap: 1rem;
+		align-items: flex-start;
+		padding: 0.75rem 0;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.steps-list li:last-child { border-bottom: none; }
+
+	.step-num {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		background: var(--surface);
+		border: 1.5px solid var(--border);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.7rem;
+		font-family: 'JetBrains Mono', monospace;
+		color: var(--accent);
+		flex-shrink: 0;
+	}
+
+	.steps-list strong {
+		display: block;
+		font-size: 0.85rem;
+		font-weight: 500;
+		color: var(--text);
+		margin-bottom: 0.15rem;
+	}
+
+	.steps-list p {
+		font-size: 0.825rem;
+		color: var(--muted);
+		line-height: 1.5;
+		margin: 0;
 	}
 </style>
