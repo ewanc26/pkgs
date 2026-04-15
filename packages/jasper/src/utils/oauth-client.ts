@@ -1,21 +1,70 @@
 /**
- * OAuth client setup for Jasper
- * Note: Full OAuth implementation requires client registration with PDS/ATProto services.
- * This module provides the infrastructure for future OAuth support.
+ * NodeOAuthClient singleton for the Jasper CLI.
  */
 
-/**
- * Placeholder for OAuth client initialization.
- * OAuth requires:
- * 1. A client-metadata.json hosted at a public URL
- * 2. A callback server to receive OAuth redirects
- * 3. Session and state storage
- *
- * For now, users should authenticate with app passwords.
- */
-export async function getOAuthClient(): Promise<never> {
-  throw new Error(
-    "OAuth not yet implemented. Use app password authentication instead.\n" +
-      "Create an app password at: https://bsky.app/settings/app-passwords",
-  );
+import {
+  NodeOAuthClient,
+  type NodeOAuthClientOptions,
+} from "@atproto/oauth-client-node";
+import { stateStore, sessionStore } from "./oauth-store.js";
+
+const CALLBACK_PORT = 8766;
+const CALLBACK_HOST = "127.0.0.1";
+
+export const CALLBACK_URL = `http://${CALLBACK_HOST}:${CALLBACK_PORT}/oauth/callback`;
+export const OAUTH_SCOPE = "atproto blob:*/* repo:social.grain.photo";
+
+// Simple in-process lock — prevents NodeOAuthClient's "no lock mechanism" warning.
+const locks = new Map<string, Promise<void>>();
+async function requestLock<T>(
+  key: string,
+  fn: () => T | PromiseLike<T>,
+): Promise<T> {
+  while (locks.has(key)) await locks.get(key);
+  let resolve!: () => void;
+  const p = new Promise<void>((r) => {
+    resolve = r;
+  });
+  locks.set(key, p);
+  try {
+    return await fn();
+  } finally {
+    locks.delete(key);
+    resolve();
+  }
+}
+
+let _client: NodeOAuthClient | null = null;
+
+export async function getOAuthClient(): Promise<NodeOAuthClient> {
+  if (_client) return _client;
+
+  const opts: NodeOAuthClientOptions = {
+    clientMetadata: {
+      client_id: `http://localhost?${new URLSearchParams([
+        ["redirect_uri", CALLBACK_URL],
+        ["scope", OAUTH_SCOPE],
+      ])}`,
+      client_name: "Jasper CLI",
+      client_uri: "https://jasper.croft.click",
+      redirect_uris: [CALLBACK_URL],
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "none",
+      application_type: "web",
+      scope: OAUTH_SCOPE,
+      dpop_bound_access_tokens: true,
+    },
+    stateStore,
+    sessionStore,
+    plcDirectoryUrl: "https://plc.directory",
+    requestLock,
+  };
+
+  _client = new NodeOAuthClient(opts);
+  return _client;
+}
+
+export function getCallbackPort(): number {
+  return CALLBACK_PORT;
 }
