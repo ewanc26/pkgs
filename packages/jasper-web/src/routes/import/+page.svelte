@@ -4,6 +4,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { Agent } from '@atproto/api';
 	import { initOAuth, signInWithOAuth } from '$lib/core/oauth';
+	import logo from '$lib/assets/favicon.svg';
 	import { Upload, Loader2, ArrowRight } from '@lucide/svelte';
 
 	let step = $state(0);
@@ -95,7 +96,7 @@
 
 <main>
 	<header>
-		<p class="logo-text">Jasper</p>
+		<img src={logo} alt="Jasper" width={48} height={48} class="logo-img" />
 		<p class="tagline">Import Instagram photos to Grain.social</p>
 	</header>
 
@@ -111,7 +112,6 @@
 						<Loader2 class="spin" size={24} />
 						<p>Loading...</p>
 					</div>
-
 				{:else if step === 0}
 					<div class="card-section">
 						<h2 class="section-title">Sign in</h2>
@@ -133,18 +133,13 @@
 							Sign in with OAuth <ArrowRight size={16} />
 						</button>
 					</div>
-
 				{:else if step === 1}
 					<div class="card-section">
 						<h2 class="section-title">Upload your export</h2>
 						<p class="section-sub">Signed in as <strong>{agent?.did}</strong></p>
 
 						<label class="file-drop">
-							<input
-								type="file"
-								accept=".zip,application/zip"
-								onchange={handleFileChange}
-							/>
+							<input type="file" accept=".zip,application/zip" onchange={handleFileChange} />
 							{#if file}
 								<span class="file-name">{file.name}</span>
 							{:else}
@@ -161,15 +156,21 @@
 						</label>
 
 						<div class="actions">
-							<button class="btn-secondary" onclick={() => { agent = null; goTo(0); }}>
+							<button
+								class="btn-secondary"
+								onclick={() => {
+									agent = null;
+									goTo(0);
+								}}
+							>
 								Sign out
 							</button>
 							<button class="btn-primary" disabled={!file} onclick={handleStartImport}>
-								{dryRun ? 'Preview' : 'Import'} <ArrowRight size={16} />
+								{dryRun ? 'Preview' : 'Import'}
+								<ArrowRight size={16} />
 							</button>
 						</div>
 					</div>
-
 				{:else if step === 2}
 					<div class="card-section">
 						<h2 class="section-title">{dryRun ? 'Previewing' : 'Importing'}</h2>
@@ -193,9 +194,7 @@
 									{result.success} photo(s) {dryRun ? 'would be ' : ''}imported.
 								</p>
 							</div>
-							<button class="btn-primary" onclick={handleReset}>
-								Start new import
-							</button>
+							<button class="btn-primary" onclick={handleReset}> Start new import </button>
 						{/if}
 					</div>
 				{/if}
@@ -208,7 +207,11 @@
 		<span class="sep">·</span>
 		<a href="/about">About &amp; privacy</a>
 		<span class="sep">·</span>
-		<a href="https://github.com/ewanc26/pkgs/tree/main/packages/jasper" target="_blank" rel="noopener">↗ GitHub</a>
+		<a
+			href="https://github.com/ewanc26/pkgs/tree/main/packages/jasper"
+			target="_blank"
+			rel="noopener">↗ GitHub</a
+		>
 	</footer>
 </main>
 
@@ -225,13 +228,8 @@
 		text-align: center;
 	}
 
-	.logo-text {
-		font-family: 'JetBrains Mono', monospace;
-		font-size: 1.5rem;
-		font-weight: 500;
-		letter-spacing: -0.02em;
-		color: var(--text);
-		margin: 0 0 0.25rem;
+	.logo-img {
+		margin-bottom: 0.5rem;
 	}
 
 	.tagline {
@@ -240,8 +238,14 @@
 		margin: 0;
 	}
 
-	.step-viewport { display: grid; overflow: hidden; }
-	.step-slide    { grid-area: 1 / 1; min-width: 0; }
+	.step-viewport {
+		display: grid;
+		overflow: hidden;
+	}
+	.step-slide {
+		grid-area: 1 / 1;
+		min-width: 0;
+	}
 
 	.loading-card {
 		display: flex;
@@ -256,8 +260,12 @@
 	}
 
 	@keyframes spin {
-		from { transform: rotate(0deg); }
-		to { transform: rotate(360deg); }
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.file-drop {
@@ -330,10 +338,18 @@
 		padding: 0.25rem 0;
 	}
 
-	.log-info { color: var(--muted); }
-	.log-success { color: var(--accent); }
-	.log-error { color: var(--error); }
-	.log-warn { color: var(--warn); }
+	.log-info {
+		color: var(--muted);
+	}
+	.log-success {
+		color: var(--accent);
+	}
+	.log-error {
+		color: var(--error);
+	}
+	.log-warn {
+		color: var(--warn);
+	}
 
 	.result-summary {
 		margin: 1.5rem 0;
@@ -346,7 +362,15 @@
 		margin-top: 2rem;
 	}
 
-	footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
-	footer a:hover { color: var(--accent); }
-	.sep { margin: 0 0.4rem; }
+	footer a {
+		color: var(--muted);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	footer a:hover {
+		color: var(--accent);
+	}
+	.sep {
+		margin: 0 0.4rem;
+	}
 </style>

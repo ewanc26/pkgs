@@ -6,7 +6,14 @@
 	"license": "AGPL-3.0-only",
 	"private": true,
 	"type": "module",
-	"keywords": ["instagram", "grain", "atproto", "bluesky", "svelte", "sveltekit"],
+	"keywords": [
+		"instagram",
+		"grain",
+		"atproto",
+		"bluesky",
+		"svelte",
+		"sveltekit"
+	],
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ewanc26/pkgs.git",

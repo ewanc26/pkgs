@@ -28,6 +28,7 @@
   },
   "files": [
     "dist",
+    "assets",
     "README.md",
     "PRIVACY.md",
     "LICENCE"
