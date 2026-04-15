@@ -7,7 +7,7 @@ import { generateTID } from "@ewanc26/tid";
 import type { ParsedPost } from "../core/types.js";
 import { config } from "../core/config.js";
 import { log } from "../utils/logger.js";
-import { processImage, validateImage } from "./image-utils.js";
+import { processImage, processImageBrowser, validateImage } from "./image-utils.js";
 
 /**
  * Result of publishing a single photo
@@ -46,7 +46,7 @@ async function uploadBlob(
  */
 export async function publishPhoto(
   agent: Agent,
-  imageData: Buffer,
+  imageData: Buffer | Uint8Array,
   _aspectRatio: { width: number; height: number },
   createdAt: string,
   alt?: string,
@@ -58,8 +58,11 @@ export async function publishPhoto(
   }
 
   try {
-    // Process image (resize if needed)
-    const processed = await processImage(imageData);
+    // Process image (resize if needed) - use browser or Node version
+    const isBrowser = typeof globalThis !== 'undefined' && 'window' in globalThis;
+    const processed = isBrowser
+      ? await processImageBrowser(imageData as Uint8Array)
+      : await processImage(imageData as Buffer);
 
     // Upload blob
     const blob = await uploadBlob(
