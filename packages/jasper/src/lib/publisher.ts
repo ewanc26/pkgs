@@ -3,6 +3,7 @@
  * Handles blob upload and record creation
  */
 import type { Agent } from "@atproto/api";
+import { generateTID } from "@ewanc26/tid";
 import type { ParsedPost } from "../core/types.js";
 import { config } from "../core/config.js";
 import { log } from "../utils/logger.js";
@@ -84,6 +85,7 @@ export async function publishPhoto(
     const result = await agent.com.atproto.repo.createRecord({
       repo: agent.did!,
       collection: config.GRAIN_PHOTO_COLLECTION,
+      rkey: generateTID(createdAt),
       record,
     });
 
