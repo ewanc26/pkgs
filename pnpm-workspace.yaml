@@ -4,3 +4,4 @@ packages:
 onlyBuiltDependencies:
   - core-js
   - esbuild
+  - sharp
