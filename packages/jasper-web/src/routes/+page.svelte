@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Camera, Calendar, Lock, Zap } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -8,7 +9,7 @@
 
 <main>
 	<div class="hero">
-		<div class="hero-icon">📸</div>
+		<Camera class="hero-icon" size={64} />
 		<h1>Jasper</h1>
 		<p class="tagline">
 			Import your Instagram photos to <a href="https://grain.social" target="_blank" rel="noopener">Grain.social</a>
@@ -23,17 +24,17 @@
 
 	<div class="features">
 		<div class="feature">
-			<span class="feature-icon">📅</span>
+			<Calendar class="feature-icon" size={40} />
 			<h3>Original Dates</h3>
 			<p>Your photos appear with their original Instagram dates, not the import date.</p>
 		</div>
 		<div class="feature">
-			<span class="feature-icon">🔒</span>
+			<Lock class="feature-icon" size={40} />
 			<h3>Privacy-First</h3>
 			<p>Everything runs in your browser. Your photos go directly to your Grain account.</p>
 		</div>
 		<div class="feature">
-			<span class="feature-icon">⚡</span>
+			<Zap class="feature-icon" size={40} />
 			<h3>Smart Import</h3>
 			<p>Handles all Instagram export formats. Detects and skips duplicates automatically.</p>
 		</div>
@@ -46,7 +47,7 @@
 		padding: 3rem 0;
 	}
 	.hero-icon {
-		font-size: 4rem;
+		color: var(--accent);
 		margin-bottom: 1rem;
 	}
 	h1 {
@@ -107,9 +108,9 @@
 		border-radius: 12px;
 	}
 	.feature-icon {
-		font-size: 2.5rem;
+		color: var(--accent);
 		display: block;
-		margin-bottom: 0.5rem;
+		margin: 0 auto 0.5rem;
 	}
 	.feature h3 {
 		margin-bottom: 0.5rem;
