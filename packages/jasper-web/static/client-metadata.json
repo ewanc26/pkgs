@@ -1,0 +1,15 @@
+{
+	"client_id": "https://jasper.croft.click/client-metadata.json",
+	"client_name": "Jasper",
+	"client_uri": "https://jasper.croft.click",
+	"logo_uri": "https://jasper.croft.click/favicon.png",
+	"tos_uri": "https://jasper.croft.click/about",
+	"policy_uri": "https://jasper.croft.click/about",
+	"redirect_uris": ["https://jasper.croft.click/import"],
+	"grant_types": ["authorization_code", "refresh_token"],
+	"response_types": ["code"],
+	"scope": "atproto blob:*/* repo:social.grain.photo",
+	"application_type": "web",
+	"token_endpoint_auth_method": "none",
+	"dpop_bound_access_tokens": true
+}
