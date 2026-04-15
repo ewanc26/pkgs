@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { initOAuth, signInWithOAuth } from '$lib/core/oauth';
 	import { Agent } from '@atproto/api';
+	import { Upload, Eye, Loader2 } from '@lucide/svelte';
 
 	let agent: Agent | null = $state(null);
 	let loading = $state(true);
@@ -45,6 +46,7 @@
 <main>
 	{#if loading}
 		<div class="loading">
+			<Loader2 class="spin" size={24} />
 			<p>Loading...</p>
 		</div>
 	{:else if !agent}
@@ -75,17 +77,20 @@
 		<div class="card">
 			<h2>Upload your Instagram export</h2>
 			<p>Drag your ZIP file or extracted folder here.</p>
-			
+
 			<label class="file-drop">
-				<input 
-					type="file" 
+				<input
+					type="file"
 					accept=".zip,application/zip"
 					onchange={handleFileChange}
 				/>
 				{#if file}
 					<span>Selected: {file.name}</span>
 				{:else}
-					<span>Drop ZIP file or click to browse</span>
+					<span class="file-drop-content">
+						<Upload size={32} />
+						<span>Drop ZIP file or click to browse</span>
+					</span>
 				{/if}
 			</label>
 
@@ -106,6 +111,17 @@
 		text-align: center;
 		padding: 4rem 2rem;
 		color: var(--muted);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+	}
+	.spin {
+		animation: spin 1s linear infinite;
+	}
+	@keyframes spin {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
 	}
 	.auth-card {
 		max-width: 400px;
@@ -151,6 +167,13 @@
 	}
 	.file-drop input {
 		display: none;
+	}
+	.file-drop-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--muted);
 	}
 	.checkbox {
 		display: flex;
