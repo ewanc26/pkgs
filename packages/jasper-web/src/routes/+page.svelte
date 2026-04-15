@@ -23,7 +23,7 @@
 	<!-- ── Hero ───────────────────────────────────────────────────────────────── -->
 	<section class="hero">
 		<div class="logo-wrap">
-			<Camera class="hero-logo" size={120} />
+			<Camera size={120} />
 		</div>
 		<p class="wordmark">jasper</p>
 		<p class="eyebrow">Open source · Runs in your browser</p>
@@ -134,11 +134,11 @@
 		padding: 3rem 0 3.5rem;
 	}
 
-	.hero-logo {
-		color: var(--accent);
-		margin: 0 auto 0.75rem;
+	.logo-wrap {
 		display: flex;
 		justify-content: center;
+		color: var(--accent);
+		margin-bottom: 0.75rem;
 	}
 
 	.wordmark {
