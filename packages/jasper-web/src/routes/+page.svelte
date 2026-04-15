@@ -1,29 +1,39 @@
 <script lang="ts">
-	import { Camera, Calendar, Lock, Zap, ArrowRight, Github, Heart, Coffee } from '@lucide/svelte';
+	import logo from '$lib/assets/favicon.svg';
+	import { Calendar, Lock, Zap, ArrowRight, Github, Heart, Coffee } from '@lucide/svelte';
 </script>
 
 <svelte:head>
 	<title>Jasper — Import Instagram photos to Grain</title>
-	<meta name="description" content="Import your Instagram photos to Grain.social while preserving original timestamps. Free, open-source, runs in your browser." />
+	<meta
+		name="description"
+		content="Import your Instagram photos to Grain.social while preserving original timestamps. Free, open-source, runs in your browser."
+	/>
 	<link rel="canonical" href="https://jasper.croft.click" />
 
 	<!-- Open Graph -->
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://jasper.croft.click" />
 	<meta property="og:title" content="Jasper — Import Instagram photos to Grain" />
-	<meta property="og:description" content="Import your Instagram photos to Grain.social while preserving original timestamps. Free, open-source, runs in your browser." />
+	<meta
+		property="og:description"
+		content="Import your Instagram photos to Grain.social while preserving original timestamps. Free, open-source, runs in your browser."
+	/>
 
 	<!-- Twitter / X card -->
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content="Jasper — Import Instagram photos to Grain" />
-	<meta name="twitter:description" content="Import your Instagram photos to Grain.social while preserving original timestamps. Free, open-source, runs in your browser." />
+	<meta
+		name="twitter:description"
+		content="Import your Instagram photos to Grain.social while preserving original timestamps. Free, open-source, runs in your browser."
+	/>
 </svelte:head>
 
 <main>
 	<!-- ── Hero ───────────────────────────────────────────────────────────────── -->
 	<section class="hero">
 		<div class="logo-wrap">
-			<Camera size={120} />
+			<img src={logo} alt="Jasper" width={120} height={120} />
 		</div>
 		<p class="wordmark">jasper</p>
 		<p class="eyebrow">Open source · Runs in your browser</p>
@@ -37,13 +47,28 @@
 			<a href="/import" class="btn-primary">
 				Start importing <ArrowRight size={16} />
 			</a>
-			<a href="https://github.com/ewanc26/pkgs/tree/main/packages/jasper" target="_blank" rel="noopener" class="btn-ghost">
+			<a
+				href="https://github.com/ewanc26/pkgs/tree/main/packages/jasper"
+				target="_blank"
+				rel="noopener"
+				class="btn-ghost"
+			>
 				<Github size={15} /> View on GitHub
 			</a>
-			<a href="https://github.com/sponsors/ewanc26" target="_blank" rel="noopener" class="btn-ghost btn-sponsor-inline">
+			<a
+				href="https://github.com/sponsors/ewanc26"
+				target="_blank"
+				rel="noopener"
+				class="btn-ghost btn-sponsor-inline"
+			>
 				<Heart size={14} /> Sponsor
 			</a>
-			<a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener" class="btn-ghost btn-kofi-inline">
+			<a
+				href="https://ko-fi.com/ewancroft"
+				target="_blank"
+				rel="noopener"
+				class="btn-ghost btn-kofi-inline"
+			>
 				<Coffee size={14} /> Ko-fi
 			</a>
 		</div>
@@ -115,7 +140,11 @@
 	<footer>
 		<a href="/about">About &amp; privacy</a>
 		<span class="sep">·</span>
-		<a href="https://github.com/ewanc26/pkgs/tree/main/packages/jasper" target="_blank" rel="noopener">↗ GitHub</a>
+		<a
+			href="https://github.com/ewanc26/pkgs/tree/main/packages/jasper"
+			target="_blank"
+			rel="noopener">↗ GitHub</a
+		>
 		<span class="sep">·</span>
 		<a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener">♥ Support</a>
 	</footer>
@@ -175,7 +204,9 @@
 		margin: 0 auto 2.25rem;
 	}
 
-	.sub a { color: var(--accent); }
+	.sub a {
+		color: var(--accent);
+	}
 
 	.hero-actions {
 		display: flex;
@@ -196,10 +227,16 @@
 		padding: 0.65rem 1.25rem;
 		border-radius: 6px;
 		text-decoration: none;
-		transition: background 0.15s, transform 0.1s;
+		transition:
+			background 0.15s,
+			transform 0.1s;
 	}
 
-	.btn-primary:hover { background: #fdba74; transform: translateY(-1px); text-decoration: none; }
+	.btn-primary:hover {
+		background: #fdba74;
+		transform: translateY(-1px);
+		text-decoration: none;
+	}
 
 	/* ── Features ─────────────────────────────────────────────────────── */
 	.features {
@@ -219,7 +256,10 @@
 		gap: 0.5rem;
 	}
 
-	.feature-icon { color: var(--accent); display: flex; }
+	.feature-icon {
+		color: var(--accent);
+		display: flex;
+	}
 
 	.feature-card h3 {
 		font-size: 0.9rem;
@@ -265,7 +305,9 @@
 		border-bottom: 1px solid var(--border);
 	}
 
-	.steps-list li:last-child { border-bottom: none; }
+	.steps-list li:last-child {
+		border-bottom: none;
+	}
 
 	.step-num {
 		width: 28px;
@@ -308,7 +350,9 @@
 		margin-bottom: 3rem;
 	}
 
-	.cta h2 { margin-bottom: 0.5rem; }
+	.cta h2 {
+		margin-bottom: 0.5rem;
+	}
 
 	.cta p {
 		font-size: 0.875rem;
@@ -321,14 +365,20 @@
 		border-color: rgba(219, 97, 162, 0.3);
 	}
 
-	.btn-sponsor-inline:hover { border-color: #db61a2; color: #db61a2; }
+	.btn-sponsor-inline:hover {
+		border-color: #db61a2;
+		color: #db61a2;
+	}
 
 	.btn-kofi-inline {
 		color: #ff5e5b;
 		border-color: rgba(255, 94, 91, 0.3);
 	}
 
-	.btn-kofi-inline:hover { border-color: #ff5e5b; color: #ff5e5b; }
+	.btn-kofi-inline:hover {
+		border-color: #ff5e5b;
+		color: #ff5e5b;
+	}
 
 	/* ── Footer ───────────────────────────────────────────────────────────────── */
 	footer {
@@ -337,14 +387,28 @@
 		color: var(--muted);
 	}
 
-	footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
-	footer a:hover { color: var(--accent); }
-	.sep { margin: 0 0.4rem; }
+	footer a {
+		color: var(--muted);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	footer a:hover {
+		color: var(--accent);
+	}
+	.sep {
+		margin: 0 0.4rem;
+	}
 
 	/* ── Responsive ───────────────────────────────────────────────────── */
 	@media (max-width: 480px) {
-		.hero { padding: 1.5rem 0 2.5rem; }
-		.features { grid-template-columns: 1fr 1fr; }
-		.cta { padding: 1.75rem 1.25rem; }
+		.hero {
+			padding: 1.5rem 0 2.5rem;
+		}
+		.features {
+			grid-template-columns: 1fr 1fr;
+		}
+		.cta {
+			padding: 1.75rem 1.25rem;
+		}
 	}
 </style>
