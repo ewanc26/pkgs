@@ -1,97 +1,117 @@
 /**
- * OAuth session storage
- * Stores OAuth sessions in ~/.jasper/oauth.json
+ * File-backed OAuth state and session stores for the Jasper CLI.
+ * State is persisted at ~/.jasper/oauth.json, chmod 600.
  */
-import fs from "fs";
-import path from "path";
-import type { OAuthSession } from "../core/types.js";
+
+import fs from "node:fs/promises";
+import path from "node:path";
+import type {
+  NodeSavedSession,
+  NodeSavedSessionStore,
+  NodeSavedState,
+  NodeSavedStateStore,
+} from "@atproto/oauth-client-node";
 import { getJasperDir } from "./logger.js";
 
-const OAUTH_FILE = "oauth.json";
-
-function getOAuthFilePath(): string {
-  const jasperDir = getJasperDir();
-  if (!fs.existsSync(jasperDir)) {
-    fs.mkdirSync(jasperDir, { recursive: true });
-  }
-  return path.join(jasperDir, OAUTH_FILE);
+export function getOAuthStorePath(): string {
+  return path.join(getJasperDir(), "oauth.json");
 }
 
-/**
- * Load all OAuth sessions
- */
-export function loadOAuthSessions(): Map<string, OAuthSession> {
-  const filePath = getOAuthFilePath();
+interface OAuthFile {
+  states: Record<string, NodeSavedState>;
+  sessions: Record<string, NodeSavedSession>;
+  handles: Record<string, string>; // DID → handle
+}
 
-  if (!fs.existsSync(filePath)) {
-    return new Map();
-  }
-
+async function load(): Promise<OAuthFile> {
   try {
-    const data = fs.readFileSync(filePath, "utf-8");
-    const sessions = JSON.parse(data) as Record<string, OAuthSession>;
-    return new Map(Object.entries(sessions));
-  } catch (error) {
-    console.error("Failed to load OAuth sessions:", error);
-    return new Map();
+    const content = await fs.readFile(getOAuthStorePath(), "utf-8");
+    const parsed = JSON.parse(content) as Partial<OAuthFile>;
+    return {
+      states: parsed.states ?? {},
+      sessions: parsed.sessions ?? {},
+      handles: parsed.handles ?? {},
+    };
+  } catch {
+    return { states: {}, sessions: {}, handles: {} };
   }
 }
 
-/**
- * Save an OAuth session
- */
-export function saveOAuthSession(did: string, handle?: string): void {
-  const sessions = loadOAuthSessions();
-  const existing = sessions.get(did);
+async function save(store: OAuthFile): Promise<void> {
+  const file = getOAuthStorePath();
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, JSON.stringify(store, null, 2), "utf-8");
+  if (process.platform !== "win32") await fs.chmod(file, 0o600);
+}
 
-  sessions.set(did, {
+// ─── ATProto OAuth client stores ─────────────────────────────────────────────
+
+export const stateStore: NodeSavedStateStore = {
+  async set(key: string, state: NodeSavedState) {
+    const s = await load();
+    s.states[key] = state;
+    await save(s);
+  },
+  async get(key: string) {
+    return (await load()).states[key];
+  },
+  async del(key: string) {
+    const s = await load();
+    delete s.states[key];
+    await save(s);
+  },
+};
+
+export const sessionStore: NodeSavedSessionStore = {
+  async set(sub: string, session: NodeSavedSession) {
+    const s = await load();
+    s.sessions[sub] = session;
+    await save(s);
+  },
+  async get(sub: string) {
+    return (await load()).sessions[sub];
+  },
+  async del(sub: string) {
+    const s = await load();
+    delete s.sessions[sub];
+    await save(s);
+  },
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+export async function setOAuthHandle(
+  did: string,
+  handle: string,
+): Promise<void> {
+  const s = await load();
+  s.handles[did] = handle;
+  await save(s);
+}
+
+export async function getOAuthHandle(did: string): Promise<string | undefined> {
+  return (await load()).handles[did];
+}
+
+export async function listOAuthSessions(): Promise<string[]> {
+  return Object.keys((await load()).sessions);
+}
+
+export async function listOAuthSessionsWithHandles(): Promise<
+  Array<{ did: string; handle?: string }>
+> {
+  const s = await load();
+  return Object.keys(s.sessions).map((did) => ({
     did,
-    handle: handle || existing?.handle,
-    createdAt: existing?.createdAt || Date.now(),
-    lastUsedAt: Date.now(),
-  });
-
-  const filePath = getOAuthFilePath();
-  const obj = Object.fromEntries(sessions);
-  fs.writeFileSync(filePath, JSON.stringify(obj, null, 2));
+    handle: s.handles[did],
+  }));
 }
 
-/**
- * Delete an OAuth session
- */
-export function deleteOAuthSession(did: string): boolean {
-  const sessions = loadOAuthSessions();
-  if (!sessions.has(did)) {
-    return false;
-  }
-  sessions.delete(did);
-
-  const filePath = getOAuthFilePath();
-  const obj = Object.fromEntries(sessions);
-  fs.writeFileSync(filePath, JSON.stringify(obj, null, 2));
+export async function deleteOAuthSession(did: string): Promise<boolean> {
+  const s = await load();
+  if (!s.sessions[did]) return false;
+  delete s.sessions[did];
+  delete s.handles[did];
+  await save(s);
   return true;
-}
-
-/**
- * List all stored OAuth session DIDs
- */
-export function listOAuthSessions(): string[] {
-  const sessions = loadOAuthSessions();
-  return Array.from(sessions.keys());
-}
-
-/**
- * Get the handle for a DID (if stored)
- */
-export function getOAuthHandle(did: string): string | undefined {
-  const sessions = loadOAuthSessions();
-  return sessions.get(did)?.handle;
-}
-
-/**
- * Check if any OAuth sessions exist
- */
-export function hasOAuthSessions(): boolean {
-  const sessions = loadOAuthSessions();
-  return sessions.size > 0;
 }
