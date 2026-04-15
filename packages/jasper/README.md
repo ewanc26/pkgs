@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo/Jasper.svg" alt="Jasper" width="120" />
+</p>
+
 # Jasper
 
 Convert Instagram data exports into posts on [Grain.social](https://grain.social) — a photo-sharing platform.
