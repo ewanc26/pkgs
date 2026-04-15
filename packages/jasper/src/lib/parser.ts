@@ -17,7 +17,7 @@ import type {
   ParsedPost,
   ParsedMedia,
 } from "../core/types.js";
-import { POSTS_JSON_PATHS, config } from "../core/config.js";
+import { POSTS_JSON_PATHS } from "../core/config.js";
 import { log } from "../utils/logger.js";
 
 /**
@@ -140,10 +140,12 @@ function parsePostsJson(
   return posts.map((post) => parsePost(post, basePath, isZip));
 }
 
+type ZipEntry = EntryMetaData & { directory?: boolean };
+
 /**
  * Find posts_1.json in ZIP entries
  */
-function findPostsJsonInZip(entries: EntryMetaData[]): FileEntry | undefined {
+function findPostsJsonInZip(entries: ZipEntry[]): FileEntry | undefined {
   for (const p of POSTS_JSON_PATHS) {
     const entry = entries.find((e) => e.filename === p);
     // Check if it's a file entry (not a directory)
@@ -157,7 +159,7 @@ function findPostsJsonInZip(entries: EntryMetaData[]): FileEntry | undefined {
 /**
  * Filter entries to only file entries
  */
-function filterFileEntries(entries: EntryMetaData[]): FileEntry[] {
+function filterFileEntries(entries: ZipEntry[]): FileEntry[] {
   return entries.filter((e) => !e.directory) as FileEntry[];
 }
 
@@ -170,7 +172,7 @@ export async function parseZipExport(zipPath: string): Promise<ParsedPost[]> {
   const fileBuffer = fs.readFileSync(zipPath);
   const data = new Blob([fileBuffer]);
   const zipReader = new ZipReader(new BlobReader(data));
-  const entries = await zipReader.getEntries();
+  const entries = (await zipReader.getEntries()) as ZipEntry[];
 
   // Find posts_1.json
   const postsEntry = findPostsJsonInZip(entries);
@@ -285,7 +287,7 @@ export async function loadMediaFromZip(
   const fileBuffer = fs.readFileSync(zipPath);
   const data = new Blob([fileBuffer]);
   const zipReader = new ZipReader(new BlobReader(data));
-  const entries = await zipReader.getEntries();
+  const entries = (await zipReader.getEntries()) as ZipEntry[];
 
   // Find the file entry
   const fileEntries = filterFileEntries(entries);

@@ -46,7 +46,7 @@ async function uploadBlob(
 export async function publishPhoto(
   agent: Agent,
   imageData: Buffer,
-  aspectRatio: { width: number; height: number },
+  _aspectRatio: { width: number; height: number },
   createdAt: string,
   alt?: string,
   dryRun = false,
