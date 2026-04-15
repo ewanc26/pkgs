@@ -137,7 +137,8 @@
 	.hero-logo {
 		color: var(--accent);
 		margin: 0 auto 0.75rem;
-		display: block;
+		display: flex;
+		justify-content: center;
 	}
 
 	.wordmark {
