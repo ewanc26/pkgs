@@ -2,6 +2,8 @@
 
 Convert Instagram data exports into posts on [Grain.social](https://grain.social) — a photo-sharing platform.
 
+**[Documentation →](https://docs.ewancroft.uk/projects/jasper)**
+
 ## What it does
 
 Jasper imports your Instagram photos to Grain while preserving original timestamps. Your memories appear with their original dates, not the import date.
