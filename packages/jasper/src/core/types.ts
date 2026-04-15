@@ -52,6 +52,8 @@ export interface ParsedMedia {
   originalUri: string;
   /** Creation timestamp */
   timestamp: Date;
+  /** Loaded data (for browser) */
+  data?: Blob;
 }
 
 export interface ParsedPost {

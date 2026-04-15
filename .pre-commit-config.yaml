@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: prettier
         name: prettier
-        entry: pnpm exec prettier --write --ignore-unknown
+        entry: ./scripts/prettier-hook.sh
         language: system
         types_or: [javascript, jsx, ts, tsx, json, yaml, markdown, css, svelte]
         pass_filenames: true
