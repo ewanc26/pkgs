@@ -9,7 +9,13 @@
 <main>
 	<h1>About Jasper</h1>
 
-	<p>Jasper imports your Instagram photos to <a href="https://grain.social" target="_blank" rel="noopener">Grain.social</a> while preserving original timestamps.</p>
+	<p>
+		Jasper imports your Instagram photos to <a
+			href="https://grain.social"
+			target="_blank"
+			rel="noopener">Grain.social</a
+		> while preserving original timestamps.
+	</p>
 
 	<h2>How it works</h2>
 	<ol class="steps-list">
@@ -44,7 +50,11 @@
 	</ol>
 
 	<h2>Privacy</h2>
-	<p>Everything runs in your browser. Your Instagram export and photos are processed locally and uploaded directly to your own Grain account via your PDS. No data is sent to any intermediate server.</p>
+	<p>
+		Everything runs in your browser. Your Instagram export and photos are processed locally and
+		uploaded directly to your own Grain account via your PDS. No data is sent to any intermediate
+		server.
+	</p>
 
 	<h2>What's imported</h2>
 	<ul class="check-list">
@@ -54,14 +64,22 @@
 		<li><Check size={16} /> Carousel posts (multiple photos)</li>
 	</ul>
 
-	<p class="not-imported"><X size={16} /> <strong>Not imported:</strong> Videos, Stories, or Reels (not supported by Grain yet).</p>
+	<p class="not-imported">
+		<X size={16} /> <strong>Not imported:</strong> Videos, Stories, or Reels (not supported by Grain yet).
+	</p>
 
 	<h2>Getting your Instagram export</h2>
 	<ol class="steps-list">
 		<li>
 			<span class="step-num">1</span>
 			<div>
-				<p>Go to <a href="https://accountscenter.instagram.com/info_and_permissions/dgp/" target="_blank" rel="noopener">Instagram's download page</a></p>
+				<p>
+					Go to <a
+						href="https://accountscenter.instagram.com/info_and_permissions/dgp/"
+						target="_blank"
+						rel="noopener">Instagram's download page</a
+					>
+				</p>
 			</div>
 		</li>
 		<li>
@@ -87,10 +105,19 @@
 	<h2>OAuth Scope</h2>
 	<p>Jasper requests minimal permissions:</p>
 	<code>atproto blob:*/* repo:social.grain.photo</code>
-	<p>This allows uploading photos as blobs and writing to Grain's photo collection only. No broad permissions.</p>
+	<p>
+		This allows uploading photos as blobs and writing to Grain's photo collection only. No broad
+		permissions.
+	</p>
 
 	<h2>Source</h2>
-	<p>Jasper is open source: <a href="https://github.com/ewanc26/pkgs/tree/main/packages/jasper" target="_blank" rel="noopener">github.com/ewanc26/pkgs</a></p>
+	<p>
+		Jasper is open source: <a
+			href="https://github.com/ewanc26/pkgs/tree/main/packages/jasper"
+			target="_blank"
+			rel="noopener">github.com/ewanc26/pkgs</a
+		>
+	</p>
 </main>
 
 <style>
@@ -170,7 +197,9 @@
 		border-bottom: 1px solid var(--border);
 	}
 
-	.steps-list li:last-child { border-bottom: none; }
+	.steps-list li:last-child {
+		border-bottom: none;
+	}
 
 	.step-num {
 		width: 24px;

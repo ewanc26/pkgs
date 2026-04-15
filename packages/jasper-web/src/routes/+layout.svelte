@@ -1,6 +1,6 @@
 <script lang="ts">
 	import './layout.css';
-	import { Image } from '@lucide/svelte';
+	import logo from '$lib/assets/favicon.svg';
 	let { children } = $props();
 
 	const webVersion: string = __WEB_VERSION__;
@@ -18,7 +18,7 @@
 
 <header>
 	<a href="/" class="brand">
-		<span class="logo-mark"><Image size={22} /></span>
+		<span class="logo-mark"><img src={logo} alt="Jasper" width={22} height={22} /></span>
 		<span class="wordmark">jasper</span>
 	</a>
 	<div class="version-strip">
