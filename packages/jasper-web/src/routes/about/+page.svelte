@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Check, X } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -22,14 +23,14 @@
 	<p>Everything runs in your browser. Your Instagram export and photos are processed locally and uploaded directly to your own Grain account via your PDS. No data is sent to any intermediate server.</p>
 
 	<h2>What's imported</h2>
-	<ul>
-		<li>✅ Photos (JPEG, PNG, WebP, GIF)</li>
-		<li>✅ Original timestamps</li>
-		<li>✅ Captions (as alt text)</li>
-		<li>✅ Carousel posts (multiple photos)</li>
+	<ul class="check-list">
+		<li><Check size={16} /> Photos (JPEG, PNG, WebP, GIF)</li>
+		<li><Check size={16} /> Original timestamps</li>
+		<li><Check size={16} /> Captions (as alt text)</li>
+		<li><Check size={16} /> Carousel posts (multiple photos)</li>
 	</ul>
 
-	<p><strong>Not imported:</strong> Videos, Stories, or Reels (not supported by Grain yet).</p>
+	<p class="not-imported"><X size={16} /> <strong>Not imported:</strong> Videos, Stories, or Reels (not supported by Grain yet).</p>
 
 	<h2>Getting your Instagram export</h2>
 	<ol>
@@ -58,5 +59,24 @@
 	}
 	h2 {
 		margin-top: 2rem;
+	}
+	.check-list {
+		list-style: none;
+		padding-left: 0;
+	}
+	.check-list li {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--success);
+	}
+	.not-imported {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--muted);
+	}
+	.not-imported strong {
+		color: var(--fg);
 	}
 </style>
