@@ -4,6 +4,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { Agent } from '@atproto/api';
 	import { initOAuth, signInWithOAuth } from '$lib/core/oauth';
+	import { runImport } from '@ewanc26/jasper/browser';
 	import logo from '$lib/assets/favicon.svg';
 	import { Upload, Loader2, ArrowRight } from '@lucide/svelte';
 
@@ -53,17 +54,31 @@
 		result = null;
 		goTo(2);
 
-		// Placeholder for actual import logic
-		logs.push({ level: 'info', message: 'Import functionality coming soon...' });
-		logs.push({ level: 'info', message: `File: ${file.name}` });
-		logs.push({ level: 'info', message: `Agent: ${agent.did}` });
+		try {
+			const importResult = await runImport(
+				agent,
+				file,
+				dryRun,
+				(current, total) => {
+					progress = { current, total };
+				},
+				(level, message) => {
+					logs = [...logs, { level, message }];
+				}
+			);
 
-		// Simulate completion
-		setTimeout(() => {
-			result = { success: 0, errors: 0 };
-			logs.push({ level: 'success', message: dryRun ? 'Dry run complete' : 'Import complete' });
+			result = { success: importResult.success, errors: importResult.errors };
+			logs = [
+				...logs,
+				{ level: 'success', message: dryRun ? 'Dry run complete' : 'Import complete' }
+			];
+		} catch (error) {
+			logs = [...logs, { level: 'error', message: `Import failed: ${error}` }];
+			result = { success: 0, errors: 1 };
+		} finally {
 			isRunning = false;
-		}, 2000);
+			progress = null;
+		}
 	}
 
 	function handleReset() {
@@ -179,6 +194,15 @@
 							<div class="running-indicator">
 								<Loader2 class="spin" size={18} />
 								<span>Processing...</span>
+								{#if progress}
+									<div class="progress-bar">
+										<div
+											class="progress-fill"
+											style="width: {Math.round((progress.current / progress.total) * 100)}%"
+										></div>
+									</div>
+									<span class="progress-text">{progress.current} / {progress.total}</span>
+								{/if}
 							</div>
 						{/if}
 
@@ -320,10 +344,30 @@
 
 	.running-indicator {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		gap: 0.5rem;
 		color: var(--accent);
 		margin-bottom: 1rem;
+	}
+
+	.progress-bar {
+		width: 100%;
+		height: 4px;
+		background: var(--border);
+		border-radius: 2px;
+		overflow: hidden;
+	}
+
+	.progress-fill {
+		height: 100%;
+		background: var(--accent);
+		transition: width 0.3s ease;
+	}
+
+	.progress-text {
+		font-size: 0.8rem;
+		font-family: 'JetBrains Mono', monospace;
 	}
 
 	.logs {
