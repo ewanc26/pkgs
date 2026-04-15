@@ -144,6 +144,10 @@ No data is sent to any server except your chosen Grain account.
 
 AGPL-3.0-only — See [LICENCE](./LICENCE)
 
+## Contact
+
+**Ewan Croft** — [contact@ewancroft.uk](mailto:contact@ewancroft.uk)
+
 ## Privacy
 
 See [PRIVACY.md](./PRIVACY.md) for privacy policy.
