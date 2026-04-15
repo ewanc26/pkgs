@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/jasper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Convert Instagram data exports into posts on Grain.social",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
@@ -34,7 +34,8 @@
     "LICENCE"
   ],
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./browser": "./dist/lib/browser.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
