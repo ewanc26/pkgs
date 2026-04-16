@@ -27,7 +27,7 @@ import {
   logout,
   listOAuthSessionsWithHandles,
 } from "./lib/auth.js";
-import { publishPhoto, getExistingPhotos } from "./lib/publisher.js";
+import { publishPhoto, getExistingPhotos, createGallery, createGalleryItem, getExistingGalleries } from "./lib/publisher.js";
 import { config } from "./core/config.js";
 import path from "path";
 import fs from "fs";
@@ -194,10 +194,57 @@ async function runImport(options: {
   ui.succeedSpinner(`Found ${existing.size} existing photos`);
   log.blank();
 
+  // Gallery selection/creation
+  let galleryUri: string | undefined;
+
+  if (!options.dryRun) {
+    log.progress("Fetching your galleries...");
+    const existingGalleries = await getExistingGalleries(agent);
+    ui.succeedSpinner(`Found ${existingGalleries.length} galleries`);
+    log.blank();
+
+    const galleryOptions = [
+      "Create new gallery",
+      ...existingGalleries.map(g => `${g.title} (${new Date(g.createdAt).toLocaleDateString()})`),
+    ];
+
+    const choice = await select("Select gallery for import:", galleryOptions, 0);
+
+    if (choice === 0) {
+      // Create new gallery
+      const defaultTitle = `Instagram Import — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      log.info(`Default title: ${defaultTitle}`);
+      const titleInput = await prompt(`Gallery title (press Enter for default): `);
+      const title = titleInput || defaultTitle;
+      const addDescription = await confirm("Add description?", false);
+      const description = addDescription ? await prompt("Description: ") : undefined;
+
+      log.progress("Creating gallery...");
+      const result = await createGallery(agent, title || defaultTitle, description);
+      if (result.success && result.uri) {
+        galleryUri = result.uri;
+        ui.succeedSpinner(`Created gallery: ${title || defaultTitle}`);
+      } else {
+        log.error(`Failed to create gallery: ${result.error}`);
+        process.exit(1);
+      }
+    } else {
+      // Use existing gallery
+      galleryUri = existingGalleries[choice - 1]?.uri;
+      if (!galleryUri) {
+        log.error("Invalid gallery selection");
+        process.exit(1);
+      }
+      log.info(`Using gallery: ${existingGalleries[choice - 1]?.title}`);
+    }
+    log.blank();
+  }
+
   // Import posts
   let imported = 0;
   let skipped = 0;
   let failed = 0;
+  let galleryPosition = 0;
 
   const isZip = isZipFile(absolutePath);
 
@@ -236,7 +283,7 @@ async function runImport(options: {
           continue;
         }
 
-        // Publish
+        // Publish photo
         const imageUtils = await import("./lib/image-utils.js");
         const dims = await imageUtils.getImageDimensions(imageData);
         const aspectRatio = imageUtils.calculateAspectRatio(
@@ -255,6 +302,23 @@ async function runImport(options: {
 
         if (result.success) {
           imported++;
+
+          // Create gallery item linking photo to gallery
+          if (galleryUri && result.uri) {
+            const itemResult = await createGalleryItem(
+              agent,
+              galleryUri,
+              result.uri,
+              galleryPosition,
+              timestamp,
+              options.dryRun,
+            );
+            if (itemResult.success) {
+              galleryPosition++;
+            } else {
+              log.warn(`Failed to create gallery item: ${itemResult.error}`);
+            }
+          }
         } else {
           failed++;
           log.warn(`Failed to publish: ${result.error}`);

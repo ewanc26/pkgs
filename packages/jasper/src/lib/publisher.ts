@@ -1,11 +1,11 @@
 /**
- * Publisher for Grain photos
+ * Publisher for Grain photos and galleries
  * Handles blob upload and record creation
  */
 import type { Agent } from "@atproto/api";
 import { generateTID } from "@ewanc26/tid";
 import type { ParsedPost } from "../core/types.js";
-import { config } from "../core/config.js";
+import { config, GRAIN_GALLERY_COLLECTION, GRAIN_GALLERY_ITEM_COLLECTION } from "../core/config.js";
 import { log } from "../utils/logger.js";
 import {
   processImageBrowser,
@@ -19,6 +19,25 @@ export interface PublishResult {
   uri?: string;
   cid?: string;
   error?: string;
+}
+
+/**
+ * Result of creating a gallery
+ */
+export interface GalleryResult {
+  success: boolean;
+  uri?: string;
+  cid?: string;
+  error?: string;
+}
+
+/**
+ * Gallery info for listing
+ */
+export interface GalleryInfo {
+  uri: string;
+  title: string;
+  createdAt: string;
 }
 
 /**
@@ -173,4 +192,129 @@ export async function loadPostMedia(
   }
 
   return results;
+}
+
+/**
+ * Create a new gallery
+ */
+export async function createGallery(
+  agent: Agent,
+  title: string,
+  description?: string,
+  dryRun = false,
+): Promise<GalleryResult> {
+  if (dryRun) {
+    log.debug(`[DRY RUN] Would create gallery: ${title}`);
+    return { success: true, uri: "dry-run", cid: "dry-run" };
+  }
+
+  try {
+    const now = new Date().toISOString();
+    const record = {
+      $type: GRAIN_GALLERY_COLLECTION,
+      title,
+      description,
+      createdAt: now,
+    };
+
+    const result = await agent.com.atproto.repo.createRecord({
+      repo: agent.did!,
+      collection: GRAIN_GALLERY_COLLECTION,
+      rkey: generateTID(now),
+      record,
+    });
+
+    return {
+      success: true,
+      uri: result.data.uri,
+      cid: result.data.cid,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: (error as Error).message,
+    };
+  }
+}
+
+/**
+ * Create a gallery item linking a photo to a gallery
+ */
+export async function createGalleryItem(
+  agent: Agent,
+  galleryUri: string,
+  photoUri: string,
+  position: number,
+  createdAt: string,
+  dryRun = false,
+): Promise<PublishResult> {
+  if (dryRun) {
+    log.debug(`[DRY RUN] Would create gallery item: ${photoUri} -> ${galleryUri}`);
+    return { success: true, uri: "dry-run", cid: "dry-run" };
+  }
+
+  try {
+    const record = {
+      $type: GRAIN_GALLERY_ITEM_COLLECTION,
+      gallery: galleryUri,
+      item: photoUri,
+      position,
+      createdAt,
+    };
+
+    const result = await agent.com.atproto.repo.createRecord({
+      repo: agent.did!,
+      collection: GRAIN_GALLERY_ITEM_COLLECTION,
+      rkey: generateTID(createdAt),
+      record,
+    });
+
+    return {
+      success: true,
+      uri: result.data.uri,
+      cid: result.data.cid,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: (error as Error).message,
+    };
+  }
+}
+
+/**
+ * Get existing galleries for the user
+ */
+export async function getExistingGalleries(agent: Agent): Promise<GalleryInfo[]> {
+  const galleries: GalleryInfo[] = [];
+
+  try {
+    let cursor: string | undefined;
+    do {
+      const result = await agent.com.atproto.repo.listRecords({
+        repo: agent.did!,
+        collection: GRAIN_GALLERY_COLLECTION,
+        limit: 100,
+        cursor,
+      });
+
+      for (const record of result.data.records) {
+        const value = record.value as { title?: string; createdAt?: string };
+        galleries.push({
+          uri: record.uri,
+          title: value.title || "Untitled",
+          createdAt: value.createdAt || "",
+        });
+      }
+
+      cursor = result.data.cursor;
+    } while (cursor);
+  } catch (error) {
+    log.warn("Could not fetch existing galleries");
+  }
+
+  // Sort by createdAt descending (newest first)
+  return galleries.sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 }
