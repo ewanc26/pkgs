@@ -27,7 +27,8 @@ import {
   logout,
   listOAuthSessionsWithHandles,
 } from "./lib/auth.js";
-import { publishPhoto, getExistingPhotos, createGallery, createGalleryItem, getExistingGalleries } from "./lib/publisher.js";
+import { getExistingPhotos, getExistingGalleries } from "./lib/publisher.js";
+import { RateLimitedPublisher } from "./lib/rate-limited-publisher.js";
 import { config } from "./core/config.js";
 import path from "path";
 import fs from "fs";
@@ -108,6 +109,7 @@ async function runImport(options: {
   yes: boolean;
   verbose: boolean;
   quiet: boolean;
+  alt?: string;
   handle?: string;
   password?: string;
 }): Promise<void> {
@@ -197,6 +199,9 @@ async function runImport(options: {
   // Gallery selection/creation
   let galleryUri: string | undefined;
 
+  // Create rate-limited publisher
+  const publisher = new RateLimitedPublisher(agent, options.dryRun);
+
   if (!options.dryRun) {
     log.progress("Fetching your galleries...");
     const existingGalleries = await getExistingGalleries(agent);
@@ -220,7 +225,7 @@ async function runImport(options: {
       const description = addDescription ? await prompt("Description: ") : undefined;
 
       log.progress("Creating gallery...");
-      const result = await createGallery(agent, title || defaultTitle, description);
+      const result = await publisher.createGallery(title || defaultTitle, description);
       if (result.success && result.uri) {
         galleryUri = result.uri;
         ui.succeedSpinner(`Created gallery: ${title || defaultTitle}`);
@@ -239,6 +244,12 @@ async function runImport(options: {
     }
     log.blank();
   }
+
+  // Alt text handling
+  const getAltText = (post: { caption?: string }): string | undefined => {
+    if (options.alt) return options.alt;
+    return post.caption;
+  };
 
   // Import posts
   let imported = 0;
@@ -291,13 +302,12 @@ async function runImport(options: {
           dims.height,
         );
 
-        const result = await publishPhoto(
-          agent,
+        const altText = getAltText(post);
+        const result = await publisher.publishPhoto(
           imageData,
           aspectRatio,
           timestamp,
-          post.caption,
-          options.dryRun,
+          altText,
         );
 
         if (result.success) {
@@ -305,13 +315,11 @@ async function runImport(options: {
 
           // Create gallery item linking photo to gallery
           if (galleryUri && result.uri) {
-            const itemResult = await createGalleryItem(
-              agent,
+            const itemResult = await publisher.createGalleryItem(
               galleryUri,
               result.uri,
               galleryPosition,
               timestamp,
-              options.dryRun,
             );
             if (itemResult.success) {
               galleryPosition++;
