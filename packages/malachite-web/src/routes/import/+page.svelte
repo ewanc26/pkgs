@@ -5,11 +5,10 @@
 	import type { Agent } from '@atproto/api';
 
 	import { initOAuth } from '$lib/core/oauth.js';
-	import { modeNeeds, stepLabelsFor } from '$lib/modes.js';
+	import { modeNeeds } from '$lib/modes.js';
 	import { runImport, type PublishProgress } from '$lib/core/import.js';
 	import type { ImportMode, LogEntry } from '$lib/types.js';
 
-	import StepIndicator from '$lib/components/StepIndicator.svelte';
 	import ModeStep from '$lib/components/steps/ModeStep.svelte';
 	import AuthStep from '$lib/components/steps/AuthStep.svelte';
 	import FilesStep from '$lib/components/steps/FilesStep.svelte';
@@ -55,7 +54,6 @@
 	// ─── derived ─────────────────────────────────────────────────────────────────
 
 	let needs = $derived(modeNeeds(mode));
-	let stepLabels = $derived(stepLabelsFor(mode));
 	let goingForward = $derived(step >= prevStep);
 
 	// ─── navigation ──────────────────────────────────────────────────────────────
@@ -210,15 +208,11 @@
 
 <main>
 	<header>
-		<p class="logo-text">Malachite</p>
+		<img src="/logo/Malachite.svg" alt="Malachite" width={48} height={48} class="logo-img" />
 		<p class="tagline">
 			Import Last.fm &amp; Spotify history to Teal — own your listening data, not the platforms'
 		</p>
 	</header>
-
-	{#if step < 5}
-		<StepIndicator {step} {stepLabels} />
-	{/if}
 
 	<div class="step-viewport">
 		{#key step}
@@ -278,8 +272,6 @@
 			target="_blank"
 			rel="noopener">↗ GitHub</a
 		>
-		<span class="sep">·</span>
-		<a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener">♥ Support</a>
 	</footer>
 </main>
 
@@ -296,13 +288,9 @@
 		text-align: center;
 	}
 
-	.logo-text {
-		font-family: 'JetBrains Mono', monospace;
-		font-size: 1.5rem;
-		font-weight: 500;
-		letter-spacing: -0.02em;
-		color: var(--text);
-		margin: 0 0 0.25rem;
+	.logo-img {
+		display: block;
+		margin: 0 auto 0.5rem;
 	}
 
 	.tagline {
