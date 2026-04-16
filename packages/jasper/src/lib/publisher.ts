@@ -8,10 +8,8 @@ import type { ParsedPost } from "../core/types.js";
 import { config } from "../core/config.js";
 import { log } from "../utils/logger.js";
 import {
-  processImage,
   processImageBrowser,
-  validateImage,
-} from "./image-utils.js";
+} from "./browser-image-utils.js";
 
 /**
  * Result of publishing a single photo
@@ -28,7 +26,7 @@ export interface PublishResult {
  */
 async function uploadBlob(
   agent: Agent,
-  imageData: Buffer,
+  imageData: Uint8Array,
   mimeType: string,
 ): Promise<{ cid: string; mimeType: string }> {
   const uploadResult = await agent.uploadBlob(imageData, {
@@ -67,7 +65,7 @@ export async function publishPhoto(
       typeof globalThis !== "undefined" && "window" in globalThis;
     const processed = isBrowser
       ? await processImageBrowser(imageData as Uint8Array)
-      : await processImage(imageData as Buffer);
+      : await (await import('./image-utils.js')).processImage(imageData as Uint8Array);
 
     // Upload blob
     const blob = await uploadBlob(
@@ -158,7 +156,7 @@ export async function loadPostMedia(
   for (const media of post.media) {
     try {
       const buffer = await loadMediaFn(media.path);
-      const validation = await validateImage(buffer);
+      const validation = await (await import('./image-utils.js')).validateImage(buffer);
 
       results.push({
         buffer,
