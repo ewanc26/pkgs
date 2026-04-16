@@ -26,6 +26,22 @@ export interface GrainPhotoRecord {
   alt?: string;
 }
 
+export interface GrainGalleryRecord {
+  $type: "social.grain.gallery";
+  title: string;
+  description?: string;
+  createdAt: string; // ISO 8601
+  updatedAt?: string;
+}
+
+export interface GrainGalleryItemRecord {
+  $type: "social.grain.gallery.item";
+  gallery: string; // AT-URI of gallery
+  item: string; // AT-URI of photo
+  position: number;
+  createdAt: string; // ISO 8601
+}
+
 // ============================================
 // Instagram Export Types
 // ============================================
