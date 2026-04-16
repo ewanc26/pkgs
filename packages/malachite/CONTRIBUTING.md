@@ -19,24 +19,23 @@ Thanks for wanting to help. This document covers the layout of the project, how 
 
 ## Project layout
 
-This is a pnpm monorepo with three separate projects:
+This package is part of the [`ewanc26/pkgs`](https://github.com/ewanc26/pkgs) monorepo. The malachite project spans two packages:
 
 ```
-malachite/
-├── src/               # CLI — TypeScript, compiled to dist/ by tsc
-│   ├── core/          # Environment-agnostic logic (shared with web)
-│   ├── lib/           # CLI wrappers around core (Node.js-specific)
-│   └── utils/         # Legacy CLI utilities (gradually migrating to core/)
-├── web/               # SvelteKit web app
-│   └── src/lib/
-│       ├── core/      # Thin re-exports of src/core/ via the $core alias
-│       └── ...        # Svelte components, routes, config
-├── packages/
-│   └── tid/           # @ewanc26/tid — standalone npm package
-└── lexicons/          # fm.teal.alpha lexicon definitions
+packages/
+├── malachite/              # CLI — TypeScript, compiled to dist/ by tsc
+│   ├── src/
+│   │   ├── core/           # Environment-agnostic logic (shared with web)
+│   │   ├── lib/            # CLI wrappers around core (Node.js-specific)
+│   │   ├── tests/          # Node.js test runner tests
+│   │   └── utils/          # Legacy CLI utilities (gradually migrating to core/)
+│   └── lexicons/           # fm.teal.alpha lexicon definitions
+├── malachite-web/          # SvelteKit web app
+│   └── src/lib/core/       # Re-exports of malachite/src/core/ via the $core alias
+└── tid/                    # @ewanc26/tid — standalone npm package (sibling)
 ```
 
-The key architectural rule is that **`src/core/` is the single source of truth** for all non-UI logic. The CLI wrappers in `src/lib/` adapt it for terminal use (spinners, file I/O, credentials). The web app re-exports it via `$core` path alias — there should be no duplicated logic between the two surfaces.
+The key architectural rule is that **`malachite/src/core/` is the single source of truth** for all non-UI logic. The CLI wrappers in `src/lib/` adapt it for terminal use (spinners, file I/O, credentials). The web app re-exports it via `$core` path alias — there should be no duplicated logic between the two surfaces.
 
 ---
 
@@ -50,9 +49,9 @@ The key architectural rule is that **`src/core/` is the single source of truth**
 ## Getting started
 
 ```sh
-# Clone and install everything in one shot — pnpm workspaces handles all three projects
-git clone https://github.com/ewanc26/pkgs/tree/main/packages/malachite
-cd malachite
+# Clone the monorepo and install dependencies
+git clone https://github.com/ewanc26/pkgs
+cd pkgs/packages/malachite
 pnpm install
 ```
 
@@ -85,11 +84,11 @@ node dist/index.js -i my-export.csv --dev --dry-run
 ## Running the web app
 
 ```sh
-cd web
+cd ../malachite-web
 pnpm dev   # starts at http://127.0.0.1:5173
 ```
 
-The dev server **must** run on `127.0.0.1:5173` exactly — the ATProto OAuth loopback `redirect_uri` is pinned to that origin per RFC 8252. Don't change the host or port without also updating `web/src/lib/core/oauth.ts`.
+The dev server **must** run on `127.0.0.1:5173` exactly — the ATProto OAuth loopback `redirect_uri` is pinned to that origin per RFC 8252. Don't change the host or port without also updating `malachite-web/src/lib/core/oauth.ts`.
 
 For changes to shared `src/core/` files, the web app picks them up immediately via the `$core` alias — no separate build step needed.
 
@@ -128,7 +127,7 @@ If you need Node.js-specific behaviour (file I/O, terminal spinners, credential 
 
 ### Adding something to the web
 
-The web's `web/src/lib/core/` files are almost all one-liners:
+The web's `malachite-web/src/lib/core/` files are almost all one-liners:
 
 ```ts
 export * from '$core/your-new-file.js';
@@ -158,7 +157,7 @@ Open an issue first if the change is significant — it's worth a quick discussi
 
 ### Changing shared core logic
 
-Changes to `src/core/` affect all three surfaces (CLI, web, `@ewanc26/tid` if relevant). Run both `pnpm test` and `cd web && pnpm check` before submitting to make sure nothing is broken on either side.
+Changes to `src/core/` affect both CLI and web surfaces (and `@ewanc26/tid` if relevant). Run both `pnpm test` and `cd ../malachite-web && pnpm check` before submitting to make sure nothing is broken on either side.
 
 ### Style
 
@@ -174,7 +173,7 @@ Changes to `src/core/` affect all three surfaces (CLI, web, `@ewanc26/tid` if re
 1. Fork the repo and create a branch from `main`.
 2. Make your changes, including tests where applicable.
 3. Verify `pnpm test` passes and `pnpm run type-check` is clean.
-4. If you touched the web app, verify `cd web && pnpm check` is clean too.
+4. If you touched the web app, verify `cd ../malachite-web && pnpm check` is clean too.
 5. Open a PR with a clear description of what changed and why.
 
 There's no formal CLA or contributor agreement — AGPL-3.0 covers contributions automatically.
@@ -183,18 +182,13 @@ There's no formal CLA or contributor agreement — AGPL-3.0 covers contributions
 
 ## Publishing `@ewanc26/tid`
 
-> **Note:** `@ewanc26/tid` is now canonically maintained in the [`@ewanc26/pkgs`](https://github.com/ewanc26/pkgs) monorepo. The copy in `packages/tid/` here is kept for historical context. All version bumps, releases, and npm publishes should happen from there.
-
-To cut a new release, work from the pkgs monorepo:
+`@ewanc26/tid` is a sibling package in this monorepo at `packages/tid/`. To publish a new version:
 
 ```sh
-cd /path/to/pkgs
-git subtree pull --prefix=packages/tid malachite malachite-split
-
-cd packages/tid
+cd ../tid
 # Bump the version in package.json, then:
 pnpm build
 npm publish --access public --otp=<your-2fa-code>
 ```
 
-The package has no runtime dependencies and must stay that way. If a change to `src/core/tid.ts` in this repo affects the public API of the package, update `packages/tid/src/index.ts` in `pkgs` to match and bump the version accordingly (semver — patch for fixes, minor for new exports, major for breaking changes).
+The package has no runtime dependencies and must stay that way. If a change to `src/core/tid.ts` in malachite affects the public API, update `packages/tid/src/index.ts` to match and bump its version accordingly (semver — patch for fixes, minor for new exports, major for breaking changes).
