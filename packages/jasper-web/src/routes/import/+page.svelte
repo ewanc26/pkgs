@@ -26,6 +26,7 @@
 	let file = $state<File | null>(null);
 	let dryRun = $state(false);
 	let batchSize = $state(100);
+	let altText = $state('');
 
 	// Gallery state
 	let galleries = $state<GalleryInfo[]>([]);
@@ -45,7 +46,12 @@
 	let isRunning = $state(false);
 	let logs = $state<{ level: string; message: string }[]>([]);
 	let progress = $state<{ current: number; total: number } | null>(null);
-	let result = $state<{ success: number; errors: number; photosImported?: number; galleryItemsCreated?: number } | null>(null);
+	let result = $state<{
+		success: number;
+		errors: number;
+		photosImported?: number;
+		galleryItemsCreated?: number;
+	} | null>(null);
 
 	let goingForward = $derived(step >= prevStep);
 
@@ -99,7 +105,12 @@
 		if (!agent || !newGalleryTitle.trim()) return;
 		error = null;
 		try {
-			const result = await createNewGallery(agent, newGalleryTitle, newGalleryDescription || undefined, dryRun);
+			const result = await createNewGallery(
+				agent,
+				newGalleryTitle,
+				newGalleryDescription || undefined,
+				dryRun
+			);
 			if (result.success && result.uri) {
 				selectedGalleryUri = result.uri;
 				showNewGalleryForm = false;
@@ -130,6 +141,7 @@
 				dryRun,
 				selectedGalleryUri,
 				batchSize,
+				altText || undefined,
 				(current, total) => {
 					progress = { current, total };
 				},
@@ -168,7 +180,7 @@
 			const orgResult = await organizeOrphanPhotos(
 				agent,
 				orphanGalleryUri,
-				orphans.map(o => o.uri),
+				orphans.map((o) => o.uri),
 				dryRun,
 				(current, total) => {
 					orphanProgress = { current, total };
@@ -279,13 +291,26 @@
 						<p class="section-sub">Signed in as <strong>{agent?.did}</strong></p>
 
 						<div class="choice-cards">
-							<button class="choice-card" onclick={() => { goTo(2); loadGalleries(); }}>
+							<button
+								class="choice-card"
+								onclick={() => {
+									goTo(2);
+									loadGalleries();
+								}}
+							>
 								<Upload size={24} />
 								<span class="choice-title">Import Instagram export</span>
 								<span class="choice-desc">Upload a ZIP file from your Instagram data export</span>
 							</button>
 
-							<button class="choice-card" onclick={() => { showOrphanStep = true; goTo(4); loadOrphans(); }}>
+							<button
+								class="choice-card"
+								onclick={() => {
+									showOrphanStep = true;
+									goTo(4);
+									loadOrphans();
+								}}
+							>
 								<FolderOpen size={24} />
 								<span class="choice-title">Organize existing photos</span>
 								<span class="choice-desc">Add photos from previous imports to a gallery</span>
@@ -321,8 +346,8 @@
 						</label>
 
 						<div class="field">
-							<label class="field-label">Batch size (per-day limit)</label>
-							<input type="number" bind:value={batchSize} min="10" max="500" />
+							<label class="field-label" for="batch-size">Batch size (per-day limit)</label>
+							<input id="batch-size" type="number" bind:value={batchSize} min="10" max="500" />
 							<span class="field-hint">Prevents hitting blob upload limits. Default: 100</span>
 						</div>
 
@@ -335,7 +360,9 @@
 						<p class="section-sub">Photos will be added to the selected gallery.</p>
 
 						{#if loadingGalleries}
-							<div class="loading-inline"><Loader2 class="spin" size={18} /> Loading galleries...</div>
+							<div class="loading-inline">
+								<Loader2 class="spin" size={18} /> Loading galleries...
+							</div>
 						{:else if galleries.length > 0}
 							<div class="gallery-list">
 								{#each galleries as gallery}
@@ -346,7 +373,9 @@
 									>
 										<Image size={16} />
 										<span class="gallery-title">{gallery.title}</span>
-										<span class="gallery-date">{new Date(gallery.createdAt).toLocaleDateString()}</span>
+										<span class="gallery-date"
+											>{new Date(gallery.createdAt).toLocaleDateString()}</span
+										>
 									</button>
 								{/each}
 							</div>
@@ -357,11 +386,7 @@
 						{#if showNewGalleryForm}
 							<div class="new-gallery-form">
 								<div class="field">
-									<input
-										type="text"
-										bind:value={newGalleryTitle}
-										placeholder="Gallery title"
-									/>
+									<input type="text" bind:value={newGalleryTitle} placeholder="Gallery title" />
 								</div>
 								<div class="field">
 									<input
@@ -371,12 +396,14 @@
 									/>
 								</div>
 								<div class="actions-inline">
-									<button class="btn-secondary" onclick={() => showNewGalleryForm = false}>Cancel</button>
+									<button class="btn-secondary" onclick={() => (showNewGalleryForm = false)}
+										>Cancel</button
+									>
 									<button class="btn-primary" onclick={handleCreateGallery}>Create</button>
 								</div>
 							</div>
 						{:else}
-							<button class="btn-secondary full-width" onclick={() => showNewGalleryForm = true}>
+							<button class="btn-secondary full-width" onclick={() => (showNewGalleryForm = true)}>
 								+ Create new gallery
 							</button>
 						{/if}
@@ -422,9 +449,11 @@
 						{#if result}
 							<div class="result-summary">
 								<p class="alert alert-info">
-									{result.photosImported || result.success} photo(s) {dryRun ? 'would be ' : ''}imported.
+									{result.photosImported || result.success} photo(s) {dryRun
+										? 'would be '
+										: ''}imported.
 									{#if result.galleryItemsCreated}
-										<br>{result.galleryItemsCreated} gallery items created.
+										<br />{result.galleryItemsCreated} gallery items created.
 									{/if}
 								</p>
 							</div>
@@ -435,11 +464,14 @@
 					<div class="card-section">
 						<h2 class="section-title">Organize Existing Photos</h2>
 						<p class="section-sub">
-							Photos imported before the gallery fix need to be linked to a gallery to display on Grain.
+							Photos imported before the gallery fix need to be linked to a gallery to display on
+							Grain.
 						</p>
 
 						{#if loadingOrphans}
-							<div class="loading-inline"><Loader2 class="spin" size={18} /> Scanning for orphan photos...</div>
+							<div class="loading-inline">
+								<Loader2 class="spin" size={18} /> Scanning for orphan photos...
+							</div>
 						{:else if orphans.length > 0}
 							<div class="alert alert-warning">
 								<AlertTriangle size={16} />
@@ -454,7 +486,7 @@
 										<button
 											class="gallery-item"
 											class:selected={orphanGalleryUri === gallery.uri}
-											onclick={() => orphanGalleryUri = gallery.uri}
+											onclick={() => (orphanGalleryUri = gallery.uri)}
 										>
 											<Image size={16} />
 											<span class="gallery-title">{gallery.title}</span>
@@ -500,10 +532,14 @@
 									<div class="progress-bar">
 										<div
 											class="progress-fill"
-											style="width: {Math.round((orphanProgress.current / orphanProgress.total) * 100)}%"
+											style="width: {Math.round(
+												(orphanProgress.current / orphanProgress.total) * 100
+											)}%"
 										></div>
 									</div>
-									<span class="progress-text">{orphanProgress.current} / {orphanProgress.total}</span>
+									<span class="progress-text"
+										>{orphanProgress.current} / {orphanProgress.total}</span
+									>
 								{/if}
 							</div>
 						{/if}
@@ -612,7 +648,9 @@
 		border-radius: 8px;
 		text-align: left;
 		cursor: pointer;
-		transition: border-color 0.15s, background 0.15s;
+		transition:
+			border-color 0.15s,
+			background 0.15s;
 	}
 
 	.choice-card:hover {
@@ -673,8 +711,8 @@
 		margin-bottom: 0.25rem;
 	}
 
-	.field input[type="text"],
-	.field input[type="number"] {
+	.field input[type='text'],
+	.field input[type='number'] {
 		width: 100%;
 		padding: 0.6rem 0.75rem;
 		border-radius: 6px;
@@ -684,7 +722,7 @@
 		font-size: 0.95rem;
 	}
 
-	.field input[type="number"] {
+	.field input[type='number'] {
 		max-width: 120px;
 	}
 

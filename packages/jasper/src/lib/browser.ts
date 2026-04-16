@@ -409,14 +409,15 @@ async function getImageDimensionsFromBlob(blob: Blob): Promise<{ width: number; 
 
 /**
  * Run the full import process in browser
- * Now supports gallery selection and batch limiting
+ * Now supports gallery selection, batch limiting, and alt text override
  */
 export async function runImport(
   agent: Agent,
   file: File,
   dryRun: boolean,
   galleryUri: string | null,
-  batchSize: number = 100,
+  batchSize: number = 800,
+  altOverride?: string,
   onProgress?: (current: number, total: number) => void,
   onLog?: (level: string, message: string) => void,
 ): Promise<{ success: number; errors: number; photosImported: number; galleryItemsCreated: number }> {
@@ -441,6 +442,12 @@ export async function runImport(
     let errors = 0;
     let galleryPosition = 0;
     let batchCount = 0;
+
+    // Helper for alt text
+    const getAltText = (caption?: string): string | undefined => {
+      if (altOverride) return altOverride;
+      return caption;
+    };
 
     for (let i = 0; i < validPosts.length; i++) {
       const post = validPosts[i];
@@ -473,7 +480,7 @@ export async function runImport(
               media.data,
               dims,
               timestamp,
-              post.caption,
+              getAltText(post.caption),
               dryRun
             );
 
