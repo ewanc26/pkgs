@@ -17,8 +17,28 @@ import type {
 } from "../core/types.js";
 import { browserLog as log } from "./browser-logger.js";
 import { fixFacebookEncoding } from "./parser.js";
-import { publishPhoto } from "./publisher.js";
+import { publishPhoto, createGallery, createGalleryItem, getExistingGalleries, getExistingPhotos } from "./publisher.js";
 import type { Agent } from "@atproto/api";
+import { GRAIN_GALLERY_ITEM_COLLECTION } from "../core/config.js";
+import { getImageDimensionsBrowser } from "./browser-image-utils.js";
+
+/**
+ * Gallery info for selection UI
+ */
+export interface GalleryInfo {
+  uri: string;
+  title: string;
+  createdAt: string;
+  itemCount?: number;
+}
+
+/**
+ * Orphan photo info
+ */
+export interface OrphanPhoto {
+  uri: string;
+  createdAt: string;
+}
 
 /**
  * Get the file extension from a path
@@ -243,16 +263,166 @@ export async function publishPhotoFromBlob(
 }
 
 /**
+ * Fetch user's existing galleries
+ */
+export async function fetchUserGalleries(agent: Agent): Promise<GalleryInfo[]> {
+  const galleries = await getExistingGalleries(agent);
+  return galleries.map(g => ({
+    uri: g.uri,
+    title: g.title,
+    createdAt: g.createdAt,
+  }));
+}
+
+/**
+ * Create a new gallery
+ */
+export async function createNewGallery(
+  agent: Agent,
+  title: string,
+  description?: string,
+  dryRun = false,
+): Promise<{ success: boolean; uri?: string; error?: string }> {
+  const result = await createGallery(agent, title, description, dryRun);
+  return { success: result.success, uri: result.uri, error: result.error };
+}
+
+/**
+ * Find orphan photos (photos not in any gallery)
+ * These would be from imports before the gallery fix
+ */
+export async function fetchOrphanPhotos(agent: Agent): Promise<OrphanPhoto[]> {
+  const orphans: OrphanPhoto[] = [];
+
+  try {
+    // Get all gallery items to cross-reference
+    const galleryItemUris = new Set<string>();
+    let cursor: string | undefined;
+    do {
+      const result = await agent.com.atproto.repo.listRecords({
+        repo: agent.did!,
+        collection: GRAIN_GALLERY_ITEM_COLLECTION,
+        limit: 100,
+        cursor,
+      });
+
+      for (const record of result.data.records) {
+        const value = record.value as { item?: string };
+        if (value.item) {
+          galleryItemUris.add(value.item);
+        }
+      }
+
+      cursor = result.data.cursor;
+    } while (cursor);
+
+    // Find photos not in any gallery
+    cursor = undefined;
+    do {
+      const result = await agent.com.atproto.repo.listRecords({
+        repo: agent.did!,
+        collection: "social.grain.photo",
+        limit: 100,
+        cursor,
+      });
+
+      for (const record of result.data.records) {
+        if (!galleryItemUris.has(record.uri)) {
+          const value = record.value as { createdAt?: string };
+          orphans.push({
+            uri: record.uri,
+            createdAt: value.createdAt || "",
+          });
+        }
+      }
+
+      cursor = result.data.cursor;
+    } while (cursor);
+  } catch (error) {
+    log.error(`Failed to fetch orphan photos: ${error}`);
+  }
+
+  return orphans.sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+/**
+ * Add orphan photos to a gallery
+ */
+export async function organizeOrphanPhotos(
+  agent: Agent,
+  galleryUri: string,
+  orphanUris: string[],
+  dryRun = false,
+  onProgress?: (current: number, total: number) => void,
+  onLog?: (level: string, message: string) => void,
+): Promise<{ success: number; errors: number }> {
+  const logger = onLog
+    ? { info: (msg: string) => onLog('info', msg), warn: (msg: string) => onLog('warn', msg), error: (msg: string) => onLog('error', msg), debug: (msg: string) => onLog('debug', msg) }
+    : log;
+
+  let success = 0;
+  let errors = 0;
+
+  for (let i = 0; i < orphanUris.length; i++) {
+    const photoUri = orphanUris[i];
+    onProgress?.(i + 1, orphanUris.length);
+
+    // Extract createdAt from photo URI's rkey (TID)
+    const createdAt = new Date().toISOString(); // Fallback
+
+    try {
+      logger.info(`Adding photo to gallery...`);
+      const result = await createGalleryItem(
+        agent,
+        galleryUri,
+        photoUri,
+        i,
+        createdAt,
+        dryRun
+      );
+
+      if (result.success) {
+        success++;
+      } else {
+        errors++;
+        logger.error(`Failed: ${result.error}`);
+      }
+    } catch (error) {
+      errors++;
+      logger.error(`Error: ${error}`);
+    }
+  }
+
+  return { success, errors };
+}
+
+/**
+ * Image dimensions helper for browser Blobs
+ */
+async function getImageDimensionsFromBlob(blob: Blob): Promise<{ width: number; height: number }> {
+  const arrayBuffer = await blob.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
+  return getImageDimensionsBrowser(uint8Array);
+}
+
+/**
  * Run the full import process in browser
+ * Now supports gallery selection and batch limiting
  */
 export async function runImport(
   agent: Agent,
   file: File,
   dryRun: boolean,
+  galleryUri: string | null,
+  batchSize: number = 100,
   onProgress?: (current: number, total: number) => void,
   onLog?: (level: string, message: string) => void,
-): Promise<{ success: number; errors: number }> {
-  const logger = onLog ? { info: (msg: string) => onLog('info', msg), warn: (msg: string) => onLog('warn', msg), error: (msg: string) => onLog('error', msg) } : log;
+): Promise<{ success: number; errors: number; photosImported: number; galleryItemsCreated: number }> {
+  const logger = onLog
+    ? { info: (msg: string) => onLog('info', msg), warn: (msg: string) => onLog('warn', msg), error: (msg: string) => onLog('error', msg) }
+    : log;
 
   try {
     logger.info('Parsing Instagram export...');
@@ -261,28 +431,74 @@ export async function runImport(
     const validPosts = posts.filter(p => !p.skipped);
     logger.info(`Found ${validPosts.length} posts to import`);
 
-    let success = 0;
+    // Check for existing photos to skip duplicates
+    logger.info('Checking for existing photos...');
+    const existingPhotos = await getExistingPhotos(agent);
+    logger.info(`Found ${existingPhotos.size} existing photos`);
+
+    let photosImported = 0;
+    let galleryItemsCreated = 0;
     let errors = 0;
+    let galleryPosition = 0;
+    let batchCount = 0;
 
     for (let i = 0; i < validPosts.length; i++) {
       const post = validPosts[i];
+      const timestamp = post.createdAt.toISOString();
+
+      // Skip duplicates
+      if (existingPhotos.has(timestamp)) {
+        logger.info(`Skipping duplicate: ${timestamp}`);
+        continue;
+      }
+
+      // Check batch limit
+      if (batchCount >= batchSize) {
+        logger.warn(`Reached batch limit of ${batchSize}. Stopping to avoid rate limits.`);
+        logger.warn('You can continue with another batch later.');
+        break;
+      }
+
       onProgress?.(i + 1, validPosts.length);
 
       for (const media of post.media) {
         if (media.type === 'image' && media.data) {
           try {
-            logger.info(`Publishing photo from ${post.createdAt.toISOString()}`);
+            // Get actual dimensions
+            const dims = await getImageDimensionsFromBlob(media.data);
+
+            logger.info(`Publishing photo from ${post.createdAt.toLocaleDateString()}`);
             const result = await publishPhotoFromBlob(
               agent,
               media.data,
-              { width: 1, height: 1 }, // TODO: get actual aspect ratio
-              post.createdAt.toISOString(),
+              dims,
+              timestamp,
               post.caption,
               dryRun
             );
 
             if (result.success) {
-              success++;
+              photosImported++;
+              batchCount++;
+
+              // Create gallery item if gallery selected
+              if (galleryUri && result.uri) {
+                const itemResult = await createGalleryItem(
+                  agent,
+                  galleryUri,
+                  result.uri,
+                  galleryPosition,
+                  timestamp,
+                  dryRun
+                );
+
+                if (itemResult.success) {
+                  galleryItemsCreated++;
+                  galleryPosition++;
+                } else {
+                  logger.error(`Failed to create gallery item: ${itemResult.error}`);
+                }
+              }
             } else {
               errors++;
               logger.error(`Failed to publish: ${result.error}`);
@@ -295,7 +511,12 @@ export async function runImport(
       }
     }
 
-    return { success, errors };
+    return {
+      success: photosImported,
+      errors,
+      photosImported,
+      galleryItemsCreated
+    };
   } catch (error) {
     logger.error(`Import failed: ${error}`);
     throw error;

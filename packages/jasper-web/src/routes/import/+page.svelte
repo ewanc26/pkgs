@@ -4,9 +4,17 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { Agent } from '@atproto/api';
 	import { initOAuth, signInWithOAuth } from '$lib/core/oauth';
-	import { runImport } from '@ewanc26/jasper/browser';
+	import {
+		runImport,
+		fetchUserGalleries,
+		createNewGallery,
+		fetchOrphanPhotos,
+		organizeOrphanPhotos,
+		type GalleryInfo,
+		type OrphanPhoto
+	} from '@ewanc26/jasper/browser';
 	import logo from '$lib/assets/favicon.svg';
-	import { Upload, Loader2, ArrowRight } from '@lucide/svelte';
+	import { Upload, Loader2, ArrowRight, FolderOpen, Image, AlertTriangle } from '@lucide/svelte';
 
 	let step = $state(0);
 	let prevStep = $state(0);
@@ -17,11 +25,27 @@
 	let handle = $state('');
 	let file = $state<File | null>(null);
 	let dryRun = $state(false);
+	let batchSize = $state(100);
+
+	// Gallery state
+	let galleries = $state<GalleryInfo[]>([]);
+	let selectedGalleryUri = $state<string | null>(null);
+	let newGalleryTitle = $state('');
+	let newGalleryDescription = $state('');
+	let showNewGalleryForm = $state(false);
+	let loadingGalleries = $state(false);
+
+	// Orphan state
+	let orphans = $state<OrphanPhoto[]>([]);
+	let loadingOrphans = $state(false);
+	let showOrphanStep = $state(false);
+	let orphanGalleryUri = $state<string | null>(null);
+	let orphanProgress = $state<{ current: number; total: number } | null>(null);
 
 	let isRunning = $state(false);
 	let logs = $state<{ level: string; message: string }[]>([]);
 	let progress = $state<{ current: number; total: number } | null>(null);
-	let result = $state<{ success: number; errors: number } | null>(null);
+	let result = $state<{ success: number; errors: number; photosImported?: number; galleryItemsCreated?: number } | null>(null);
 
 	let goingForward = $derived(step >= prevStep);
 
@@ -47,18 +71,65 @@
 		}
 	}
 
+	async function loadGalleries() {
+		if (!agent) return;
+		loadingGalleries = true;
+		try {
+			galleries = await fetchUserGalleries(agent);
+		} catch (e) {
+			console.error('Failed to load galleries:', e);
+		} finally {
+			loadingGalleries = false;
+		}
+	}
+
+	async function loadOrphans() {
+		if (!agent) return;
+		loadingOrphans = true;
+		try {
+			orphans = await fetchOrphanPhotos(agent);
+		} catch (e) {
+			console.error('Failed to load orphans:', e);
+		} finally {
+			loadingOrphans = false;
+		}
+	}
+
+	async function handleCreateGallery() {
+		if (!agent || !newGalleryTitle.trim()) return;
+		error = null;
+		try {
+			const result = await createNewGallery(agent, newGalleryTitle, newGalleryDescription || undefined, dryRun);
+			if (result.success && result.uri) {
+				selectedGalleryUri = result.uri;
+				showNewGalleryForm = false;
+				await loadGalleries();
+			} else {
+				error = result.error || 'Failed to create gallery';
+			}
+		} catch (e) {
+			error = (e as Error).message;
+		}
+	}
+
+	async function handleSelectGallery(uri: string) {
+		selectedGalleryUri = uri;
+	}
+
 	async function handleStartImport() {
 		if (!agent || !file) return;
 		isRunning = true;
 		logs = [];
 		result = null;
-		goTo(2);
+		goTo(3);
 
 		try {
 			const importResult = await runImport(
 				agent,
 				file,
 				dryRun,
+				selectedGalleryUri,
+				batchSize,
 				(current, total) => {
 					progress = { current, total };
 				},
@@ -67,7 +138,12 @@
 				}
 			);
 
-			result = { success: importResult.success, errors: importResult.errors };
+			result = {
+				success: importResult.photosImported || importResult.success,
+				errors: importResult.errors,
+				photosImported: importResult.photosImported,
+				galleryItemsCreated: importResult.galleryItemsCreated
+			};
 			logs = [
 				...logs,
 				{ level: 'success', message: dryRun ? 'Dry run complete' : 'Import complete' }
@@ -81,10 +157,54 @@
 		}
 	}
 
+	async function handleOrganizeOrphans() {
+		if (!agent || !orphanGalleryUri || orphans.length === 0) return;
+		isRunning = true;
+		logs = [];
+		result = null;
+		goTo(5);
+
+		try {
+			const orgResult = await organizeOrphanPhotos(
+				agent,
+				orphanGalleryUri,
+				orphans.map(o => o.uri),
+				dryRun,
+				(current, total) => {
+					orphanProgress = { current, total };
+				},
+				(level, message) => {
+					logs = [...logs, { level, message }];
+				}
+			);
+
+			result = { success: orgResult.success, errors: orgResult.errors };
+			logs = [
+				...logs,
+				{ level: 'success', message: dryRun ? 'Dry run complete' : 'Orphans organized' }
+			];
+		} catch (error) {
+			logs = [...logs, { level: 'error', message: `Organization failed: ${error}` }];
+			result = { success: 0, errors: 1 };
+		} finally {
+			isRunning = false;
+			orphanProgress = null;
+		}
+	}
+
 	function handleReset() {
-		goTo(0);
+		goTo(1);
 		file = null;
 		dryRun = false;
+		selectedGalleryUri = null;
+		logs = [];
+		result = null;
+	}
+
+	function handleResetOrphans() {
+		goTo(0);
+		orphans = [];
+		orphanGalleryUri = null;
 		logs = [];
 		result = null;
 	}
@@ -155,8 +275,38 @@
 					</div>
 				{:else if step === 1}
 					<div class="card-section">
-						<h2 class="section-title">Upload your export</h2>
+						<h2 class="section-title">Choose import type</h2>
 						<p class="section-sub">Signed in as <strong>{agent?.did}</strong></p>
+
+						<div class="choice-cards">
+							<button class="choice-card" onclick={() => { goTo(2); loadGalleries(); }}>
+								<Upload size={24} />
+								<span class="choice-title">Import Instagram export</span>
+								<span class="choice-desc">Upload a ZIP file from your Instagram data export</span>
+							</button>
+
+							<button class="choice-card" onclick={() => { showOrphanStep = true; goTo(4); loadOrphans(); }}>
+								<FolderOpen size={24} />
+								<span class="choice-title">Organize existing photos</span>
+								<span class="choice-desc">Add photos from previous imports to a gallery</span>
+							</button>
+						</div>
+
+						<div class="actions">
+							<button
+								class="btn-secondary"
+								onclick={() => {
+									agent = null;
+									goTo(0);
+								}}
+							>
+								Sign out
+							</button>
+						</div>
+					</div>
+				{:else if step === 2}
+					<div class="card-section">
+						<h2 class="section-title">Upload your export</h2>
 
 						<label class="file-drop">
 							<input type="file" accept=".zip,application/zip" onchange={handleFileChange} />
@@ -170,28 +320,80 @@
 							{/if}
 						</label>
 
+						<div class="field">
+							<label class="field-label">Batch size (per-day limit)</label>
+							<input type="number" bind:value={batchSize} min="10" max="500" />
+							<span class="field-hint">Prevents hitting blob upload limits. Default: 100</span>
+						</div>
+
 						<label class="checkbox-line">
 							<input type="checkbox" bind:checked={dryRun} />
 							<span class="field-hint">Dry run (preview without importing)</span>
 						</label>
 
-						<div class="actions">
-							<button
-								class="btn-secondary"
-								onclick={() => {
-									agent = null;
-									goTo(0);
-								}}
-							>
-								Sign out
+						<h3 class="subsection-title">Select Gallery</h3>
+						<p class="section-sub">Photos will be added to the selected gallery.</p>
+
+						{#if loadingGalleries}
+							<div class="loading-inline"><Loader2 class="spin" size={18} /> Loading galleries...</div>
+						{:else if galleries.length > 0}
+							<div class="gallery-list">
+								{#each galleries as gallery}
+									<button
+										class="gallery-item"
+										class:selected={selectedGalleryUri === gallery.uri}
+										onclick={() => handleSelectGallery(gallery.uri)}
+									>
+										<Image size={16} />
+										<span class="gallery-title">{gallery.title}</span>
+										<span class="gallery-date">{new Date(gallery.createdAt).toLocaleDateString()}</span>
+									</button>
+								{/each}
+							</div>
+						{:else}
+							<p class="field-hint">No galleries yet. Create one below.</p>
+						{/if}
+
+						{#if showNewGalleryForm}
+							<div class="new-gallery-form">
+								<div class="field">
+									<input
+										type="text"
+										bind:value={newGalleryTitle}
+										placeholder="Gallery title"
+									/>
+								</div>
+								<div class="field">
+									<input
+										type="text"
+										bind:value={newGalleryDescription}
+										placeholder="Description (optional)"
+									/>
+								</div>
+								<div class="actions-inline">
+									<button class="btn-secondary" onclick={() => showNewGalleryForm = false}>Cancel</button>
+									<button class="btn-primary" onclick={handleCreateGallery}>Create</button>
+								</div>
+							</div>
+						{:else}
+							<button class="btn-secondary full-width" onclick={() => showNewGalleryForm = true}>
+								+ Create new gallery
 							</button>
-							<button class="btn-primary" disabled={!file} onclick={handleStartImport}>
+						{/if}
+
+						<div class="actions">
+							<button class="btn-secondary" onclick={() => goTo(1)}>Back</button>
+							<button
+								class="btn-primary"
+								disabled={!file || !selectedGalleryUri}
+								onclick={handleStartImport}
+							>
 								{dryRun ? 'Preview' : 'Import'}
 								<ArrowRight size={16} />
 							</button>
 						</div>
 					</div>
-				{:else if step === 2}
+				{:else if step === 3}
 					<div class="card-section">
 						<h2 class="section-title">{dryRun ? 'Previewing' : 'Importing'}</h2>
 
@@ -220,10 +422,105 @@
 						{#if result}
 							<div class="result-summary">
 								<p class="alert alert-info">
-									{result.success} photo(s) {dryRun ? 'would be ' : ''}imported.
+									{result.photosImported || result.success} photo(s) {dryRun ? 'would be ' : ''}imported.
+									{#if result.galleryItemsCreated}
+										<br>{result.galleryItemsCreated} gallery items created.
+									{/if}
 								</p>
 							</div>
 							<button class="btn-primary" onclick={handleReset}> Start new import </button>
+						{/if}
+					</div>
+				{:else if step === 4}
+					<div class="card-section">
+						<h2 class="section-title">Organize Existing Photos</h2>
+						<p class="section-sub">
+							Photos imported before the gallery fix need to be linked to a gallery to display on Grain.
+						</p>
+
+						{#if loadingOrphans}
+							<div class="loading-inline"><Loader2 class="spin" size={18} /> Scanning for orphan photos...</div>
+						{:else if orphans.length > 0}
+							<div class="alert alert-warning">
+								<AlertTriangle size={16} />
+								Found <strong>{orphans.length}</strong> photos not linked to any gallery.
+							</div>
+
+							<h3 class="subsection-title">Select gallery to add them to</h3>
+
+							{#if galleries.length > 0}
+								<div class="gallery-list">
+									{#each galleries as gallery}
+										<button
+											class="gallery-item"
+											class:selected={orphanGalleryUri === gallery.uri}
+											onclick={() => orphanGalleryUri = gallery.uri}
+										>
+											<Image size={16} />
+											<span class="gallery-title">{gallery.title}</span>
+										</button>
+									{/each}
+								</div>
+							{/if}
+
+							<label class="checkbox-line">
+								<input type="checkbox" bind:checked={dryRun} />
+								<span class="field-hint">Dry run (preview changes)</span>
+							</label>
+
+							<div class="actions">
+								<button class="btn-secondary" onclick={handleResetOrphans}>Back</button>
+								<button
+									class="btn-primary"
+									disabled={!orphanGalleryUri}
+									onclick={handleOrganizeOrphans}
+								>
+									{dryRun ? 'Preview' : 'Add to gallery'}
+									<ArrowRight size={16} />
+								</button>
+							</div>
+						{:else}
+							<div class="alert alert-success">
+								All your photos are already organized into galleries.
+							</div>
+							<div class="actions">
+								<button class="btn-secondary" onclick={handleResetOrphans}>Back</button>
+							</div>
+						{/if}
+					</div>
+				{:else if step === 5}
+					<div class="card-section">
+						<h2 class="section-title">{dryRun ? 'Previewing' : 'Organizing'}</h2>
+
+						{#if isRunning}
+							<div class="running-indicator">
+								<Loader2 class="spin" size={18} />
+								<span>Linking photos to gallery...</span>
+								{#if orphanProgress}
+									<div class="progress-bar">
+										<div
+											class="progress-fill"
+											style="width: {Math.round((orphanProgress.current / orphanProgress.total) * 100)}%"
+										></div>
+									</div>
+									<span class="progress-text">{orphanProgress.current} / {orphanProgress.total}</span>
+								{/if}
+							</div>
+						{/if}
+
+						<div class="logs">
+							{#each logs as log}
+								<p class="log-{log.level}">{log.message}</p>
+							{/each}
+						</div>
+
+						{#if result}
+							<div class="result-summary">
+								<p class="alert alert-info">
+									{result.success} photo(s) {dryRun ? 'would be ' : ''}linked to gallery.
+								</p>
+							</div>
+							<button class="btn-primary" onclick={handleResetOrphans}> Done </button>
 						{/if}
 					</div>
 				{/if}
@@ -298,6 +595,41 @@
 		}
 	}
 
+	.choice-cards {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+
+	.choice-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 1.25rem;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		text-align: left;
+		cursor: pointer;
+		transition: border-color 0.15s, background 0.15s;
+	}
+
+	.choice-card:hover {
+		border-color: var(--accent);
+		background: var(--bg-hover);
+	}
+
+	.choice-title {
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.choice-desc {
+		font-size: 0.85rem;
+		color: var(--muted);
+	}
+
 	.file-drop {
 		display: block;
 		padding: 2.5rem;
@@ -330,12 +662,104 @@
 		color: var(--text);
 	}
 
+	.field {
+		margin-bottom: 0.75rem;
+	}
+
+	.field-label {
+		display: block;
+		font-size: 0.85rem;
+		font-weight: 500;
+		margin-bottom: 0.25rem;
+	}
+
+	.field input[type="text"],
+	.field input[type="number"] {
+		width: 100%;
+		padding: 0.6rem 0.75rem;
+		border-radius: 6px;
+		border: 1px solid var(--border);
+		background: var(--bg);
+		color: var(--text);
+		font-size: 0.95rem;
+	}
+
+	.field input[type="number"] {
+		max-width: 120px;
+	}
+
+	.field-hint {
+		display: block;
+		font-size: 0.8rem;
+		color: var(--muted);
+		margin-top: 0.25rem;
+	}
+
 	.checkbox-line {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 		margin: 1rem 0;
 		cursor: pointer;
+	}
+
+	.subsection-title {
+		font-size: 1rem;
+		font-weight: 600;
+		margin: 1.5rem 0 0.5rem;
+	}
+
+	.gallery-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.gallery-item {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1rem;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		cursor: pointer;
+		transition: border-color 0.15s;
+	}
+
+	.gallery-item:hover {
+		border-color: var(--accent);
+	}
+
+	.gallery-item.selected {
+		border-color: var(--accent);
+		background: var(--bg-hover);
+	}
+
+	.gallery-title {
+		flex: 1;
+		text-align: left;
+	}
+
+	.gallery-date {
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+
+	.new-gallery-form {
+		padding: 1rem;
+		background: var(--bg-secondary);
+		border-radius: 8px;
+		margin-bottom: 1rem;
+	}
+
+	.loading-inline {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--muted);
+		padding: 1rem 0;
 	}
 
 	.actions {
@@ -346,6 +770,16 @@
 
 	.actions button {
 		flex: 1;
+	}
+
+	.actions-inline {
+		display: flex;
+		gap: 0.5rem;
+		margin-top: 0.5rem;
+	}
+
+	.full-width {
+		width: 100%;
 	}
 
 	.running-indicator {
@@ -403,6 +837,38 @@
 
 	.result-summary {
 		margin: 1.5rem 0;
+	}
+
+	.alert {
+		padding: 0.75rem 1rem;
+		border-radius: 6px;
+		font-size: 0.9rem;
+	}
+
+	.alert-info {
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
+	}
+
+	.alert-warning {
+		background: rgba(245, 158, 11, 0.1);
+		border: 1px solid rgba(245, 158, 11, 0.3);
+		color: #fbbf24;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.alert-success {
+		background: rgba(16, 185, 129, 0.1);
+		border: 1px solid rgba(16, 185, 129, 0.3);
+		color: #10b981;
+	}
+
+	.alert-error {
+		background: rgba(239, 68, 68, 0.1);
+		border: 1px solid rgba(239, 68, 68, 0.3);
+		color: #ef4444;
 	}
 
 	footer {
