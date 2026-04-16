@@ -15,8 +15,7 @@ import type {
   ParsedPost,
   ParsedMedia,
 } from "../core/types.js";
-import { log } from "../utils/logger.js";
-import path from "path";
+import { browserLog as log } from "./browser-logger.js";
 import { fixFacebookEncoding } from "./parser.js";
 import { publishPhoto } from "./publisher.js";
 import type { Agent } from "@atproto/api";
@@ -25,7 +24,9 @@ import type { Agent } from "@atproto/api";
  * Get the file extension from a path
  */
 function getExtension(filePath: string): string {
-  return path.extname(filePath).toLowerCase();
+  // Browser-safe: get extension without Node.js path module
+  const lastDot = filePath.lastIndexOf(".");
+  return lastDot === -1 ? "" : filePath.slice(lastDot).toLowerCase();
 }
 
 /**
