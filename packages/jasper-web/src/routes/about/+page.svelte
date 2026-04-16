@@ -104,10 +104,10 @@
 
 	<h2>OAuth Scope</h2>
 	<p>Jasper requests minimal permissions:</p>
-	<code>atproto blob:*/* repo:social.grain.photo</code>
+	<code>atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery repo:social.grain.gallery.item</code>
 	<p>
-		This allows uploading photos as blobs and writing to Grain's photo collection only. No broad
-		permissions.
+		This allows uploading photos as blobs and writing to Grain's photo, gallery, and gallery item
+		collections. Your Bluesky profile is read directly from your PDS.
 	</p>
 
 	<h2>Source</h2>

@@ -12,7 +12,7 @@ const CALLBACK_PORT = 8766;
 const CALLBACK_HOST = "127.0.0.1";
 
 export const CALLBACK_URL = `http://${CALLBACK_HOST}:${CALLBACK_PORT}/oauth/callback`;
-export const OAUTH_SCOPE = "atproto blob:*/* repo:social.grain.photo";
+export const OAUTH_SCOPE = "atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery repo:social.grain.gallery.item";
 
 // Simple in-process lock — prevents NodeOAuthClient's "no lock mechanism" warning.
 const locks = new Map<string, Promise<void>>();
