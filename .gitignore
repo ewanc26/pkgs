@@ -11,3 +11,5 @@ dist
 !.env.example
 !.env.test
 packages/jasper/PLAN.md
+.vercel
+.env*.local
