@@ -31,6 +31,11 @@
     "README.md",
     "LICENCE"
   ],
+  "typesVersions": {
+    "*": {
+      "core": ["./dist/core/index.d.ts"]
+    }
+  },
   "exports": {
     ".": "./dist/index.js",
     "./core": {
