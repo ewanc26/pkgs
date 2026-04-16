@@ -106,6 +106,8 @@ export interface ImportOptions {
   verbose: boolean;
   /** Quiet mode */
   quiet: boolean;
+  /** Override alt text for all photos */
+  alt?: string;
 }
 
 export interface ImportResult {
@@ -150,6 +152,7 @@ export interface CommandLineArgs {
   yes?: boolean;
   verbose?: boolean;
   quiet?: boolean;
+  alt?: string;
   oauthLogin?: boolean;
   logout?: string;
   listSessions?: boolean;

@@ -53,6 +53,7 @@
   "dependencies": {
     "@atproto/api": "^0.19.3",
     "@atproto/oauth-client-node": "^0.3.16",
+    "@ewanc26/malachite": "workspace:*",
     "@ewanc26/tid": "workspace:*",
     "@zip.js/zip.js": "^2.7.57",
     "chalk": "^5.6.2",

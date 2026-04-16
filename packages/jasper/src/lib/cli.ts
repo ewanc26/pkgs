@@ -19,6 +19,7 @@ ${chalk.bold("OPTIONS")}
   --dry-run               Preview posts without importing
   --limit <N>             Import at most N posts
   --reverse               Process newest posts first (default: oldest first)
+  --alt <text>            Override alt text for all photos (default: use captions)
   -v, --verbose           Enable debug logging
   -q, --quiet             Suppress non-essential output
   -y, --yes               Skip confirmation prompts
@@ -69,6 +70,7 @@ export function parseCliArgs(argv: string[]): CommandLineArgs {
       yes: { type: "boolean", short: "y" },
       verbose: { type: "boolean", short: "v" },
       quiet: { type: "boolean", short: "q" },
+      alt: { type: "string" },
       "oauth-login": { type: "boolean" },
       logout: { type: "string" },
       "list-sessions": { type: "boolean" },
@@ -87,6 +89,7 @@ export function parseCliArgs(argv: string[]): CommandLineArgs {
     yes: values.yes as boolean | undefined,
     verbose: values.verbose as boolean | undefined,
     quiet: values.quiet as boolean | undefined,
+    alt: values.alt as string | undefined,
     oauthLogin: values["oauth-login"] as boolean | undefined,
     logout: values.logout as string | undefined,
     listSessions: values["list-sessions"] as boolean | undefined,
@@ -107,6 +110,7 @@ export function argsToImportOptions(args: CommandLineArgs): ImportOptions {
     yes: args.yes || false,
     verbose: args.verbose || false,
     quiet: args.quiet || false,
+    alt: args.alt,
   };
 }
 
