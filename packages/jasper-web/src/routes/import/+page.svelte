@@ -105,14 +105,19 @@
 
 <svelte:head>
 	<title>Import — Jasper</title>
-	<meta name="description" content="Import your Instagram photos to Grain.social" />
+	<meta
+		name="description"
+		content="Import Instagram photos to Grain.social from your browser and keep your own data under your control."
+	/>
 	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <main>
 	<header>
 		<img src={logo} alt="Jasper" width={48} height={48} class="logo-img" />
-		<p class="tagline">Import Instagram photos to Grain.social</p>
+		<p class="tagline">
+			Import Instagram photos to Grain.social without giving your data to a middleman
+		</p>
 	</header>
 
 	<div class="step-viewport">
