@@ -7,7 +7,7 @@
 	<title>Jasper — Import Instagram photos to Grain</title>
 	<meta
 		name="description"
-		content="Import your Instagram photos to Grain.social while preserving original timestamps. Free, open-source, runs in your browser."
+		content="Import your Instagram photos directly into Grain.social from your browser. Keep your memories under your control, not locked in by big tech."
 	/>
 	<link rel="canonical" href="https://jasper.croft.click" />
 
@@ -17,7 +17,7 @@
 	<meta property="og:title" content="Jasper — Import Instagram photos to Grain" />
 	<meta
 		property="og:description"
-		content="Import your Instagram photos to Grain.social while preserving original timestamps. Free, open-source, runs in your browser."
+		content="Import your Instagram photos directly into Grain.social from your browser. Keep your memories under your control, not locked in by big tech."
 	/>
 
 	<!-- Twitter / X card -->
@@ -25,7 +25,7 @@
 	<meta name="twitter:title" content="Jasper — Import Instagram photos to Grain" />
 	<meta
 		name="twitter:description"
-		content="Import your Instagram photos to Grain.social while preserving original timestamps. Free, open-source, runs in your browser."
+		content="Import your Instagram photos directly into Grain.social from your browser. Keep your memories under your control, not locked in by big tech."
 	/>
 </svelte:head>
 
@@ -37,11 +37,11 @@
 		</div>
 		<p class="wordmark">jasper</p>
 		<p class="eyebrow">Open source · Runs in your browser</p>
-		<h1>Your Instagram photos,<br />on Grain.</h1>
+		<h1>Take your Instagram photos<br />out of the platform.</h1>
 		<p class="sub">
-			Jasper imports your Instagram photos to
+			Jasper moves your Instagram export straight into
 			<a href="https://grain.social" target="_blank" rel="noopener">Grain.social</a>
-			— preserving their original timestamps.
+			— no corporate middleman, no extra tracking.
 		</p>
 		<div class="hero-actions">
 			<a href="/import" class="btn-primary">
