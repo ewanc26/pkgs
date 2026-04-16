@@ -4,7 +4,7 @@
 
 import type { Config } from "./types.js";
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 
 export const config: Config = {
   /** Grain lexicon NSID for photos */
@@ -25,6 +25,10 @@ export const config: Config = {
   /** Minimum upload delay in ms */
   MIN_UPLOAD_DELAY: 200,
 };
+
+/** Grain collection NSIDs for galleries */
+export const GRAIN_GALLERY_COLLECTION = "social.grain.gallery" as const;
+export const GRAIN_GALLERY_ITEM_COLLECTION = "social.grain.gallery.item" as const;
 
 /**
  * Get the OAuth client ID for Jasper
