@@ -258,7 +258,8 @@
 	}
 
 	.logo-img {
-		margin-bottom: 0.5rem;
+		display: block;
+		margin: 0 auto 0.5rem;
 	}
 
 	.tagline {
