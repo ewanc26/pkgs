@@ -22,6 +22,7 @@
 	let agent = $state<Agent | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let profile = $state<{ displayName?: string; description?: string; avatar?: string } | null>(null);
 	let handle = $state('');
 	let file = $state<File | null>(null);
 	let dryRun = $state(false);
@@ -225,6 +226,33 @@
 		try {
 			agent = await initOAuth();
 			if (agent) {
+				// Fetch profile record from PDS
+				const profileResult = await agent.com.atproto.repo.getRecord({
+					repo: agent.did ?? '',
+					collection: 'app.bsky.actor.profile',
+					rkey: 'self'
+				}).catch(() => null);
+
+				const profileRecord = profileResult?.data?.value as {
+					displayName?: string;
+					description?: string;
+					avatar?: {
+						ref: { '$link': string };
+						mimeType: string;
+					};
+				} | undefined;
+
+				let avatarUrl = undefined;
+				const cid = (profileRecord?.avatar as { ref?: { $link?: string } } | undefined)?.ref?.$link;
+				if (cid && agent.did) {
+					avatarUrl = `https://cdn.bsky.app/img/avatar/plain/${agent.did}/${cid}@jpeg`;
+				}
+
+				profile = {
+					displayName: profileRecord?.displayName,
+					description: profileRecord?.description,
+					avatar: avatarUrl
+				};
 				goTo(1);
 			}
 		} catch (e) {
@@ -267,7 +295,7 @@
 				{:else if step === 0}
 					<div class="card-section">
 						<h2 class="section-title">Sign in</h2>
-						<p class="section-sub">Sign in with your AT Protocol identity to import photos.</p>
+						<p class="section-sub" style="margin-bottom: 1.5rem;">Sign in with your AT Protocol identity to import photos.</p>
 
 						{#if error}
 							<p class="alert alert-error">{error}</p>
@@ -288,7 +316,20 @@
 				{:else if step === 1}
 					<div class="card-section">
 						<h2 class="section-title">Choose import type</h2>
-						<p class="section-sub">Signed in as <strong>{agent?.did}</strong></p>
+						{#if profile}
+							<div class="signed-in">
+								{#if profile.avatar}
+									<img src={profile.avatar} alt="" class="avatar" />
+								{/if}
+								<span class="signed-in-text">
+									{#if profile.displayName}
+										Signed in&nbsp;as <strong>{profile.displayName}</strong>
+									{:else}
+										Signed in
+									{/if}
+								</span>
+							</div>
+						{/if}
 
 						<div class="choice-cards">
 							<button
@@ -601,6 +642,31 @@
 		margin: 0;
 	}
 
+	.section-sub {
+		color: var(--muted);
+		font-size: 0.875rem;
+		margin: 0 0 1.5rem 0;
+	}
+
+	.signed-in {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		margin-top: 0.5rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.signed-in-text {
+		white-space: nowrap;
+	}
+
+	.avatar {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		object-fit: cover;
+	}
+
 	.step-viewport {
 		display: grid;
 		overflow: hidden;
@@ -701,7 +767,8 @@
 	}
 
 	.field {
-		margin-bottom: 0.75rem;
+		margin-top: 1.5rem;
+		margin-bottom: 1.5rem;
 	}
 
 	.field-label {
