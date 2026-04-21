@@ -29,7 +29,21 @@ import {
 } from "./lib/auth.js";
 import { getExistingPhotos, getExistingGalleries } from "./lib/publisher.js";
 import { RateLimitedPublisher } from "./lib/rate-limited-publisher.js";
-import { config } from "./core/config.js";
+import { config, DEFAULT_DAILY_LIMIT } from "./core/config.js";
+import type { ImportState, ParsedPost } from "./core/types.js";
+import {
+  saveImportState,
+  loadImportState,
+  listImportStates,
+  clearAllImportStates,
+  createImportState,
+  verifyExportHash,
+  isDailyLimitReached,
+  updateForNewDay,
+  getRemainingPosts,
+  formatImportStateSummary,
+  hashExportContents,
+} from "./lib/import-state.js";
 import path from "path";
 import fs from "fs";
 
@@ -112,14 +126,68 @@ async function runImport(options: {
   alt?: string;
   handle?: string;
   password?: string;
+  dailyLimit?: number;
+  resume?: boolean;
 }): Promise<void> {
   ui.header("Import Instagram Export");
+
+  const dailyLimit = options.dailyLimit ?? DEFAULT_DAILY_LIMIT;
 
   // Validate input
   const absolutePath = path.resolve(options.input);
   if (!fs.existsSync(absolutePath)) {
     log.error(`Path does not exist: ${absolutePath}`);
     process.exit(1);
+  }
+
+  // Check for existing import state
+  let importState: ImportState | null = null;
+
+  if (options.resume) {
+    importState = await loadImportState(absolutePath);
+    if (!importState) {
+      log.error("No saved import state found for this export.");
+      log.info("Start a new import without --resume first.");
+      process.exit(1);
+    }
+
+    // Verify export hasn't changed
+    log.progress("Verifying export file...");
+    const hashValid = await verifyExportHash(importState);
+    if (!hashValid) {
+      log.error("Export file has changed since last import session.");
+      log.info("Start a new import to reset the state.");
+      process.exit(1);
+    }
+    ui.succeedSpinner("Export verified");
+    log.blank();
+
+    log.info("Resuming previous import:");
+    log.raw(formatImportStateSummary(importState));
+    log.blank();
+  } else {
+    // Check for existing state (offer to resume)
+    const existingState = await loadImportState(absolutePath);
+    if (existingState && !options.yes) {
+      log.info("Found previous import session:");
+      log.raw(formatImportStateSummary(existingState));
+      log.blank();
+      const resumeChoice = await confirm("Resume this import?", true);
+      if (resumeChoice) {
+        importState = existingState;
+        // Verify hash
+        const hashValid = await verifyExportHash(importState);
+        if (!hashValid) {
+          log.warn("Export file has changed. Starting fresh.");
+          importState = null;
+        } else if (importState) {
+          // Check if new day - reset daily counter
+          if (new Date() >= new Date(importState.dailyResetAt)) {
+            importState = updateForNewDay(importState);
+          }
+        }
+      }
+    }
   }
 
   // Parse export
@@ -144,6 +212,33 @@ async function runImport(options: {
   ui.succeedSpinner(`Found ${posts.length} posts`);
   log.blank();
 
+  // Filter out already imported posts if resuming
+  if (importState) {
+    const importedSet = new Set([
+      ...importState.importedTimestamps,
+      ...importState.skippedTimestamps,
+    ]);
+    posts = posts.filter((p) => !importedSet.has(p.createdAt.toISOString()));
+    log.info(`${posts.length} posts remaining to import`);
+    log.blank();
+  }
+
+  // Check daily limit
+  if (importState && isDailyLimitReached(importState, dailyLimit)) {
+    log.warn("Daily limit reached for this import session.");
+    log.info(`Limit: ${dailyLimit} posts per day`);
+    log.info(`Imported today: ${importState.dailyImported}`);
+    log.info(`Resets at: ${new Date(importState.dailyResetAt).toLocaleString()}`);
+    log.blank();
+    log.info("Run `jasper --resume` tomorrow to continue.");
+    return;
+  }
+
+  // Calculate how many we can import today
+  const alreadyImportedToday = importState?.dailyImported ?? 0;
+  const canImportToday = dailyLimit - alreadyImportedToday;
+  const postsToImport = Math.min(posts.length, canImportToday);
+
   // Preview
   if (posts.length > 0) {
     log.info(
@@ -151,8 +246,14 @@ async function runImport(options: {
     );
     log.blank();
 
+    if (posts.length > canImportToday) {
+      log.info(chalk.cyan(`Daily limit: ${canImportToday} posts today`));
+      log.info(`Total remaining: ${posts.length} posts (${Math.ceil(posts.length / dailyLimit)} days)`);
+      log.blank();
+    }
+
     if (!options.yes) {
-      const proceed = await confirm(`Import ${posts.length} posts?`);
+      const proceed = await confirm(`Import ${postsToImport} posts?`);
       if (!proceed) {
         log.info("Cancelled");
         return;
@@ -198,11 +299,18 @@ async function runImport(options: {
 
   // Gallery selection/creation
   let galleryUri: string | undefined;
+  let galleryTitle: string | undefined;
 
   // Create rate-limited publisher
   const publisher = new RateLimitedPublisher(agent, options.dryRun);
 
-  if (!options.dryRun) {
+  // Resume: use existing gallery
+  if (importState?.galleryUri) {
+    galleryUri = importState.galleryUri;
+    galleryTitle = importState.galleryTitle;
+    log.info(`Using gallery: ${galleryTitle}`);
+    log.blank();
+  } else if (!options.dryRun) {
     log.progress("Fetching your galleries...");
     const existingGalleries = await getExistingGalleries(agent);
     ui.succeedSpinner(`Found ${existingGalleries.length} galleries`);
@@ -228,7 +336,8 @@ async function runImport(options: {
       const result = await publisher.createGallery(title || defaultTitle, description);
       if (result.success && result.uri) {
         galleryUri = result.uri;
-        ui.succeedSpinner(`Created gallery: ${title || defaultTitle}`);
+        galleryTitle = title || defaultTitle;
+        ui.succeedSpinner(`Created gallery: ${galleryTitle}`);
       } else {
         log.error(`Failed to create gallery: ${result.error}`);
         process.exit(1);
@@ -236,13 +345,28 @@ async function runImport(options: {
     } else {
       // Use existing gallery
       galleryUri = existingGalleries[choice - 1]?.uri;
+      galleryTitle = existingGalleries[choice - 1]?.title;
       if (!galleryUri) {
         log.error("Invalid gallery selection");
         process.exit(1);
       }
-      log.info(`Using gallery: ${existingGalleries[choice - 1]?.title}`);
+      log.info(`Using gallery: ${galleryTitle}`);
     }
     log.blank();
+  }
+
+  // Create import state if new
+  if (!importState && galleryUri && galleryTitle) {
+    const exportHash = await hashExportContents(absolutePath);
+    importState = createImportState(
+      absolutePath,
+      exportHash,
+      galleryUri,
+      galleryTitle,
+      posts.length,
+      dailyLimit,
+    );
+    await saveImportState(importState);
   }
 
   // Alt text handling
@@ -255,28 +379,51 @@ async function runImport(options: {
   let imported = 0;
   let skipped = 0;
   let failed = 0;
-  let galleryPosition = 0;
+  let galleryPosition = importState?.importedTimestamps.length ?? 0;
 
   const isZip = isZipFile(absolutePath);
 
-  for (let i = 0; i < posts.length; i++) {
+  // Track progress for state updates
+  const trackProgress = async (post: ParsedPost, status: 'imported' | 'skipped' | 'failed') => {
+    if (!importState) return;
+
+    const timestamp = post.createdAt.toISOString();
+    if (status === 'imported') {
+      importState.importedTimestamps.push(timestamp);
+      importState.dailyImported++;
+      importState.lastImportAt = new Date().toISOString();
+    } else if (status === 'skipped') {
+      importState.skippedTimestamps.push(timestamp);
+    } else {
+      importState.failedTimestamps.push(timestamp);
+    }
+
+    // Save state periodically (every 10 posts)
+    if (importState.importedTimestamps.length % 10 === 0) {
+      await saveImportState(importState);
+    }
+  };
+
+  for (let i = 0; i < postsToImport; i++) {
     const post = posts[i];
     const timestamp = post.createdAt.toISOString();
 
     // Skip if already exists
     if (existing.has(timestamp)) {
       skipped++;
+      await trackProgress(post, 'skipped');
       log.debug(`Skipping duplicate: ${timestamp}`);
       continue;
     }
 
     ui.startSpinner(
-      `[${i + 1}/${posts.length}] ${post.createdAt.toLocaleDateString()}`,
+      `[${i + 1}/${postsToImport}] ${post.createdAt.toLocaleDateString()}`,
     );
 
     for (const media of post.media) {
       if (media.type === "video") {
         skipped++;
+        await trackProgress(post, 'skipped');
         continue;
       }
 
@@ -290,6 +437,7 @@ async function runImport(options: {
         const validation = await validateImage(imageData);
         if (!validation.valid) {
           failed++;
+          await trackProgress(post, 'failed');
           log.warn(`Invalid image: ${validation.error}`);
           continue;
         }
@@ -312,6 +460,7 @@ async function runImport(options: {
 
         if (result.success) {
           imported++;
+          await trackProgress(post, 'imported');
 
           // Create gallery item linking photo to gallery
           if (galleryUri && result.uri) {
@@ -329,10 +478,12 @@ async function runImport(options: {
           }
         } else {
           failed++;
+          await trackProgress(post, 'failed');
           log.warn(`Failed to publish: ${result.error}`);
         }
       } catch (error) {
         failed++;
+        await trackProgress(post, 'failed');
         log.error(`Error processing media: ${(error as Error).message}`);
       }
     }
@@ -340,20 +491,35 @@ async function runImport(options: {
     ui.succeedSpinner();
 
     // Rate limit delay
-    if (i < posts.length - 1) {
+    if (i < postsToImport - 1) {
       await new Promise((resolve) =>
         setTimeout(resolve, config.DEFAULT_UPLOAD_DELAY),
       );
     }
   }
 
+  // Final state save
+  if (importState) {
+    await saveImportState(importState);
+  }
+
   // Summary
   log.blank();
   ui.header("Import Complete");
-  log.info(`Total: ${posts.length}`);
+  log.info(`Total: ${postsToImport}`);
   log.success(`Imported: ${imported}`);
   if (skipped > 0) log.info(`Skipped (duplicates/videos): ${skipped}`);
   if (failed > 0) log.error(`Failed: ${failed}`);
+
+  // Show remaining if daily limit was hit
+  if (importState) {
+    const remaining = getRemainingPosts(importState);
+    if (remaining > 0) {
+      log.blank();
+      log.info(chalk.cyan(`Remaining: ${remaining} posts`));
+      log.info(`Run \`jasper --resume\` tomorrow to continue.`);
+    }
+  }
 }
 
 /**
@@ -400,6 +566,90 @@ export async function main(): Promise<void> {
     return;
   }
 
+  // Handle list imports
+  if (args.listImports) {
+    const states = await listImportStates();
+    if (states.length === 0) {
+      log.info("No pending import sessions");
+    } else {
+      log.info("Pending import sessions:");
+      log.blank();
+      for (const state of states) {
+        log.raw(formatImportStateSummary(state));
+        log.blank();
+      }
+    }
+    return;
+  }
+
+  // Handle clear imports
+  if (args.clearImports) {
+    const cleared = await clearAllImportStates();
+    if (cleared === 0) {
+      log.info("No import sessions to clear");
+    } else {
+      log.info(`Cleared ${cleared} import session(s)`);
+    }
+    return;
+  }
+
+  // Handle resume without input
+  if (args.resume && !args.input) {
+    const states = await listImportStates();
+    if (states.length === 0) {
+      log.error("No pending import sessions to resume.");
+      log.info("Start a new import with: jasper -i <export>");
+      process.exit(1);
+    }
+
+    if (states.length === 1) {
+      // Auto-resume single session
+      log.info("Resuming single pending import...");
+      await runImport({
+        input: states[0].exportPath,
+        dryRun: false,
+        reverse: false,
+        yes: false,
+        verbose: args.verbose ?? false,
+        quiet: args.quiet ?? false,
+        resume: true,
+        dailyLimit: args.dailyLimit,
+        handle: args.handle,
+        password: args.password,
+      });
+      return;
+    }
+
+    // Multiple sessions - let user choose
+    log.info("Multiple pending imports:");
+    log.blank();
+    for (let i = 0; i < states.length; i++) {
+      log.raw(`  [${i + 1}] ${path.basename(states[i].exportPath)} — ${getRemainingPosts(states[i])} remaining`);
+    }
+    log.blank();
+
+    const choice = await prompt("Which import to resume? (number): ");
+    const index = parseInt(choice, 10) - 1;
+    if (index < 0 || index >= states.length) {
+      log.error("Invalid selection");
+      process.exit(1);
+    }
+
+    await runImport({
+      input: states[index].exportPath,
+      dryRun: false,
+      reverse: false,
+      yes: false,
+      verbose: args.verbose ?? false,
+      quiet: args.quiet ?? false,
+      resume: true,
+      dailyLimit: args.dailyLimit,
+      handle: args.handle,
+      password: args.password,
+    });
+    return;
+  }
+
   // Handle import (with input)
   if (args.input) {
     const options = argsToImportOptions(args);
@@ -413,6 +663,8 @@ export async function main(): Promise<void> {
       ...options,
       handle: args.handle,
       password: args.password,
+      dailyLimit: args.dailyLimit,
+      resume: args.resume,
     });
     return;
   }
