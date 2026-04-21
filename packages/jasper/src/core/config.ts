@@ -70,3 +70,14 @@ export const POSTS_JSON_PATHS = [
  * Media directories to search within export archives
  */
 export const MEDIA_DIRECTORIES = ["media/posts", "media/other"];
+
+/**
+ * Default daily import limit
+ * Large exports should be split across multiple days to avoid hitting PDS quotas
+ */
+export const DEFAULT_DAILY_LIMIT = 100;
+
+/**
+ * Import state directory for resumable imports
+ */
+export const IMPORT_STATE_DIR = ".jasper/imports";
