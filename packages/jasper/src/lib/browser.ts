@@ -21,6 +21,32 @@ import { publishPhoto, createGallery, createGalleryItem, getExistingGalleries, g
 import type { Agent } from "@atproto/api";
 import { GRAIN_GALLERY_ITEM_COLLECTION } from "../core/config.js";
 import { getImageDimensionsBrowser } from "./browser-image-utils.js";
+import type { BrowserImportState } from "./browser-import-state.js";
+import {
+  saveBrowserImportState,
+  loadBrowserImportState,
+  clearBrowserImportState,
+  fileMatchesState,
+  createBrowserImportState,
+  isBrowserDailyLimitReached,
+  updateBrowserForNewDay,
+  getBrowserRemainingPosts,
+  formatBrowserImportStateSummary,
+} from "./browser-import-state.js";
+
+// Re-export browser import state functions and types
+export {
+  saveBrowserImportState,
+  loadBrowserImportState,
+  clearBrowserImportState,
+  fileMatchesState,
+  createBrowserImportState,
+  isBrowserDailyLimitReached,
+  updateBrowserForNewDay,
+  getBrowserRemainingPosts,
+  formatBrowserImportStateSummary,
+  type BrowserImportState,
+};
 
 /**
  * Gallery info for selection UI
@@ -409,7 +435,7 @@ async function getImageDimensionsFromBlob(blob: Blob): Promise<{ width: number; 
 
 /**
  * Run the full import process in browser
- * Now supports gallery selection, batch limiting, and alt text override
+ * Supports gallery selection, batch limiting, state persistence, and alt text override
  */
 export async function runImport(
   agent: Agent,
@@ -420,7 +446,16 @@ export async function runImport(
   altOverride?: string,
   onProgress?: (current: number, total: number) => void,
   onLog?: (level: string, message: string) => void,
-): Promise<{ success: number; errors: number; photosImported: number; galleryItemsCreated: number }> {
+  existingState?: BrowserImportState,
+  onStateUpdate?: (state: BrowserImportState) => void,
+): Promise<{
+  success: number;
+  errors: number;
+  photosImported: number;
+  galleryItemsCreated: number;
+  state?: BrowserImportState;
+  dailyLimitReached?: boolean;
+}> {
   const logger = onLog
     ? { info: (msg: string) => onLog('info', msg), warn: (msg: string) => onLog('warn', msg), error: (msg: string) => onLog('error', msg) }
     : log;
@@ -437,11 +472,62 @@ export async function runImport(
     const existingPhotos = await getExistingPhotos(agent);
     logger.info(`Found ${existingPhotos.size} existing photos`);
 
+    // Initialize or resume state
+    let state: BrowserImportState | undefined;
+    let galleryTitle = 'Unknown Gallery';
+
+    if (existingState && existingState.galleryUri === galleryUri) {
+      state = existingState;
+      galleryTitle = existingState.galleryTitle;
+
+      // Check if new day - reset daily counter
+      if (new Date() >= new Date(state.dailyResetAt)) {
+        state = updateBrowserForNewDay(state);
+      }
+
+      // Check if daily limit already reached
+      if (isBrowserDailyLimitReached(state, batchSize)) {
+        logger.warn(`Daily limit of ${batchSize} already reached for this session.`);
+        logger.warn(`Resets at: ${new Date(state.dailyResetAt).toLocaleString()}`);
+        return {
+          success: 0,
+          errors: 0,
+          photosImported: 0,
+          galleryItemsCreated: 0,
+          state,
+          dailyLimitReached: true,
+        };
+      }
+
+      logger.info(`Resuming import: ${state.importedTimestamps.length} already imported`);
+    } else if (galleryUri) {
+      // Try to get gallery title
+      const galleries = await getExistingGalleries(agent);
+      const gallery = galleries.find(g => g.uri === galleryUri);
+      galleryTitle = gallery?.title || 'Unknown Gallery';
+
+      state = createBrowserImportState(file, galleryUri, galleryTitle, validPosts.length, batchSize);
+      saveBrowserImportState(state);
+    }
+
+    // Filter out already processed posts
+    let postsToProcess = validPosts;
+    if (state) {
+      const processedSet = new Set([
+        ...state.importedTimestamps,
+        ...state.skippedTimestamps,
+        ...state.failedTimestamps,
+      ]);
+      postsToProcess = validPosts.filter(p => !processedSet.has(p.createdAt.toISOString()));
+      logger.info(`${postsToProcess.length} posts remaining to import`);
+    }
+
     let photosImported = 0;
     let galleryItemsCreated = 0;
     let errors = 0;
-    let galleryPosition = 0;
-    let batchCount = 0;
+    let galleryPosition = state?.importedTimestamps.length ?? 0;
+    let batchCount = state?.dailyImported ?? 0;
+    let dailyLimitReached = false;
 
     // Helper for alt text
     const getAltText = (caption?: string): string | undefined => {
@@ -449,24 +535,53 @@ export async function runImport(
       return caption;
     };
 
-    for (let i = 0; i < validPosts.length; i++) {
-      const post = validPosts[i];
+    // Track progress for state updates
+    const trackProgress = (timestamp: string, status: 'imported' | 'skipped' | 'failed') => {
+      if (!state) return;
+
+      if (status === 'imported') {
+        state.importedTimestamps.push(timestamp);
+        state.dailyImported++;
+        state.lastImportAt = new Date().toISOString();
+      } else if (status === 'skipped') {
+        state.skippedTimestamps.push(timestamp);
+      } else {
+        state.failedTimestamps.push(timestamp);
+      }
+
+      // Save state periodically (every 10 posts)
+      if (state.importedTimestamps.length % 10 === 0) {
+        saveBrowserImportState(state);
+        onStateUpdate?.(state);
+      }
+    };
+
+    for (let i = 0; i < postsToProcess.length; i++) {
+      const post = postsToProcess[i];
       const timestamp = post.createdAt.toISOString();
 
       // Skip duplicates
       if (existingPhotos.has(timestamp)) {
+        trackProgress(timestamp, 'skipped');
         logger.info(`Skipping duplicate: ${timestamp}`);
         continue;
       }
 
-      // Check batch limit
+      // Check batch/daily limit
       if (batchCount >= batchSize) {
-        logger.warn(`Reached batch limit of ${batchSize}. Stopping to avoid rate limits.`);
-        logger.warn('You can continue with another batch later.');
+        logger.warn(`Reached daily limit of ${batchSize}. Stopping to avoid rate limits.`);
+        logger.warn('Progress saved. Refresh the page tomorrow to continue.');
+        dailyLimitReached = true;
+
+        // Save final state
+        if (state) {
+          saveBrowserImportState(state);
+          onStateUpdate?.(state);
+        }
         break;
       }
 
-      onProgress?.(i + 1, validPosts.length);
+      onProgress?.(i + 1, postsToProcess.length);
 
       for (const media of post.media) {
         if (media.type === 'image' && media.data) {
@@ -487,6 +602,7 @@ export async function runImport(
             if (result.success) {
               photosImported++;
               batchCount++;
+              trackProgress(timestamp, 'imported');
 
               // Create gallery item if gallery selected
               if (galleryUri && result.uri) {
@@ -508,21 +624,31 @@ export async function runImport(
               }
             } else {
               errors++;
+              trackProgress(timestamp, 'failed');
               logger.error(`Failed to publish: ${result.error}`);
             }
           } catch (error) {
             errors++;
+            trackProgress(timestamp, 'failed');
             logger.error(`Error publishing photo: ${error}`);
           }
         }
       }
     }
 
+    // Final state save
+    if (state) {
+      saveBrowserImportState(state);
+      onStateUpdate?.(state);
+    }
+
     return {
       success: photosImported,
       errors,
       photosImported,
-      galleryItemsCreated
+      galleryItemsCreated,
+      state,
+      dailyLimitReached,
     };
   } catch (error) {
     logger.error(`Import failed: ${error}`);

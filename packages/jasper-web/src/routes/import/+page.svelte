@@ -10,11 +10,17 @@
 		createNewGallery,
 		fetchOrphanPhotos,
 		organizeOrphanPhotos,
+		loadBrowserImportState,
+		clearBrowserImportState,
+		fileMatchesState,
+		getBrowserRemainingPosts,
+		formatBrowserImportStateSummary,
 		type GalleryInfo,
-		type OrphanPhoto
+		type OrphanPhoto,
+		type BrowserImportState
 	} from '@ewanc26/jasper/browser';
 	import logo from '$lib/assets/favicon.svg';
-	import { Upload, Loader2, ArrowRight, FolderOpen, Image, AlertTriangle } from '@lucide/svelte';
+	import { Upload, Loader2, ArrowRight, FolderOpen, Image, AlertTriangle, RotateCcw, Trash2 } from '@lucide/svelte';
 
 	let step = $state(0);
 	let prevStep = $state(0);
@@ -44,6 +50,10 @@
 	let orphanGalleryUri = $state<string | null>(null);
 	let orphanProgress = $state<{ current: number; total: number } | null>(null);
 
+	// Import state persistence
+	let savedState = $state<BrowserImportState | null>(null);
+	let showResumePrompt = $state(false);
+
 	let isRunning = $state(false);
 	let logs = $state<{ level: string; message: string }[]>([]);
 	let progress = $state<{ current: number; total: number } | null>(null);
@@ -52,6 +62,7 @@
 		errors: number;
 		photosImported?: number;
 		galleryItemsCreated?: number;
+		dailyLimitReached?: boolean;
 	} | null>(null);
 
 	let goingForward = $derived(step >= prevStep);
@@ -135,6 +146,9 @@
 		result = null;
 		goTo(3);
 
+		// Check if file matches saved state for resume
+		const existingState = savedState && fileMatchesState(file, savedState) ? savedState : undefined;
+
 		try {
 			const importResult = await runImport(
 				agent,
@@ -148,6 +162,10 @@
 				},
 				(level, message) => {
 					logs = [...logs, { level, message }];
+				},
+				existingState,
+				(updatedState) => {
+					savedState = updatedState;
 				}
 			);
 
@@ -155,12 +173,26 @@
 				success: importResult.photosImported || importResult.success,
 				errors: importResult.errors,
 				photosImported: importResult.photosImported,
-				galleryItemsCreated: importResult.galleryItemsCreated
+				galleryItemsCreated: importResult.galleryItemsCreated,
+				dailyLimitReached: importResult.dailyLimitReached
 			};
-			logs = [
-				...logs,
-				{ level: 'success', message: dryRun ? 'Dry run complete' : 'Import complete' }
-			];
+
+			// Update saved state from result
+			if (importResult.state) {
+				savedState = importResult.state;
+			}
+
+			if (importResult.dailyLimitReached) {
+				logs = [
+					...logs,
+					{ level: 'warn', message: 'Daily limit reached. Progress saved.' }
+				];
+			} else {
+				logs = [
+					...logs,
+					{ level: 'success', message: dryRun ? 'Dry run complete' : 'Import complete' }
+				];
+			}
 		} catch (error) {
 			logs = [...logs, { level: 'error', message: `Import failed: ${error}` }];
 			result = { success: 0, errors: 1 };
@@ -212,6 +244,7 @@
 		selectedGalleryUri = null;
 		logs = [];
 		result = null;
+		savedState = null;
 	}
 
 	function handleResetOrphans() {
@@ -222,8 +255,25 @@
 		result = null;
 	}
 
+	function handleClearSavedState() {
+		clearBrowserImportState();
+		savedState = null;
+		showResumePrompt = false;
+	}
+
+	function handleResumeImport() {
+		if (!savedState) return;
+		// Pre-select the gallery from saved state
+		selectedGalleryUri = savedState.galleryUri;
+		showResumePrompt = false;
+		// User still needs to upload the file
+	}
+
 	onMount(async () => {
 		try {
+			// Check for saved import state
+			savedState = loadBrowserImportState();
+
 			agent = await initOAuth();
 			if (agent) {
 				// Fetch profile record from PDS
@@ -253,6 +303,19 @@
 					description: profileRecord?.description,
 					avatar: avatarUrl
 				};
+
+				// If there's a saved state, check if gallery still exists
+				if (savedState) {
+					await loadGalleries();
+					const galleryExists = galleries.some(g => g.uri === savedState?.galleryUri);
+					if (galleryExists) {
+						showResumePrompt = true;
+					} else {
+						// Gallery was deleted, clear state
+						handleClearSavedState();
+					}
+				}
+
 				goTo(1);
 			}
 		} catch (e) {
@@ -328,6 +391,28 @@
 										Signed in
 									{/if}
 								</span>
+							</div>
+						{/if}
+
+						{#if showResumePrompt && savedState}
+							<div class="resume-prompt">
+								<div class="resume-header">
+									<RotateCcw size={20} />
+									<strong>Resume Previous Import</strong>
+								</div>
+								<p class="resume-info">
+									You have a pending import session from {new Date(savedState.createdAt).toLocaleDateString()}.
+									<br />
+									{savedState.importedTimestamps.length} photos imported, {getBrowserRemainingPosts(savedState)} remaining.
+								</p>
+								<div class="resume-actions">
+									<button class="btn-primary" onclick={handleResumeImport}>
+										Resume Import
+									</button>
+									<button class="btn-secondary btn-icon" onclick={handleClearSavedState} title="Clear saved state">
+										<Trash2 size={16} />
+									</button>
+								</div>
 							</div>
 						{/if}
 
@@ -489,16 +574,35 @@
 
 						{#if result}
 							<div class="result-summary">
-								<p class="alert alert-info">
-									{result.photosImported || result.success} photo(s) {dryRun
-										? 'would be '
-										: ''}imported.
-									{#if result.galleryItemsCreated}
-										<br />{result.galleryItemsCreated} gallery items created.
-									{/if}
-								</p>
+								{#if result.dailyLimitReached}
+									<div class="alert alert-warning">
+										<AlertTriangle size={16} />
+										<div>
+											<strong>Daily limit reached</strong>
+											<br />
+											{result.photosImported || result.success} photo(s) imported this session.
+											<br />
+											{#if savedState}
+												{getBrowserRemainingPosts(savedState)} photos remaining.
+												<br />
+												Come back tomorrow to continue.
+											{/if}
+										</div>
+									</div>
+								{:else}
+									<p class="alert alert-info">
+										{result.photosImported || result.success} photo(s) {dryRun
+											? 'would be '
+											: ''}imported.
+										{#if result.galleryItemsCreated}
+											<br />{result.galleryItemsCreated} gallery items created.
+										{/if}
+									</p>
+								{/if}
 							</div>
-							<button class="btn-primary" onclick={handleReset}> Start new import </button>
+							<button class="btn-primary" onclick={handleReset}>
+								{result.dailyLimitReached ? 'Done for today' : 'Start new import'}
+							</button>
 						{/if}
 					</div>
 				{:else if step === 4}
@@ -702,6 +806,41 @@
 		flex-direction: column;
 		gap: 0.75rem;
 		margin-bottom: 1rem;
+	}
+
+	.resume-prompt {
+		background: rgba(251, 146, 60, 0.1);
+		border: 1px solid rgba(251, 146, 60, 0.3);
+		border-radius: 8px;
+		padding: 1rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.resume-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: #fb923c;
+		margin-bottom: 0.5rem;
+	}
+
+	.resume-info {
+		font-size: 0.85rem;
+		color: var(--muted);
+		margin: 0 0 1rem 0;
+		line-height: 1.5;
+	}
+
+	.resume-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.btn-icon {
+		padding: 0.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.choice-card {
