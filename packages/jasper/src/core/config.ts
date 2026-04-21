@@ -53,12 +53,17 @@ export function getOAuthRedirectUri(): string {
 
 /**
  * Possible locations for posts_1.json in export archives
- * Checked in order, newest format first
+ * Checked in order, most common format first
+ *
+ * Note: Instagram's export format has evolved over time:
+ * - 2023+: your_instagram_activity/content/posts_1.json (JSON metadata)
+ * - 2025: your_instagram_activity/media/ contains HTML files (posts_1.html), not JSON
+ * - 2022 and earlier: content/posts_1.json
  */
 export const POSTS_JSON_PATHS = [
-  "your_instagram_activity/media/posts_1.json", // 2025+ format
-  "your_instagram_activity/content/posts_1.json", // 2023-2024 format
-  "content/posts_1.json", // 2022 legacy format
+  "your_instagram_activity/content/posts_1.json", // 2023-2025 format (JSON)
+  "your_instagram_activity/media/posts_1.json", // Alternate location (may not exist)
+  "content/posts_1.json", // 2022 and earlier legacy format
 ];
 
 /**
