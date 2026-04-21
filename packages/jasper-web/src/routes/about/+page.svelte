@@ -73,31 +73,31 @@
 		<li>
 			<span class="step-num">1</span>
 			<div>
-				<p>
-					Go to <a
-						href="https://accountscenter.instagram.com/info_and_permissions/dgp/"
-						target="_blank"
-						rel="noopener">Instagram's download page</a
-					>
-				</p>
+				<p>Open Instagram (app or web browser) and go to your profile</p>
 			</div>
 		</li>
 		<li>
 			<span class="step-num">2</span>
 			<div>
-				<p>Request a download of your information</p>
+				<p>Tap the menu (☰) → Settings → Accounts Center</p>
 			</div>
 		</li>
 		<li>
 			<span class="step-num">3</span>
 			<div>
-				<p>Select "Some of your information" → "Posts" and "Archived posts"</p>
+				<p>Select "Your information and permissions" → "Export your information"</p>
 			</div>
 		</li>
 		<li>
 			<span class="step-num">4</span>
 			<div>
-				<p>Choose JSON format and download the ZIP file</p>
+				<p>Choose "Export to device", select JSON format, and confirm with your password</p>
+			</div>
+		</li>
+		<li>
+			<span class="step-num">5</span>
+			<div>
+				<p>Wait for the email notification (can take hours to days) and download the ZIP file</p>
 			</div>
 		</li>
 	</ol>
