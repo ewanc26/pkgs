@@ -24,9 +24,15 @@ ${chalk.bold("OPTIONS")}
   -q, --quiet             Suppress non-essential output
   -y, --yes               Skip confirmation prompts
 
+${chalk.bold("DAILY LIMIT OPTIONS")}
+  --daily-limit <N>       Maximum posts to import per day (default: 100)
+  --resume                Resume previous import session
+  --list-imports          List pending import sessions
+  --clear-imports         Clear all saved import state
+
 ${chalk.bold("AUTH OPTIONS")}
   --oauth-login           Sign in via OAuth (opens browser)
-  --logout [DID]         Sign out (removes stored session)
+  --logout [DID]          Sign out (removes stored session)
   --list-sessions         List stored OAuth sessions
   --handle <handle>       AT Protocol handle for app password login
   --password <password>   App password for login
@@ -43,6 +49,12 @@ ${chalk.bold("EXAMPLES")}
 
   ${chalk.gray("# Import first 50 posts, skip confirmation")}
   jasper -i instagram-export.zip --limit 50 -y
+
+  ${chalk.gray("# Import with daily limit for large exports")}
+  jasper -i large-export.zip --daily-limit 50
+
+  ${chalk.gray("# Resume previous import")}
+  jasper --resume
 
   ${chalk.gray("# Sign in with OAuth")}
   jasper --oauth-login
@@ -76,6 +88,10 @@ export function parseCliArgs(argv: string[]): CommandLineArgs {
       "list-sessions": { type: "boolean" },
       handle: { type: "string" },
       password: { type: "string" },
+      "daily-limit": { type: "string" },
+      resume: { type: "boolean" },
+      "list-imports": { type: "boolean" },
+      "clear-imports": { type: "boolean" },
     },
     strict: false,
   }) as { values: Record<string, string | boolean | undefined> };
@@ -95,6 +111,10 @@ export function parseCliArgs(argv: string[]): CommandLineArgs {
     listSessions: values["list-sessions"] as boolean | undefined,
     handle: values.handle as string | undefined,
     password: values.password as string | undefined,
+    dailyLimit: values["daily-limit"] ? parseInt(values["daily-limit"] as string, 10) : undefined,
+    resume: values.resume as boolean | undefined,
+    listImports: values["list-imports"] as boolean | undefined,
+    clearImports: values["clear-imports"] as boolean | undefined,
   };
 }
 

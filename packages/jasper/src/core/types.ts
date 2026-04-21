@@ -158,6 +158,44 @@ export interface CommandLineArgs {
   listSessions?: boolean;
   handle?: string;
   password?: string;
+  dailyLimit?: number;
+  resume?: boolean;
+  listImports?: boolean;
+  clearImports?: boolean;
+}
+
+// ============================================
+// Import State Types
+// ============================================
+
+/**
+ * Persistent state for resumable imports
+ */
+export interface ImportState {
+  /** Original export file path */
+  exportPath: string;
+  /** SHA-256 hash of export file for verification */
+  exportHash: string;
+  /** Gallery URI for imported photos */
+  galleryUri: string;
+  /** Gallery title for display */
+  galleryTitle: string;
+  /** Total posts found in export */
+  totalPosts: number;
+  /** ISO timestamps of successfully imported posts */
+  importedTimestamps: string[];
+  /** ISO timestamps of skipped posts (duplicates, videos) */
+  skippedTimestamps: string[];
+  /** ISO timestamps of failed posts */
+  failedTimestamps: string[];
+  /** When this import session was created */
+  createdAt: string;
+  /** When the last successful import occurred */
+  lastImportAt: string | null;
+  /** Number of posts imported today */
+  dailyImported: number;
+  /** When the daily counter resets (next day) */
+  dailyResetAt: string;
 }
 
 // ============================================
