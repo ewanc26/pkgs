@@ -1,15 +1,29 @@
 /**
- * Apply pub.leaflet.richtext.facet annotations to a plaintext string,
+ * Apply richtext facet annotations to a plaintext string,
  * producing Markdown-formatted output.
+ *
+ * Supports facets from:
+ * - pub.leaflet.richtext.facet
+ * - blog.pckt.richtext.facet
+ * - app.offprint.richtext.facet
  *
  * Facets use UTF-8 byte offsets (byteStart inclusive, byteEnd exclusive).
  * Spans are sorted by length (descending) so that outer spans emit their
  * markers before inner spans at the same position.
  */
 
-import type { Facet, FacetFeature } from './types.js'
+import type {
+  Facet,
+  FacetFeature,
+  PcktFacet,
+  PcktFacetFeature,
+  OffprintFacet,
+  OffprintFacetFeature,
+} from './types.js'
 
-// ─── Public types ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Public types
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface FootnoteDef {
   index: number
@@ -22,11 +36,88 @@ export interface ApplyFacetsResult {
   footnotes: FootnoteDef[]
 }
 
-// ─── Core ────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Normalized feature type (platform-agnostic)
+// ─────────────────────────────────────────────────────────────────────────────
+
+type NormalizedFeature =
+  | { type: 'bold' }
+  | { type: 'italic' }
+  | { type: 'code' }
+  | { type: 'strikethrough' }
+  | { type: 'underline' }
+  | { type: 'highlight'; color?: string }
+  | { type: 'link'; uri: string }
+  | { type: 'footnote'; id: string; content: string }
+  | { type: 'mention'; did: string; handle?: string }
+  | { type: 'webMention'; uri: string; title: string; siteName?: string }
+  | { type: 'atMention'; atURI: string }
+  | { type: 'id'; id?: string }
+
+/**
+ * Normalize a facet feature from any platform to a platform-agnostic format.
+ */
+function normalizeFeature(
+  feature: FacetFeature | PcktFacetFeature | OffprintFacetFeature,
+): NormalizedFeature | null {
+  const type = feature.$type
+
+  // Extract base type without namespace (e.g., "pub.leaflet.richtext.facet#bold" → "bold")
+  const hashIndex = type.indexOf('#')
+  const baseType = hashIndex >= 0 ? type.slice(hashIndex + 1) : ''
+
+  switch (baseType) {
+    case 'bold':
+      return { type: 'bold' }
+    case 'italic':
+      return { type: 'italic' }
+    case 'code':
+      return { type: 'code' }
+    case 'strikethrough':
+      return { type: 'strikethrough' }
+    case 'underline':
+      return { type: 'underline' }
+    case 'highlight': {
+      // Offprint highlight can have a color property
+      const f = feature as { color?: string }
+      return { type: 'highlight', color: f.color }
+    }
+    case 'link':
+      return { type: 'link', uri: (feature as { uri: string }).uri }
+    case 'footnote': {
+      const f = feature as { footnoteId: string; contentPlaintext: string }
+      return { type: 'footnote', id: f.footnoteId, content: f.contentPlaintext }
+    }
+    case 'didMention':
+    case 'mention': {
+      // didMention (Leaflet/Pckt) and mention (Offprint) both have did
+      // Offprint mention can optionally have handle
+      const f = feature as { did: string; handle?: string }
+      return { type: 'mention', did: f.did, handle: f.handle }
+    }
+    case 'atMention':
+      return { type: 'atMention', atURI: (feature as { atURI: string }).atURI }
+    case 'webMention': {
+      // Offprint-specific: webMention with title and optional siteName
+      const f = feature as { uri: string; title: string; siteName?: string }
+      return { type: 'webMention', uri: f.uri, title: f.title, siteName: f.siteName }
+    }
+    case 'id':
+      return { type: 'id', id: (feature as { id?: string }).id }
+    default:
+      return null
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Core
+// ─────────────────────────────────────────────────────────────────────────────
+
+type AnyFacet = Facet | PcktFacet | OffprintFacet
 
 export function applyFacets(
   plaintext: string,
-  facets: Facet[] | undefined,
+  facets: AnyFacet[] | undefined,
 ): ApplyFacetsResult {
   if (!facets || facets.length === 0) {
     return { text: plaintext, footnotes: [] }
@@ -62,7 +153,10 @@ export function applyFacets(
   for (const facet of sorted) {
     const { byteStart, byteEnd } = facet.index
     for (const feature of facet.features) {
-      applyFeature(feature, byteStart, byteEnd, footnotes, addBefore, addAfter)
+      const normalized = normalizeFeature(feature)
+      if (normalized) {
+        applyFeature(normalized, byteStart, byteEnd, footnotes, addBefore, addAfter)
+      }
     }
   }
 
@@ -94,73 +188,96 @@ export function applyFacets(
   return { text: result, footnotes }
 }
 
-// ─── Feature handler ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Feature handler
+// ─────────────────────────────────────────────────────────────────────────────
 
 function applyFeature(
-  feature: FacetFeature,
+  feature: NormalizedFeature,
   byteStart: number,
   byteEnd: number,
   footnotes: FootnoteDef[],
   addBefore: (pos: number, s: string) => void,
   addAfter: (pos: number, s: string) => void,
 ): void {
-  switch (feature.$type) {
-    case 'pub.leaflet.richtext.facet#bold':
+  switch (feature.type) {
+    case 'bold':
       addBefore(byteStart, '**')
       addAfter(byteEnd, '**')
       break
 
-    case 'pub.leaflet.richtext.facet#italic':
+    case 'italic':
       addBefore(byteStart, '*')
       addAfter(byteEnd, '*')
       break
 
-    case 'pub.leaflet.richtext.facet#code':
+    case 'code':
       addBefore(byteStart, '`')
       addAfter(byteEnd, '`')
       break
 
-    case 'pub.leaflet.richtext.facet#strikethrough':
+    case 'strikethrough':
       addBefore(byteStart, '~~')
       addAfter(byteEnd, '~~')
       break
 
-    case 'pub.leaflet.richtext.facet#underline':
+    case 'underline':
       // No CommonMark equivalent — fall back to HTML.
       addBefore(byteStart, '<u>')
       addAfter(byteEnd, '</u>')
       break
 
-    case 'pub.leaflet.richtext.facet#highlight':
-      // Extended Markdown (e.g. Obsidian, Pandoc extended).
-      addBefore(byteStart, '==')
-      addAfter(byteEnd, '==')
+    case 'highlight':
+      if (feature.color) {
+        // Offprint highlight with color: use HTML mark with style
+        addBefore(byteStart, `<mark style="background-color:${feature.color}">`)
+        addAfter(byteEnd, '</mark>')
+      } else {
+        // Extended Markdown (e.g. Obsidian, Pandoc extended).
+        addBefore(byteStart, '==')
+        addAfter(byteEnd, '==')
+      }
       break
 
-    case 'pub.leaflet.richtext.facet#link':
+    case 'link':
       addBefore(byteStart, '[')
       addAfter(byteEnd, `](${feature.uri})`)
       break
 
-    case 'pub.leaflet.richtext.facet#footnote': {
+    case 'footnote': {
       const fnIdx = footnotes.length + 1
       footnotes.push({
         index: fnIdx,
-        id: feature.footnoteId,
-        content: feature.contentPlaintext,
+        id: feature.id,
+        content: feature.content,
       })
       // Append the reference marker after the anchor span.
       addAfter(byteEnd, `[^${fnIdx}]`)
       break
     }
 
-    // Mention and id facets have no Markdown equivalent — leave text as-is.
-    case 'pub.leaflet.richtext.facet#didMention':
-    case 'pub.leaflet.richtext.facet#atMention':
-    case 'pub.leaflet.richtext.facet#id':
+    case 'mention':
+      // Offprint mention can have a handle; append as a link after the text
+      if (feature.handle) {
+        addAfter(
+          byteEnd,
+          ` ([@${feature.handle}](https://bsky.app/profile/${feature.did}))`,
+        )
+      }
+      // If no handle, leave text as-is (didMention without handle)
       break
 
-    default:
+    case 'webMention': {
+      // Offprint webMention: link with title in the reference
+      addBefore(byteStart, '[')
+      const siteSuffix = feature.siteName ? ` — ${feature.siteName}` : ''
+      addAfter(byteEnd, `](${feature.uri} "${feature.title}${siteSuffix}")`)
+      break
+    }
+
+    // atMention and id have no Markdown equivalent — leave text as-is.
+    case 'atMention':
+    case 'id':
       break
   }
 }
