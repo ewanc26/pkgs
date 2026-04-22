@@ -5,22 +5,33 @@
  * Supports pub.leaflet.content, site.standard.document,
  * blog.pckt.content, and app.offprint.content.
  *
+ * Also supports fetching all documents belonging to a publication
+ * via the `fetch` subcommand.
+ *
  * Usage:
- *   bismuth [options] [file]
+ *   bismuth [options] [file]        Convert a document to Markdown
+ *   bismuth fetch [options]         Fetch all docs in a publication
  *
- *   file    Path to a JSON file containing the document. Reads stdin if omitted.
- *
- * Options:
+ * Options (convert):
  *   -f, --frontmatter   Emit YAML front matter from document metadata.
  *   -p, --page-break    String used to separate pages (default: "\\n\\n---\\n\\n").
  *       --did           Source DID for Pckt blob resolution.
  *   -o, --output        Write output to a file instead of stdout.
  *   -h, --help          Show this help text and exit.
  *       --version       Print version and exit.
+ *
+ * Options (fetch):
+ *       --did DID       DID of the repo owner (required).
+ *       --rkey RKEY     rkey of the publication (required).
+ *       --output-dir    Directory to write files to (default: ~/Downloads).
+ *       --no-frontmatter  Omit YAML front matter from output files.
+ *       --pds URL        Override the auto-resolved PDS endpoint.
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
 import { createReadStream } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import {
   documentToMarkdown,
@@ -28,6 +39,7 @@ import {
   pcktContentToMarkdown,
   offprintContentToMarkdown,
 } from './convert.js'
+import { fetchPublication } from './fetch.js'
 import type {
   StandardDocument,
   LeafletContent,
@@ -41,6 +53,12 @@ const PKG_VERSION = __BISMUTH_VERSION__
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
+  // ── Route subcommands ──────────────────────────────────────────────────────
+  if (argv[0] === 'fetch') {
+    return fetchCommand(argv.slice(1))
+  }
+
+  // ── Convert mode ──────────────────────────────────────────────────────────
   const { values, positionals } = parseArgs({
     args: argv,
     options: {
@@ -131,6 +149,56 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   }
 }
 
+// ─── fetch subcommand ────────────────────────────────────────────────────────
+
+async function fetchCommand(argv: string[]): Promise<void> {
+  const { values } = parseArgs({
+    args: argv,
+    options: {
+      did: { type: 'string' },
+      rkey: { type: 'string' },
+      'output-dir': { type: 'string' },
+      'no-frontmatter': { type: 'boolean', default: false },
+      pds: { type: 'string' },
+      help: { type: 'boolean', short: 'h', default: false },
+    },
+    allowPositionals: false,
+    strict: true,
+  })
+
+  if (values.help) {
+    console.log(FETCH_HELP)
+    return
+  }
+
+  if (!values.did) {
+    die('fetch: --did is required')
+  }
+  if (!values.rkey) {
+    die('fetch: --rkey is required')
+  }
+
+  const outputDir = values['output-dir'] ?? join(homedir(), 'Downloads')
+
+  const results = await fetchPublication({
+    did: values.did,
+    rkey: values.rkey,
+    outputDir,
+    frontmatter: !values['no-frontmatter'],
+    pdsEndpoint: values.pds,
+  })
+
+  if (results.length === 0) {
+    console.error('No documents found for this publication.')
+    return
+  }
+
+  console.error(`Fetched ${results.length} document${results.length === 1 ? '' : 's'} to ${outputDir}:`)
+  for (const r of results) {
+    console.error(`  ${r.rkey}  ${r.title}`)
+  }
+}
+
 // ─── Type guards ──────────────────────────────────────────────────────────────
 
 function isStandardDocument(v: unknown): v is StandardDocument {
@@ -187,16 +255,19 @@ Convert ATProto RTF-block documents to Markdown.
 Supports: site.standard.document, pub.leaflet.content,
           blog.pckt.content, app.offprint.content.
 
+Commands:
+  fetch              Fetch all documents in a publication.
+
 Arguments:
-  file                  JSON file to read. Reads stdin if omitted.
+  file               JSON file to read. Reads stdin if omitted.
 
 Options:
   -f, --frontmatter     Emit YAML front matter from document metadata.
   -p, --page-break STR  Separator between pages (default: "\\n\\n---\\n\\n").
-      --did DID         Source DID for Pckt blob resolution.
+      --did DID          Source DID for Pckt blob resolution.
   -o, --output FILE     Write output to FILE instead of stdout.
   -h, --help            Show this help text and exit.
-      --version         Print version and exit.
+      --version          Print version and exit.
 
 Examples:
   # Convert a Standard.site document, with front matter
@@ -209,6 +280,33 @@ Examples:
   bismuth --did did:plc:abc123 pckt-post.json
 
   # Multi-page Leaflet document — custom page separator
-  bismuth --page-break 
-\\n\\n<!-- page -->\\n\\n' doc.json
+  bismuth --page-break $'\\n\\n<!-- page -->\\n\\n' doc.json
+
+  # Fetch all documents in a publication
+  bismuth fetch --did did:plc:abc123 --rkey 3mfyq5mpohw25
+`
+
+const FETCH_HELP = `\
+Usage: bismuth fetch [options]
+
+Fetch all site.standard.document records belonging to a
+site.standard.publication, convert them to Markdown, and
+save the files to the output directory.
+
+Files are named {rkey}.md.
+
+Options:
+      --did DID             DID of the repo owner (required).
+      --rkey RKEY           rkey of the publication (required).
+      --output-dir DIR      Directory to write files to (default: ~/Downloads).
+      --no-frontmatter      Omit YAML front matter from output files.
+      --pds URL             Override the auto-resolved PDS endpoint.
+  -h, --help                Show this help text and exit.
+
+Examples:
+  # Fetch all documents from a publication
+  bismuth fetch --did did:plc:ofrbh253gwicbkc5nktqepol --rkey 3mfyq5mpohw25
+
+  # Fetch to a custom directory
+  bismuth fetch --did did:plc:ofrbh253gwicbkc5nktqepol --rkey 3mfyq5mpohw25 --output-dir ./posts
 `

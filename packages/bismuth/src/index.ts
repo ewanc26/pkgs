@@ -10,6 +10,8 @@ export { contentToMarkdown, documentToMarkdown, pcktContentToMarkdown, offprintC
 export { blockToMarkdown } from './blocks.js'
 export { applyFacets } from './facets.js'
 export { resolvePcktContent, createPdsBlobResolver } from './blob.js'
+export { fetchPublication } from './fetch.js'
+export { resolvePdsEndpoint, listDocuments, fetchRecord, listRecords, rkeyFromUri } from './pds.js'
 
 // Types
 export type {
@@ -26,6 +28,10 @@ export type {
 export type {
   BlobResolver,
 } from './blob.js'
+export type {
+  FetchPublicationOptions,
+  FetchResult,
+} from './fetch.js'
 export type {
   // Shared
   BlobRef,
