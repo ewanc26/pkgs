@@ -36,7 +36,7 @@ import type {
 } from './types.js'
 
 // ─── Version (injected by tsup at build time) ─────────────────────────────────
-const PKG_VERSION = '__BISMUTH_VERSION__'
+const PKG_VERSION = __BISMUTH_VERSION__
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
@@ -118,9 +118,16 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       die(`Cannot write to "${values.output}": ${String(err)}`)
     })
   } else {
+    // Ignore EPIPE — the downstream consumer may close the pipe early
+    // (e.g. when piping to `head`). This is expected, not an error.
+    const onPipeError = (err: NodeJS.ErrnoException) => {
+      if (err.code !== 'EPIPE') throw err
+    }
+    process.stdout.once('error', onPipeError)
     process.stdout.write(markdown)
     // Ensure a trailing newline when writing to stdout.
     if (!markdown.endsWith('\n')) process.stdout.write('\n')
+    process.stdout.removeListener('error', onPipeError)
   }
 }
 
