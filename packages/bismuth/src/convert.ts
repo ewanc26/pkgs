@@ -1,12 +1,22 @@
 /**
  * High-level converters:
- *   contentToMarkdown  — pub.leaflet.content → Markdown string
- *   documentToMarkdown — site.standard.document → Markdown string (with optional YAML front matter)
+ *   contentToMarkdown        — pub.leaflet.content → Markdown string
+ *   documentToMarkdown       — site.standard.document → Markdown string (with optional YAML front matter)
+ *   pcktContentToMarkdown    — blog.pckt.content → Markdown string
+ *   offprintContentToMarkdown — app.offprint.content → Markdown string
  */
 
 import { blockToMarkdown } from './blocks.js'
+import { resolvePcktContent } from './blob.js'
+import type { BlobResolver } from './blob.js'
 import type { FootnoteDef } from './facets.js'
-import type { LeafletContent, LinearDocumentPage, StandardDocument } from './types.js'
+import type {
+  LeafletContent,
+  LinearDocumentPage,
+  StandardDocument,
+  PcktContent,
+  OffprintContent,
+} from './types.js'
 
 // ─── Options ──────────────────────────────────────────────────────────────────
 
@@ -23,6 +33,38 @@ export interface ConvertOptions {
    * @default '\n\n---\n\n'
    */
   pageBreak?: string
+}
+
+export interface PcktConvertOptions extends ConvertOptions {
+  /**
+   * Custom blob resolver for Pckt extended-mode content.
+   * Falls back to the default PDS resolver if omitted.
+   */
+  blobResolver?: BlobResolver
+}
+
+// ─── Shared block-list helper ────────────────────────────────────────────────
+
+function blocksToMarkdown(blocks: Parameters<typeof blockToMarkdown>[0][]): string {
+  const parts: string[] = []
+  const allFootnotes: FootnoteDef[] = []
+
+  for (const block of blocks) {
+    const r = blockToMarkdown(block)
+    if (r.markdown.trim()) parts.push(r.markdown)
+    allFootnotes.push(...r.footnotes)
+  }
+
+  let text = parts.join('\n\n')
+
+  if (allFootnotes.length > 0) {
+    const defs = allFootnotes
+      .map((fn) => `[^${fn.index}]: ${fn.content}`)
+      .join('\n')
+    text += `\n\n${defs}`
+  }
+
+  return text
 }
 
 // ─── contentToMarkdown ────────────────────────────────────────────────────────
@@ -60,25 +102,44 @@ export function contentToMarkdown(
 }
 
 function linearPageToMarkdown(page: LinearDocumentPage): string {
-  const blockParts: string[] = []
-  const allFootnotes: FootnoteDef[] = []
+  return blocksToMarkdown(page.blocks.map(({ block }) => block))
+}
 
-  for (const { block } of page.blocks) {
-    const r = blockToMarkdown(block)
-    if (r.markdown.trim()) blockParts.push(r.markdown)
-    allFootnotes.push(...r.footnotes)
+// ─── pcktContentToMarkdown ───────────────────────────────────────────────────
+
+/**
+ * Convert a `blog.pckt.content` object to a Markdown string.
+ *
+ * Pckt content may be inline (`items` array) or extended (a blob reference).
+ * Extended mode requires `sourceDid` for blob resolution; an error is thrown
+ * if the DID is absent and the content uses blob mode.
+ */
+export async function pcktContentToMarkdown(
+  content: PcktContent,
+  sourceDid?: string,
+  opts: PcktConvertOptions = {},
+): Promise<string> {
+  const blocks = await resolvePcktContent(content, sourceDid ?? '', opts.blobResolver)
+
+  if (!sourceDid && !content.items) {
+    throw new Error(
+      'blog.pckt.content uses blob mode — a sourceDid is required for blob resolution.',
+    )
   }
 
-  let text = blockParts.join('\n\n')
+  return blocksToMarkdown(blocks)
+}
 
-  if (allFootnotes.length > 0) {
-    const defs = allFootnotes
-      .map((fn) => `[^${fn.index}]: ${fn.content}`)
-      .join('\n')
-    text += `\n\n${defs}`
-  }
+// ─── offprintContentToMarkdown ────────────────────────────────────────────────
 
-  return text
+/**
+ * Convert an `app.offprint.content` object to a Markdown string.
+ */
+export function offprintContentToMarkdown(
+  content: OffprintContent,
+  _opts: ConvertOptions = {},
+): string {
+  return blocksToMarkdown(content.items)
 }
 
 // ─── documentToMarkdown ───────────────────────────────────────────────────────

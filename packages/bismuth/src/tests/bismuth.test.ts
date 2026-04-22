@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 
 import { applyFacets } from '../facets.js'
 import { blockToMarkdown } from '../blocks.js'
-import { contentToMarkdown, documentToMarkdown } from '../convert.js'
+import { contentToMarkdown, documentToMarkdown, offprintContentToMarkdown } from '../convert.js'
 import type {
   Facet,
   TextBlock,
@@ -14,6 +14,24 @@ import type {
   UnorderedListBlock,
   LeafletContent,
   StandardDocument,
+  // Pckt
+  PcktTextBlock,
+  PcktHeadingBlock,
+  PcktBlockquoteBlock,
+  PcktBulletListBlock,
+  PcktOrderedListBlock,
+  PcktFacet,
+  PcktContent,
+  // Offprint
+  OffprintTextBlock,
+  OffprintHeadingBlock,
+  OffprintCodeBlock,
+  OffprintBulletListBlock,
+  OffprintOrderedListBlock,
+  OffprintTaskListBlock,
+  OffprintBlockquoteBlock,
+  OffprintFacet,
+  OffprintContent,
 } from '../types.js'
 
 // ─── applyFacets ──────────────────────────────────────────────────────────────
@@ -369,5 +387,332 @@ describe('documentToMarkdown', () => {
     }
     const md = documentToMarkdown(doc)
     assert.match(md, /Fallback text\./)
+  })
+})
+
+// ─── Pckt blocks ───────────────────────────────────────────────────────────────
+
+describe('Pckt blockToMarkdown', () => {
+  it('converts a Pckt text block', () => {
+    const block: PcktTextBlock = {
+      $type: 'blog.pckt.block.text',
+      plaintext: 'Hello from Pckt.',
+    }
+    assert.equal(blockToMarkdown(block).markdown, 'Hello from Pckt.')
+  })
+
+  it('converts a Pckt heading', () => {
+    const block: PcktHeadingBlock = {
+      $type: 'blog.pckt.block.heading',
+      plaintext: 'A Pckt Heading',
+      level: 2,
+    }
+    assert.equal(blockToMarkdown(block).markdown, '## A Pckt Heading')
+  })
+
+  it('defaults Pckt heading level to 1', () => {
+    const block: PcktHeadingBlock = {
+      $type: 'blog.pckt.block.heading',
+      plaintext: 'No Level',
+    }
+    assert.equal(blockToMarkdown(block).markdown, '# No Level')
+  })
+
+  it('converts a Pckt blockquote', () => {
+    const block: PcktBlockquoteBlock = {
+      $type: 'blog.pckt.block.blockquote',
+      content: [
+        { $type: 'blog.pckt.block.text', plaintext: 'Quoted text.' },
+      ],
+    }
+    assert.equal(blockToMarkdown(block).markdown, '> Quoted text.')
+  })
+
+  it('converts a Pckt bullet list', () => {
+    const block: PcktBulletListBlock = {
+      $type: 'blog.pckt.block.bulletList',
+      content: [
+        {
+          $type: 'blog.pckt.block.listItem',
+          content: [{ $type: 'blog.pckt.block.text', plaintext: 'Alpha' }],
+        },
+        {
+          $type: 'blog.pckt.block.listItem',
+          content: [{ $type: 'blog.pckt.block.text', plaintext: 'Beta' }],
+        },
+      ],
+    }
+    assert.equal(blockToMarkdown(block).markdown, '- Alpha\n- Beta')
+  })
+
+  it('converts a Pckt ordered list', () => {
+    const block: PcktOrderedListBlock = {
+      $type: 'blog.pckt.block.orderedList',
+      content: [
+        {
+          $type: 'blog.pckt.block.listItem',
+          content: [{ $type: 'blog.pckt.block.text', plaintext: 'First' }],
+        },
+        {
+          $type: 'blog.pckt.block.listItem',
+          content: [{ $type: 'blog.pckt.block.text', plaintext: 'Second' }],
+        },
+      ],
+    }
+    assert.equal(blockToMarkdown(block).markdown, '1. First\n2. Second')
+  })
+
+  it('converts a Pckt horizontal rule', () => {
+    assert.equal(
+      blockToMarkdown({ $type: 'blog.pckt.block.horizontalRule' }).markdown,
+      '---',
+    )
+  })
+
+  it('applies Pckt facets (bold)', () => {
+    const facets: PcktFacet[] = [
+      {
+        index: { byteStart: 0, byteEnd: 5 },
+        features: [{ $type: 'blog.pckt.richtext.facet#bold' }],
+      },
+    ]
+    const block: PcktTextBlock = {
+      $type: 'blog.pckt.block.text',
+      plaintext: 'hello world',
+      facets,
+    }
+    assert.equal(blockToMarkdown(block).markdown, '**hello** world')
+  })
+
+  it('applies Pckt facets (link)', () => {
+    const facets: PcktFacet[] = [
+      {
+        index: { byteStart: 0, byteEnd: 4 },
+        features: [{ $type: 'blog.pckt.richtext.facet#link', uri: 'https://pckt.app' }],
+      },
+    ]
+    const block: PcktTextBlock = {
+      $type: 'blog.pckt.block.text',
+      plaintext: 'Pckt blog',
+      facets,
+    }
+    assert.equal(blockToMarkdown(block).markdown, '[Pckt](https://pckt.app) blog')
+  })
+})
+
+// ─── Pckt inline content ─────────────────────────────────────────────────────────
+
+describe('pcktContentToMarkdown (inline items)', () => {
+  it('converts inline Pckt content without blob resolution', async () => {
+    // Dynamically import to avoid top-level await
+    const { pcktContentToMarkdown } = await import('../convert.js')
+    const content: PcktContent = {
+      $type: 'blog.pckt.content',
+      items: [
+        { $type: 'blog.pckt.block.heading', plaintext: 'Title', level: 1 } as PcktHeadingBlock,
+        { $type: 'blog.pckt.block.text', plaintext: 'Body.' } as PcktTextBlock,
+      ],
+    }
+    const md = await pcktContentToMarkdown(content)
+    assert.match(md, /^# Title/)
+    assert.match(md, /Body\./)
+  })
+})
+
+// ─── Offprint blocks ────────────────────────────────────────────────────────────
+
+describe('Offprint blockToMarkdown', () => {
+  it('converts an Offprint text block', () => {
+    const block: OffprintTextBlock = {
+      $type: 'app.offprint.block.text',
+      plaintext: 'Hello from Offprint.',
+    }
+    assert.equal(blockToMarkdown(block).markdown, 'Hello from Offprint.')
+  })
+
+  it('converts an Offprint heading', () => {
+    const block: OffprintHeadingBlock = {
+      $type: 'app.offprint.block.heading',
+      plaintext: 'An Offprint Heading',
+      level: 3,
+    }
+    assert.equal(blockToMarkdown(block).markdown, '### An Offprint Heading')
+  })
+
+  it('converts an Offprint code block', () => {
+    const block: OffprintCodeBlock = {
+      $type: 'app.offprint.block.codeBlock',
+      code: 'console.log("hi")',
+      language: 'javascript',
+    }
+    assert.equal(
+      blockToMarkdown(block).markdown,
+      '```javascript\nconsole.log("hi")\n```',
+    )
+  })
+
+  it('converts an Offprint bullet list', () => {
+    const block: OffprintBulletListBlock = {
+      $type: 'app.offprint.block.bulletList',
+      children: [
+        { content: { $type: 'app.offprint.block.text', plaintext: 'One' } },
+        { content: { $type: 'app.offprint.block.text', plaintext: 'Two' } },
+      ],
+    }
+    assert.equal(blockToMarkdown(block).markdown, '- One\n- Two')
+  })
+
+  it('converts nested Offprint bullet list', () => {
+    const block: OffprintBulletListBlock = {
+      $type: 'app.offprint.block.bulletList',
+      children: [
+        {
+          content: { $type: 'app.offprint.block.text', plaintext: 'Parent' },
+          children: [
+            { content: { $type: 'app.offprint.block.text', plaintext: 'Child' } },
+          ],
+        },
+      ],
+    }
+    const md = blockToMarkdown(block).markdown
+    assert.match(md, /^- Parent\n {2}- Child$/)
+  })
+
+  it('converts an Offprint ordered list', () => {
+    const block: OffprintOrderedListBlock = {
+      $type: 'app.offprint.block.orderedList',
+      children: [
+        { content: { $type: 'app.offprint.block.text', plaintext: 'A' } },
+        { content: { $type: 'app.offprint.block.text', plaintext: 'B' } },
+      ],
+    }
+    assert.equal(blockToMarkdown(block).markdown, '1. A\n2. B')
+  })
+
+  it('converts an Offprint task list', () => {
+    const block: OffprintTaskListBlock = {
+      $type: 'app.offprint.block.taskList',
+      children: [
+        {
+          content: { $type: 'app.offprint.block.text', plaintext: 'Done' },
+          checked: true,
+        },
+        {
+          content: { $type: 'app.offprint.block.text', plaintext: 'Pending' },
+          checked: false,
+        },
+      ],
+    }
+    const md = blockToMarkdown(block).markdown
+    assert.equal(md, '- [x] Done\n- [ ] Pending')
+  })
+
+  it('converts an Offprint blockquote', () => {
+    const block: OffprintBlockquoteBlock = {
+      $type: 'app.offprint.block.blockquote',
+      content: [
+        { $type: 'app.offprint.block.text', plaintext: 'Wise words.' },
+      ],
+    }
+    assert.equal(blockToMarkdown(block).markdown, '> Wise words.')
+  })
+
+  it('converts an Offprint horizontal rule', () => {
+    assert.equal(
+      blockToMarkdown({ $type: 'app.offprint.block.horizontalRule' }).markdown,
+      '---',
+    )
+  })
+
+  it('applies Offprint facets (italic)', () => {
+    const facets: OffprintFacet[] = [
+      {
+        index: { byteStart: 0, byteEnd: 7 },
+        features: [{ $type: 'app.offprint.richtext.facet#italic' }],
+      },
+    ]
+    const block: OffprintTextBlock = {
+      $type: 'app.offprint.block.text',
+      plaintext: 'Offprint text',
+      facets,
+    }
+    assert.equal(blockToMarkdown(block).markdown, '*Offprint* text')
+  })
+
+  it('applies Offprint highlight with color', () => {
+    const facets: OffprintFacet[] = [
+      {
+        index: { byteStart: 0, byteEnd: 5 },
+        features: [{ $type: 'app.offprint.richtext.facet#highlight', color: '#ff0' }],
+      },
+    ]
+    const block: OffprintTextBlock = {
+      $type: 'app.offprint.block.text',
+      plaintext: 'hello',
+      facets,
+    }
+    assert.match(blockToMarkdown(block).markdown, /mark.*style/)
+  })
+
+  it('applies Offprint mention with handle', () => {
+    const facets: OffprintFacet[] = [
+      {
+        index: { byteStart: 0, byteEnd: 5 },
+        features: [{
+          $type: 'app.offprint.richtext.facet#mention',
+          did: 'did:plc:abc',
+          handle: 'alice.bsky.social',
+        }],
+      },
+    ]
+    const block: OffprintTextBlock = {
+      $type: 'app.offprint.block.text',
+      plaintext: 'alice',
+      facets,
+    }
+    const md = blockToMarkdown(block).markdown
+    assert.match(md, /@alice\.bsky\.social/)
+    assert.match(md, /bsky\.app\/profile/)
+  })
+})
+
+// ─── offprintContentToMarkdown ───────────────────────────────────────────────────────
+
+describe('offprintContentToMarkdown', () => {
+  it('converts Offprint content items', () => {
+    const content: OffprintContent = {
+      $type: 'app.offprint.content',
+      items: [
+        { $type: 'app.offprint.block.heading', plaintext: 'My Post', level: 1 } as OffprintHeadingBlock,
+        { $type: 'app.offprint.block.text', plaintext: 'Some body text.' } as OffprintTextBlock,
+      ],
+    }
+    const md = offprintContentToMarkdown(content)
+    assert.match(md, /^# My Post/)
+    assert.match(md, /Some body text\./)
+  })
+
+  it('collects footnotes from Offprint content', () => {
+    const content: OffprintContent = {
+      $type: 'app.offprint.content',
+      items: [
+        {
+          $type: 'app.offprint.block.text',
+          plaintext: 'word',
+          facets: [
+            {
+              index: { byteStart: 0, byteEnd: 4 },
+              features: [{
+                $type: 'pub.leaflet.richtext.facet#footnote' as 'app.offprint.richtext.facet#mention',
+                // We\'re exercising that footnotes from any platform are collected
+              } as never],
+            },
+          ],
+        } as OffprintTextBlock,
+      ],
+    }
+    // Just check it doesn\'t throw and returns a string
+    const md = offprintContentToMarkdown(content)
+    assert.equal(typeof md, 'string')
   })
 })

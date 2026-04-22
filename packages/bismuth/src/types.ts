@@ -1,5 +1,5 @@
 /**
- * TypeScript types mirroring the pub.leaflet.* and site.standard.* lexicons.
+ * TypeScript types mirroring the pub.leaflet.*, blog.pckt.*, and app.offprint.* lexicons.
  * Only the fields relevant for Markdown conversion are represented.
  */
 
@@ -134,9 +134,216 @@ export interface UnorderedListBlock {
   children: ListItem[]
 }
 
+// ─── Shared Types ────────────────────────────────────────────────────────────
+
+export interface BlobRef {
+  $type: 'blob'
+  mimeType: string
+  size: number
+  ref?: { $type: 'blobRef'; mimeType: string; size: number; cid: string }
+  cid?: string
+}
+
+export interface StrongRef {
+  uri: string
+  cid: string
+}
+
+// ─── Pckt Facets ─────────────────────────────────────────────────────────────
+
+export type PcktFacetFeature =
+  | { $type: 'blog.pckt.richtext.facet#link'; uri: string }
+  | { $type: 'blog.pckt.richtext.facet#bold' }
+  | { $type: 'blog.pckt.richtext.facet#italic' }
+  | { $type: 'blog.pckt.richtext.facet#code' }
+  | { $type: 'blog.pckt.richtext.facet#strikethrough' }
+  | { $type: 'blog.pckt.richtext.facet#underline' }
+  | { $type: 'blog.pckt.richtext.facet#highlight' }
+  | { $type: 'blog.pckt.richtext.facet#didMention'; did: string }
+  | { $type: 'blog.pckt.richtext.facet#atMention'; atURI: string }
+  | { $type: 'blog.pckt.richtext.facet#id'; id?: string }
+
+export interface PcktFacet {
+  index: ByteSlice
+  features: PcktFacetFeature[]
+}
+
+// ─── Pckt Blocks ─────────────────────────────────────────────────────────────
+
+export interface PcktTextBlock {
+  $type: 'blog.pckt.block.text'
+  plaintext: string
+  facets?: PcktFacet[]
+}
+
+export interface PcktHeadingBlock {
+  $type: 'blog.pckt.block.heading'
+  plaintext: string
+  level?: number
+  facets?: PcktFacet[]
+}
+
+export interface PcktImageBlock {
+  $type: 'blog.pckt.block.image'
+  attrs: {
+    src: string
+    alt?: string
+    blob?: BlobRef
+    aspectRatio?: { width: number; height: number }
+    title?: string
+    align?: 'left' | 'center' | 'right'
+  }
+}
+
+export interface PcktBlockquoteBlock {
+  $type: 'blog.pckt.block.blockquote'
+  content: PcktTextBlock[]
+}
+
+export interface PcktBulletListBlock {
+  $type: 'blog.pckt.block.bulletList'
+  content: PcktListItem[]
+}
+
+export interface PcktOrderedListBlock {
+  $type: 'blog.pckt.block.orderedList'
+  content: PcktListItem[]
+  start?: number
+}
+
+export interface PcktListItem {
+  $type: 'blog.pckt.block.listItem'
+  content: (PcktTextBlock | PcktBulletListBlock | PcktOrderedListBlock)[]
+}
+
+export interface PcktHorizontalRuleBlock {
+  $type: 'blog.pckt.block.horizontalRule'
+}
+
+// ─── Pckt Content ────────────────────────────────────────────────────────────
+
+export interface PcktContent {
+  $type: 'blog.pckt.content'
+  items?: AnyBlock[]
+  blob?: BlobRef
+  references?: BlobRef[]
+}
+
+// ─── Offprint Facets ─────────────────────────────────────────────────────────
+
+export type OffprintFacetFeature =
+  | { $type: 'app.offprint.richtext.facet#link'; uri: string }
+  | { $type: 'app.offprint.richtext.facet#bold' }
+  | { $type: 'app.offprint.richtext.facet#italic' }
+  | { $type: 'app.offprint.richtext.facet#code' }
+  | { $type: 'app.offprint.richtext.facet#strikethrough' }
+  | { $type: 'app.offprint.richtext.facet#underline' }
+  | { $type: 'app.offprint.richtext.facet#highlight'; color?: string }
+  | { $type: 'app.offprint.richtext.facet#mention'; did: string; handle?: string }
+  | { $type: 'app.offprint.richtext.facet#webMention'; uri: string; title: string; siteName?: string }
+
+export interface OffprintFacet {
+  index: ByteSlice
+  features: OffprintFacetFeature[]
+}
+
+// ─── Offprint Blocks ─────────────────────────────────────────────────────────
+
+export interface OffprintTextBlock {
+  $type: 'app.offprint.block.text'
+  plaintext: string
+  facets?: OffprintFacet[]
+  textAlign?: 'left' | 'center' | 'right' | 'justify'
+}
+
+export interface OffprintHeadingBlock {
+  $type: 'app.offprint.block.heading'
+  plaintext: string
+  level: number
+  facets?: OffprintFacet[]
+  textAlign?: 'left' | 'center' | 'right'
+}
+
+export interface OffprintImageBlock {
+  $type: 'app.offprint.block.image'
+  blob?: BlobRef
+  alt?: string
+  caption?: string
+  captionFacets?: OffprintFacet[]
+  aspectRatio?: { width: number; height: number }
+  alignment?: 'left' | 'center' | 'right'
+  width?: string
+}
+
+export interface OffprintBlockquoteBlock {
+  $type: 'app.offprint.block.blockquote'
+  content: (OffprintTextBlock | OffprintHeadingBlock)[]
+}
+
+export interface OffprintBulletListBlock {
+  $type: 'app.offprint.block.bulletList'
+  children: OffprintListItem[]
+}
+
+export interface OffprintOrderedListBlock {
+  $type: 'app.offprint.block.orderedList'
+  children: OffprintListItem[]
+  start?: number
+}
+
+export interface OffprintListItem {
+  content: OffprintTextBlock
+  children?: OffprintListItem[]
+}
+
+export interface OffprintTaskListBlock {
+  $type: 'app.offprint.block.taskList'
+  children: OffprintTaskItem[]
+}
+
+export interface OffprintTaskItem {
+  content: OffprintTextBlock
+  checked: boolean
+  children?: OffprintTaskItem[]
+}
+
+export interface OffprintCodeBlock {
+  $type: 'app.offprint.block.codeBlock'
+  code: string
+  language?: string
+  showLineNumbers?: boolean
+}
+
+export interface OffprintHorizontalRuleBlock {
+  $type: 'app.offprint.block.horizontalRule'
+}
+
+export interface OffprintWebEmbedBlock {
+  $type: 'app.offprint.block.webEmbed'
+  href: string
+  title?: string
+  description?: string
+  siteName?: string
+  embedUrl?: string
+  preview?: BlobRef
+}
+
+export interface OffprintBlueskyPostBlock {
+  $type: 'app.offprint.block.blueskyPost'
+  post: StrongRef
+}
+
+// ─── Offprint Content ────────────────────────────────────────────────────────
+
+export interface OffprintContent {
+  $type: 'app.offprint.content'
+  items: AnyBlock[]
+}
+
 // ─── Block union ─────────────────────────────────────────────────────────────
 
 export type AnyBlock =
+  // Leaflet
   | TextBlock
   | HeaderBlock
   | BlockquoteBlock
@@ -152,6 +359,26 @@ export type AnyBlock =
   | UnorderedListBlock
   | PageLinkBlock
   | PollBlock
+  // Pckt
+  | PcktTextBlock
+  | PcktHeadingBlock
+  | PcktImageBlock
+  | PcktBlockquoteBlock
+  | PcktBulletListBlock
+  | PcktOrderedListBlock
+  | PcktHorizontalRuleBlock
+  // Offprint
+  | OffprintTextBlock
+  | OffprintHeadingBlock
+  | OffprintImageBlock
+  | OffprintBlockquoteBlock
+  | OffprintBulletListBlock
+  | OffprintOrderedListBlock
+  | OffprintTaskListBlock
+  | OffprintCodeBlock
+  | OffprintHorizontalRuleBlock
+  | OffprintWebEmbedBlock
+  | OffprintBlueskyPostBlock
 
 // ─── Pages ───────────────────────────────────────────────────────────────────
 
