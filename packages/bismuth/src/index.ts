@@ -1,18 +1,20 @@
 /**
  * @ewanc26/bismuth
  *
- * Convert pub.leaflet RTF-block documents (as used in site.standard.document
- * records) to Markdown.
+ * Convert ATProto richtext-block documents (pub.leaflet, blog.pckt, app.offprint)
+ * as used in site.standard.document records, to Markdown.
  */
 
 // Library surface
-export { contentToMarkdown, documentToMarkdown } from './convert.js'
+export { contentToMarkdown, documentToMarkdown, pcktContentToMarkdown, offprintContentToMarkdown } from './convert.js'
 export { blockToMarkdown } from './blocks.js'
 export { applyFacets } from './facets.js'
+export { resolvePcktContent, createPdsBlobResolver } from './blob.js'
 
 // Types
 export type {
   ConvertOptions,
+  PcktConvertOptions,
 } from './convert.js'
 export type {
   BlockResult,
@@ -22,13 +24,19 @@ export type {
   FootnoteDef,
 } from './facets.js'
 export type {
+  BlobResolver,
+} from './blob.js'
+export type {
+  // Shared
+  BlobRef,
+  StrongRef,
   // Document types
   StandardDocument,
   LeafletContent,
   Page,
   LinearDocumentPage,
   CanvasPage,
-  // Block types
+  // Leaflet block types
   AnyBlock,
   TextBlock,
   HeaderBlock,
@@ -45,8 +53,43 @@ export type {
   UnorderedListBlock,
   ListItem,
   ListItemContent,
-  // Facet types
+  PageLinkBlock,
+  PollBlock,
+  // Leaflet facet types
   Facet,
   FacetFeature,
   ByteSlice,
+  // Pckt content
+  PcktContent,
+  // Pckt block types
+  PcktTextBlock,
+  PcktHeadingBlock,
+  PcktImageBlock,
+  PcktBlockquoteBlock,
+  PcktBulletListBlock,
+  PcktOrderedListBlock,
+  PcktListItem,
+  PcktHorizontalRuleBlock,
+  // Pckt facet types
+  PcktFacet,
+  PcktFacetFeature,
+  // Offprint content
+  OffprintContent,
+  // Offprint block types
+  OffprintTextBlock,
+  OffprintHeadingBlock,
+  OffprintImageBlock,
+  OffprintBlockquoteBlock,
+  OffprintBulletListBlock,
+  OffprintOrderedListBlock,
+  OffprintListItem,
+  OffprintTaskListBlock,
+  OffprintTaskItem,
+  OffprintCodeBlock,
+  OffprintHorizontalRuleBlock,
+  OffprintWebEmbedBlock,
+  OffprintBlueskyPostBlock,
+  // Offprint facet types
+  OffprintFacet,
+  OffprintFacetFeature,
 } from './types.js'

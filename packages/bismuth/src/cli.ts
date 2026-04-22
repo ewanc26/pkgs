@@ -1,8 +1,9 @@
 /**
  * bismuth CLI
  *
- * Converts a pub.leaflet RTF-block document (embedded in a site.standard.document
- * record) to Markdown.
+ * Converts ATProto RTF-block documents to Markdown.
+ * Supports pub.leaflet.content, site.standard.document,
+ * blog.pckt.content, and app.offprint.content.
  *
  * Usage:
  *   bismuth [options] [file]
@@ -12,6 +13,7 @@
  * Options:
  *   -f, --frontmatter   Emit YAML front matter from document metadata.
  *   -p, --page-break    String used to separate pages (default: "\\n\\n---\\n\\n").
+ *       --did           Source DID for Pckt blob resolution.
  *   -o, --output        Write output to a file instead of stdout.
  *   -h, --help          Show this help text and exit.
  *       --version       Print version and exit.
@@ -20,8 +22,18 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { createReadStream } from 'node:fs'
 import { parseArgs } from 'node:util'
-import { documentToMarkdown, contentToMarkdown } from './convert.js'
-import type { StandardDocument, LeafletContent } from './types.js'
+import {
+  documentToMarkdown,
+  contentToMarkdown,
+  pcktContentToMarkdown,
+  offprintContentToMarkdown,
+} from './convert.js'
+import type {
+  StandardDocument,
+  LeafletContent,
+  PcktContent,
+  OffprintContent,
+} from './types.js'
 
 // ─── Version (injected by tsup at build time) ─────────────────────────────────
 const PKG_VERSION = '__BISMUTH_VERSION__'
@@ -34,6 +46,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     options: {
       frontmatter: { type: 'boolean', short: 'f', default: false },
       'page-break': { type: 'string', short: 'p' },
+      did: { type: 'string' },
       output: { type: 'string', short: 'o' },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', default: false },
@@ -83,12 +96,19 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   if (isStandardDocument(parsed)) {
     markdown = documentToMarkdown(parsed, opts)
   } else if (isLeafletContent(parsed)) {
-    // Accept a raw pub.leaflet.content object directly.
     markdown = contentToMarkdown(parsed, opts)
+  } else if (isPcktContent(parsed)) {
+    markdown = await pcktContentToMarkdown(parsed, values.did, opts)
+  } else if (isOffprintContent(parsed)) {
+    markdown = offprintContentToMarkdown(parsed, opts)
   } else {
     die(
-      'Input JSON must be a site.standard.document or pub.leaflet.content object.\n' +
-      'Expected a "$type" field of "site.standard.document" or "pub.leaflet.content".',
+      'Input JSON must be one of:\n' +
+      '  \u2022 site.standard.document\n' +
+      '  \u2022 pub.leaflet.content\n' +
+      '  \u2022 blog.pckt.content\n' +
+      '  \u2022 app.offprint.content\n' +
+      'Expected a "$type" field matching one of those values.',
     )
   }
 
@@ -120,6 +140,18 @@ function isLeafletContent(v: unknown): v is LeafletContent {
   return r['$type'] === 'pub.leaflet.content' && Array.isArray(r['pages'])
 }
 
+function isPcktContent(v: unknown): v is PcktContent {
+  if (!v || typeof v !== 'object') return false
+  const r = v as Record<string, unknown>
+  return r['$type'] === 'blog.pckt.content'
+}
+
+function isOffprintContent(v: unknown): v is OffprintContent {
+  if (!v || typeof v !== 'object') return false
+  const r = v as Record<string, unknown>
+  return r['$type'] === 'app.offprint.content' && Array.isArray(r['items'])
+}
+
 // ─── Stdin helper ─────────────────────────────────────────────────────────────
 
 function readStdin(): Promise<string> {
@@ -144,7 +176,9 @@ function die(msg: string): never {
 const HELP = `\
 Usage: bismuth [options] [file]
 
-Convert a pub.leaflet RTF-block document (site.standard.document) to Markdown.
+Convert ATProto RTF-block documents to Markdown.
+Supports: site.standard.document, pub.leaflet.content,
+          blog.pckt.content, app.offprint.content.
 
 Arguments:
   file                  JSON file to read. Reads stdin if omitted.
@@ -152,17 +186,22 @@ Arguments:
 Options:
   -f, --frontmatter     Emit YAML front matter from document metadata.
   -p, --page-break STR  Separator between pages (default: "\\n\\n---\\n\\n").
+      --did DID         Source DID for Pckt blob resolution.
   -o, --output FILE     Write output to FILE instead of stdout.
   -h, --help            Show this help text and exit.
       --version         Print version and exit.
 
 Examples:
-  # Convert a document file, with front matter
+  # Convert a Standard.site document, with front matter
   bismuth --frontmatter doc.json
 
   # Pipe from another command
   cat doc.json | bismuth --frontmatter > post.md
 
-  # Multi-page document — custom page separator
-  bismuth --page-break $'\\n\\n<!-- page -->\\n\\n' doc.json
+  # Pckt content with blob resolution
+  bismuth --did did:plc:abc123 pckt-post.json
+
+  # Multi-page Leaflet document — custom page separator
+  bismuth --page-break 
+\\n\\n<!-- page -->\\n\\n' doc.json
 `

@@ -1,6 +1,10 @@
 # @ewanc26/bismuth
 
-Convert [`pub.leaflet`](https://github.com/hyperlink-academy/leaflet) RTF-block documents — as stored in [`site.standard.document`](https://standard.site) ATProto records — to Markdown.
+Convert richtext-block documents from the [Standard.site](https://standard.site) platform ecosystem to Markdown. Supports all three publishing platforms:
+
+- **[Leaflet](https://github.com/hyperlink-academy/leaflet)** (`pub.leaflet.*`) — as stored in `site.standard.document` ATProto records
+- **Pckt** (`blog.pckt.*`) — inline and blob-mode content
+- **Offprint** (`app.offprint.*`) — including task lists, web embeds, and coloured highlights
 
 Full documentation is available at **[https://docs.ewancroft.uk/projects/bismuth](https://docs.ewancroft.uk/projects/bismuth)**.
 
