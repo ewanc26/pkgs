@@ -1,7 +1,7 @@
 {
   "name": "@ewanc26/bismuth",
-  "version": "0.1.1",
-  "description": "Convert pub.leaflet RTF-block documents (site.standard.document) to Markdown",
+  "version": "0.2.0",
+  "description": "Convert RTF-block documents (site.standard.document) to Markdown",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
   "type": "module",
