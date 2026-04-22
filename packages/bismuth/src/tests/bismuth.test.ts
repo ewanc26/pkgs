@@ -627,7 +627,7 @@ describe('Offprint blockToMarkdown', () => {
   it('applies Offprint facets (italic)', () => {
     const facets: OffprintFacet[] = [
       {
-        index: { byteStart: 0, byteEnd: 7 },
+        index: { byteStart: 0, byteEnd: 8 },
         features: [{ $type: 'app.offprint.richtext.facet#italic' }],
       },
     ]

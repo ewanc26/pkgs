@@ -255,10 +255,6 @@ function orderedListToMarkdown(
         ? (block.start ?? 1)
         : 1
 
-  // Get children
-  const children =
-    'children' in block ? block.children : 'content' in block ? block.content : []
-
   // Determine item structure
   if ('children' in block) {
     // Leaflet or Offprint style
@@ -323,7 +319,17 @@ function orderedListToMarkdown(
           processPcktItem(child, nestedStart + i, depth + 1),
         )
       } else if (nestedBullet) {
-        nestedBullet.content.forEach((child, i) => processPcktBulletItem(child, depth + 1))
+        nestedBullet.content.forEach((child) => {
+          const nestedIndent = '  '.repeat(depth + 1)
+          const childTextBlock = child.content.find(
+            (c) => c.$type === 'blog.pckt.block.text',
+          ) as PcktTextBlock | undefined
+          if (childTextBlock) {
+            const r = applyFacets(childTextBlock.plaintext, childTextBlock.facets)
+            footnotes.push(...r.footnotes)
+            lines.push(`${nestedIndent}- ${r.text}`)
+          }
+        })
       }
     }
     ;(block as PcktOrderedListBlock).content.forEach((item, i) =>
@@ -471,7 +477,7 @@ function blueskyPostToMarkdown(
 ): BlockResult {
   // Offprint uses strongRef
   if ('post' in block) {
-    const { uri, cid } = block.post
+    const { uri } = block.post
     // Convert at:// URI to web URL
     const webUrl = uri.startsWith('at://')
       ? `https://bsky.app/profile/${uri.replace(/^at:\/\//, '').replace(/\/[^/]+\/([^/]+)$/, '/post/$1')}`
