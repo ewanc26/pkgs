@@ -155,7 +155,7 @@ export function applyFacets(
     for (const feature of facet.features) {
       const normalized = normalizeFeature(feature)
       if (normalized) {
-        applyFeature(normalized, byteStart, byteEnd, footnotes, addBefore, addAfter)
+        applyFeature(normalized, byteStart, byteEnd, bytes, footnotes, addBefore, addAfter)
       }
     }
   }
@@ -189,6 +189,31 @@ export function applyFacets(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Whitespace trimming helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Advance `start` past any leading ASCII spaces within the span, so that
+ * inline markers (*, **, etc.) are placed after leading whitespace rather
+ * than before it — avoiding invalid Markdown like `* text*`.
+ */
+function spanTrimStart(bytes: Uint8Array, start: number, end: number): number {
+  let s = start
+  while (s < end && bytes[s] === 0x20) s++
+  return s
+}
+
+/**
+ * Retreat `end` past any trailing ASCII spaces within the span, so that
+ * inline markers are placed before trailing whitespace rather than after it.
+ */
+function spanTrimEnd(bytes: Uint8Array, start: number, end: number): number {
+  let e = end
+  while (e > start && bytes[e - 1] === 0x20) e--
+  return e
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Feature handler
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -196,48 +221,67 @@ function applyFeature(
   feature: NormalizedFeature,
   byteStart: number,
   byteEnd: number,
+  bytes: Uint8Array,
   footnotes: FootnoteDef[],
   addBefore: (pos: number, s: string) => void,
   addAfter: (pos: number, s: string) => void,
 ): void {
   switch (feature.type) {
-    case 'bold':
-      addBefore(byteStart, '**')
-      addAfter(byteEnd, '**')
+    case 'bold': {
+      const s = spanTrimStart(bytes, byteStart, byteEnd)
+      const e = spanTrimEnd(bytes, byteStart, byteEnd)
+      addBefore(s, '**')
+      addAfter(e, '**')
       break
+    }
 
-    case 'italic':
-      addBefore(byteStart, '*')
-      addAfter(byteEnd, '*')
+    case 'italic': {
+      const s = spanTrimStart(bytes, byteStart, byteEnd)
+      const e = spanTrimEnd(bytes, byteStart, byteEnd)
+      addBefore(s, '*')
+      addAfter(e, '*')
       break
+    }
 
-    case 'code':
-      addBefore(byteStart, '`')
-      addAfter(byteEnd, '`')
+    case 'code': {
+      const s = spanTrimStart(bytes, byteStart, byteEnd)
+      const e = spanTrimEnd(bytes, byteStart, byteEnd)
+      addBefore(s, '`')
+      addAfter(e, '`')
       break
+    }
 
-    case 'strikethrough':
-      addBefore(byteStart, '~~')
-      addAfter(byteEnd, '~~')
+    case 'strikethrough': {
+      const s = spanTrimStart(bytes, byteStart, byteEnd)
+      const e = spanTrimEnd(bytes, byteStart, byteEnd)
+      addBefore(s, '~~')
+      addAfter(e, '~~')
       break
+    }
 
-    case 'underline':
+    case 'underline': {
       // No CommonMark equivalent — fall back to HTML.
-      addBefore(byteStart, '<u>')
-      addAfter(byteEnd, '</u>')
+      const s = spanTrimStart(bytes, byteStart, byteEnd)
+      const e = spanTrimEnd(bytes, byteStart, byteEnd)
+      addBefore(s, '<u>')
+      addAfter(e, '</u>')
       break
+    }
 
-    case 'highlight':
+    case 'highlight': {
+      const s = spanTrimStart(bytes, byteStart, byteEnd)
+      const e = spanTrimEnd(bytes, byteStart, byteEnd)
       if (feature.color) {
         // Offprint highlight with color: use HTML mark with style
-        addBefore(byteStart, `<mark style="background-color:${feature.color}">`)
-        addAfter(byteEnd, '</mark>')
+        addBefore(s, `<mark style="background-color:${feature.color}">`)
+        addAfter(e, '</mark>')
       } else {
         // Extended Markdown (e.g. Obsidian, Pandoc extended).
-        addBefore(byteStart, '==')
-        addAfter(byteEnd, '==')
+        addBefore(s, '==')
+        addAfter(e, '==')
       }
       break
+    }
 
     case 'link':
       addBefore(byteStart, '[')
