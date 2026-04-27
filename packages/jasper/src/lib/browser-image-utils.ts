@@ -36,13 +36,26 @@ export function getMimeTypeFromData(data: Uint8Array): string {
   if (header[0] === 0xff && header[1] === 0xd8) return "image/jpeg";
 
   // PNG
-  if (header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e && header[3] === 0x47) return "image/png";
+  if (
+    header[0] === 0x89 &&
+    header[1] === 0x50 &&
+    header[2] === 0x4e &&
+    header[3] === 0x47
+  )
+    return "image/png";
 
   // GIF
-  if (header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46) return "image/gif";
+  if (header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46)
+    return "image/gif";
 
   // WebP
-  if (header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46) return "image/webp";
+  if (
+    header[0] === 0x52 &&
+    header[1] === 0x49 &&
+    header[2] === 0x46 &&
+    header[3] === 0x46
+  )
+    return "image/webp";
 
   return "image/jpeg"; // Default
 }
@@ -74,9 +87,7 @@ export async function getImageDimensionsBrowser(
 /**
  * Process an image for upload in browser
  */
-export async function processImageBrowser(
-  data: Uint8Array,
-): Promise<{
+export async function processImageBrowser(data: Uint8Array): Promise<{
   original: Uint8Array;
   processed: Uint8Array;
   dimensions: { width: number; height: number };
@@ -127,4 +138,33 @@ export async function validateImageBrowser(
       error: `Invalid image: ${(error as Error).message}`,
     };
   }
+}
+
+/**
+ * Get video dimensions in browser using HTMLVideoElement
+ */
+export async function getVideoDimensionsBrowser(
+  blob: Blob,
+): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const g = globalThis as any;
+    const video = g.document.createElement("video");
+    video.preload = "metadata";
+
+    video.onloadedmetadata = () => {
+      g.URL.revokeObjectURL(video.src);
+      resolve({
+        width: video.videoWidth || 1920,
+        height: video.videoHeight || 1080,
+      });
+    };
+
+    video.onerror = () => {
+      g.URL.revokeObjectURL(video.src);
+      // Fallback to 16:9
+      resolve({ width: 1920, height: 1080 });
+    };
+
+    video.src = g.URL.createObjectURL(blob);
+  });
 }

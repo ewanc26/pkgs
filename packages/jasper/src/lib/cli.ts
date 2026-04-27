@@ -8,14 +8,15 @@ import type { CommandLineArgs, ImportOptions } from "../core/types.js";
 import { LogLevel } from "../utils/logger.js";
 
 export const HELP_TEXT = `
-${chalk.bold("Jasper")} — Instagram → Grain Importer
-${chalk.gray("Convert your Instagram photos to posts on Grain.social")}
+${chalk.bold("Jasper")} — Instagram → AT Protocol Importer
+${chalk.gray("Convert your Instagram photos to posts on Grain or Spark")}
 
 ${chalk.bold("USAGE")}
   jasper [OPTIONS]
 
 ${chalk.bold("OPTIONS")}
   -i, --input <path>      Path to Instagram export ZIP or directory
+  --target <platform>     Target platform: grain or spark (default: grain)
   --dry-run               Preview posts without importing
   --limit <N>             Import at most N posts
   --reverse               Process newest posts first (default: oldest first)
@@ -41,8 +42,11 @@ ${chalk.bold("EXAMPLES")}
   ${chalk.gray("# Interactive mode")}
   jasper
 
-  ${chalk.gray("# Import from ZIP with confirmation")}
+  ${chalk.gray("# Import from ZIP to Grain (default)")}
   jasper -i instagram-export.zip
+
+  ${chalk.gray("# Import from ZIP to Spark")}
+  jasper -i instagram-export.zip --target spark
 
   ${chalk.gray("# Preview without importing")}
   jasper -i instagram-export.zip --dry-run
@@ -76,6 +80,7 @@ export function parseCliArgs(argv: string[]): CommandLineArgs {
     options: {
       help: { type: "boolean", short: "h" },
       input: { type: "string", short: "i" },
+      target: { type: "string" },
       "dry-run": { type: "boolean" },
       limit: { type: "string" },
       reverse: { type: "boolean" },
@@ -99,6 +104,10 @@ export function parseCliArgs(argv: string[]): CommandLineArgs {
   return {
     help: values.help as boolean | undefined,
     input: values.input as string | undefined,
+    target: values.target as string | undefined as
+      | "grain"
+      | "spark"
+      | undefined,
     dryRun: values["dry-run"] as boolean | undefined,
     limit: values.limit ? parseInt(values.limit as string, 10) : undefined,
     reverse: values.reverse as boolean | undefined,
@@ -111,7 +120,9 @@ export function parseCliArgs(argv: string[]): CommandLineArgs {
     listSessions: values["list-sessions"] as boolean | undefined,
     handle: values.handle as string | undefined,
     password: values.password as string | undefined,
-    dailyLimit: values["daily-limit"] ? parseInt(values["daily-limit"] as string, 10) : undefined,
+    dailyLimit: values["daily-limit"]
+      ? parseInt(values["daily-limit"] as string, 10)
+      : undefined,
     resume: values.resume as boolean | undefined,
     listImports: values["list-imports"] as boolean | undefined,
     clearImports: values["clear-imports"] as boolean | undefined,
@@ -131,6 +142,7 @@ export function argsToImportOptions(args: CommandLineArgs): ImportOptions {
     verbose: args.verbose || false,
     quiet: args.quiet || false,
     alt: args.alt,
+    target: args.target || "grain",
   };
 }
 

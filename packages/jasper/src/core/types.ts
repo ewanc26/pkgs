@@ -85,6 +85,8 @@ export interface ParsedPost {
   skipped?: boolean;
   /** Reason for skipping if applicable */
   skipReason?: string;
+  /** Whether this is an Instagram story (vs regular post) */
+  isStory?: boolean;
 }
 
 // ============================================
@@ -108,6 +110,8 @@ export interface ImportOptions {
   quiet: boolean;
   /** Override alt text for all photos */
   alt?: string;
+  /** Target platform */
+  target: Target;
 }
 
 export interface ImportResult {
@@ -153,6 +157,7 @@ export interface CommandLineArgs {
   verbose?: boolean;
   quiet?: boolean;
   alt?: string;
+  target?: Target;
   oauthLogin?: boolean;
   logout?: string;
   listSessions?: boolean;
@@ -176,9 +181,11 @@ export interface ImportState {
   exportPath: string;
   /** SHA-256 hash of export file for verification */
   exportHash: string;
-  /** Gallery URI for imported photos */
+  /** Target platform for this import */
+  target: Target;
+  /** Gallery URI for imported photos (Grain only) */
   galleryUri: string;
-  /** Gallery title for display */
+  /** Gallery title for display (Grain only) */
   galleryTitle: string;
   /** Total posts found in export */
   totalPosts: number;
@@ -196,6 +203,104 @@ export interface ImportState {
   dailyImported: number;
   /** When the daily counter resets (next day) */
   dailyResetAt: string;
+}
+
+// ============================================
+// Target Platform Types
+// ============================================
+
+/** Supported import target platforms */
+export type Target = "grain" | "spark";
+
+/** Target-specific configuration */
+export interface TargetConfig {
+  /** Target platform identifier */
+  target: Target;
+  /** Maximum image size in bytes */
+  maxImageSize: number;
+  /** Maximum images per post (0 = single image per record) */
+  maxImagesPerPost: number;
+  /** Collection NSID for the main record type */
+  collection: string;
+  /** Whether the target supports galleries */
+  supportsGalleries: boolean;
+  /** Whether alt text is required */
+  altRequired: boolean;
+  /** Whether the target supports stories */
+  supportsStories: boolean;
+  /** Whether the target supports video uploads */
+  supportsVideo: boolean;
+  /** Collection NSID for story records */
+  storyCollection: string;
+}
+
+// ============================================
+// Spark Types
+// ============================================
+
+export interface SparkAspectRatio {
+  width: number;
+  height: number;
+}
+
+export interface SparkMediaImage {
+  $type: "so.sprk.media.image";
+  image: {
+    $type: "blob";
+    ref: { $link: string };
+    mimeType: string;
+    size: number;
+  };
+  alt: string;
+  aspectRatio?: SparkAspectRatio;
+}
+
+export interface SparkMediaImages {
+  $type: "so.sprk.media.images";
+  images: SparkMediaImage[];
+}
+
+export interface SparkMediaVideo {
+  $type: "so.sprk.media.video";
+  video: {
+    $type: "blob";
+    ref: { $link: string };
+    mimeType: string;
+    size: number;
+  };
+  alt?: string;
+  aspectRatio?: SparkAspectRatio;
+}
+
+/** Spark post media union — either images or video */
+export type SparkPostMedia = SparkMediaImages | SparkMediaVideo;
+
+export interface SparkPostRecord {
+  $type: "so.sprk.feed.post";
+  createdAt: string;
+  media: SparkPostMedia;
+  caption?: {
+    text: string;
+    facets?: unknown[];
+  };
+  langs?: string[];
+  tags?: string[];
+  labels?: unknown;
+  [key: string]: unknown;
+}
+
+export interface SparkStoryPostRecord {
+  $type: "so.sprk.story.post";
+  createdAt: string;
+  media: SparkPostMedia;
+  sound?: {
+    $type: "blob";
+    ref: { $link: string };
+    mimeType: string;
+    size: number;
+  };
+  labels?: unknown;
+  [key: string]: unknown;
 }
 
 // ============================================
