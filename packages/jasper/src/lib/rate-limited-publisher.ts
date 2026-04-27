@@ -28,11 +28,13 @@ export const POINTS = {
  * Photo record = CREATE (3)
  * Gallery record = CREATE (3)
  * Gallery item record = CREATE (3)
+ * Spark post = CREATE (3)
  */
 export const OPERATION_POINTS = {
   PHOTO: POINTS.CREATE,
   GALLERY: POINTS.CREATE,
   GALLERY_ITEM: POINTS.CREATE,
+  SPARK_POST: POINTS.CREATE,
 } as const;
 
 /**
@@ -134,7 +136,10 @@ export class RateLimitedPublisher {
   /**
    * Create a gallery with rate limiting
    */
-  async createGallery(title: string, description?: string): Promise<GalleryResult> {
+  async createGallery(
+    title: string,
+    description?: string,
+  ): Promise<GalleryResult> {
     await this.waitForQuota(OPERATION_POINTS.GALLERY);
 
     try {

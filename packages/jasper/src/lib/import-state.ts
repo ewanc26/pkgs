@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import os from "os";
-import type { ImportState } from "../core/types.js";
+import type { ImportState, Target } from "../core/types.js";
 import { IMPORT_STATE_DIR } from "../core/config.js";
 import { log } from "../utils/logger.js";
 
@@ -149,9 +149,7 @@ export async function loadImportState(
 /**
  * Verify export hash matches stored state
  */
-export async function verifyExportHash(
-  state: ImportState,
-): Promise<boolean> {
+export async function verifyExportHash(state: ImportState): Promise<boolean> {
   const currentHash = await hashExportContents(state.exportPath);
   return currentHash === state.exportHash;
 }
@@ -229,6 +227,7 @@ export async function clearAllImportStates(): Promise<number> {
 export function createImportState(
   exportPath: string,
   exportHash: string,
+  target: Target,
   galleryUri: string,
   galleryTitle: string,
   totalPosts: number,
@@ -242,6 +241,7 @@ export function createImportState(
   return {
     exportPath: path.resolve(exportPath),
     exportHash,
+    target,
     galleryUri,
     galleryTitle,
     totalPosts,
@@ -311,7 +311,8 @@ export function formatImportStateSummary(state: ImportState): string {
 
   return [
     `Export: ${path.basename(state.exportPath)}`,
-    `Gallery: ${state.galleryTitle}`,
+    `Target: ${state.target === "spark" ? "Spark" : "Grain"}`,
+    state.target === "grain" ? `Gallery: ${state.galleryTitle}` : null,
     `Progress: ${imported} imported, ${skipped} skipped, ${failed} failed`,
     `Remaining: ${remaining} posts`,
     `Today: ${state.dailyImported} imported`,

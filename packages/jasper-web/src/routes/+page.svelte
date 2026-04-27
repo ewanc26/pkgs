@@ -4,28 +4,28 @@
 </script>
 
 <svelte:head>
-	<title>Jasper — Import Instagram photos to Grain</title>
+	<title>Jasper — Import Instagram photos to AT Protocol</title>
 	<meta
 		name="description"
-		content="Import your Instagram photos directly into Grain.social from your browser. Keep your memories under your control, not locked in by big tech."
+		content="Import your Instagram photos directly into Grain or Spark from your browser. Keep your memories under your control, not locked in by big tech."
 	/>
 	<link rel="canonical" href="https://jasper.croft.click" />
 
 	<!-- Open Graph -->
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://jasper.croft.click" />
-	<meta property="og:title" content="Jasper — Import Instagram photos to Grain" />
+	<meta property="og:title" content="Jasper — Import Instagram photos to AT Protocol" />
 	<meta
 		property="og:description"
-		content="Import your Instagram photos directly into Grain.social from your browser. Keep your memories under your control, not locked in by big tech."
+		content="Import your Instagram photos directly into Grain or Spark from your browser. Keep your memories under your control, not locked in by big tech."
 	/>
 
 	<!-- Twitter / X card -->
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content="Jasper — Import Instagram photos to Grain" />
+	<meta name="twitter:title" content="Jasper — Import Instagram photos to AT Protocol" />
 	<meta
 		name="twitter:description"
-		content="Import your Instagram photos directly into Grain.social from your browser. Keep your memories under your control, not locked in by big tech."
+		content="Import your Instagram photos directly into Grain or Spark from your browser. Keep your memories under your control, not locked in by big tech."
 	/>
 </svelte:head>
 
@@ -40,7 +40,8 @@
 		<h1>Take your Instagram photos<br />out of the platform.</h1>
 		<p class="sub">
 			Jasper moves your Instagram export straight into
-			<a href="https://grain.social" target="_blank" rel="noopener">Grain.social</a>
+			<a href="https://grain.social" target="_blank" rel="noopener">Grain</a> or
+			<a href="https://sprk.so" target="_blank" rel="noopener">Spark</a>
 			— no corporate middleman, no extra tracking.
 		</p>
 		<div class="hero-actions">
@@ -84,7 +85,7 @@
 		<div class="feature-card">
 			<span class="feature-icon"><Lock size={20} /></span>
 			<h3>Privacy-First</h3>
-			<p>Everything runs in your browser. Your photos go directly to your Grain account.</p>
+			<p>Everything runs in your browser. Your photos go directly to your AT Protocol account.</p>
 		</div>
 		<div class="feature-card">
 			<span class="feature-icon"><Zap size={20} /></span>
@@ -108,7 +109,7 @@
 				<span class="step-num">2</span>
 				<div>
 					<strong>Sign in with ATProto</strong>
-					<p>Use OAuth to securely connect your Grain account. Nothing is stored.</p>
+					<p>Use OAuth to securely connect your AT Protocol account. Nothing is stored.</p>
 				</div>
 			</li>
 			<li>
@@ -122,7 +123,7 @@
 				<span class="step-num">4</span>
 				<div>
 					<strong>Import</strong>
-					<p>Jasper uploads your photos to Grain with their original timestamps preserved.</p>
+					<p>Jasper uploads your photos to Grain or Spark with their original timestamps preserved.</p>
 				</div>
 			</li>
 		</ol>

@@ -1,7 +1,7 @@
 {
 	"name": "@ewanc26/jasper-web",
-	"version": "0.2.0",
-	"description": "Web frontend for Jasper — import Instagram photos to Grain.social",
+	"version": "0.3.0",
+	"description": "Web frontend for Jasper — import Instagram posts, stories, and videos to Grain or Spark",
 	"author": "Ewan Croft",
 	"license": "AGPL-3.0-only",
 	"private": true,

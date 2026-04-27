@@ -4,7 +4,7 @@
 
 # Jasper
 
-Import Instagram photos to [Grain.social](https://grain.social) while preserving original timestamps. Web interface at [jasper.croft.click](https://jasper.croft.click).
+Import Instagram photos to AT Protocol platforms — [Grain.social](https://grain.social) or [Spark](https://sprk.so) — while preserving original timestamps. Web interface at [jasper.croft.click](https://jasper.croft.click).
 
 Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/jasper)**.
 
