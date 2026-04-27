@@ -14,7 +14,7 @@ import { Agent } from '@atproto/api';
 // The client_id must be http://localhost with no path (query params are fine).
 //
 // In production, load() fetches the metadata from the https:// URL.
-const SCOPE = 'atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery repo:social.grain.gallery.item repo:app.bsky.actor.profile';
+const SCOPE = 'atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery repo:social.grain.gallery.item repo:so.sprk.feed.post repo:so.sprk.story.post repo:app.bsky.actor.profile';
 
 const CLIENT_ID = import.meta.env.DEV
 	? `http://localhost?${new URLSearchParams([
