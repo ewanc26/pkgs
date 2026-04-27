@@ -8,7 +8,7 @@
 	"redirect_uris": ["https://jasper.croft.click/import"],
 	"grant_types": ["authorization_code", "refresh_token"],
 	"response_types": ["code"],
-	"scope": "atproto blob:*/* repo:social.grain.photo",
+	"scope": "atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery repo:social.grain.gallery.item repo:so.sprk.feed.post repo:so.sprk.story.post repo:app.bsky.actor.profile",
 	"application_type": "web",
 	"token_endpoint_auth_method": "none",
 	"dpop_bound_access_tokens": true
