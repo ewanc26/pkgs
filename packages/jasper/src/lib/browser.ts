@@ -17,10 +17,29 @@ import type {
 } from "../core/types.js";
 import { browserLog as log } from "./browser-logger.js";
 import { fixFacebookEncoding } from "./parser.js";
-import { publishPhoto, createGallery, createGalleryItem, getExistingGalleries, getExistingPhotos } from "./publisher.js";
+import {
+  publishPhoto,
+  createGallery,
+  createGalleryItem,
+  getExistingGalleries,
+  getExistingPhotos,
+} from "./publisher.js";
+import { getExistingSparkPosts, publishSparkPost } from "./spark-publisher.js";
+import {
+  publishSparkStory,
+  getExistingSparkStories,
+} from "./spark-story-publisher.js";
+import {
+  uploadSparkVideo,
+  publishSparkVideoPost,
+} from "./spark-video-publisher.js";
 import type { Agent } from "@atproto/api";
+import type { Target, SparkAspectRatio } from "../core/types.js";
 import { GRAIN_GALLERY_ITEM_COLLECTION } from "../core/config.js";
-import { getImageDimensionsBrowser } from "./browser-image-utils.js";
+import {
+  getImageDimensionsBrowser,
+  getVideoDimensionsBrowser,
+} from "./browser-image-utils.js";
 import type { BrowserImportState } from "./browser-import-state.js";
 import {
   saveBrowserImportState,
@@ -47,6 +66,8 @@ export {
   formatBrowserImportStateSummary,
   type BrowserImportState,
 };
+
+export type { Target } from "../core/types.js";
 
 /**
  * Gallery info for selection UI
@@ -173,7 +194,10 @@ function findPostsJsonInZip(entries: FileEntry[]): FileEntry | null {
 /**
  * Find a media file in the ZIP entries
  */
-function findMediaInZip(entries: FileEntry[], relativePath: string): FileEntry | null {
+function findMediaInZip(
+  entries: FileEntry[],
+  relativePath: string,
+): FileEntry | null {
   // Instagram exports have media in various subdirectories
   // Try different possible paths
   const possiblePaths = [
@@ -197,9 +221,7 @@ function findMediaInZip(entries: FileEntry[], relativePath: string): FileEntry |
 /**
  * Parse posts_1.json content
  */
-function parsePostsJson(
-  postsText: string,
-): ParsedPost[] {
+function parsePostsJson(postsText: string): ParsedPost[] {
   log.debug("Parsing posts_1.json");
 
   // Fix encoding issues
@@ -233,9 +255,7 @@ function parsePostsJson(
 /**
  * Parse a single Instagram post
  */
-function parsePost(
-  rawPost: InstagramExportPost,
-): ParsedPost | null {
+function parsePost(rawPost: InstagramExportPost): ParsedPost | null {
   // Skip if no media
   if (!rawPost.media || rawPost.media.length === 0) {
     return null;
@@ -293,7 +313,7 @@ export async function publishPhotoFromBlob(
  */
 export async function fetchUserGalleries(agent: Agent): Promise<GalleryInfo[]> {
   const galleries = await getExistingGalleries(agent);
-  return galleries.map(g => ({
+  return galleries.map((g) => ({
     uri: g.uri,
     title: g.title,
     createdAt: g.createdAt,
@@ -368,8 +388,8 @@ export async function fetchOrphanPhotos(agent: Agent): Promise<OrphanPhoto[]> {
     log.error(`Failed to fetch orphan photos: ${error}`);
   }
 
-  return orphans.sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  return orphans.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 }
 
@@ -385,7 +405,12 @@ export async function organizeOrphanPhotos(
   onLog?: (level: string, message: string) => void,
 ): Promise<{ success: number; errors: number }> {
   const logger = onLog
-    ? { info: (msg: string) => onLog('info', msg), warn: (msg: string) => onLog('warn', msg), error: (msg: string) => onLog('error', msg), debug: (msg: string) => onLog('debug', msg) }
+    ? {
+        info: (msg: string) => onLog("info", msg),
+        warn: (msg: string) => onLog("warn", msg),
+        error: (msg: string) => onLog("error", msg),
+        debug: (msg: string) => onLog("debug", msg),
+      }
     : log;
 
   let success = 0;
@@ -406,7 +431,7 @@ export async function organizeOrphanPhotos(
         photoUri,
         i,
         createdAt,
-        dryRun
+        dryRun,
       );
 
       if (result.success) {
@@ -427,7 +452,9 @@ export async function organizeOrphanPhotos(
 /**
  * Image dimensions helper for browser Blobs
  */
-async function getImageDimensionsFromBlob(blob: Blob): Promise<{ width: number; height: number }> {
+async function getImageDimensionsFromBlob(
+  blob: Blob,
+): Promise<{ width: number; height: number }> {
   const arrayBuffer = await blob.arrayBuffer();
   const uint8Array = new Uint8Array(arrayBuffer);
   return getImageDimensionsBrowser(uint8Array);
@@ -448,6 +475,7 @@ export async function runImport(
   onLog?: (level: string, message: string) => void,
   existingState?: BrowserImportState,
   onStateUpdate?: (state: BrowserImportState) => void,
+  target: Target = "grain",
 ): Promise<{
   success: number;
   errors: number;
@@ -457,24 +485,39 @@ export async function runImport(
   dailyLimitReached?: boolean;
 }> {
   const logger = onLog
-    ? { info: (msg: string) => onLog('info', msg), warn: (msg: string) => onLog('warn', msg), error: (msg: string) => onLog('error', msg) }
+    ? {
+        info: (msg: string) => onLog("info", msg),
+        warn: (msg: string) => onLog("warn", msg),
+        error: (msg: string) => onLog("error", msg),
+      }
     : log;
 
   try {
-    logger.info('Parsing Instagram export...');
+    logger.info("Parsing Instagram export...");
     const posts = await parseExportFromFile(file);
 
-    const validPosts = posts.filter(p => !p.skipped);
+    const validPosts = posts.filter((p) => !p.skipped);
     logger.info(`Found ${validPosts.length} posts to import`);
 
-    // Check for existing photos to skip duplicates
-    logger.info('Checking for existing photos...');
-    const existingPhotos = await getExistingPhotos(agent);
-    logger.info(`Found ${existingPhotos.size} existing photos`);
+    // Check for existing photos/posts to skip duplicates
+    logger.info(
+      `Checking for existing ${target === "spark" ? "Spark posts" : "photos"}...`,
+    );
+    const existingPhotos =
+      target === "spark"
+        ? await getExistingSparkPosts(agent)
+        : await getExistingPhotos(agent);
+    const existingStories =
+      target === "spark"
+        ? await getExistingSparkStories(agent)
+        : new Set<string>();
+    logger.info(
+      `Found ${existingPhotos.size} existing ${target === "spark" ? "posts" : "photos"}${existingStories.size > 0 ? `, ${existingStories.size} stories` : ""}`,
+    );
 
     // Initialize or resume state
     let state: BrowserImportState | undefined;
-    let galleryTitle = 'Unknown Gallery';
+    let galleryTitle = "Unknown Gallery";
 
     if (existingState && existingState.galleryUri === galleryUri) {
       state = existingState;
@@ -487,8 +530,12 @@ export async function runImport(
 
       // Check if daily limit already reached
       if (isBrowserDailyLimitReached(state, batchSize)) {
-        logger.warn(`Daily limit of ${batchSize} already reached for this session.`);
-        logger.warn(`Resets at: ${new Date(state.dailyResetAt).toLocaleString()}`);
+        logger.warn(
+          `Daily limit of ${batchSize} already reached for this session.`,
+        );
+        logger.warn(
+          `Resets at: ${new Date(state.dailyResetAt).toLocaleString()}`,
+        );
         return {
           success: 0,
           errors: 0,
@@ -499,14 +546,23 @@ export async function runImport(
         };
       }
 
-      logger.info(`Resuming import: ${state.importedTimestamps.length} already imported`);
+      logger.info(
+        `Resuming import: ${state.importedTimestamps.length} already imported`,
+      );
     } else if (galleryUri) {
       // Try to get gallery title
       const galleries = await getExistingGalleries(agent);
-      const gallery = galleries.find(g => g.uri === galleryUri);
-      galleryTitle = gallery?.title || 'Unknown Gallery';
+      const gallery = galleries.find((g) => g.uri === galleryUri);
+      galleryTitle = gallery?.title || "Unknown Gallery";
 
-      state = createBrowserImportState(file, galleryUri, galleryTitle, validPosts.length, batchSize);
+      state = createBrowserImportState(
+        file,
+        galleryUri,
+        galleryTitle,
+        validPosts.length,
+        batchSize,
+        target,
+      );
       saveBrowserImportState(state);
     }
 
@@ -518,7 +574,9 @@ export async function runImport(
         ...state.skippedTimestamps,
         ...state.failedTimestamps,
       ]);
-      postsToProcess = validPosts.filter(p => !processedSet.has(p.createdAt.toISOString()));
+      postsToProcess = validPosts.filter(
+        (p) => !processedSet.has(p.createdAt.toISOString()),
+      );
       logger.info(`${postsToProcess.length} posts remaining to import`);
     }
 
@@ -530,20 +588,23 @@ export async function runImport(
     let dailyLimitReached = false;
 
     // Helper for alt text
-    const getAltText = (caption?: string): string | undefined => {
+    const getAltText = (caption?: string): string => {
       if (altOverride) return altOverride;
-      return caption;
+      return caption || "";
     };
 
     // Track progress for state updates
-    const trackProgress = (timestamp: string, status: 'imported' | 'skipped' | 'failed') => {
+    const trackProgress = (
+      timestamp: string,
+      status: "imported" | "skipped" | "failed",
+    ) => {
       if (!state) return;
 
-      if (status === 'imported') {
+      if (status === "imported") {
         state.importedTimestamps.push(timestamp);
         state.dailyImported++;
         state.lastImportAt = new Date().toISOString();
-      } else if (status === 'skipped') {
+      } else if (status === "skipped") {
         state.skippedTimestamps.push(timestamp);
       } else {
         state.failedTimestamps.push(timestamp);
@@ -560,17 +621,33 @@ export async function runImport(
       const post = postsToProcess[i];
       const timestamp = post.createdAt.toISOString();
 
-      // Skip duplicates
-      if (existingPhotos.has(timestamp)) {
-        trackProgress(timestamp, 'skipped');
-        logger.info(`Skipping duplicate: ${timestamp}`);
+      // Skip duplicates (check against the right dedup set)
+      const isStory = post.isStory ?? false;
+      const dedupSet =
+        target === "spark" && isStory ? existingStories : existingPhotos;
+      if (dedupSet.has(timestamp)) {
+        trackProgress(timestamp, "skipped");
+        logger.info(
+          `Skipping duplicate ${isStory ? "story" : "post"}: ${timestamp}`,
+        );
+        continue;
+      }
+
+      // Skip stories for Grain (not supported)
+      if (target === "grain" && isStory) {
+        trackProgress(timestamp, "skipped");
+        logger.info(
+          `Skipping story (Grain does not support stories): ${timestamp}`,
+        );
         continue;
       }
 
       // Check batch/daily limit
       if (batchCount >= batchSize) {
-        logger.warn(`Reached daily limit of ${batchSize}. Stopping to avoid rate limits.`);
-        logger.warn('Progress saved. Refresh the page tomorrow to continue.');
+        logger.warn(
+          `Reached daily limit of ${batchSize}. Stopping to avoid rate limits.`,
+        );
+        logger.warn("Progress saved. Refresh the page tomorrow to continue.");
         dailyLimitReached = true;
 
         // Save final state
@@ -584,53 +661,221 @@ export async function runImport(
       onProgress?.(i + 1, postsToProcess.length);
 
       for (const media of post.media) {
-        if (media.type === 'image' && media.data) {
-          try {
-            // Get actual dimensions
-            const dims = await getImageDimensionsFromBlob(media.data);
+        if (target === "spark") {
+          // Spark: handle stories, videos, and image posts
 
-            logger.info(`Publishing photo from ${post.createdAt.toLocaleDateString()}`);
-            const result = await publishPhotoFromBlob(
-              agent,
-              media.data,
-              dims,
-              timestamp,
-              getAltText(post.caption),
-              dryRun
-            );
+          // Check for video media
+          const videoMedia = post.media.find(
+            (m) => m.type === "video" && m.data,
+          );
 
-            if (result.success) {
-              photosImported++;
-              batchCount++;
-              trackProgress(timestamp, 'imported');
+          if (videoMedia?.data) {
+            // Video post/story
+            try {
+              const videoData = new Uint8Array(
+                await videoMedia.data!.arrayBuffer(),
+              );
+              const uploadResult = await uploadSparkVideo(
+                agent,
+                videoData,
+                videoMedia.data!.type || "video/mp4",
+              );
 
-              // Create gallery item if gallery selected
-              if (galleryUri && result.uri) {
-                const itemResult = await createGalleryItem(
+              if (!uploadResult.success || !uploadResult.blob) {
+                errors++;
+                trackProgress(timestamp, "failed");
+                logger.error(`Failed to upload video: ${uploadResult.error}`);
+                break;
+              }
+
+              // Get video dimensions
+              const videoDims = await getVideoDimensionsBrowser(
+                videoMedia.data!,
+              );
+              const aspectRatio = {
+                width: videoDims.width,
+                height: videoDims.height,
+              };
+
+              if (isStory) {
+                const { publishSparkVideoStory } =
+                  await import("./spark-story-publisher.js");
+                const result = await publishSparkVideoStory(
                   agent,
-                  galleryUri,
-                  result.uri,
-                  galleryPosition,
+                  uploadResult.blob,
+                  getAltText(post.caption),
+                  aspectRatio,
                   timestamp,
-                  dryRun
+                  dryRun,
                 );
 
-                if (itemResult.success) {
-                  galleryItemsCreated++;
-                  galleryPosition++;
+                if (result.success) {
+                  photosImported++;
+                  batchCount++;
+                  trackProgress(timestamp, "imported");
                 } else {
-                  logger.error(`Failed to create gallery item: ${itemResult.error}`);
+                  errors++;
+                  trackProgress(timestamp, "failed");
+                  logger.error(
+                    `Failed to publish video story: ${result.error}`,
+                  );
+                }
+              } else {
+                const result = await publishSparkVideoPost(
+                  agent,
+                  uploadResult.blob,
+                  getAltText(post.caption),
+                  aspectRatio,
+                  timestamp,
+                  post.caption,
+                  dryRun,
+                );
+
+                if (result.success) {
+                  photosImported++;
+                  batchCount++;
+                  trackProgress(timestamp, "imported");
+                } else {
+                  errors++;
+                  trackProgress(timestamp, "failed");
+                  logger.error(`Failed to publish video post: ${result.error}`);
                 }
               }
-            } else {
+            } catch (error) {
               errors++;
-              trackProgress(timestamp, 'failed');
-              logger.error(`Failed to publish: ${result.error}`);
+              trackProgress(timestamp, "failed");
+              logger.error(`Error processing video: ${error}`);
             }
-          } catch (error) {
-            errors++;
-            trackProgress(timestamp, 'failed');
-            logger.error(`Error publishing photo: ${error}`);
+            break; // Process all media for this post in one go
+          }
+
+          // Image-only post/story
+          if (media.type === "image" && media.data) {
+            // Collect all images for this post, then publish as one Spark post/story
+            const imageItems: Array<{
+              data: Uint8Array;
+              mimeType: string;
+              size: number;
+              alt: string;
+              aspectRatio?: SparkAspectRatio;
+            }> = [];
+
+            for (const m of post.media) {
+              if (m.type === "image" && m.data) {
+                try {
+                  const dims = await getImageDimensionsFromBlob(m.data);
+                  imageItems.push({
+                    data: new Uint8Array(await m.data.arrayBuffer()),
+                    mimeType: m.data.type || "image/jpeg",
+                    size: m.data.size,
+                    alt: getAltText(post.caption),
+                    aspectRatio: dims,
+                  });
+                } catch (error) {
+                  logger.error(`Error loading image: ${error}`);
+                }
+              }
+            }
+
+            if (imageItems.length === 0) {
+              errors++;
+              trackProgress(timestamp, "failed");
+              break;
+            }
+
+            try {
+              let result;
+              if (isStory) {
+                result = await publishSparkStory(
+                  agent,
+                  imageItems.slice(0, 12),
+                  timestamp,
+                  dryRun,
+                );
+              } else {
+                result = await publishSparkPost(
+                  agent,
+                  imageItems.slice(0, 12),
+                  timestamp,
+                  post.caption,
+                  dryRun,
+                );
+              }
+
+              if (result.success) {
+                photosImported++;
+                batchCount++;
+                trackProgress(timestamp, "imported");
+              } else {
+                errors++;
+                trackProgress(timestamp, "failed");
+                logger.error(
+                  `Failed to publish ${isStory ? "story" : "post"}: ${result.error}`,
+                );
+              }
+            } catch (error) {
+              errors++;
+              trackProgress(timestamp, "failed");
+              logger.error(
+                `Error publishing Spark ${isStory ? "story" : "post"}: ${error}`,
+              );
+            }
+            break; // Process all media for this post in one go
+          }
+        } else {
+          // Grain: one photo per record
+          if (media.type === "image" && media.data) {
+            try {
+              // Get actual dimensions
+              const dims = await getImageDimensionsFromBlob(media.data);
+
+              logger.info(
+                `Publishing photo from ${post.createdAt.toLocaleDateString()}`,
+              );
+              const result = await publishPhotoFromBlob(
+                agent,
+                media.data,
+                dims,
+                timestamp,
+                getAltText(post.caption),
+                dryRun,
+              );
+
+              if (result.success) {
+                photosImported++;
+                batchCount++;
+                trackProgress(timestamp, "imported");
+
+                // Create gallery item if gallery selected
+                if (galleryUri && result.uri) {
+                  const itemResult = await createGalleryItem(
+                    agent,
+                    galleryUri,
+                    result.uri,
+                    galleryPosition,
+                    timestamp,
+                    dryRun,
+                  );
+
+                  if (itemResult.success) {
+                    galleryItemsCreated++;
+                    galleryPosition++;
+                  } else {
+                    logger.error(
+                      `Failed to create gallery item: ${itemResult.error}`,
+                    );
+                  }
+                }
+              } else {
+                errors++;
+                trackProgress(timestamp, "failed");
+                logger.error(`Failed to publish: ${result.error}`);
+              }
+            } catch (error) {
+              errors++;
+              trackProgress(timestamp, "failed");
+              logger.error(`Error publishing photo: ${error}`);
+            }
           }
         }
       }

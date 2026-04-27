@@ -3,6 +3,8 @@
  * Uses localStorage to store import progress for resumable sessions
  */
 
+import type { Target } from "../core/types.js";
+
 /**
  * Browser import state (subset of ImportState for localStorage)
  */
@@ -13,9 +15,11 @@ export interface BrowserImportState {
   fileSize: number;
   /** File last modified timestamp */
   fileLastModified: number;
-  /** Gallery URI */
+  /** Target platform */
+  target: Target;
+  /** Gallery URI (Grain only) */
   galleryUri: string;
-  /** Gallery title */
+  /** Gallery title (Grain only) */
   galleryTitle: string;
   /** Total posts found */
   totalPosts: number;
@@ -35,7 +39,7 @@ export interface BrowserImportState {
   dailyResetAt: string;
 }
 
-const STORAGE_KEY = 'jasper_import_state';
+const STORAGE_KEY = "jasper_import_state";
 
 /**
  * Save import state to localStorage
@@ -44,7 +48,7 @@ export function saveBrowserImportState(state: BrowserImportState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (error) {
-    console.warn('Failed to save import state:', error);
+    console.warn("Failed to save import state:", error);
   }
 }
 
@@ -69,7 +73,7 @@ export function loadBrowserImportState(): BrowserImportState | null {
 
     return state;
   } catch (error) {
-    console.warn('Failed to load import state:', error);
+    console.warn("Failed to load import state:", error);
     return null;
   }
 }
@@ -81,7 +85,7 @@ export function clearBrowserImportState(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (error) {
-    console.warn('Failed to clear import state:', error);
+    console.warn("Failed to clear import state:", error);
   }
 }
 
@@ -90,7 +94,7 @@ export function clearBrowserImportState(): void {
  */
 export function fileMatchesState(
   file: File,
-  state: BrowserImportState
+  state: BrowserImportState,
 ): boolean {
   return (
     file.name === state.fileName &&
@@ -107,7 +111,8 @@ export function createBrowserImportState(
   galleryUri: string,
   galleryTitle: string,
   totalPosts: number,
-  _dailyLimit: number
+  _dailyLimit: number,
+  target: Target = "grain",
 ): BrowserImportState {
   const now = new Date();
   const tomorrow = new Date(now);
@@ -118,6 +123,7 @@ export function createBrowserImportState(
     fileName: file.name,
     fileSize: file.size,
     fileLastModified: file.lastModified,
+    target,
     galleryUri,
     galleryTitle,
     totalPosts,
@@ -136,7 +142,7 @@ export function createBrowserImportState(
  */
 export function isBrowserDailyLimitReached(
   state: BrowserImportState,
-  dailyLimit: number
+  dailyLimit: number,
 ): boolean {
   const now = new Date();
   const resetAt = new Date(state.dailyResetAt);
@@ -151,7 +157,9 @@ export function isBrowserDailyLimitReached(
 /**
  * Update state for a new day (reset daily counter)
  */
-export function updateBrowserForNewDay(state: BrowserImportState): BrowserImportState {
+export function updateBrowserForNewDay(
+  state: BrowserImportState,
+): BrowserImportState {
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -178,16 +186,21 @@ export function getBrowserRemainingPosts(state: BrowserImportState): number {
 /**
  * Format state for display
  */
-export function formatBrowserImportStateSummary(state: BrowserImportState): string {
+export function formatBrowserImportStateSummary(
+  state: BrowserImportState,
+): string {
   const remaining = getBrowserRemainingPosts(state);
   const imported = state.importedTimestamps.length;
   const skipped = state.skippedTimestamps.length;
 
   return [
     `File: ${state.fileName}`,
-    `Gallery: ${state.galleryTitle}`,
+    `Target: ${state.target === "spark" ? "Spark" : "Grain"}`,
+    state.target === "grain" ? `Gallery: ${state.galleryTitle}` : null,
     `Progress: ${imported} imported, ${skipped} skipped`,
     `Remaining: ${remaining} posts`,
     `Today: ${state.dailyImported} imported`,
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join("\n");
 }

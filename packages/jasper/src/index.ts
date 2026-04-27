@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Jasper CLI Entry Point
- * Instagram → Grain Importer
+ * Instagram → AT Protocol Importer (Grain, Spark)
  */
 import {
   parseCliArgs,
@@ -28,9 +28,26 @@ import {
   listOAuthSessionsWithHandles,
 } from "./lib/auth.js";
 import { getExistingPhotos, getExistingGalleries } from "./lib/publisher.js";
+import {
+  getExistingSparkPosts,
+  publishSparkPost,
+} from "./lib/spark-publisher.js";
+import {
+  publishSparkStory,
+  getExistingSparkStories,
+} from "./lib/spark-story-publisher.js";
+import {
+  uploadSparkVideo,
+  publishSparkVideoPost,
+} from "./lib/spark-video-publisher.js";
 import { RateLimitedPublisher } from "./lib/rate-limited-publisher.js";
-import { config, DEFAULT_DAILY_LIMIT } from "./core/config.js";
-import type { ImportState, ParsedPost } from "./core/types.js";
+import { config, DEFAULT_DAILY_LIMIT, TARGET_CONFIGS } from "./core/config.js";
+import type {
+  ImportState,
+  ParsedPost,
+  Target,
+  SparkAspectRatio,
+} from "./core/types.js";
 import {
   saveImportState,
   loadImportState,
@@ -51,7 +68,7 @@ import fs from "fs";
  * Run interactive mode
  */
 async function runInteractive(): Promise<void> {
-  ui.header("Jasper — Instagram → Grain Importer");
+  ui.header("Jasper — Instagram → AT Protocol Importer");
 
   const options = [
     "Import Instagram export",
@@ -68,6 +85,12 @@ async function runInteractive(): Promise<void> {
       const inputPath = await prompt(
         "Path to Instagram export (ZIP or directory): ",
       );
+      const targetChoice = await select(
+        "Import to:",
+        ["Grain (social.grain.photo)", "Spark (so.sprk.feed.post)"],
+        0,
+      );
+      const target: Target = targetChoice === 1 ? "spark" : "grain";
       const dryRun = await confirm("Dry run (preview without posting)?", false);
       await runImport({
         input: inputPath,
@@ -76,6 +99,7 @@ async function runInteractive(): Promise<void> {
         yes: false,
         verbose: false,
         quiet: false,
+        target,
       });
       break;
     }
@@ -124,12 +148,16 @@ async function runImport(options: {
   verbose: boolean;
   quiet: boolean;
   alt?: string;
+  target: Target;
   handle?: string;
   password?: string;
   dailyLimit?: number;
   resume?: boolean;
 }): Promise<void> {
-  ui.header("Import Instagram Export");
+  const targetConfig = TARGET_CONFIGS[options.target];
+  ui.header(
+    `Import Instagram Export → ${options.target === "spark" ? "Spark" : "Grain"}`,
+  );
 
   const dailyLimit = options.dailyLimit ?? DEFAULT_DAILY_LIMIT;
 
@@ -228,7 +256,9 @@ async function runImport(options: {
     log.warn("Daily limit reached for this import session.");
     log.info(`Limit: ${dailyLimit} posts per day`);
     log.info(`Imported today: ${importState.dailyImported}`);
-    log.info(`Resets at: ${new Date(importState.dailyResetAt).toLocaleString()}`);
+    log.info(
+      `Resets at: ${new Date(importState.dailyResetAt).toLocaleString()}`,
+    );
     log.blank();
     log.info("Run `jasper --resume` tomorrow to continue.");
     return;
@@ -248,7 +278,9 @@ async function runImport(options: {
 
     if (posts.length > canImportToday) {
       log.info(chalk.cyan(`Daily limit: ${canImportToday} posts today`));
-      log.info(`Total remaining: ${posts.length} posts (${Math.ceil(posts.length / dailyLimit)} days)`);
+      log.info(
+        `Total remaining: ${posts.length} posts (${Math.ceil(posts.length / dailyLimit)} days)`,
+      );
       log.blank();
     }
 
@@ -292,77 +324,104 @@ async function runImport(options: {
   log.blank();
 
   // Get existing posts for deduplication
-  log.progress("Checking for existing photos...");
-  const existing = await getExistingPhotos(agent);
-  ui.succeedSpinner(`Found ${existing.size} existing photos`);
+  log.progress(
+    `Checking for existing ${options.target === "spark" ? "Spark posts" : "photos"}...`,
+  );
+  const existing =
+    options.target === "spark"
+      ? await getExistingSparkPosts(agent)
+      : await getExistingPhotos(agent);
+  const existingStories =
+    options.target === "spark"
+      ? await getExistingSparkStories(agent)
+      : new Set<string>();
+  ui.succeedSpinner(
+    `Found ${existing.size} existing ${options.target === "spark" ? "posts" : "photos"}${existingStories.size > 0 ? `, ${existingStories.size} stories` : ""}`,
+  );
   log.blank();
 
-  // Gallery selection/creation
+  // Gallery selection/creation (Grain only)
   let galleryUri: string | undefined;
   let galleryTitle: string | undefined;
 
   // Create rate-limited publisher
   const publisher = new RateLimitedPublisher(agent, options.dryRun);
 
-  // Resume: use existing gallery
-  if (importState?.galleryUri) {
-    galleryUri = importState.galleryUri;
-    galleryTitle = importState.galleryTitle;
-    log.info(`Using gallery: ${galleryTitle}`);
-    log.blank();
-  } else if (!options.dryRun) {
-    log.progress("Fetching your galleries...");
-    const existingGalleries = await getExistingGalleries(agent);
-    ui.succeedSpinner(`Found ${existingGalleries.length} galleries`);
-    log.blank();
-
-    const galleryOptions = [
-      "Create new gallery",
-      ...existingGalleries.map(g => `${g.title} (${new Date(g.createdAt).toLocaleDateString()})`),
-    ];
-
-    const choice = await select("Select gallery for import:", galleryOptions, 0);
-
-    if (choice === 0) {
-      // Create new gallery
-      const defaultTitle = `Instagram Import — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-      log.info(`Default title: ${defaultTitle}`);
-      const titleInput = await prompt(`Gallery title (press Enter for default): `);
-      const title = titleInput || defaultTitle;
-      const addDescription = await confirm("Add description?", false);
-      const description = addDescription ? await prompt("Description: ") : undefined;
-
-      log.progress("Creating gallery...");
-      const result = await publisher.createGallery(title || defaultTitle, description);
-      if (result.success && result.uri) {
-        galleryUri = result.uri;
-        galleryTitle = title || defaultTitle;
-        ui.succeedSpinner(`Created gallery: ${galleryTitle}`);
-      } else {
-        log.error(`Failed to create gallery: ${result.error}`);
-        process.exit(1);
-      }
-    } else {
-      // Use existing gallery
-      galleryUri = existingGalleries[choice - 1]?.uri;
-      galleryTitle = existingGalleries[choice - 1]?.title;
-      if (!galleryUri) {
-        log.error("Invalid gallery selection");
-        process.exit(1);
-      }
+  if (options.target === "grain") {
+    // Resume: use existing gallery
+    if (importState?.galleryUri) {
+      galleryUri = importState.galleryUri;
+      galleryTitle = importState.galleryTitle;
       log.info(`Using gallery: ${galleryTitle}`);
+      log.blank();
+    } else if (!options.dryRun) {
+      log.progress("Fetching your galleries...");
+      const existingGalleries = await getExistingGalleries(agent);
+      ui.succeedSpinner(`Found ${existingGalleries.length} galleries`);
+      log.blank();
+
+      const galleryOptions = [
+        "Create new gallery",
+        ...existingGalleries.map(
+          (g) => `${g.title} (${new Date(g.createdAt).toLocaleDateString()})`,
+        ),
+      ];
+
+      const choice = await select(
+        "Select gallery for import:",
+        galleryOptions,
+        0,
+      );
+
+      if (choice === 0) {
+        // Create new gallery
+        const defaultTitle = `Instagram Import — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+        log.info(`Default title: ${defaultTitle}`);
+        const titleInput = await prompt(
+          `Gallery title (press Enter for default): `,
+        );
+        const title = titleInput || defaultTitle;
+        const addDescription = await confirm("Add description?", false);
+        const description = addDescription
+          ? await prompt("Description: ")
+          : undefined;
+
+        log.progress("Creating gallery...");
+        const result = await publisher.createGallery(
+          title || defaultTitle,
+          description,
+        );
+        if (result.success && result.uri) {
+          galleryUri = result.uri;
+          galleryTitle = title || defaultTitle;
+          ui.succeedSpinner(`Created gallery: ${galleryTitle}`);
+        } else {
+          log.error(`Failed to create gallery: ${result.error}`);
+          process.exit(1);
+        }
+      } else {
+        // Use existing gallery
+        galleryUri = existingGalleries[choice - 1]?.uri;
+        galleryTitle = existingGalleries[choice - 1]?.title;
+        if (!galleryUri) {
+          log.error("Invalid gallery selection");
+          process.exit(1);
+        }
+        log.info(`Using gallery: ${galleryTitle}`);
+      }
+      log.blank();
     }
-    log.blank();
   }
 
   // Create import state if new
-  if (!importState && galleryUri && galleryTitle) {
+  if (!importState) {
     const exportHash = await hashExportContents(absolutePath);
     importState = createImportState(
       absolutePath,
       exportHash,
-      galleryUri,
-      galleryTitle,
+      options.target,
+      galleryUri || "",
+      galleryTitle || "",
       posts.length,
       dailyLimit,
     );
@@ -370,9 +429,9 @@ async function runImport(options: {
   }
 
   // Alt text handling
-  const getAltText = (post: { caption?: string }): string | undefined => {
+  const getAltText = (post: { caption?: string }): string => {
     if (options.alt) return options.alt;
-    return post.caption;
+    return post.caption || "";
   };
 
   // Import posts
@@ -384,15 +443,18 @@ async function runImport(options: {
   const isZip = isZipFile(absolutePath);
 
   // Track progress for state updates
-  const trackProgress = async (post: ParsedPost, status: 'imported' | 'skipped' | 'failed') => {
+  const trackProgress = async (
+    post: ParsedPost,
+    status: "imported" | "skipped" | "failed",
+  ) => {
     if (!importState) return;
 
     const timestamp = post.createdAt.toISOString();
-    if (status === 'imported') {
+    if (status === "imported") {
       importState.importedTimestamps.push(timestamp);
       importState.dailyImported++;
       importState.lastImportAt = new Date().toISOString();
-    } else if (status === 'skipped') {
+    } else if (status === "skipped") {
       importState.skippedTimestamps.push(timestamp);
     } else {
       importState.failedTimestamps.push(timestamp);
@@ -411,7 +473,7 @@ async function runImport(options: {
     // Skip if already exists
     if (existing.has(timestamp)) {
       skipped++;
-      await trackProgress(post, 'skipped');
+      await trackProgress(post, "skipped");
       log.debug(`Skipping duplicate: ${timestamp}`);
       continue;
     }
@@ -420,71 +482,277 @@ async function runImport(options: {
       `[${i + 1}/${postsToImport}] ${post.createdAt.toLocaleDateString()}`,
     );
 
-    for (const media of post.media) {
-      if (media.type === "video") {
+    if (options.target === "spark") {
+      // Spark: handle stories, videos, and image posts
+      const isStory = post.isStory ?? false;
+      const dedupSet = isStory ? existingStories : existing;
+
+      // Check dedup for this specific type
+      if (dedupSet.has(timestamp)) {
         skipped++;
-        await trackProgress(post, 'skipped');
+        await trackProgress(post, "skipped");
+        log.debug(
+          `Skipping duplicate ${isStory ? "story" : "post"}: ${timestamp}`,
+        );
         continue;
       }
 
-      try {
-        // Load image
-        const imageData = isZip
-          ? await loadMediaFromZip(absolutePath, media.originalUri)
-          : await loadMediaFromPath(media.path);
+      // Separate media into images and videos
+      const imageItems: Array<{
+        data: Uint8Array;
+        mimeType: string;
+        size: number;
+        alt: string;
+        aspectRatio?: SparkAspectRatio;
+      }> = [];
 
-        // Validate
-        const validation = await validateImage(imageData);
-        if (!validation.valid) {
-          failed++;
-          await trackProgress(post, 'failed');
-          log.warn(`Invalid image: ${validation.error}`);
+      let videoMedia: { path: string; originalUri: string } | null = null;
+
+      for (const media of post.media) {
+        if (media.type === "video") {
+          // Use the first video as the primary media
+          if (!videoMedia) {
+            videoMedia = { path: media.path, originalUri: media.originalUri };
+          }
           continue;
         }
 
-        // Publish photo
-        const imageUtils = await import("./lib/image-utils.js");
-        const dims = await imageUtils.getImageDimensions(imageData);
-        const aspectRatio = imageUtils.calculateAspectRatio(
-          dims.width,
-          dims.height,
-        );
+        try {
+          const imageData = isZip
+            ? await loadMediaFromZip(absolutePath, media.originalUri)
+            : await loadMediaFromPath(media.path);
 
-        const altText = getAltText(post);
-        const result = await publisher.publishPhoto(
-          imageData,
-          aspectRatio,
-          timestamp,
-          altText,
-        );
+          const validation = await validateImage(imageData);
+          if (!validation.valid) {
+            log.warn(`Invalid image: ${validation.error}`);
+            continue;
+          }
 
-        if (result.success) {
-          imported++;
-          await trackProgress(post, 'imported');
+          const imageUtils = await import("./lib/image-utils.js");
+          const dims = await imageUtils.getImageDimensions(imageData);
+          const aspectRatio = imageUtils.calculateAspectRatio(
+            dims.width,
+            dims.height,
+          );
 
-          // Create gallery item linking photo to gallery
-          if (galleryUri && result.uri) {
-            const itemResult = await publisher.createGalleryItem(
-              galleryUri,
-              result.uri,
-              galleryPosition,
+          imageItems.push({
+            data: imageData,
+            mimeType: await imageUtils.getMimeType(imageData),
+            size: imageData.length,
+            alt: getAltText(post),
+            aspectRatio,
+          });
+        } catch (error) {
+          log.warn(`Error loading image: ${(error as Error).message}`);
+        }
+      }
+
+      // Video post: upload video and create post with so.sprk.media.video
+      if (videoMedia) {
+        try {
+          const videoData = isZip
+            ? await loadMediaFromZip(absolutePath, videoMedia.originalUri)
+            : await loadMediaFromPath(videoMedia.path);
+
+          const uploadResult = await uploadSparkVideo(
+            agent,
+            new Uint8Array(videoData),
+            "video/mp4",
+          );
+
+          if (!uploadResult.success || !uploadResult.blob) {
+            failed++;
+            await trackProgress(post, "failed");
+            log.warn(`Failed to upload video: ${uploadResult.error}`);
+            continue;
+          }
+
+          // Get video dimensions for aspect ratio
+          const imageUtils = await import("./lib/image-utils.js");
+          const dims = await imageUtils.getVideoDimensions(videoData);
+          const aspectRatio = imageUtils.calculateAspectRatio(
+            dims.width,
+            dims.height,
+          );
+
+          if (isStory) {
+            // Story with video
+            const { publishSparkVideoStory } =
+              await import("./lib/spark-story-publisher.js");
+            const result = await publishSparkVideoStory(
+              agent,
+              uploadResult.blob,
+              getAltText(post),
+              aspectRatio,
               timestamp,
+              options.dryRun,
             );
-            if (itemResult.success) {
-              galleryPosition++;
+
+            if (result.success) {
+              imported++;
+              await trackProgress(post, "imported");
             } else {
-              log.warn(`Failed to create gallery item: ${itemResult.error}`);
+              failed++;
+              await trackProgress(post, "failed");
+              log.warn(`Failed to publish video story: ${result.error}`);
+            }
+          } else {
+            // Regular post with video
+            const result = await publishSparkVideoPost(
+              agent,
+              uploadResult.blob,
+              getAltText(post),
+              aspectRatio,
+              timestamp,
+              post.caption,
+              options.dryRun,
+            );
+
+            if (result.success) {
+              imported++;
+              await trackProgress(post, "imported");
+            } else {
+              failed++;
+              await trackProgress(post, "failed");
+              log.warn(`Failed to publish video post: ${result.error}`);
             }
           }
-        } else {
+        } catch (error) {
           failed++;
-          await trackProgress(post, 'failed');
-          log.warn(`Failed to publish: ${result.error}`);
+          await trackProgress(post, "failed");
+          log.error(`Error processing video: ${(error as Error).message}`);
         }
-      } catch (error) {
+      } else if (imageItems.length > 0) {
+        // Image-only post/story
+        const imagesToPublish = imageItems.slice(
+          0,
+          targetConfig.maxImagesPerPost,
+        );
+
+        try {
+          if (isStory) {
+            const result = await publishSparkStory(
+              agent,
+              imagesToPublish,
+              timestamp,
+              options.dryRun,
+            );
+
+            if (result.success) {
+              imported++;
+              await trackProgress(post, "imported");
+            } else {
+              failed++;
+              await trackProgress(post, "failed");
+              log.warn(`Failed to publish story: ${result.error}`);
+            }
+          } else {
+            const result = await publishSparkPost(
+              agent,
+              imagesToPublish,
+              timestamp,
+              post.caption,
+              options.dryRun,
+            );
+
+            if (result.success) {
+              imported++;
+              await trackProgress(post, "imported");
+            } else {
+              failed++;
+              await trackProgress(post, "failed");
+              log.warn(`Failed to publish: ${result.error}`);
+            }
+          }
+        } catch (error) {
+          failed++;
+          await trackProgress(post, "failed");
+          log.error(
+            `Error publishing Spark ${isStory ? "story" : "post"}: ${(error as Error).message}`,
+          );
+        }
+      } else {
+        // No usable media
         failed++;
-        await trackProgress(post, 'failed');
-        log.error(`Error processing media: ${(error as Error).message}`);
+        await trackProgress(post, "failed");
+      }
+    } else {
+      // Grain: one photo per record, gallery items
+      // Skip stories (Grain doesn't support them)
+      if (post.isStory) {
+        skipped++;
+        await trackProgress(post, "skipped");
+        log.debug(
+          `Skipping story (Grain does not support stories): ${timestamp}`,
+        );
+        continue;
+      }
+      for (const media of post.media) {
+        if (media.type === "video") {
+          skipped++;
+          await trackProgress(post, "skipped");
+          continue;
+        }
+
+        try {
+          // Load image
+          const imageData = isZip
+            ? await loadMediaFromZip(absolutePath, media.originalUri)
+            : await loadMediaFromPath(media.path);
+
+          // Validate
+          const validation = await validateImage(imageData);
+          if (!validation.valid) {
+            failed++;
+            await trackProgress(post, "failed");
+            log.warn(`Invalid image: ${validation.error}`);
+            continue;
+          }
+
+          // Publish photo
+          const imageUtils = await import("./lib/image-utils.js");
+          const dims = await imageUtils.getImageDimensions(imageData);
+          const aspectRatio = imageUtils.calculateAspectRatio(
+            dims.width,
+            dims.height,
+          );
+
+          const altText = getAltText(post) || undefined;
+          const result = await publisher.publishPhoto(
+            imageData,
+            aspectRatio,
+            timestamp,
+            altText,
+          );
+
+          if (result.success) {
+            imported++;
+            await trackProgress(post, "imported");
+
+            // Create gallery item linking photo to gallery
+            if (galleryUri && result.uri) {
+              const itemResult = await publisher.createGalleryItem(
+                galleryUri,
+                result.uri,
+                galleryPosition,
+                timestamp,
+              );
+              if (itemResult.success) {
+                galleryPosition++;
+              } else {
+                log.warn(`Failed to create gallery item: ${itemResult.error}`);
+              }
+            }
+          } else {
+            failed++;
+            await trackProgress(post, "failed");
+            log.warn(`Failed to publish: ${result.error}`);
+          }
+        } catch (error) {
+          failed++;
+          await trackProgress(post, "failed");
+          log.error(`Error processing media: ${(error as Error).message}`);
+        }
       }
     }
 
@@ -616,6 +884,7 @@ export async function main(): Promise<void> {
         dailyLimit: args.dailyLimit,
         handle: args.handle,
         password: args.password,
+        target: args.target || "grain",
       });
       return;
     }
@@ -624,7 +893,9 @@ export async function main(): Promise<void> {
     log.info("Multiple pending imports:");
     log.blank();
     for (let i = 0; i < states.length; i++) {
-      log.raw(`  [${i + 1}] ${path.basename(states[i].exportPath)} — ${getRemainingPosts(states[i])} remaining`);
+      log.raw(
+        `  [${i + 1}] ${path.basename(states[i].exportPath)} — ${getRemainingPosts(states[i])} remaining`,
+      );
     }
     log.blank();
 
@@ -646,6 +917,7 @@ export async function main(): Promise<void> {
       dailyLimit: args.dailyLimit,
       handle: args.handle,
       password: args.password,
+      target: args.target || "grain",
     });
     return;
   }
@@ -665,6 +937,7 @@ export async function main(): Promise<void> {
       password: args.password,
       dailyLimit: args.dailyLimit,
       resume: args.resume,
+      target: options.target || "grain",
     });
     return;
   }

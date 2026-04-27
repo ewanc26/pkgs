@@ -13,8 +13,9 @@
 		Jasper imports your Instagram photos to <a
 			href="https://grain.social"
 			target="_blank"
-			rel="noopener">Grain.social</a
-		> while preserving original timestamps.
+			rel="noopener">Grain</a
+		>
+		or <a href="https://sprk.so" target="_blank" rel="noopener">Spark</a> while preserving original timestamps.
 	</p>
 
 	<h2>How it works</h2>
@@ -44,7 +45,7 @@
 			<span class="step-num">4</span>
 			<div>
 				<strong>Import</strong>
-				<p>Photos are uploaded directly to Grain with original timestamps.</p>
+				<p>Photos are uploaded directly to Grain or Spark with original timestamps.</p>
 			</div>
 		</li>
 	</ol>
@@ -52,8 +53,8 @@
 	<h2>Privacy</h2>
 	<p>
 		Everything runs in your browser. Your Instagram export and photos are processed locally and
-		uploaded directly to your own Grain account via your PDS. No data is sent to any intermediate
-		server.
+		uploaded directly to your own AT Protocol account via your PDS. No data is sent to any
+		intermediate server.
 	</p>
 
 	<h2>What's imported</h2>
@@ -65,7 +66,8 @@
 	</ul>
 
 	<p class="not-imported">
-		<X size={16} /> <strong>Not imported:</strong> Videos, Stories, or Reels (not supported by Grain yet).
+		<X size={16} /> <strong>Not imported:</strong> Videos, Stories, or Reels (not supported by Grain or
+		Spark yet).
 	</p>
 
 	<h2>Getting your Instagram export</h2>
@@ -103,11 +105,17 @@
 	</ol>
 
 	<h2>OAuth Scope</h2>
-	<p>Jasper requests minimal permissions:</p>
-	<code>atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery repo:social.grain.gallery.item</code>
+	<p>Jasper requests minimal permissions based on your target platform:</p>
+	<p><strong>Grain:</strong></p>
+	<code
+		>atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery
+		repo:social.grain.gallery.item</code
+	>
+	<p><strong>Spark:</strong></p>
+	<code>atproto blob:*/* repo:so.sprk.feed.post repo:so.sprk.story.post</code>
 	<p>
-		This allows uploading photos as blobs and writing to Grain's photo, gallery, and gallery item
-		collections. Your Bluesky profile is read directly from your PDS.
+		This allows uploading photos as blobs and writing to the relevant collections. Your Bluesky
+		profile is read directly from your PDS.
 	</p>
 
 	<h2>Source</h2>

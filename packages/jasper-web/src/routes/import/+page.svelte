@@ -17,10 +17,20 @@
 		formatBrowserImportStateSummary,
 		type GalleryInfo,
 		type OrphanPhoto,
-		type BrowserImportState
+		type BrowserImportState,
+		type Target
 	} from '@ewanc26/jasper/browser';
 	import logo from '$lib/assets/favicon.svg';
-	import { Upload, Loader2, ArrowRight, FolderOpen, Image, AlertTriangle, RotateCcw, Trash2 } from '@lucide/svelte';
+	import {
+		Upload,
+		Loader2,
+		ArrowRight,
+		FolderOpen,
+		Image,
+		AlertTriangle,
+		RotateCcw,
+		Trash2
+	} from '@lucide/svelte';
 
 	let step = $state(0);
 	let prevStep = $state(0);
@@ -28,12 +38,15 @@
 	let agent = $state<Agent | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-	let profile = $state<{ displayName?: string; description?: string; avatar?: string } | null>(null);
+	let profile = $state<{ displayName?: string; description?: string; avatar?: string } | null>(
+		null
+	);
 	let handle = $state('');
 	let file = $state<File | null>(null);
 	let dryRun = $state(false);
 	let batchSize = $state(100);
 	let altText = $state('');
+	let target = $state<Target>('grain');
 
 	// Gallery state
 	let galleries = $state<GalleryInfo[]>([]);
@@ -166,7 +179,8 @@
 				existingState,
 				(updatedState) => {
 					savedState = updatedState;
-				}
+				},
+				target
 			);
 
 			result = {
@@ -183,10 +197,7 @@
 			}
 
 			if (importResult.dailyLimitReached) {
-				logs = [
-					...logs,
-					{ level: 'warn', message: 'Daily limit reached. Progress saved.' }
-				];
+				logs = [...logs, { level: 'warn', message: 'Daily limit reached. Progress saved.' }];
 			} else {
 				logs = [
 					...logs,
@@ -265,6 +276,7 @@
 		if (!savedState) return;
 		// Pre-select the gallery from saved state
 		selectedGalleryUri = savedState.galleryUri;
+		target = savedState.target || 'grain';
 		showResumePrompt = false;
 		// User still needs to upload the file
 	}
@@ -277,20 +289,24 @@
 			agent = await initOAuth();
 			if (agent) {
 				// Fetch profile record from PDS
-				const profileResult = await agent.com.atproto.repo.getRecord({
-					repo: agent.did ?? '',
-					collection: 'app.bsky.actor.profile',
-					rkey: 'self'
-				}).catch(() => null);
+				const profileResult = await agent.com.atproto.repo
+					.getRecord({
+						repo: agent.did ?? '',
+						collection: 'app.bsky.actor.profile',
+						rkey: 'self'
+					})
+					.catch(() => null);
 
-				const profileRecord = profileResult?.data?.value as {
-					displayName?: string;
-					description?: string;
-					avatar?: {
-						ref: { '$link': string };
-						mimeType: string;
-					};
-				} | undefined;
+				const profileRecord = profileResult?.data?.value as
+					| {
+							displayName?: string;
+							description?: string;
+							avatar?: {
+								ref: { $link: string };
+								mimeType: string;
+							};
+					  }
+					| undefined;
 
 				let avatarUrl = undefined;
 				const cid = (profileRecord?.avatar as { ref?: { $link?: string } } | undefined)?.ref?.$link;
@@ -304,15 +320,18 @@
 					avatar: avatarUrl
 				};
 
-				// If there's a saved state, check if gallery still exists
+				// If there's a saved state, check if gallery still exists (Grain only)
 				if (savedState) {
-					await loadGalleries();
-					const galleryExists = galleries.some(g => g.uri === savedState?.galleryUri);
-					if (galleryExists) {
-						showResumePrompt = true;
+					if (savedState.target === 'grain' || !savedState.target) {
+						await loadGalleries();
+						const galleryExists = galleries.some((g) => g.uri === savedState?.galleryUri);
+						if (galleryExists) {
+							showResumePrompt = true;
+						} else {
+							handleClearSavedState();
+						}
 					} else {
-						// Gallery was deleted, clear state
-						handleClearSavedState();
+						showResumePrompt = true;
 					}
 				}
 
@@ -330,7 +349,7 @@
 	<title>Import — Jasper</title>
 	<meta
 		name="description"
-		content="Import Instagram photos to Grain.social from your browser and keep your own data under your control."
+		content="Import Instagram posts, stories, and videos to Grain or Spark from your browser and keep your own data under your control."
 	/>
 	<meta name="robots" content="noindex" />
 </svelte:head>
@@ -339,7 +358,8 @@
 	<header>
 		<img src={logo} alt="Jasper" width={48} height={48} class="logo-img" />
 		<p class="tagline">
-			Import Instagram photos to Grain.social without giving your data to a middleman
+			Import Instagram posts, stories, and videos to Grain or Spark without giving your data to a
+			middleman
 		</p>
 	</header>
 
@@ -358,7 +378,9 @@
 				{:else if step === 0}
 					<div class="card-section">
 						<h2 class="section-title">Sign in</h2>
-						<p class="section-sub" style="margin-bottom: 1.5rem;">Sign in with your AT Protocol identity to import photos.</p>
+						<p class="section-sub" style="margin-bottom: 1.5rem;">
+							Sign in with your AT Protocol identity to import photos.
+						</p>
 
 						{#if error}
 							<p class="alert alert-error">{error}</p>
@@ -401,15 +423,21 @@
 									<strong>Resume Previous Import</strong>
 								</div>
 								<p class="resume-info">
-									You have a pending import session from {new Date(savedState.createdAt).toLocaleDateString()}.
+									You have a pending import session from {new Date(
+										savedState.createdAt
+									).toLocaleDateString()}.
 									<br />
-									{savedState.importedTimestamps.length} photos imported, {getBrowserRemainingPosts(savedState)} remaining.
+									{savedState.importedTimestamps.length} photos imported, {getBrowserRemainingPosts(
+										savedState
+									)} remaining.
 								</p>
 								<div class="resume-actions">
-									<button class="btn-primary" onclick={handleResumeImport}>
-										Resume Import
-									</button>
-									<button class="btn-secondary btn-icon" onclick={handleClearSavedState} title="Clear saved state">
+									<button class="btn-primary" onclick={handleResumeImport}> Resume Import </button>
+									<button
+										class="btn-secondary btn-icon"
+										onclick={handleClearSavedState}
+										title="Clear saved state"
+									>
 										<Trash2 size={16} />
 									</button>
 								</div>
@@ -471,6 +499,34 @@
 							{/if}
 						</label>
 
+						<h3 class="subsection-title">Target platform</h3>
+						<div class="target-selector">
+							<button
+								class="target-option"
+								class:selected={target === 'grain'}
+								onclick={() => {
+									target = 'grain';
+									selectedGalleryUri = null;
+								}}
+							>
+								<span class="target-name">Grain</span>
+								<span class="target-desc">social.grain.photo — single photos + galleries</span>
+							</button>
+							<button
+								class="target-option"
+								class:selected={target === 'spark'}
+								onclick={() => {
+									target = 'spark';
+									selectedGalleryUri = null;
+								}}
+							>
+								<span class="target-name">Spark</span>
+								<span class="target-desc"
+									>so.sprk.feed.post — posts, stories, and videos (up to 12 images)</span
+								>
+							</button>
+						</div>
+
 						<div class="field">
 							<label class="field-label" for="batch-size">Batch size (per-day limit)</label>
 							<input id="batch-size" type="number" bind:value={batchSize} min="10" max="500" />
@@ -482,63 +538,68 @@
 							<span class="field-hint">Dry run (preview without importing)</span>
 						</label>
 
-						<h3 class="subsection-title">Select Gallery</h3>
-						<p class="section-sub">Photos will be added to the selected gallery.</p>
+						{#if target === 'grain'}
+							<h3 class="subsection-title">Select Gallery</h3>
+							<p class="section-sub">Photos will be added to the selected gallery.</p>
 
-						{#if loadingGalleries}
-							<div class="loading-inline">
-								<Loader2 class="spin" size={18} /> Loading galleries...
-							</div>
-						{:else if galleries.length > 0}
-							<div class="gallery-list">
-								{#each galleries as gallery}
-									<button
-										class="gallery-item"
-										class:selected={selectedGalleryUri === gallery.uri}
-										onclick={() => handleSelectGallery(gallery.uri)}
-									>
-										<Image size={16} />
-										<span class="gallery-title">{gallery.title}</span>
-										<span class="gallery-date"
-											>{new Date(gallery.createdAt).toLocaleDateString()}</span
+							{#if loadingGalleries}
+								<div class="loading-inline">
+									<Loader2 class="spin" size={18} /> Loading galleries...
+								</div>
+							{:else if galleries.length > 0}
+								<div class="gallery-list">
+									{#each galleries as gallery}
+										<button
+											class="gallery-item"
+											class:selected={selectedGalleryUri === gallery.uri}
+											onclick={() => handleSelectGallery(gallery.uri)}
 										>
-									</button>
-								{/each}
-							</div>
-						{:else}
-							<p class="field-hint">No galleries yet. Create one below.</p>
-						{/if}
+											<Image size={16} />
+											<span class="gallery-title">{gallery.title}</span>
+											<span class="gallery-date"
+												>{new Date(gallery.createdAt).toLocaleDateString()}</span
+											>
+										</button>
+									{/each}
+								</div>
+							{:else}
+								<p class="field-hint">No galleries yet. Create one below.</p>
+							{/if}
 
-						{#if showNewGalleryForm}
-							<div class="new-gallery-form">
-								<div class="field">
-									<input type="text" bind:value={newGalleryTitle} placeholder="Gallery title" />
+							{#if showNewGalleryForm}
+								<div class="new-gallery-form">
+									<div class="field">
+										<input type="text" bind:value={newGalleryTitle} placeholder="Gallery title" />
+									</div>
+									<div class="field">
+										<input
+											type="text"
+											bind:value={newGalleryDescription}
+											placeholder="Description (optional)"
+										/>
+									</div>
+									<div class="actions-inline">
+										<button class="btn-secondary" onclick={() => (showNewGalleryForm = false)}
+											>Cancel</button
+										>
+										<button class="btn-primary" onclick={handleCreateGallery}>Create</button>
+									</div>
 								</div>
-								<div class="field">
-									<input
-										type="text"
-										bind:value={newGalleryDescription}
-										placeholder="Description (optional)"
-									/>
-								</div>
-								<div class="actions-inline">
-									<button class="btn-secondary" onclick={() => (showNewGalleryForm = false)}
-										>Cancel</button
-									>
-									<button class="btn-primary" onclick={handleCreateGallery}>Create</button>
-								</div>
-							</div>
-						{:else}
-							<button class="btn-secondary full-width" onclick={() => (showNewGalleryForm = true)}>
-								+ Create new gallery
-							</button>
+							{:else}
+								<button
+									class="btn-secondary full-width"
+									onclick={() => (showNewGalleryForm = true)}
+								>
+									+ Create new gallery
+								</button>
+							{/if}
 						{/if}
 
 						<div class="actions">
 							<button class="btn-secondary" onclick={() => goTo(1)}>Back</button>
 							<button
 								class="btn-primary"
-								disabled={!file || !selectedGalleryUri}
+								disabled={!file || (target === 'grain' && !selectedGalleryUri)}
 								onclick={handleStartImport}
 							>
 								{dryRun ? 'Preview' : 'Import'}
@@ -951,6 +1012,48 @@
 		font-size: 1rem;
 		font-weight: 600;
 		margin: 1.5rem 0 0.5rem;
+	}
+
+	.target-selector {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.target-option {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		padding: 0.75rem 1rem;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		cursor: pointer;
+		text-align: left;
+		transition:
+			border-color 0.15s,
+			background 0.15s;
+	}
+
+	.target-option:hover {
+		border-color: var(--accent);
+		background: var(--bg-hover);
+	}
+
+	.target-option.selected {
+		border-color: var(--accent);
+		background: var(--bg-hover);
+	}
+
+	.target-name {
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.target-desc {
+		font-size: 0.8rem;
+		color: var(--muted);
 	}
 
 	.gallery-list {

@@ -17,7 +17,7 @@ import type {
   ParsedPost,
   ParsedMedia,
 } from "../core/types.js";
-import { POSTS_JSON_PATHS } from "../core/config.js";
+import { POSTS_JSON_PATHS, STORIES_JSON_PATHS } from "../core/config.js";
 import { log } from "../utils/logger.js";
 
 /**
@@ -86,6 +86,7 @@ function parsePost(
   post: InstagramExportPost,
   basePath: string,
   isZip: boolean,
+  isStory = false,
 ): ParsedPost {
   // Use post-level timestamp or first media's timestamp
   const timestamp =
@@ -112,6 +113,7 @@ function parsePost(
     caption: post.title,
     createdAt,
     media,
+    isStory,
   };
 }
 
@@ -122,6 +124,7 @@ function parsePostsJson(
   jsonString: string,
   basePath: string,
   isZip: boolean,
+  isStory = false,
 ): ParsedPost[] {
   // Fix encoding
   const fixed = fixFacebookEncoding(jsonString);
@@ -137,7 +140,7 @@ function parsePostsJson(
   // Sometimes the JSON isn't an array when there's only one post
   const posts = Array.isArray(data) ? data : [data];
 
-  return posts.map((post) => parsePost(post, basePath, isZip));
+  return posts.map((post) => parsePost(post, basePath, isZip, isStory));
 }
 
 type ZipEntry = EntryMetaData & { directory?: boolean };
@@ -149,6 +152,19 @@ function findPostsJsonInZip(entries: ZipEntry[]): FileEntry | undefined {
   for (const p of POSTS_JSON_PATHS) {
     const entry = entries.find((e) => e.filename === p);
     // Check if it's a file entry (not a directory)
+    if (entry && !entry.directory) {
+      return entry as FileEntry;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Find stories_1.json in ZIP entries
+ */
+function findStoriesJsonInZip(entries: ZipEntry[]): FileEntry | undefined {
+  for (const p of STORIES_JSON_PATHS) {
+    const entry = entries.find((e) => e.filename === p);
     if (entry && !entry.directory) {
       return entry as FileEntry;
     }
@@ -183,26 +199,22 @@ export async function parseZipExport(zipPath: string): Promise<ParsedPost[]> {
 
   log.debug(`Found posts_1.json at: ${postsEntry.filename}`);
 
-  // Extract and parse
+  // Extract and parse posts
   const postsText = await postsEntry.getData(new TextWriter());
-
   const posts = parsePostsJson(postsText, "", true);
 
-  // Filter and log video posts
-  const imagePosts: ParsedPost[] = [];
-  for (const post of posts) {
-    const hasVideo = post.media.some((m) => m.type === "video");
-    if (hasVideo) {
-      post.skipped = true;
-      post.skipReason = "Contains video(s) — Grain does not support videos yet";
-      log.warn(`Skipping video post from ${post.createdAt.toISOString()}`);
-      continue;
-    }
-    imagePosts.push(post);
+  // Find and parse stories_1.json (optional)
+  const storiesEntry = findStoriesJsonInZip(entries);
+  if (storiesEntry) {
+    log.debug(`Found stories_1.json at: ${storiesEntry.filename}`);
+    const storiesText = await storiesEntry.getData(new TextWriter());
+    const stories = parsePostsJson(storiesText, "", true, true);
+    posts.push(...stories);
+    log.info(`Found ${stories.length} stories`);
   }
 
   await zipReader.close();
-  return imagePosts;
+  return posts;
 }
 
 /**
@@ -229,24 +241,24 @@ export async function parseDirectoryExport(
 
   log.debug(`Found posts_1.json at: ${postsPath}`);
 
-  // Read and parse
+  // Read and parse posts
   const postsString = fs.readFileSync(postsPath, "utf-8");
   const posts = parsePostsJson(postsString, dirPath, false);
 
-  // Filter video posts
-  const imagePosts: ParsedPost[] = [];
-  for (const post of posts) {
-    const hasVideo = post.media.some((m) => m.type === "video");
-    if (hasVideo) {
-      post.skipped = true;
-      post.skipReason = "Contains video(s) — Grain does not support videos yet";
-      log.warn(`Skipping video post from ${post.createdAt.toISOString()}`);
-      continue;
+  // Find and parse stories_1.json (optional)
+  for (const p of STORIES_JSON_PATHS) {
+    const fullPath = path.join(dirPath, p);
+    if (fs.existsSync(fullPath)) {
+      log.debug(`Found stories_1.json at: ${fullPath}`);
+      const storiesString = fs.readFileSync(fullPath, "utf-8");
+      const stories = parsePostsJson(storiesString, dirPath, false, true);
+      posts.push(...stories);
+      log.info(`Found ${stories.length} stories`);
+      break;
     }
-    imagePosts.push(post);
   }
 
-  return imagePosts;
+  return posts;
 }
 
 /**
