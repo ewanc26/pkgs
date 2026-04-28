@@ -10,35 +10,95 @@
 	</section>
 
 	<section class="projects">
-		<a href="https://jasper.croft.click" class="project-card jasper" rel="noopener">
-			<div class="card-header">
-				<img src="/jasper.svg" alt="" class="card-logo" width={28} height={28} />
-				<span class="card-eyebrow">JASPER</span>
+		<div class="project-card jasper">
+			<div class="card-preview">
+				<div class="browser-chrome">
+					<div class="chrome-dots">
+						<span class="dot dot-red"></span>
+						<span class="dot dot-yellow"></span>
+						<span class="dot dot-green"></span>
+					</div>
+					<span class="chrome-url">jasper.croft.click</span>
+				</div>
+				<div class="preview-viewport">
+					<iframe
+						src="https://jasper.croft.click"
+						title="Jasper live preview"
+						loading="lazy"
+						scrolling="no"
+					></iframe>
+				</div>
 			</div>
-			<h2>Instagram → Grain &amp; Spark</h2>
-			<p>Import your photos, stories, and videos from an Instagram data export. Original timestamps preserved, duplicates skipped.</p>
-			<span class="card-link">jasper.croft.click →</span>
-		</a>
+			<div class="card-body">
+				<a href="https://jasper.croft.click" class="card-header" rel="noopener">
+					<img src="/jasper.svg" alt="" class="card-logo" width={28} height={28} />
+					<span class="card-eyebrow">JASPER</span>
+				</a>
+				<h2>Instagram → Grain &amp; Spark</h2>
+				<p>Import your photos, stories, and videos from an Instagram data export. Original timestamps preserved, duplicates skipped.</p>
+				<a href="https://jasper.croft.click" class="card-link" rel="noopener">jasper.croft.click →</a>
+			</div>
+		</div>
 
-		<a href="https://malachite.croft.click" class="project-card malachite" rel="noopener">
-			<div class="card-header">
-				<img src="/malachite.svg" alt="" class="card-logo" width={28} height={28} />
-				<span class="card-eyebrow">MALACHITE</span>
+		<div class="project-card malachite">
+			<div class="card-preview">
+				<div class="browser-chrome">
+					<div class="chrome-dots">
+						<span class="dot dot-red"></span>
+						<span class="dot dot-yellow"></span>
+						<span class="dot dot-green"></span>
+					</div>
+					<span class="chrome-url">malachite.croft.click</span>
+				</div>
+				<div class="preview-viewport">
+					<iframe
+						src="https://malachite.croft.click"
+						title="Malachite live preview"
+						loading="lazy"
+						scrolling="no"
+					></iframe>
+				</div>
 			</div>
-			<h2>Last.fm &amp; Spotify → Teal</h2>
-			<p>Import your listening history from Last.fm scrobbles and Spotify plays. Smart deduplication and sync support.</p>
-			<span class="card-link">malachite.croft.click →</span>
-		</a>
+			<div class="card-body">
+				<a href="https://malachite.croft.click" class="card-header" rel="noopener">
+					<img src="/malachite.svg" alt="" class="card-logo" width={28} height={28} />
+					<span class="card-eyebrow">MALACHITE</span>
+				</a>
+				<h2>Last.fm &amp; Spotify → Teal</h2>
+				<p>Import your listening history from Last.fm scrobbles and Spotify plays. Smart deduplication and sync support.</p>
+				<a href="https://malachite.croft.click" class="card-link" rel="noopener">malachite.croft.click →</a>
+			</div>
+		</div>
 
-		<a href="https://bismuth.croft.click" class="project-card bismuth" rel="noopener">
-			<div class="card-header">
-				<img src="/bismuth.svg" alt="" class="card-logo" width={28} height={28} />
-				<span class="card-eyebrow">BISMUTH</span>
+		<div class="project-card bismuth">
+			<div class="card-preview">
+				<div class="browser-chrome">
+					<div class="chrome-dots">
+						<span class="dot dot-red"></span>
+						<span class="dot dot-yellow"></span>
+						<span class="dot dot-green"></span>
+					</div>
+					<span class="chrome-url">bismuth.croft.click</span>
+				</div>
+				<div class="preview-viewport">
+					<iframe
+						src="https://bismuth.croft.click"
+						title="Bismuth live preview"
+						loading="lazy"
+						scrolling="no"
+					></iframe>
+				</div>
 			</div>
-			<h2>site.standard.document → Markdown</h2>
-			<p>Convert ATProto richtext-block documents from Leaflet, Pckt, and Offprint to Markdown in your browser.</p>
-			<span class="card-link">bismuth.croft.click →</span>
-		</a>
+			<div class="card-body">
+				<a href="https://bismuth.croft.click" class="card-header" rel="noopener">
+					<img src="/bismuth.svg" alt="" class="card-logo" width={28} height={28} />
+					<span class="card-eyebrow">BISMUTH</span>
+				</a>
+				<h2>site.standard.document → Markdown</h2>
+				<p>Convert ATProto richtext-block documents from Leaflet, Pckt, and Offprint to Markdown in your browser.</p>
+				<a href="https://bismuth.croft.click" class="card-link" rel="noopener">bismuth.croft.click →</a>
+			</div>
+		</div>
 	</section>
 
 	<footer>
@@ -103,9 +163,7 @@
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: 12px;
-		padding: 1.75rem;
-		text-decoration: none;
-		color: var(--text);
+		overflow: hidden;
 		transition:
 			border-color 0.2s,
 			transform 0.15s;
@@ -127,11 +185,97 @@
 		border-color: #c4b5fd;
 	}
 
+	/* ── browser preview ──────────────────────────────────────────────────── */
+	.card-preview {
+		display: flex;
+		flex-direction: column;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.browser-chrome {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		padding: 0.4rem 0.75rem;
+		background: var(--surface-2);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.chrome-dots {
+		display: flex;
+		gap: 0.35rem;
+	}
+
+	.dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+	}
+
+	.dot-red {
+		background: #f87171;
+	}
+
+	.dot-yellow {
+		background: #fbbf24;
+	}
+
+	.dot-green {
+		background: #4ade80;
+	}
+
+	.chrome-url {
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 0.65rem;
+		color: var(--muted);
+		letter-spacing: 0.02em;
+	}
+
+	.project-card.jasper .chrome-url {
+		color: #fb923c;
+	}
+
+	.project-card.malachite .chrome-url {
+		color: #3fb968;
+	}
+
+	.project-card.bismuth .chrome-url {
+		color: #c4b5fd;
+	}
+
+	.preview-viewport {
+		overflow: hidden;
+		height: 130px;
+	}
+
+	.preview-viewport iframe {
+		width: 200%;
+		height: 260px;
+		border: none;
+		transform: scale(0.5);
+		transform-origin: top left;
+		pointer-events: none;
+	}
+
+	/* ── card body ─────────────────────────────────────────────────────────── */
+	.card-body {
+		padding: 1.25rem 1.5rem;
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+	}
+
 	.card-header {
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
-		margin-bottom: 1rem;
+		margin-bottom: 0.75rem;
+		text-decoration: none;
+		color: var(--text);
+	}
+
+	.card-header:hover .card-eyebrow {
+		color: var(--text);
 	}
 
 	.card-logo {
@@ -145,6 +289,7 @@
 		font-size: 0.75rem;
 		letter-spacing: 0.12em;
 		color: var(--muted);
+		transition: color 0.15s;
 	}
 
 	h2 {
@@ -167,6 +312,8 @@
 		font-size: 0.75rem;
 		color: var(--muted);
 		letter-spacing: 0.02em;
+		text-decoration: none;
+		transition: color 0.15s;
 	}
 
 	.project-card.jasper:hover .card-link {
@@ -213,6 +360,14 @@
 
 		.projects {
 			grid-template-columns: 1fr;
+		}
+
+		.card-preview {
+			display: none;
+		}
+
+		.card-body {
+			padding: 1.75rem;
 		}
 	}
 </style>
