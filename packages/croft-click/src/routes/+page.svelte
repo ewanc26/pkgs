@@ -21,17 +21,12 @@
 					<span class="chrome-url">jasper.croft.click</span>
 				</div>
 				<div class="preview-viewport">
-					<iframe
-						src="https://jasper.croft.click"
-						title="Jasper live preview"
-						loading="lazy"
-						scrolling="no"
-					></iframe>
+					<img src="/jasper.svg" alt="The Jasper logo" class="preview-logo" />
 				</div>
 			</div>
 			<div class="card-body">
 				<a href="https://jasper.croft.click" class="card-header" rel="noopener">
-					<img src="/jasper.svg" alt="" class="card-logo" width={28} height={28} />
+					<img src="/jasper.svg" alt="The Jasper logo" class="card-logo" width={28} height={28} />
 					<span class="card-eyebrow">JASPER</span>
 				</a>
 				<h2>Instagram → Grain &amp; Spark</h2>
@@ -51,17 +46,12 @@
 					<span class="chrome-url">malachite.croft.click</span>
 				</div>
 				<div class="preview-viewport">
-					<iframe
-						src="https://malachite.croft.click"
-						title="Malachite live preview"
-						loading="lazy"
-						scrolling="no"
-					></iframe>
+					<img src="/malachite.svg" alt="The Malachite logo" class="preview-logo" />
 				</div>
 			</div>
 			<div class="card-body">
 				<a href="https://malachite.croft.click" class="card-header" rel="noopener">
-					<img src="/malachite.svg" alt="" class="card-logo" width={28} height={28} />
+					<img src="/malachite.svg" alt="The Malachite logo" class="card-logo" width={28} height={28} />
 					<span class="card-eyebrow">MALACHITE</span>
 				</a>
 				<h2>Last.fm &amp; Spotify → Teal</h2>
@@ -81,17 +71,12 @@
 					<span class="chrome-url">bismuth.croft.click</span>
 				</div>
 				<div class="preview-viewport">
-					<iframe
-						src="https://bismuth.croft.click"
-						title="Bismuth live preview"
-						loading="lazy"
-						scrolling="no"
-					></iframe>
+					<img src="/bismuth.svg" alt="The Bismuth logo" class="preview-logo" />
 				</div>
 			</div>
 			<div class="card-body">
 				<a href="https://bismuth.croft.click" class="card-header" rel="noopener">
-					<img src="/bismuth.svg" alt="" class="card-logo" width={28} height={28} />
+					<img src="/bismuth.svg" alt="The Bismuth logo" class="card-logo" width={28} height={28} />
 					<span class="card-eyebrow">BISMUTH</span>
 				</a>
 				<h2>site.standard.document → Markdown</h2>
@@ -246,15 +231,6 @@
 	.preview-viewport {
 		overflow: hidden;
 		height: 130px;
-	}
-
-	.preview-viewport iframe {
-		width: 200%;
-		height: 260px;
-		border: none;
-		transform: scale(0.5);
-		transform-origin: top left;
-		pointer-events: none;
 	}
 
 	/* ── card body ─────────────────────────────────────────────────────────── */
