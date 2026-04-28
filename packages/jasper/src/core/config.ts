@@ -4,7 +4,7 @@
 
 import type { Config, Target, TargetConfig } from "./types.js";
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.5.1";
 
 export const config: Config = {
   /** Grain lexicon NSID for photos */
