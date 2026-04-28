@@ -4,6 +4,19 @@
 
 <svelte:head>
 	<title>About — Jasper</title>
+	<meta name="description" content="How Jasper works, what's imported, privacy details, and OAuth scope information." />
+	<link rel="canonical" href="https://jasper.croft.click/about" />
+
+	<!-- Open Graph -->
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://jasper.croft.click/about" />
+	<meta property="og:title" content="About — Jasper" />
+	<meta property="og:description" content="How Jasper works, what's imported, privacy details, and OAuth scope information." />
+
+	<!-- Twitter / X card -->
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content="About — Jasper" />
+	<meta name="twitter:description" content="How Jasper works, what's imported, privacy details, and OAuth scope information." />
 </svelte:head>
 
 <main>
@@ -63,11 +76,12 @@
 		<li><Check size={16} /> Original timestamps</li>
 		<li><Check size={16} /> Captions (as alt text)</li>
 		<li><Check size={16} /> Carousel posts (multiple photos)</li>
+		<li><Check size={16} /> Videos (MP4, MOV) — Spark only</li>
+		<li><Check size={16} /> Stories — Spark only</li>
 	</ul>
 
 	<p class="not-imported">
-		<X size={16} /> <strong>Not imported:</strong> Videos, Stories, or Reels (not supported by Grain or
-		Spark yet).
+		<X size={16} /> <strong>Not imported:</strong> Reels. Videos and stories are not supported by Grain.
 	</p>
 
 	<h2>Getting your Instagram export</h2>

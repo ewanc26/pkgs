@@ -130,53 +130,47 @@ export async function parseExportFromFile(file: File): Promise<ParsedPost[]> {
 
   log.debug(`Found posts_1.json at: ${postsEntry.filename}`);
 
-  // Extract and parse
+  // Extract and parse posts
   const postsText = await postsEntry.getData(new TextWriter());
-
   const posts = parsePostsJson(postsText);
 
-  // Filter and log video posts
-  const imagePosts: ParsedPost[] = [];
-  for (const post of posts) {
-    const hasVideo = post.media.some((m) => m.type === "video");
-    if (hasVideo) {
-      post.skipped = true;
-      post.skipReason = "Contains video(s) — Grain does not support videos yet";
-      log.warn(`Skipping video post from ${post.createdAt.toISOString()}`);
-      continue;
-    }
-
-    imagePosts.push(post);
+  // Find and parse stories_1.json (optional)
+  const storiesEntry = findStoriesJsonInZip(entries);
+  if (storiesEntry) {
+    log.debug(`Found stories_1.json at: ${storiesEntry.filename}`);
+    const storiesText = await storiesEntry.getData(new TextWriter());
+    const stories = parsePostsJson(storiesText, true);
+    posts.push(...stories);
+    log.info(`Found ${stories.length} stories`);
   }
 
-  // Load media data for each post
-  for (const post of imagePosts) {
+  // Load media data for each post (images and videos)
+  for (const post of posts) {
     if (post.skipped) continue;
 
     for (const media of post.media) {
-      if (media.type === "image") {
-        try {
-          const mediaEntry = findMediaInZip(entries, media.originalUri);
-          if (mediaEntry) {
-            media.data = await mediaEntry.getData(new BlobWriter());
-          } else {
-            log.warn(`Media file not found: ${media.originalUri}`);
-            post.skipped = true;
-            post.skipReason = `Media file missing: ${media.originalUri}`;
-          }
-        } catch (error) {
-          log.error(`Failed to load media ${media.originalUri}: ${error}`);
+      try {
+        const mediaEntry = findMediaInZip(entries, media.originalUri);
+        if (mediaEntry) {
+          media.data = await mediaEntry.getData(new BlobWriter());
+        } else {
+          log.warn(`Media file not found: ${media.originalUri}`);
           post.skipped = true;
-          post.skipReason = `Failed to load media: ${error}`;
+          post.skipReason = `Media file missing: ${media.originalUri}`;
         }
+      } catch (error) {
+        log.error(`Failed to load media ${media.originalUri}: ${error}`);
+        post.skipped = true;
+        post.skipReason = `Failed to load media: ${error}`;
       }
     }
   }
 
   await zipReader.close();
 
-  log.info(`Parsed ${imagePosts.length} posts from ZIP`);
-  return imagePosts;
+  const validPosts = posts.filter((p) => !p.skipped);
+  log.info(`Parsed ${validPosts.length} posts from ZIP`);
+  return validPosts;
 }
 
 /**
@@ -185,6 +179,18 @@ export async function parseExportFromFile(file: File): Promise<ParsedPost[]> {
 function findPostsJsonInZip(entries: FileEntry[]): FileEntry | null {
   for (const entry of entries) {
     if (entry.filename.endsWith("posts_1.json")) {
+      return entry;
+    }
+  }
+  return null;
+}
+
+/**
+ * Find stories_1.json in the ZIP entries
+ */
+function findStoriesJsonInZip(entries: FileEntry[]): FileEntry | null {
+  for (const entry of entries) {
+    if (entry.filename.endsWith("stories_1.json")) {
       return entry;
     }
   }
@@ -219,10 +225,10 @@ function findMediaInZip(
 }
 
 /**
- * Parse posts_1.json content
+ * Parse posts_1.json or stories_1.json content
  */
-function parsePostsJson(postsText: string): ParsedPost[] {
-  log.debug("Parsing posts_1.json");
+function parsePostsJson(postsText: string, isStory = false): ParsedPost[] {
+  log.debug(isStory ? "Parsing stories_1.json" : "Parsing posts_1.json");
 
   // Fix encoding issues
   const fixedText = fixFacebookEncoding(postsText);
@@ -231,21 +237,21 @@ function parsePostsJson(postsText: string): ParsedPost[] {
   try {
     rawPosts = JSON.parse(fixedText);
   } catch (error) {
-    throw new Error(`Failed to parse posts_1.json: ${error}`);
+    throw new Error(`Failed to parse ${isStory ? "stories" : "posts"}_1.json: ${error}`);
   }
 
-  log.debug(`Found ${rawPosts.length} raw posts`);
+  log.debug(`Found ${rawPosts.length} raw ${isStory ? "stories" : "posts"}`);
 
   const posts: ParsedPost[] = [];
 
   for (const rawPost of rawPosts) {
     try {
-      const post = parsePost(rawPost);
+      const post = parsePost(rawPost, isStory);
       if (post) {
         posts.push(post);
       }
     } catch (error) {
-      log.warn(`Failed to parse post: ${error}`);
+      log.warn(`Failed to parse ${isStory ? "story" : "post"}: ${error}`);
     }
   }
 
@@ -255,7 +261,7 @@ function parsePostsJson(postsText: string): ParsedPost[] {
 /**
  * Parse a single Instagram post
  */
-function parsePost(rawPost: InstagramExportPost): ParsedPost | null {
+function parsePost(rawPost: InstagramExportPost, isStory = false): ParsedPost | null {
   // Skip if no media
   if (!rawPost.media || rawPost.media.length === 0) {
     return null;
@@ -287,6 +293,7 @@ function parsePost(rawPost: InstagramExportPost): ParsedPost | null {
     caption: rawPost.title || undefined,
     createdAt: timestamp,
     media,
+    isStory,
   };
 }
 
@@ -638,6 +645,15 @@ export async function runImport(
         trackProgress(timestamp, "skipped");
         logger.info(
           `Skipping story (Grain does not support stories): ${timestamp}`,
+        );
+        continue;
+      }
+
+      // Skip video posts for Grain (not supported)
+      if (target === "grain" && post.media.some((m) => m.type === "video")) {
+        trackProgress(timestamp, "skipped");
+        logger.info(
+          `Skipping video post (Grain does not support videos): ${timestamp}`,
         );
         continue;
       }
