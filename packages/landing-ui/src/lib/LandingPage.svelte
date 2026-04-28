@@ -212,6 +212,9 @@
 		font-size: 0.9rem;
 		padding: 0.65rem 1.25rem;
 		border-radius: 6px;
+		border: none;
+		width: auto;
+		margin-top: 0;
 		text-decoration: none;
 		transition:
 			background 0.15s,
