@@ -349,7 +349,7 @@
 	<title>Import — Jasper</title>
 	<meta
 		name="description"
-		content="Import Instagram posts, stories, and videos to Grain or Spark from your browser and keep your own data under your control."
+		content="Import Instagram photos to Grain or Spark from your browser. No data leaves your machine except to your own PDS."
 	/>
 	<meta name="robots" content="noindex" />
 </svelte:head>
