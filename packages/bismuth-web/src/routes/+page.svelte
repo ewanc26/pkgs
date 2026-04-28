@@ -1,6 +1,6 @@
 <script lang="ts">
 	import logo from '$lib/assets/logo.svg';
-	import { ArrowRight, Github, Heart, Coffee, FileText, Code2, Layers } from '@lucide/svelte';
+	import { ArrowRight, Github, Heart, Coffee, FileText } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -60,12 +60,12 @@
 			<p>Convert pub.leaflet.content and site.standard.document records with full block support.</p>
 		</div>
 		<div class="feature-card">
-			<span class="feature-icon"><Code2 size={20} /></span>
+			<span class="feature-icon"><FileText size={20} /></span>
 			<h3>Pckt</h3>
 			<p>Handle blog.pckt.content with inline and blob-mode content resolution.</p>
 		</div>
 		<div class="feature-card">
-			<span class="feature-icon"><Layers size={20} /></span>
+			<span class="feature-icon"><FileText size={20} /></span>
 			<h3>Offprint</h3>
 			<p>Support app.offprint.content including task lists, web embeds, and coloured highlights.</p>
 		</div>
