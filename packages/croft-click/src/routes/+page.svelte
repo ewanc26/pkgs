@@ -12,7 +12,7 @@
 	<section class="projects">
 		<a href="https://jasper.croft.click" class="project-card jasper" rel="noopener">
 			<div class="card-header">
-				<span class="dot jasper-dot"></span>
+				<img src="/jasper.svg" alt="" class="card-logo" width={28} height={28} />
 				<span class="card-eyebrow">JASPER</span>
 			</div>
 			<h2>Instagram → Grain &amp; Spark</h2>
@@ -22,7 +22,7 @@
 
 		<a href="https://malachite.croft.click" class="project-card malachite" rel="noopener">
 			<div class="card-header">
-				<span class="dot malachite-dot"></span>
+				<img src="/malachite.svg" alt="" class="card-logo" width={28} height={28} />
 				<span class="card-eyebrow">MALACHITE</span>
 			</div>
 			<h2>Last.fm &amp; Spotify → Teal</h2>
@@ -116,25 +116,14 @@
 	.card-header {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.6rem;
 		margin-bottom: 1rem;
 	}
 
-	.dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
+	.card-logo {
+		width: 28px;
+		height: 28px;
 		flex-shrink: 0;
-	}
-
-	.jasper-dot {
-		background: #fb923c;
-		box-shadow: 0 0 8px rgba(251, 146, 60, 0.4);
-	}
-
-	.malachite-dot {
-		background: #3fb968;
-		box-shadow: 0 0 8px rgba(63, 185, 104, 0.4);
 	}
 
 	.card-eyebrow {
