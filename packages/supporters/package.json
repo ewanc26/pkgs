@@ -55,7 +55,8 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@ewanc26/tid": "workspace:*"
+    "@ewanc26/tid": "workspace:*",
+    "@lucide/svelte": "^0.575.0"
   },
   "peerDependencies": {
     "@atproto/api": ">=0.13.0",
