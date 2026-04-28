@@ -53,7 +53,8 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@ewanc26/ui": "workspace:*"
+    "@ewanc26/ui": "workspace:*",
+    "@lucide/svelte": "^0.575.0"
   },
   "peerDependencies": {
     "@sveltejs/kit": ">=2.0.0",
