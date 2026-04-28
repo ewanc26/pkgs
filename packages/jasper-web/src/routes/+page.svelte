@@ -4,28 +4,28 @@
 </script>
 
 <svelte:head>
-	<title>Jasper — Import Instagram photos to AT Protocol</title>
+	<title>Jasper — Import Instagram photos, stories, and videos to AT Protocol</title>
 	<meta
 		name="description"
-		content="Import your Instagram photos directly into Grain or Spark from your browser. Keep your memories under your control, not locked in by big tech."
+		content="Import your Instagram photos, stories, and videos directly into Grain or Spark from your browser. Keep your memories under your control, not locked in by big tech."
 	/>
 	<link rel="canonical" href="https://jasper.croft.click" />
 
 	<!-- Open Graph -->
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://jasper.croft.click" />
-	<meta property="og:title" content="Jasper — Import Instagram photos to AT Protocol" />
+	<meta property="og:title" content="Jasper — Import Instagram photos, stories, and videos to AT Protocol" />
 	<meta
 		property="og:description"
-		content="Import your Instagram photos directly into Grain or Spark from your browser. Keep your memories under your control, not locked in by big tech."
+		content="Import your Instagram photos, stories, and videos directly into Grain or Spark from your browser. Keep your memories under your control, not locked in by big tech."
 	/>
 
 	<!-- Twitter / X card -->
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content="Jasper — Import Instagram photos to AT Protocol" />
+	<meta name="twitter:title" content="Jasper — Import Instagram photos, stories, and videos to AT Protocol" />
 	<meta
 		name="twitter:description"
-		content="Import your Instagram photos directly into Grain or Spark from your browser. Keep your memories under your control, not locked in by big tech."
+		content="Import your Instagram photos, stories, and videos directly into Grain or Spark from your browser. Keep your memories under your control, not locked in by big tech."
 	/>
 </svelte:head>
 
