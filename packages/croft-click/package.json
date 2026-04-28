@@ -30,6 +30,9 @@
 		"lint": "prettier --check .",
 		"format": "prettier --write ."
 	},
+	"dependencies": {
+		"@lucide/svelte": "^0.575.0"
+	},
 	"devDependencies": {
 		"@sveltejs/adapter-vercel": "^6.3.1",
 		"@sveltejs/kit": "^2.50.2",
