@@ -194,16 +194,14 @@
 		property="og:description"
 		content="Import your Last.fm and Spotify listening history into Teal on ATProto. Choose a mode, sign in, upload your export, and import."
 	/>
-	<meta property="og:image" content="https://malachite.croft.click/og-import.svg" />
 
 	<!-- Twitter / X card -->
-	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:card" content="summary" />
 	<meta name="twitter:title" content="Malachite — Import to Teal" />
 	<meta
 		name="twitter:description"
 		content="Import your Last.fm and Spotify listening history into Teal on ATProto. Choose a mode, sign in, upload your export, and import."
 	/>
-	<meta name="twitter:image" content="https://malachite.croft.click/og-import.svg" />
 </svelte:head>
 
 <main>

@@ -28,16 +28,13 @@
 		property="og:description"
 		content="Import your music history from Last.fm and Spotify into Teal. Own your listening data instead of leaving it behind on closed platforms."
 	/>
-	<meta property="og:image" content="https://malachite.croft.click/og-home.svg" />
-
 	<!-- Twitter / X card -->
-	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:card" content="summary" />
 	<meta name="twitter:title" content="Malachite — Import your music history to Teal" />
 	<meta
 		name="twitter:description"
 		content="Import your music history from Last.fm and Spotify into Teal. Own your listening data instead of leaving it behind on closed platforms."
 	/>
-	<meta name="twitter:image" content="https://malachite.croft.click/og-home.svg" />
 </svelte:head>
 
 <main>
