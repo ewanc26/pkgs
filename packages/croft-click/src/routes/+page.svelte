@@ -5,8 +5,8 @@
 <main>
 	<section class="hero">
 		<p class="eyebrow">croft.click</p>
-		<h1>AT Protocol<br />import tools.</h1>
-		<p class="sub">Move your data from closed platforms to the open social web. Free, open-source, runs in your browser.</p>
+		<h1>AT Protocol<br />tools.</h1>
+		<p class="sub">Move your data to the open social web. Free, open-source, runs in your browser.</p>
 	</section>
 
 	<section class="projects">
@@ -28,6 +28,16 @@
 			<h2>Last.fm &amp; Spotify → Teal</h2>
 			<p>Import your listening history from Last.fm scrobbles and Spotify plays. Smart deduplication and sync support.</p>
 			<span class="card-link">malachite.croft.click →</span>
+		</a>
+
+		<a href="https://bismuth.croft.click" class="project-card bismuth" rel="noopener">
+			<div class="card-header">
+				<img src="/bismuth.svg" alt="" class="card-logo" width={28} height={28} />
+				<span class="card-eyebrow">BISMUTH</span>
+			</div>
+			<h2>site.standard.document → Markdown</h2>
+			<p>Convert ATProto richtext-block documents from Leaflet, Pckt, and Offprint to Markdown in your browser.</p>
+			<span class="card-link">bismuth.croft.click →</span>
 		</a>
 	</section>
 
@@ -80,10 +90,10 @@
 	/* ── project cards ────────────────────────────────────────────────────── */
 	.projects {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: repeat(3, 1fr);
 		gap: 1.25rem;
 		width: 100%;
-		max-width: 48rem;
+		max-width: 56rem;
 		margin-bottom: 3rem;
 	}
 
@@ -111,6 +121,10 @@
 
 	.project-card.malachite:hover {
 		border-color: #3fb968;
+	}
+
+	.project-card.bismuth:hover {
+		border-color: #c4b5fd;
 	}
 
 	.card-header {
@@ -163,6 +177,10 @@
 		color: #3fb968;
 	}
 
+	.project-card.bismuth:hover .card-link {
+		color: #c4b5fd;
+	}
+
 	/* ── footer ───────────────────────────────────────────────────────────── */
 	footer {
 		display: flex;
@@ -188,7 +206,7 @@
 	}
 
 	/* ── responsive ───────────────────────────────────────────────────────── */
-	@media (max-width: 640px) {
+	@media (max-width: 768px) {
 		h1 {
 			font-size: 2.25rem;
 		}
