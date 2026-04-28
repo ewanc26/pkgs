@@ -69,6 +69,20 @@
 		uploaded directly to your own AT Protocol account via your PDS. No data is sent to any
 		intermediate server.
 	</p>
+	<p>
+		No cookies, no local storage, no fingerprinting.
+	</p>
+
+	<h3>Analytics</h3>
+	<p>
+		This site uses <a href="https://umami.is" target="_blank" rel="noopener">Umami</a>,
+		an open-source, GDPR-compliant analytics tool hosted at
+		<a href="https://analytics.ewancroft.uk" target="_blank" rel="noopener">analytics.ewancroft.uk</a>.
+		It collects anonymous page views and referrer data — no cookies, no personal data, no
+		cross-site tracking. Your IP address is truncated before processing. You can verify the
+		privacy policy at
+		<a href="https://umami.is" target="_blank" rel="noopener">umami.is/privacy</a>.
+	</p>
 
 	<h2>What's imported</h2>
 	<ul class="check-list">
