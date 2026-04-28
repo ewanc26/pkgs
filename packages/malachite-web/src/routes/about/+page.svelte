@@ -8,13 +8,11 @@
   <meta property="og:url" content="https://malachite.croft.click/about" />
   <meta property="og:title" content="About — Malachite" />
   <meta property="og:description" content="Privacy policy, CLI usage, rate limit details, credits, and licence information for Malachite." />
-  <meta property="og:image" content="https://malachite.croft.click/og-about.svg" />
 
   <!-- Twitter / X card -->
-  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="About — Malachite" />
   <meta name="twitter:description" content="Privacy policy, CLI usage, rate limit details, credits, and licence information for Malachite." />
-  <meta name="twitter:image" content="https://malachite.croft.click/og-about.svg" />
 </svelte:head>
 
 <main>
