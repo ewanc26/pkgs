@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { LandingLayout } from '@ewanc26/landing-ui';
+	import '@ewanc26/landing-ui/landing.css';
 	import './layout.css';
 	let { children } = $props();
 
@@ -6,97 +8,14 @@
 	const cliVersion: string = __CLI_VERSION__;
 </script>
 
-<svelte:head>
-	<link
-		rel="preconnect"
-		href="https://fonts.googleapis.com"
-	/>
-	<link
-		rel="preconnect"
-		href="https://fonts.gstatic.com"
-		crossorigin="anonymous"
-	/>
-	<link
-		href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-		rel="stylesheet"
-	/>
-</svelte:head>
-
-<header>
-	<a href="/" class="brand">
-		<img src="/logo/Malachite.svg" alt="Malachite" class="logo-mark" />
-		<span class="wordmark">malachite</span>
-	</a>
-	<div class="version-strip">
-	<span>web v{webVersion}</span>
-	<span class="sep">–</span>
-	<span>cli v{cliVersion}</span>
-	</div>
-</header>
-
-{@render children()}
-
-<footer>
-	<span>privacy-first analytics</span>
-	<span class="sep">·</span>
-	<a href="https://github.com/ewanc26/malachite" target="_blank" rel="noopener">source</a>
-</footer>
-
-<style>
-	header {
-		position: sticky;
-		top: 0;
-		z-index: 10;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.6rem 1.5rem;
-		background: var(--bg);
-		border-bottom: 1px solid var(--border);
-	}
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		text-decoration: none;
-	}
-	.logo-mark {
-		width: 22px;
-		height: 22px;
-		display: block;
-		flex-shrink: 0;
-	}
-	.wordmark {
-		font-size: 0.85rem;
-		font-weight: 600;
-		font-family: 'JetBrains Mono', monospace;
-		color: var(--accent);
-		letter-spacing: -0.02em;
-	}
-	.version-strip {
-		font-size: 0.7rem;
-		font-family: 'JetBrains Mono', monospace;
-		color: var(--muted);
-		letter-spacing: 0.03em;
-		user-select: none;
-	}
-	.sep {
-		margin: 0 0.4rem;
-		color: var(--muted);
-	}
-	footer {
-		text-align: center;
-		padding: 1rem 1.5rem;
-		font-size: 0.7rem;
-		font-family: 'JetBrains Mono', monospace;
-		color: var(--muted);
-		border-top: 1px solid var(--border);
-	}
-	footer a {
-		color: var(--accent);
-		text-decoration: none;
-	}
-	footer a:hover {
-		text-decoration: underline;
-	}
-</style>
+<LandingLayout
+	name="malachite"
+	logo="/logo/Malachite.svg"
+	logoAlt="Malachite"
+	footerTagline="privacy-first analytics"
+	footerSourceUrl="https://github.com/ewanc26/malachite"
+	{webVersion}
+	{cliVersion}
+>
+	{@render children()}
+</LandingLayout>
