@@ -36,6 +36,7 @@
 	},
 	"dependencies": {
 		"@ewanc26/bismuth": "workspace:*",
+		"@ewanc26/landing-ui": "workspace:*",
 		"@lucide/svelte": "^0.575.0"
 	},
 	"devDependencies": {
