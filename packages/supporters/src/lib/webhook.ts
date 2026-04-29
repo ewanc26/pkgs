@@ -22,8 +22,6 @@ export class WebhookError extends Error {
 export interface ParseWebhookOptions {
 	/** Override KOFI_VERIFICATION_TOKEN from process.env */
 	secret?: string;
-	/** Optional secondary token to accept (e.g. Ko-fi's hardcoded test token) */
-	testToken?: string;
 }
 
 export async function parseWebhook(
@@ -32,7 +30,6 @@ export async function parseWebhook(
 ): Promise<KofiWebhookPayload> {
 	const secret = options?.secret ?? process.env.KOFI_VERIFICATION_TOKEN;
 	if (!secret) throw new WebhookError('KOFI_VERIFICATION_TOKEN is not set', 500);
-	const testToken = options?.testToken;
 
 	const contentType = request.headers.get('content-type') ?? '';
 	if (!contentType.includes('application/x-www-form-urlencoded')) {
@@ -50,7 +47,7 @@ export async function parseWebhook(
 		throw new WebhookError('Invalid JSON in data field', 400);
 	}
 
-	if (payload.verification_token !== secret && payload.verification_token !== testToken) {
+	if (payload.verification_token !== secret) {
 		throw new WebhookError('Verification token mismatch', 401);
 	}
 
