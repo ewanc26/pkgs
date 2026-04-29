@@ -231,6 +231,29 @@
 	.preview-viewport {
 		overflow: hidden;
 		height: 130px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--surface-2);
+	}
+
+	.project-card.jasper .preview-viewport {
+		background: color-mix(in srgb, #fb923c 18%, var(--surface-2));
+	}
+
+	.project-card.malachite .preview-viewport {
+		background: color-mix(in srgb, #3fb968 18%, var(--surface-2));
+	}
+
+	.project-card.bismuth .preview-viewport {
+		background: color-mix(in srgb, #c4b5fd 18%, var(--surface-2));
+	}
+
+	.preview-logo {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		display: block;
 	}
 
 	/* ── card body ─────────────────────────────────────────────────────────── */
@@ -258,6 +281,7 @@
 		width: 28px;
 		height: 28px;
 		flex-shrink: 0;
+		object-fit: contain;
 	}
 
 	.card-eyebrow {
