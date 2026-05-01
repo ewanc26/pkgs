@@ -9,7 +9,7 @@
 </script>
 
 <svelte:head>
-	<script defer src="https://analytics.ewancroft.uk/script.js" data-website-id="019d19bd-9801-4a78-8e0a-400373f31006"></script>
+	<script defer src="https://analytics.ewancroft.uk/script.js" data-website-id="9d262bc3-cbac-4c0b-b81a-7a93134f76df"></script>
 </svelte:head>
 
 <LandingLayout
