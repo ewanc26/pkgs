@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Opal gem — iridescent facets, pale green-white -->
+  <defs>
+    <linearGradient id="opal-fire" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a7f3d0" />
+      <stop offset="50%" stop-color="#e0e7ff" />
+      <stop offset="100%" stop-color="#c4b5fd" />
+    </linearGradient>
+  </defs>
+  <!-- Outer gem shape -->
+  <path d="M32 4 L56 20 L56 44 L32 60 L8 44 L8 20 Z" fill="url(#opal-fire)" stroke="#6ee7b7" stroke-width="1.5" />
+  <!-- Inner facet lines -->
+  <path d="M32 4 L32 60" stroke="#6ee7b7" stroke-width="0.5" opacity="0.4" />
+  <path d="M8 20 L56 44" stroke="#6ee7b7" stroke-width="0.5" opacity="0.4" />
+  <path d="M56 20 L8 44" stroke="#6ee7b7" stroke-width="0.5" opacity="0.4" />
+  <!-- Centre highlight -->
+  <circle cx="32" cy="32" r="4" fill="#ffffff" opacity="0.6" />
+</svg>
