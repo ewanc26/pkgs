@@ -21,6 +21,8 @@ export {
   stripHtml,
   countGraphemes,
   truncateForAtProto,
+  splitTextToChunks,
+  splitToThread,
   parseTwitterTimestamp,
   parseUnixTimestamp,
   textToByteSlice,
