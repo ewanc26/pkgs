@@ -1,1 +1,21 @@
 @import 'tailwindcss';
+
+:root {
+	--bg: #060d0a;
+	--surface: #0c1a14;
+	--surface-2: #142820;
+	--border: #1f3d2e;
+	--accent: #a7f3d0;
+	--accent-dim: #065f46;
+	--accent-glow: rgba(167, 243, 208, 0.14);
+	--text: #e0f5ea;
+	--muted: #6db88a;
+	--error: #f87171;
+	--warn: #fbbf24;
+
+	/* aliases used by import page */
+	--surface-0: var(--surface);
+	--surface-1: var(--surface-2);
+	--base: var(--bg);
+	--font-mono: 'JetBrains Mono', monospace;
+}
