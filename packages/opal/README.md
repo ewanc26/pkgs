@@ -29,12 +29,16 @@ opal --source twitter --input tweets.js --publish --dry-run
 ```
 
 ```typescript
-import { convert } from '@ewanc26/opal';
+import { convertData, parseTwitterArchive } from '@ewanc26/opal';
 
-const result = await convert({
-  source: 'twitter',
-  input: './tweets.js',
-});
+// For Twitter: extract the JSON array from the JS wrapper first
+const raw = await readFile('tweets.js', 'utf-8');
+const data = parseTwitterArchive(raw);
+
+// For other platforms: just parse the JSON
+// const data = JSON.parse(raw);
+
+const result = convertData('twitter', data);
 
 console.log(result.posts);   // MicroblogPost[]
 console.log(result.skipped);  // number of skipped posts
@@ -58,20 +62,24 @@ console.log(result.errors);   // parsing errors
 
 | Function | Description |
 |----------|-------------|
-| `convert(opts)` | Parse and convert posts from a platform export |
+| `convertData(source, data)` | Parse and convert posts from pre-parsed platform data |
+| `parseTwitterArchive(raw)` | Extract JSON array from Twitter archive JS wrapper |
 | `convertTwitter(data)` | Parse Twitter archive data |
 | `convertMastodon(data)` | Parse Mastodon outbox/CSV data |
 | `convertThreads(data)` | Parse Threads export data |
 | `convertNostr(data)` | Parse Nostr event data |
+| `splitToThread(post)` | Split a long post into a Bluesky thread |
+| `publishRecords(agent, posts, dryRun, callbacks)` | Publish posts to AT Protocol |
 
 ---
 
 ## Notes
 
-- Posts exceeding the 300-grapheme AT Protocol limit are truncated with a link to the original
+- Posts exceeding the 300-grapheme AT Protocol limit are automatically split into Bluesky threads
 - HTML content from Mastodon is stripped to plain text
 - Links, mentions, and hashtags are converted to ATProto facets where possible
-- Original timestamps are preserved using TID generation
+- Original timestamps are preserved using TID-based record keys
+- The library entry has zero Node.js dependencies — safe for browser use
 
 ---
 
