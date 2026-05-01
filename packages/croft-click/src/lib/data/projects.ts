@@ -38,5 +38,15 @@ export const projects: Project[] = [
 			'Convert ATProto richtext-block documents from Leaflet, Pckt, and Offprint to Markdown in your browser.',
 		accent: '#c4b5fd',
 		logo: '/bismuth.svg'
+	},
+	{
+		name: 'Opal',
+		slug: 'opal',
+		url: 'https://opal.croft.click',
+		heading: 'Microblog → Bluesky',
+		description:
+			'Convert your posts from Twitter, Mastodon, Threads, and Nostr to AT Protocol Bluesky posts. Original timestamps preserved.',
+		accent: '#a7f3d0',
+		logo: '/opal.svg'
 	}
 ];
