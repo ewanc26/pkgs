@@ -414,6 +414,98 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/opal:
+    dependencies:
+      '@atproto/api':
+        specifier: ^0.19.3
+        version: 0.19.8
+      '@atproto/oauth-client-node':
+        specifier: ^0.3.16
+        version: 0.3.17
+      '@ewanc26/tid':
+        specifier: workspace:*
+        version: link:../tid
+      chalk:
+        specifier: ^5.6.2
+        version: 5.6.2
+      cli-progress:
+        specifier: ^3.12.0
+        version: 3.12.0
+      ora:
+        specifier: ^9.0.0
+        version: 9.3.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.6.0
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/opal-web:
+    dependencies:
+      '@atproto/api':
+        specifier: ^0.19.3
+        version: 0.19.8
+      '@atproto/common-web':
+        specifier: ^0.4.12
+        version: 0.4.20
+      '@atproto/oauth-client-browser':
+        specifier: ^0.3.41
+        version: 0.3.41
+      '@ewanc26/landing-ui':
+        specifier: workspace:*
+        version: link:../landing-ui
+      '@ewanc26/opal':
+        specifier: workspace:*
+        version: link:../opal
+      '@lucide/svelte':
+        specifier: ^0.575.0
+        version: 0.575.0(svelte@5.55.4)
+    devDependencies:
+      '@sveltejs/adapter-vercel':
+        specifier: ^6.3.1
+        version: 6.3.3(@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(rollup@4.60.1)
+      '@sveltejs/kit':
+        specifier: ^2.50.2
+        version: 2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0))
+      '@sveltejs/vite-plugin-svelte':
+        specifier: ^6.2.4
+        version: 6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0))
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.2.2(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0))
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.3
+      prettier-plugin-svelte:
+        specifier: ^3.4.1
+        version: 3.5.1(prettier@3.8.3)(svelte@5.55.4)
+      prettier-plugin-tailwindcss:
+        specifier: ^0.7.2
+        version: 0.7.2(prettier-plugin-svelte@3.5.1(prettier@3.8.3)(svelte@5.55.4))(prettier@3.8.3)
+      svelte:
+        specifier: ^5.51.0
+        version: 5.55.4
+      svelte-check:
+        specifier: ^4.3.6
+        version: 4.4.6(picomatch@4.0.4)(svelte@5.55.4)(typescript@5.9.3)
+      tailwindcss:
+        specifier: ^4.1.18
+        version: 4.2.2
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vercel:
+        specifier: ^50.44.0
+        version: 50.44.0(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(rollup@4.60.1)(typescript@5.9.3)
+      vite:
+        specifier: ^7.3.1
+        version: 7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)
+
   packages/pds-landing:
     dependencies:
       '@ewanc26/ui':

@@ -1,0 +1,68 @@
+{
+  "name": "@ewanc26/opal",
+  "version": "0.1.0",
+  "description": "Convert microblog posts from Twitter, Mastodon, Threads, and Nostr to AT Protocol Bluesky posts",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "keywords": [
+    "atproto",
+    "bluesky",
+    "twitter",
+    "mastodon",
+    "threads",
+    "nostr",
+    "converter",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/opal"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/opal",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENCE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "opal": "./dist/bin.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "pnpm run build && node --test dist/tests/**/*.test.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.19.3",
+    "@atproto/oauth-client-node": "^0.3.16",
+    "@ewanc26/tid": "workspace:*",
+    "chalk": "^5.6.2",
+    "cli-progress": "^3.12.0",
+    "ora": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
