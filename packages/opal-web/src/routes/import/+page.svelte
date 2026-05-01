@@ -4,7 +4,8 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { Agent } from '@atproto/api';
 	import type { Platform, MicroblogPost, ConvertResult } from '@ewanc26/opal';
-	import { convertTwitter, convertMastodon, convertThreads, convertNostr } from '@ewanc26/opal';
+	import { initOAuth, signInWithOAuth } from '$lib/core/oauth.js';
+	import { parseExport, runImport } from '$lib/core/import.js';
 
 	// ─── persistence keys ────────────────────────────────────────────────────────
 
@@ -21,7 +22,7 @@
 	let platform = $state<Platform | null>(_initPlatform);
 
 	let agent = $state<Agent | null>(null);
-	let exportFile = $state<File | null>(null);
+	let handle = $state('');
 	let convertResult = $state<ConvertResult | null>(null);
 	let selectedPosts = $state<Set<number>>(new Set());
 
@@ -29,8 +30,9 @@
 	let cancelled = false;
 	let stopping = $state(false);
 	let logs = $state<{ level: string; message: string; timestamp: number }[]>([]);
-	let progress = $state<{ current: number; total: number } | null>(null);
+	let progress = $state<{ batchIndex: number; totalBatches: number; recordsProcessed: number; totalRecords: number; successCount: number; errorCount: number; currentBatchSize: number; message: string } | null>(null);
 	let importError = $state<string | null>(null);
+	let authError = $state<string | null>(null);
 
 	// ─── derived ─────────────────────────────────────────────────────────────────
 
@@ -59,6 +61,20 @@
 		goTo(Math.max(0, step - 1));
 	}
 
+	// ─── auth ────────────────────────────────────────────────────────────────────
+
+	async function handleSignIn() {
+		if (!handle.trim()) return;
+		authError = null;
+		try {
+			await signInWithOAuth(handle.trim());
+		} catch (err: any) {
+			if (!err.message?.includes('redirect')) {
+				authError = err.message ?? 'Sign-in failed';
+			}
+		}
+	}
+
 	function handleAuth(a: Agent) {
 		agent = a;
 		goTo(2);
@@ -67,28 +83,9 @@
 	// ─── file parsing ───────────────────────────────────────────────────────────
 
 	async function handleFile(file: File) {
-		exportFile = file;
+		importError = null;
 		try {
-			const text = await file.text();
-			let data: unknown;
-
-			if (platform === 'twitter') {
-				const match = text.match(/\[[\s\S]*\]/);
-				if (!match) throw new Error('Could not extract tweet array from Twitter archive');
-				data = JSON.parse(match[0]);
-			} else {
-				data = JSON.parse(text);
-			}
-
-			const parsers: Record<Platform, (data: unknown) => ConvertResult> = {
-				twitter: convertTwitter,
-				mastodon: convertMastodon,
-				threads: convertThreads,
-				nostr: convertNostr,
-			};
-
-			if (!platform) return;
-			convertResult = parsers[platform](data);
+			convertResult = await parseExport(file, platform!);
 			selectedPosts = new Set(convertResult.posts.map((_, i) => i));
 			goTo(3);
 		} catch (err: any) {
@@ -113,37 +110,58 @@
 
 		const postsToImport = convertResult.posts.filter((_, i) => selectedPosts.has(i));
 
-		addLog('info', `Publishing ${postsToImport.length} posts to ATProto…`);
+		try {
+			const result = await runImport(
+				agent,
+				postsToImport,
+				false,
+				{
+					onLog: addLog,
+					onProgress: (p) => { progress = p; },
+					isCancelled: () => cancelled,
+				},
+			);
 
-		// TODO: Implement actual publishing with rate-limit-aware batching
-		// For now, log the intent
-		for (let i = 0; i < postsToImport.length; i++) {
-			if (cancelled) {
-				addLog('warn', 'Import cancelled by user.');
-				break;
+			const n = result.success.toLocaleString();
+			if (result.cancelled) addLog('warn', `Stopped. ${n} post(s) published.`);
+			else {
+				addLog('success', `Import complete! ${n} post(s) published.`);
+				if (result.errors > 0) addLog('warn', `${result.errors} post(s) failed.`);
 			}
-			progress = { current: i + 1, total: postsToImport.length };
-			// Placeholder — actual publish logic will use com.atproto.repo.applyWrites
-			addLog('info', `[${i + 1}/${postsToImport.length}] ${postsToImport[i].text.slice(0, 50)}…`);
+		} catch (err: any) {
+			importError = err.message ?? 'An unexpected error occurred';
+			addLog('error', `Fatal: ${importError}`);
+		} finally {
+			isRunning = false;
+			stopping = false;
 		}
-
-		if (!cancelled) {
-			addLog('success', `Import complete! ${postsToImport.length} posts published.`);
-		}
-		isRunning = false;
-		stopping = false;
 	}
+
+	// ─── OAuth callback ────────────────────────────────────────────────────────
+
+	onMount(async () => {
+		try {
+			const oauthAgent = await initOAuth();
+			if (oauthAgent) {
+				agent = oauthAgent;
+				goTo(platform ? 2 : 1);
+			}
+		} catch (err: any) {
+			console.error('OAuth init error:', err);
+		}
+	});
 
 	function handleReset() {
 		setPlatform(null);
 		goTo(0);
 		agent = null;
-		exportFile = null;
+		handle = '';
 		convertResult = null;
 		selectedPosts = new Set();
 		logs = [];
 		progress = null;
 		importError = null;
+		authError = null;
 		cancelled = false;
 		stopping = false;
 	}
@@ -202,14 +220,24 @@
 					<!-- Auth -->
 					<section class="step">
 						<h2>Sign in with ATProto</h2>
-						<p class="step-desc">Authenticate with your Bluesky account to publish posts.</p>
-						<div class="auth-placeholder">
-							<p>OAuth authentication will be available here.</p>
-							<p class="muted">For now, use the CLI for publishing.</p>
+						<p class="step-desc">Enter your Bluesky handle to authenticate. Nothing is stored.</p>
+						<div class="auth-form">
+							<input
+								type="text"
+								bind:value={handle}
+								placeholder="you.bsky.social"
+								class="handle-input"
+								onkeydown={(e) => { if (e.key === 'Enter') handleSignIn(); }}
+							/>
+							<button class="btn-primary" onclick={handleSignIn} disabled={!handle.trim()}>
+								Sign in
+							</button>
 						</div>
+						{#if authError}
+							<p class="error">{authError}</p>
+						{/if}
 						<div class="step-actions">
 							<button class="btn-secondary" onclick={handleBack}>← Back</button>
-							<button class="btn-primary" onclick={() => handleAuth(null as any)}>Skip for now</button>
 						</div>
 					</section>
 				{:else if step === 2}
@@ -293,16 +321,19 @@
 							<div class="progress-bar">
 								<div
 									class="progress-fill"
-									style="width: {(progress.current / progress.total) * 100}%"
+									style="width: {(progress.recordsProcessed / progress.totalRecords) * 100}%"
 								></div>
 							</div>
-							<p class="progress-text">{progress.current} / {progress.total}</p>
+							<p class="progress-text">{progress.recordsProcessed} / {progress.totalRecords}</p>
 						{/if}
 						<div class="log-list">
 							{#each logs as log}
 								<p class="log-{log.level}">{log.message}</p>
 							{/each}
 						</div>
+						{#if importError}
+							<p class="error">{importError}</p>
+						{/if}
 						<div class="step-actions">
 							{#if isRunning}
 								<button
@@ -409,6 +440,27 @@
 		color: var(--muted);
 	}
 
+	.auth-form {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.handle-input {
+		flex: 1;
+		padding: 0.5rem 0.75rem;
+		background: var(--surface-0);
+		border: 1px solid var(--border);
+		border-radius: 4px;
+		color: var(--text);
+		font-size: 0.9rem;
+	}
+
+	.handle-input:focus {
+		outline: none;
+		border-color: var(--accent);
+	}
+
 	.step-actions {
 		display: flex;
 		justify-content: space-between;
@@ -423,6 +475,11 @@
 		border-radius: 4px;
 		cursor: pointer;
 		font-weight: 600;
+	}
+
+	.btn-primary:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	.btn-secondary {
@@ -504,6 +561,7 @@
 	.log-success { color: var(--accent); }
 	.log-warn { color: #f59e0b; }
 	.log-error { color: #ef4444; }
+	.log-progress { color: var(--muted); }
 
 	.error {
 		color: #ef4444;
