@@ -10,6 +10,7 @@
 
 import type { Agent } from '@atproto/api';
 import type { MicroblogPost, Facet } from './types.js';
+import { generateTID } from '@ewanc26/tid';
 import { RateLimiter } from './rate-limiter.js';
 import { normalizeHeaders, isRateLimitError } from './rate-limit-headers.js';
 
@@ -205,7 +206,9 @@ export async function publishRecords(
       });
 
       const record = toPostRecord(post, publishedMap);
-      const rkey = `opal-${post.platform}-${post.originalId}`;
+      // TID-based rkey — time-sortable, spec-compliant, derived from the
+      // original post's timestamp. Monotonicity is guaranteed by @ewanc26/tid.
+      const rkey = generateTID(post.createdAt);
 
       await rl.waitForPermit(POINTS_PER_RECORD, isCancelled);
       if (isCancelled()) {
