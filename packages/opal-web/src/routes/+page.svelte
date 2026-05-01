@@ -31,7 +31,7 @@
 <LandingPage
 	name="opal"
 	logo="/logo/Opal.svg"
-	logoAlt="The Opal sigil: an iridescent gem catching green and white fire"
+	logoAlt="The Opal sigil: a pentagram with opalescent play-of-colour fire"
 	eyebrow="Open source · Runs in your browser"
 	ctaHref="/import"
 	ctaLabel="Start converting"
