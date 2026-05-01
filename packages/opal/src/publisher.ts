@@ -91,12 +91,24 @@ function toPostRecord(post: MicroblogPost): Record<string, unknown> {
     }));
   }
 
-  // Reply reference — if the reply target is a Bluesky post URI
+  // Reply reference — requires both root and parent as strongRefs
+  // The publisher must track previously created posts' URIs and CIDs
   if (post.replyTo?.startsWith('at://')) {
+    const rootUri = post.threadRoot?.startsWith('at://') ? post.threadRoot : post.replyTo;
     record.reply = {
-      root: { uri: post.replyTo, cid: '' }, // CID resolved at publish time
+      root: { uri: rootUri, cid: '' }, // CID filled in by publisher from tracking map
       parent: { uri: post.replyTo, cid: '' },
     };
+  }
+
+  // Language tags
+  if (post.langs && post.langs.length > 0) {
+    record.langs = post.langs;
+  }
+
+  // Tags (not hashtags — those are facets. This is for free-form post tags)
+  if (post.contentWarning) {
+    record.tags = [`cw:${post.contentWarning}`];
   }
 
   return record;
