@@ -6,7 +6,7 @@
  */
 
 // Conversion
-export { convert } from './convert.js';
+export { convertData, parseTwitterArchive } from './convert.js';
 export { convertTwitter } from './twitter.js';
 export { convertMastodon } from './mastodon.js';
 export { convertThreads } from './threads.js';
