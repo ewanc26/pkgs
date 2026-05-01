@@ -39,13 +39,16 @@ export type {
   Facet,
   FacetFeature,
   ByteSlice,
+  TwitterArchiveEntry,
   TwitterTweet,
   TwitterMediaEntity,
+  TwitterUrlEntity,
   MastodonOutboxItem,
   MastodonStatus,
   MastodonAttachment,
   MastodonTag,
   ThreadsPost,
+  ThreadsMedia,
   NostrEvent,
 } from './types.js';
 
