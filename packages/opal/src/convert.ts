@@ -1,10 +1,11 @@
 /**
- * Main conversion dispatcher — reads input, delegates to the correct
- * platform parser, and runs post-processing (thread splitting).
+ * Main conversion dispatcher — delegates to the correct platform parser
+ * and runs post-processing (thread splitting).
+ *
+ * This module has no Node.js dependencies and is safe for browser use.
  */
 
-import { readFile } from 'node:fs/promises';
-import type { ConvertOptions, ConvertResult, MicroblogPost, Platform } from './types.js';
+import type { ConvertResult, MicroblogPost, Platform } from './types.js';
 import { convertTwitter } from './twitter.js';
 import { convertMastodon } from './mastodon.js';
 import { convertThreads } from './threads.js';
@@ -19,16 +20,16 @@ const parsers: Record<Platform, (data: unknown) => ConvertResult> = {
 };
 
 /**
- * Parse a platform export file and convert to normalised MicroblogPost[].
+ * Convert pre-parsed platform data to normalised MicroblogPost[].
  * Long posts (>300 graphemes) are automatically split into Bluesky threads.
+ *
+ * For Twitter archives, the caller must extract the JSON array from the
+ * JS wrapper before passing it here. Use `parseTwitterArchive()` from
+ * the CLI module for that.
  */
-export async function convert(opts: ConvertOptions): Promise<ConvertResult> {
-  const raw = await readFile(opts.input, 'utf-8');
-  const data = parseRaw(raw, opts.source);
-  const parser = parsers[opts.source];
+export function convertData(source: Platform, data: unknown): ConvertResult {
+  const parser = parsers[source];
   const result = parser(data);
-
-  // Split long posts into threads
   return splitLongPosts(result);
 }
 
@@ -51,21 +52,16 @@ function splitLongPosts(result: ConvertResult): ConvertResult {
 }
 
 /**
- * Pre-process raw file content before passing to the parser.
+ * Pre-process raw Twitter archive content.
  * Twitter archives wrap data in `window.YTD.tweets.part0 = [...]`
  * which isn't valid JSON on its own.
  */
-function parseRaw(raw: string, source: Platform): unknown {
-  if (source === 'twitter') {
-    // Twitter archives assign to a JS variable — extract the JSON array
-    const match = raw.match(/\[[\s\S]*\]/);
-    if (!match) {
-      throw new Error('Could not extract tweet array from Twitter archive file');
-    }
-    return JSON.parse(match[0]);
+export function parseTwitterArchive(raw: string): unknown {
+  const match = raw.match(/\[[\s\S]*\]/);
+  if (!match) {
+    throw new Error('Could not extract tweet array from Twitter archive file');
   }
-
-  return JSON.parse(raw);
+  return JSON.parse(match[0]);
 }
 
 export { convertTwitter } from './twitter.js';

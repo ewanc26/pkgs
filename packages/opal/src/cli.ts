@@ -6,8 +6,8 @@
  */
 
 import { resolve } from 'node:path';
-import { writeFile } from 'node:fs/promises';
-import { convert } from './convert.js';
+import { readFile, writeFile } from 'node:fs/promises';
+import { convertData, parseTwitterArchive } from './convert.js';
 import type { ConvertOptions, Platform } from './types.js';
 
 const VALID_SOURCES: Platform[] = ['twitter', 'mastodon', 'threads', 'nostr'];
@@ -44,9 +44,9 @@ Usage:
 
 Platforms:
   twitter    Twitter/X archive (tweets.js)
-  mastodon  Mastodon outbox (outbox.json)
-  threads   Threads export (JSON)
-  nostr     Nostr events (JSON array)
+  mastodon   Mastodon outbox (outbox.json)
+  threads    Threads export (JSON)
+  nostr      Nostr events (JSON array)
 
 Options:
   --source <platform>  Source platform (required)
@@ -93,7 +93,13 @@ export async function runCLI(): Promise<void> {
   console.log(`Opal — converting ${opts.source} export…`);
   console.log(`  Input:  ${opts.input}`);
 
-  const result = await convert(opts);
+  // Read and parse the input file
+  const raw = await readFile(opts.input, 'utf-8');
+  const data = opts.source === 'twitter'
+    ? parseTwitterArchive(raw)
+    : JSON.parse(raw);
+
+  const result = convertData(opts.source, data);
 
   console.log(`  Posts:   ${result.posts.length}`);
   console.log(`  Skipped: ${result.skipped}`);
