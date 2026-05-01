@@ -30,7 +30,7 @@
 	let cancelled = false;
 	let stopping = $state(false);
 	let logs = $state<{ level: string; message: string; timestamp: number }[]>([]);
-	let progress = $state<{ batchIndex: number; totalBatches: number; recordsProcessed: number; totalRecords: number; successCount: number; errorCount: number; currentBatchSize: number; message: string } | null>(null);
+	let progress = $state<{ recordsProcessed: number; totalRecords: number; successCount: number; errorCount: number; message: string } | null>(null);
 	let importError = $state<string | null>(null);
 	let authError = $state<string | null>(null);
 

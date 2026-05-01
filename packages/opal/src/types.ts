@@ -36,12 +36,16 @@ export interface MicroblogPost {
   originalUrl?: string;
   /** Pre-computed ATProto facets (links, mentions, hashtags) */
   facets?: Facet[];
-  /** Whether this post was truncated to fit the 300-grapheme limit */
+  /** Whether this post was split from a longer original (threaded) */
   truncated?: boolean;
   /** BCP-47 language tag(s) */
   langs?: string[];
   /** Content warning text (Mastodon CWs — prepend to text) */
   contentWarning?: string;
+  /** 1-based index when this post is part of a split thread (e.g. 1/3) */
+  threadIndex?: number;
+  /** Total number of posts in the split thread */
+  threadTotal?: number;
 }
 
 // ─── ATProto facet types ────────────────────────────────────────────────────
