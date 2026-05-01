@@ -5,7 +5,7 @@
 
 import type { Agent } from '@atproto/api';
 import type { Platform, MicroblogPost, ConvertResult } from '@ewanc26/opal';
-import { convertTwitter, convertMastodon, convertThreads, convertNostr, publishRecords } from '@ewanc26/opal';
+import { convertTwitter, convertMastodon, convertThreads, convertNostr, publishRecords, splitToThread } from '@ewanc26/opal';
 
 export interface ImportResult {
   success: number;
@@ -15,12 +15,13 @@ export interface ImportResult {
 
 export interface ImportCallbacks {
   onLog: (level: 'info' | 'success' | 'warn' | 'error' | 'progress', message: string) => void;
-  onProgress: (p: { batchIndex: number; totalBatches: number; recordsProcessed: number; totalRecords: number; successCount: number; errorCount: number; currentBatchSize: number; message: string }) => void;
+  onProgress: (p: { recordsProcessed: number; totalRecords: number; successCount: number; errorCount: number; message: string }) => void;
   isCancelled: () => boolean;
 }
 
 /**
  * Parse an export file for the given platform.
+ * Long posts are automatically split into Bluesky threads.
  */
 export async function parseExport(
   file: File,
@@ -44,7 +45,15 @@ export async function parseExport(
     nostr: convertNostr,
   };
 
-  return parsers[platform](data);
+  const result = parsers[platform](data);
+
+  // Split long posts into threads
+  const posts: MicroblogPost[] = [];
+  for (const post of result.posts) {
+    posts.push(...splitToThread(post));
+  }
+
+  return { posts, skipped: result.skipped, errors: result.errors };
 }
 
 /**
