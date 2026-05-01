@@ -1,7 +1,11 @@
 /**
  * ATProto record publisher — environment-agnostic.
  * Converts MicroblogPost[] into app.bsky.feed.post records and publishes
- * them via com.atproto.repo.applyWrites with rate-limit-aware batching.
+ * them via com.atproto.repo.createRecord with rate-limit-aware throttling.
+ *
+ * Posts are published sequentially (not batched) so that thread references
+ * (replyTo, threadRoot) can be resolved to real AT URIs + CIDs. Posts
+ * within a split thread must be published in order.
  */
 
 import type { Agent } from '@atproto/api';
@@ -10,17 +14,13 @@ import { RateLimiter } from './rate-limiter.js';
 import { normalizeHeaders, isRateLimitError } from './rate-limit-headers.js';
 
 const RECORD_TYPE = 'app.bsky.feed.post';
-const MAX_PDS_BATCH_SIZE = 50;
 const POINTS_PER_RECORD = 1;
 
 export interface PublishProgress {
-  batchIndex: number;
-  totalBatches: number;
   recordsProcessed: number;
   totalRecords: number;
   successCount: number;
   errorCount: number;
-  currentBatchSize: number;
   message: string;
 }
 
@@ -76,8 +76,12 @@ async function withRetry<T>(
 
 /**
  * Convert a MicroblogPost into an app.bsky.feed.post record value.
+ * Resolves opal-internal: references using the publishedPostMap.
  */
-function toPostRecord(post: MicroblogPost): Record<string, unknown> {
+function toPostRecord(
+  post: MicroblogPost,
+  publishedMap: Map<string, { uri: string; cid: string }>,
+): Record<string, unknown> {
   const record: Record<string, unknown> = {
     $type: RECORD_TYPE,
     text: post.text,
@@ -91,13 +95,14 @@ function toPostRecord(post: MicroblogPost): Record<string, unknown> {
     }));
   }
 
-  // Reply reference — requires both root and parent as strongRefs
-  // The publisher must track previously created posts' URIs and CIDs
-  if (post.replyTo?.startsWith('at://')) {
-    const rootUri = post.threadRoot?.startsWith('at://') ? post.threadRoot : post.replyTo;
+  // Resolve reply references
+  const replyTo = resolveRef(post.replyTo, publishedMap);
+  const threadRoot = resolveRef(post.threadRoot, publishedMap);
+
+  if (replyTo) {
     record.reply = {
-      root: { uri: rootUri, cid: '' }, // CID filled in by publisher from tracking map
-      parent: { uri: post.replyTo, cid: '' },
+      root: threadRoot ?? replyTo,
+      parent: replyTo,
     };
   }
 
@@ -106,12 +111,43 @@ function toPostRecord(post: MicroblogPost): Record<string, unknown> {
     record.langs = post.langs;
   }
 
-  // Tags (not hashtags — those are facets. This is for free-form post tags)
+  // Content warning tags
   if (post.contentWarning) {
     record.tags = [`cw:${post.contentWarning}`];
   }
 
   return record;
+}
+
+/**
+ * Resolve a reference to a { uri, cid } strongRef.
+ * Handles opal-internal: refs (split thread continuations) and at:// refs.
+ */
+function resolveRef(
+  ref: string | undefined,
+  publishedMap: Map<string, { uri: string; cid: string }>,
+): { uri: string; cid: string } | undefined {
+  if (!ref) return undefined;
+
+  // opal-internal: references — look up the published post
+  if (ref.startsWith('opal-internal:')) {
+    const key = ref.replace('opal-internal:', '');
+    return publishedMap.get(key);
+  }
+
+  // at:// references — we have the URI but need the CID
+  if (ref.startsWith('at://')) {
+    // Try to find in published map by URI
+    for (const [, v] of publishedMap) {
+      if (v.uri === ref) return v;
+    }
+    // Return without CID — the PDS may reject this
+    return { uri: ref, cid: '' };
+  }
+
+  // Platform-specific references (twitter:status:..., nostr:..., etc.)
+  // These can't be resolved to AT URIs — skip the reply ref
+  return undefined;
 }
 
 export async function publishRecords(
@@ -126,7 +162,10 @@ export async function publishRecords(
   if (dryRun) {
     onLog('info', `[DRY RUN] Would publish ${total.toLocaleString()} posts`);
     posts.slice(0, 5).forEach((p, i) => {
-      onLog('info', `  ${i + 1}. ${p.text.slice(0, 60)}${p.text.length > 60 ? '…' : ''} (${p.createdAt.slice(0, 10)})`);
+      const threadInfo = p.threadTotal && p.threadTotal > 1
+        ? ` [thread ${p.threadIndex}/${p.threadTotal}]`
+        : '';
+      onLog('info', `  ${i + 1}. ${p.text.slice(0, 60)}${p.text.length > 60 ? '…' : ''}${threadInfo} (${p.createdAt.slice(0, 10)})`);
     });
     if (total > 5) onLog('info', `  …and ${total - 5} more`);
     return { successCount: total, errorCount: 0, cancelled: false };
@@ -136,13 +175,14 @@ export async function publishRecords(
   const cancelPoll = setInterval(() => { if (isCancelled()) ac.abort(); }, 50);
 
   const rl = new RateLimiter({ headroom: 0.15 });
-  let currentBatchSize = 50;
-  let currentDelay = 500;
+  let delay = 500;
   let successCount = 0;
   let errorCount = 0;
-  let batchCounter = 0;
   let i = 0;
   const startTime = Date.now();
+
+  // Track all published posts so thread continuations can reference them
+  const publishedMap = new Map<string, { uri: string; cid: string }>();
 
   onLog('info', `Publishing ${total.toLocaleString()} posts to ATProto…`);
 
@@ -153,30 +193,21 @@ export async function publishRecords(
         return { successCount, errorCount, cancelled: true };
       }
 
-      const batch = posts.slice(i, Math.min(i + currentBatchSize, total));
-      batchCounter++;
+      const post = posts[i];
       const pct = ((i / total) * 100).toFixed(1);
 
       onProgress({
-        batchIndex: batchCounter,
-        totalBatches: Math.ceil(total / currentBatchSize),
         recordsProcessed: i,
         totalRecords: total,
         successCount,
         errorCount,
-        currentBatchSize: batch.length,
-        message: `[${pct}%] Batch ${batchCounter} — posts ${i + 1}–${Math.min(i + batch.length, total)}`,
+        message: `[${pct}%] Post ${i + 1}/${total}`,
       });
 
-      const writes = batch.map((post) => ({
-        $type: 'com.atproto.repo.applyWrites#create',
-        collection: RECORD_TYPE,
-        rkey: `opal-${post.platform}-${post.originalId}`,
-        value: toPostRecord(post),
-      }));
+      const record = toPostRecord(post, publishedMap);
+      const rkey = `opal-${post.platform}-${post.originalId}`;
 
-      const batchPoints = batch.length * POINTS_PER_RECORD;
-      await rl.waitForPermit(batchPoints, isCancelled);
+      await rl.waitForPermit(POINTS_PER_RECORD, isCancelled);
       if (isCancelled()) {
         onLog('warn', 'Import cancelled by user.');
         return { successCount, errorCount, cancelled: true };
@@ -184,37 +215,47 @@ export async function publishRecords(
 
       try {
         const response = await withRetry(
-          () => agent.com.atproto.repo.applyWrites(
-            { repo: agent.did ?? (agent as any).sessionManager?.did ?? '', writes: writes as any },
-            { signal: ac.signal },
-          ),
+          () => agent.com.atproto.repo.createRecord({
+            repo: agent.did ?? (agent as any).sessionManager?.did ?? '',
+            collection: RECORD_TYPE,
+            rkey,
+            record: record as any,
+          }, { signal: ac.signal }),
           3,
-          (attempt, err) => onLog('warn', `Batch ${batchCounter} failed (attempt ${attempt}/3): ${err.message} — retrying…`),
+          (attempt, err) => onLog('warn', `Post ${i + 1} failed (attempt ${attempt}/3): ${err.message} — retrying…`),
         );
 
-        successCount += (response.data as any).results?.length ?? batch.length;
+        const uri = (response.data as any).uri as string;
+        const cid = (response.data as any).cid as string;
+
+        // Store for thread reference resolution
+        publishedMap.set(post.originalId, { uri, cid });
+
+        successCount++;
 
         const rawHeaders = extractHeaders(response);
         if (Object.keys(rawHeaders).length > 0) {
-          const norm = normalizeHeaders(rawHeaders);
-          rl.updateFromHeaders(norm);
+          rl.updateFromHeaders(normalizeHeaders(rawHeaders));
 
-          if (batchCounter === 1) {
+          if (i === 0) {
             const cap = rl.getServerCapacity();
             if (cap) {
               const remaining = rl.getActualRemaining();
               const recsPerSec = (cap.limit / cap.windowSeconds / POINTS_PER_RECORD) * 0.8;
-              currentBatchSize = Math.min(MAX_PDS_BATCH_SIZE, Math.max(10, Math.floor(recsPerSec * 45)));
-              currentDelay = Math.max(500, Math.floor((currentBatchSize / recsPerSec) * 1000));
-              onLog('info', `Server: ${cap.limit} pts/${cap.windowSeconds}s — optimised to ${currentBatchSize} posts/batch`);
+              delay = Math.max(500, Math.floor(1000 / recsPerSec));
+              onLog('info', `Server: ${cap.limit} pts/${cap.windowSeconds}s — delay ${delay}ms between posts`);
               onLog('info', `   Remaining quota: ${remaining.toLocaleString()}/${cap.limit.toLocaleString()}`);
             }
           }
         }
 
+        const threadInfo = post.threadTotal && post.threadTotal > 1
+          ? ` [${post.threadIndex}/${post.threadTotal}]`
+          : '';
         const rps = (successCount / ((Date.now() - startTime) / 1000)).toFixed(1);
-        onLog('progress', `Batch ${batchCounter} — ${successCount}/${total} posts (${rps} rec/s)`);
-        i += batch.length;
+        onLog('progress', `${successCount}/${total} posts (${rps} rec/s)${threadInfo}`);
+
+        i++;
       } catch (err: unknown) {
         const e = err as any;
         if (ac.signal.aborted || isCancelled()) {
@@ -227,16 +268,16 @@ export async function publishRecords(
               ? (() => { const o: Record<string, string> = {}; e.response.headers.forEach((v: string, k: string) => { o[k] = v; }); return o; })()
               : (e?.response?.headers ?? e?.headers ?? {});
           rl.handleRateLimitHit(normalizeHeaders(rawErrHeaders));
-          await rl.waitForPermit(batchPoints, isCancelled);
-          continue;
+          await rl.waitForPermit(POINTS_PER_RECORD, isCancelled);
+          continue; // retry same post
         }
-        errorCount += batch.length;
-        onLog('error', `Batch ${batchCounter} failed: ${e?.message ?? e}`);
-        i += batch.length;
+        errorCount++;
+        onLog('error', `Post ${i + 1} failed: ${e?.message ?? e}`);
+        i++;
       }
 
       if (i < total) {
-        await cancellableSleep(currentDelay, isCancelled);
+        await cancellableSleep(delay, isCancelled);
       }
     }
   } finally {

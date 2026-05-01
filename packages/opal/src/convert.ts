@@ -1,14 +1,15 @@
 /**
  * Main conversion dispatcher — reads input, delegates to the correct
- * platform parser, and returns a normalised ConvertResult.
+ * platform parser, and runs post-processing (thread splitting).
  */
 
 import { readFile } from 'node:fs/promises';
-import type { ConvertOptions, ConvertResult, Platform } from './types.js';
+import type { ConvertOptions, ConvertResult, MicroblogPost, Platform } from './types.js';
 import { convertTwitter } from './twitter.js';
 import { convertMastodon } from './mastodon.js';
 import { convertThreads } from './threads.js';
 import { convertNostr } from './nostr.js';
+import { splitToThread } from './utils.js';
 
 const parsers: Record<Platform, (data: unknown) => ConvertResult> = {
   twitter: convertTwitter,
@@ -19,12 +20,34 @@ const parsers: Record<Platform, (data: unknown) => ConvertResult> = {
 
 /**
  * Parse a platform export file and convert to normalised MicroblogPost[].
+ * Long posts (>300 graphemes) are automatically split into Bluesky threads.
  */
 export async function convert(opts: ConvertOptions): Promise<ConvertResult> {
   const raw = await readFile(opts.input, 'utf-8');
   const data = parseRaw(raw, opts.source);
   const parser = parsers[opts.source];
-  return parser(data);
+  const result = parser(data);
+
+  // Split long posts into threads
+  return splitLongPosts(result);
+}
+
+/**
+ * Post-process conversion results: split any post exceeding 300 graphemes
+ * into a Bluesky thread (multiple posts linked by replyTo/threadRoot).
+ */
+function splitLongPosts(result: ConvertResult): ConvertResult {
+  const posts: MicroblogPost[] = [];
+
+  for (const post of result.posts) {
+    posts.push(...splitToThread(post));
+  }
+
+  return {
+    posts,
+    skipped: result.skipped,
+    errors: result.errors,
+  };
 }
 
 /**
