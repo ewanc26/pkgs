@@ -5,7 +5,7 @@
 
 import type { Agent } from '@atproto/api';
 import type { Platform, MicroblogPost, ConvertResult } from '@ewanc26/opal';
-import { convertTwitter, convertMastodon, convertThreads, convertNostr, publishRecords, splitToThread } from '@ewanc26/opal';
+import { convertData, parseTwitterArchive, publishRecords } from '@ewanc26/opal';
 
 export interface ImportResult {
   success: number;
@@ -28,32 +28,11 @@ export async function parseExport(
   platform: Platform,
 ): Promise<ConvertResult> {
   const text = await file.text();
-  let data: unknown;
+  const data = platform === 'twitter'
+    ? parseTwitterArchive(text)
+    : JSON.parse(text);
 
-  if (platform === 'twitter') {
-    const match = text.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error('Could not extract tweet array from Twitter archive');
-    data = JSON.parse(match[0]);
-  } else {
-    data = JSON.parse(text);
-  }
-
-  const parsers: Record<Platform, (data: unknown) => ConvertResult> = {
-    twitter: convertTwitter,
-    mastodon: convertMastodon,
-    threads: convertThreads,
-    nostr: convertNostr,
-  };
-
-  const result = parsers[platform](data);
-
-  // Split long posts into threads
-  const posts: MicroblogPost[] = [];
-  for (const post of result.posts) {
-    posts.push(...splitToThread(post));
-  }
-
-  return { posts, skipped: result.skipped, errors: result.errors };
+  return convertData(platform, data);
 }
 
 /**
