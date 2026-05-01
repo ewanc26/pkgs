@@ -12,6 +12,10 @@ export { convertMastodon } from './mastodon.js';
 export { convertThreads } from './threads.js';
 export { convertNostr } from './nostr.js';
 
+// Publishing
+export { publishRecords } from './publisher.js';
+export { RateLimiter } from './rate-limiter.js';
+
 // Utilities
 export {
   stripHtml,
@@ -44,3 +48,12 @@ export type {
   ThreadsPost,
   NostrEvent,
 } from './types.js';
+
+export type {
+  PublishProgress,
+  PublisherCallbacks,
+} from './publisher.js';
+
+export type {
+  RateLimitHeaders,
+} from './rate-limit-headers.js';
