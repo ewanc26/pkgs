@@ -2,6 +2,26 @@ import { AtpAgent } from '@atproto/api';
 import type { ResolvedIdentity } from './types.js';
 import { cache } from './cache.js';
 
+/** Default timeout for individual AT Protocol XRPC calls (ms). */
+const XRPC_TIMEOUT = 8_000;
+
+/** Default timeout for identity resolution (ms). */
+const IDENTITY_TIMEOUT = 5_000;
+
+/**
+ * Wraps a promise with a timeout. Rejects with a TimeoutError if the promise
+ * doesn't settle within `ms` milliseconds.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+	return new Promise<T>((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms);
+		promise.then(
+			(value) => { clearTimeout(timer); resolve(value); },
+			(err) => { clearTimeout(timer); reject(err); }
+		);
+	});
+}
+
 export function createAgent(service: string, fetchFn?: typeof fetch): AtpAgent {
 	const wrappedFetch = fetchFn
 		? async (url: URL | RequestInfo, init?: RequestInit) => {
@@ -40,8 +60,11 @@ export async function resolveIdentity(
 	if (cached) return cached;
 
 	const _fetch = fetchFn ?? globalThis.fetch;
-	const response = await _fetch(
-		`https://slingshot.microcosm.blue/xrpc/com.bad-example.identity.resolveMiniDoc?identifier=${encodeURIComponent(did)}`
+	const response = await withTimeout(
+		_fetch(
+			`https://slingshot.microcosm.blue/xrpc/com.bad-example.identity.resolveMiniDoc?identifier=${encodeURIComponent(did)}`
+		),
+		IDENTITY_TIMEOUT
 	);
 
 	if (!response.ok) {
@@ -71,7 +94,10 @@ export async function getPublicAgent(did: string, fetchFn?: typeof fetch): Promi
 
 	try {
 		try {
-			const response = await constellationAgent.getProfile({ actor: did });
+			const response = await withTimeout(
+				constellationAgent.getProfile({ actor: did }),
+				XRPC_TIMEOUT
+			);
 			if (response.success) {
 				resolvedAgent = constellationAgent;
 				return resolvedAgent;
@@ -113,7 +139,7 @@ export async function withFallback<T>(
 	for (const getAgent of agents) {
 		try {
 			const agent = await getAgent();
-			return await operation(agent);
+			return await withTimeout(operation(agent), XRPC_TIMEOUT);
 		} catch (error) {
 			lastError = error;
 		}
