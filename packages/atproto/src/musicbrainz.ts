@@ -1,5 +1,22 @@
 import { cache } from './cache.js';
 
+/** Timeout for individual artwork API calls (ms). */
+const ARTWORK_TIMEOUT = 5_000;
+
+/**
+ * Wraps a promise with a timeout. Rejects with a TimeoutError if the promise
+ * doesn't settle within `ms` milliseconds.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+	return new Promise<T>((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms);
+		promise.then(
+			(value) => { clearTimeout(timer); resolve(value); },
+			(err) => { clearTimeout(timer); reject(err); }
+		);
+	});
+}
+
 interface MusicBrainzRelease {
 	id: string;
 	score: number;
@@ -147,6 +164,7 @@ export async function searchLastFmArtwork(
 
 /**
  * Cascading artwork search: Cover Art Archive → MusicBrainz+CAA → iTunes → Last.fm
+ * Each step is bounded by ARTWORK_TIMEOUT to prevent serverless function timeouts.
  */
 export async function findArtwork(
 	trackName: string,
@@ -161,7 +179,7 @@ export async function findArtwork(
 	if (releaseMbId) {
 		const caaUrl = buildCoverArtUrl(releaseMbId, 500);
 		try {
-			const res = await _fetch(caaUrl, { method: 'HEAD' });
+			const res = await withTimeout(_fetch(caaUrl, { method: 'HEAD' }), ARTWORK_TIMEOUT);
 			if (res.ok) return caaUrl;
 		} catch { /* continue */ }
 	}
@@ -171,7 +189,7 @@ export async function findArtwork(
 	if (mbId) {
 		const caaUrl = buildCoverArtUrl(mbId, 500);
 		try {
-			const res = await _fetch(caaUrl, { method: 'HEAD' });
+			const res = await withTimeout(_fetch(caaUrl, { method: 'HEAD' }), ARTWORK_TIMEOUT);
 			if (res.ok) return caaUrl;
 		} catch { /* continue */ }
 	}
