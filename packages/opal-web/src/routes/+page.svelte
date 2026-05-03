@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { LandingPage } from '@ewanc26/landing-ui';
 	import { Twitter, MessageCircle, AtSign, Zap, ArrowRightLeft, Shield } from '@lucide/svelte';
+	import bluesky from '$lib/assets/bluesky.svg';
 </script>
 
 <svelte:head>
@@ -43,6 +44,7 @@
 		{ icon: AtSign, title: 'Threads', description: 'Bring over your Threads posts from Meta\'s data export.' },
 		{ icon: Zap, title: 'Nostr', description: 'Convert your Nostr text notes (kind 1 events) to Bluesky posts.' },
 		{ icon: ArrowRightLeft, title: 'Facets', description: 'Links, mentions, and hashtags are converted to ATProto facets where possible.' },
+		{ icon: bluesky, title: 'Bluesky', description: 'Publish imported posts to ATProto Bluesky with full facet support.' },
 		{ icon: Shield, title: 'Private', description: 'Everything runs in your browser. No data is sent anywhere except your own PDS.' }
 	]}
 	steps={[
