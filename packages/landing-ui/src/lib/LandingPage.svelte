@@ -2,8 +2,11 @@
 	import type { Snippet } from 'svelte';
 	import { ArrowRight, Github, Heart, Coffee } from '@lucide/svelte';
 
-	interface Feature {
-		icon: typeof import('@lucide/svelte').ArrowRight;
+type IconComponent = typeof import('@lucide/svelte').ArrowRight;
+type FeatureIcon = IconComponent | string;
+
+interface Feature {
+	icon: FeatureIcon;
 		title: string;
 		description: string;
 	}
@@ -91,7 +94,13 @@
 		<section class="features">
 			{#each features as feature}
 				<div class="feature-card">
-					<span class="feature-icon"><feature.icon size={20} /></span>
+				<span class="feature-icon">
+					{#if typeof feature.icon === 'string'}
+						<img src={feature.icon} alt={feature.title} width="20" height="20" class="feature-image" />
+					{:else}
+						<feature.icon size={20} />
+					{/if}
+				</span>
 					<h3>{feature.title}</h3>
 					<p>{feature.description}</p>
 				</div>
@@ -247,6 +256,17 @@
 	.feature-icon {
 		color: var(--accent);
 		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+	}
+
+	.feature-image {
+		display: block;
+		width: 20px;
+		height: 20px;
+		object-fit: contain;
 	}
 
 	.feature-card h3 {

@@ -2,6 +2,8 @@
 	import { LandingPage } from '@ewanc26/landing-ui';
 	import { Calendar, Lock, Zap } from '@lucide/svelte';
 	import logo from '$lib/assets/favicon.svg';
+	import grain from '$lib/assets/grain.svg';
+	import spark from '$lib/assets/spark.svg';
 </script>
 
 <svelte:head>
@@ -42,6 +44,8 @@
 	features={[
 		{ icon: Calendar, title: 'Original Dates', description: 'Photos appear with their original Instagram timestamps, not the import date.' },
 		{ icon: Lock, title: 'Privacy-First', description: 'Everything runs in your browser. Your photos go directly to your AT Protocol account.' },
+		{ icon: grain, title: 'Grain', description: 'Import your export into Grain on ATProto with photo and story metadata preserved.' },
+		{ icon: spark, title: 'Spark', description: 'Send your Instagram photos, stories, and videos to Spark with the right media metadata.' },
 		{ icon: Zap, title: 'Smart Import', description: 'Handles all Instagram export formats. Detects and skips duplicates automatically.' }
 	]}
 	steps={[
