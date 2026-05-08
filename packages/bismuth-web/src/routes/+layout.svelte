@@ -9,10 +9,6 @@
 	const cliVersion: string = __CLI_VERSION__;
 </script>
 
-<svelte:head>
-	<script defer src="https://analytics.ewancroft.uk/script.js" data-website-id="b9e23511-49d0-43b9-b58c-97eb91aa4cd3"></script>
-</svelte:head>
-
 <LandingLayout
 	name="bismuth"
 	logo={logo}
