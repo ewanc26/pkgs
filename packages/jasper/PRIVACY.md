@@ -23,17 +23,6 @@ Jasper processes your Instagram export data **entirely on your local machine**. 
 - Store or transmit your Instagram data elsewhere
 - Share your data with anyone
 
-### Analytics (Web App Only)
-
-The Jasper web app uses [Umami](https://umami.is) for privacy-focused analytics:
-
-- Self-hosted at `analytics.ewancroft.uk`
-- No cookies stored
-- No personal data collected
-- Compliant with GDPR and PECR
-
-**The CLI tool does not collect any analytics or telemetry.**
-
 ---
 
 ## Local Processing

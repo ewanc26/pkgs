@@ -9,10 +9,6 @@
 	const cliVersion: string = __CLI_VERSION__;
 </script>
 
-<svelte:head>
-	<script defer src="https://analytics.ewancroft.uk/script.js" data-website-id="f26b9c6e-7a42-4036-88db-078984668731"></script>
-</svelte:head>
-
 <LandingLayout
 	name="jasper"
 	logo={logo}
