@@ -8,10 +8,6 @@
 	const cliVersion: string = __CLI_VERSION__;
 </script>
 
-<svelte:head>
-	<script defer src="https://analytics.ewancroft.uk/script.js" data-website-id="019d19bd-9801-4a78-8e0a-400373f31006"></script>
-</svelte:head>
-
 <LandingLayout
 	name="malachite"
 	logo="/logo/Malachite.svg"

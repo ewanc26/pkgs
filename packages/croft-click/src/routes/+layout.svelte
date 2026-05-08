@@ -10,7 +10,6 @@
 		href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
 		rel="stylesheet"
 	/>
-	<script defer src="https://analytics.ewancroft.uk/script.js" data-website-id="f411f084-0b1b-4427-95fd-49cc4289d821"></script>
 </svelte:head>
 
 {@render children()}
