@@ -48,5 +48,15 @@ export const projects: Project[] = [
 			'Convert your posts from Twitter, Mastodon, Threads, and Nostr to AT Protocol Bluesky posts. Original timestamps preserved.',
 		accent: '#a7f3d0',
 		logo: '/opal.svg'
+	},
+	{
+		name: 'Devlog',
+		slug: 'devlog',
+		url: 'https://devlog.croft.click',
+		heading: 'Changelog',
+		description:
+			'What changed, when, and why. An automated devlog published to AT Protocol via Sequoia.',
+		accent: '#e2a93b',
+		logo: '/devlog.svg'
 	}
 ];
