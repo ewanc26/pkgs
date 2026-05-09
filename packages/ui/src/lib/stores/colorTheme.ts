@@ -10,46 +10,63 @@ interface ColorThemeState {
 }
 
 const STORAGE_KEY = 'color-theme';
-const SEASONAL_KEY = 'seasonal-theme';
 
 /**
- * Seasonal theme map based on the Wheel of the Year.
- * Themes shift with the natural calendar — cold in winter, warm in spring,
- * bright in summer, earthy in autumn. Uses astronomical seasons (solstices/equinoxes).
+ * Wheel of the Year — northern hemisphere, based on the 8 sabbats.
+ * Dates are approximate standard neopagan conventions.
+ *
+ * | Period      | Dates                  | Theme |
+ * |-------------|------------------------|-------|
+ * | Samhain     | Oct 31 – Nov 20        | dark, the year drawing in |
+ * | Yule        | Nov 21 – Jan 4         | deepest dark, winter solstice |
+ * | Imbolc      | Jan 5 – Feb 18         | early stirrings, snowdrops |
+ * | Ostara      | Feb 19 – Apr 30        | spring equinox, new growth |
+ * | Beltane     | May 1 – Jun 20         | fire, brightness, summer begins |
+ * | Litha       | Jun 21 – Jul 30        | summer solstice, peak light |
+ * | Lughnasadh  | Jul 31 – Sep 21        | first harvest, grain, warmth |
+ * | Mabon       | Sep 22 – Oct 30        | autumn equinox, second harvest |
  */
 function getSeasonalTheme(): ThemeDefinition {
 	const now = new Date();
 	const month = now.getMonth(); // 0 = Jan
 	const day = now.getDate();
 
-	// Northern hemisphere, astronomical seasons:
-	// Winter: Dec 21 – Mar 19
-	// Spring: Mar 20 – Jun 20
-	// Summer: Jun 21 – Sep 21
-	// Autumn: Sep 22 – Dec 20
+	if ((month === 9) || (month === 10 && day < 21)) {
+		// Samhain: Oct 31 – Nov 20
+		return THEMES.find((t) => t.value === 'ocean') ?? THEMES[0];
+	}
 
-	const isWinter =
-		month === 11 && day >= 21 ||
-		month === 0 ||
-		month === 1 ||
-		month === 2 && day < 20;
+	if ((month === 10 && day >= 21) || (month === 11) || (month === 0 && day < 5)) {
+		// Yule: Nov 21 – Jan 4
+		return THEMES.find((t) => t.value === 'slate') ?? THEMES[0];
+	}
 
-	const isSpring =
-		month === 2 && day >= 20 ||
-		month === 3 ||
-		month === 4 ||
-		month === 5 && day < 21;
+	if ((month === 0 && day >= 5) || (month === 1 && day < 19)) {
+		// Imbolc: Jan 5 – Feb 18
+		return THEMES.find((t) => t.value === 'sage') ?? THEMES[0];
+	}
 
-	const isSummer =
-		month === 5 && day >= 21 ||
-		month === 6 ||
-		month === 7 ||
-		month === 8 && day < 22;
+	if ((month === 1 && day >= 19) || month === 2 || month === 3 || (month === 4 && day < 1)) {
+		// Ostara: Feb 19 – Apr 30
+		return THEMES.find((t) => t.value === 'sage') ?? THEMES[0];
+	}
 
-	if (isWinter) return THEMES.find((t) => t.value === 'ocean') ?? THEMES[0];
-	if (isSpring) return THEMES.find((t) => t.value === 'sage') ?? THEMES[0];
-	if (isSummer) return THEMES.find((t) => t.value === 'amber') ?? THEMES[0];
-	// Autumn
+	if (month === 4 || month === 5 || (month === 6 && day < 21)) {
+		// Beltane: May 1 – Jun 20
+		return THEMES.find((t) => t.value === 'amber') ?? THEMES[0];
+	}
+
+	if ((month === 6 && day >= 21) || month === 7 || (month === 8 && day < 1)) {
+		// Litha: Jun 21 – Aug 31
+		return THEMES.find((t) => t.value === 'amber') ?? THEMES[0];
+	}
+
+	if (month === 8 || (month === 9 && day < 22)) {
+		// Lughnasadh: Sep 1 – Sep 21
+		return THEMES.find((t) => t.value === 'coral') ?? THEMES[0];
+	}
+
+	// Mabon: Sep 22 – Oct 30
 	return THEMES.find((t) => t.value === 'coral') ?? THEMES[0];
 }
 
@@ -69,11 +86,9 @@ function createColorThemeStore() {
 			const hasUserChoice = stored !== null;
 
 			if (hasUserChoice) {
-				// User has explicitly chosen — respect it, no seasonal override
 				update((state) => ({ ...state, current: stored as ColorTheme, mounted: true }));
 				applyTheme(stored as ColorTheme);
 			} else {
-				// No stored preference — apply seasonal theme
 				const seasonal = getSeasonalTheme();
 				update((state) => ({
 					...state,
