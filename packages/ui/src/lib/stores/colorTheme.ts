@@ -11,70 +11,77 @@ interface ColorThemeState {
 
 const STORAGE_KEY = 'color-theme';
 
+// Helper to find a theme by value
+function tv(value: string): ThemeDefinition {
+	return THEMES.find((t) => t.value === value) ?? THEMES[0];
+}
+
 /**
  * Wheel of the Year — northern hemisphere, traditional neopagan fixed dates.
- * The eight sabbats: four solar (solstices/equinoxes) and four cross-quarter fire festivals.
  *
- * | Sabbat      | Traditional dates          | Theme          |
- * |-------------|----------------------------|----------------|
- * | Samhain     | Oct 31 – Nov 1             | ocean (deep)   |
- * | Yule        | Dec 20–23                  | slate (cold)   |
- * | Imbolc      | Feb 1–2                    | sage (stirring)|
- * | Ostara      | Mar 19–21                  | sage (growth)  |
- * | Beltane     | Apr 30 – May 1             | amber (fire)   |
- * | Litha       | Jun 20–22                  | amber (light)  |
- * | Lughnasadh  | Aug 1–2                    | coral (harvest)|
- * | Mabon       | Sep 21–24                  | coral (reflect)|
+ * Eight sabbats each have their own seasonal theme. Between sabbats, the
+ * theme follows the season in force, creating a smooth arc through the year:
  *
- * Between sabbats, the season in force applies (see the period table below).
+ * | Sabbat      | Dates              | Theme  | Character               |
+ * |-------------|--------------------|--------|-------------------------|
+ * | Samhain     | Oct 31 – Nov 1     | ocean  | dark half begins        |
+ * | Yule        | Dec 20–23          | slate  | deepest dark            |
+ * | Imbolc      | Feb 1–2            | frost  | candlelit stirrings     |
+ * | Ostara      | Mar 19–21          | sage   | new life, growth         |
+ * | Beltane     | Apr 30 – May 1     | ember  | fire, summer begins     |
+ * | Litha       | Jun 20–22          | amber  | peak light, abundance   |
+ * | Lughnasadh  | Aug 1–2            | copper | first harvest           |
+ * | Mabon       | Sep 21–24          | rust   | autumn equinox           |
+ *
+ * Between sabbats:
+ * - Nov 2 – Dec 19: dark half (ocean)
+ * - Dec 24 – Feb 18: deep winter (slate)
+ * - Mar 22 – Apr 29: spring (sage)
+ * - May 2 – Jun 19: early summer (ember)
+ * - Jun 23 – Aug 31: high summer (amber)
+ * - Sep 1 – Sep 20: late harvest (copper)
+ * - Sep 25 – Oct 30: autumn darkening (rust)
  */
 function getSeasonalTheme(): ThemeDefinition {
 	const now = new Date();
 	const month = now.getMonth(); // 0 = Jan
 	const day = now.getDate();
 
-	// ── Solar sabbats (solstice/equinox dates) ─────────────────────
-	if (month === 11 && day >= 20 && day <= 23) return THEMES.find((t) => t.value === 'slate') ?? THEMES[0]; // Yule
-	if (month === 2 && day >= 19 && day <= 21) return THEMES.find((t) => t.value === 'sage') ?? THEMES[0]; // Ostara
-	if (month === 5 && day >= 20 && day <= 22) return THEMES.find((t) => t.value === 'amber') ?? THEMES[0]; // Litha
-	if (month === 8 && day >= 21 && day <= 24) return THEMES.find((t) => t.value === 'coral') ?? THEMES[0]; // Mabon
+	// ── Solar sabbats ───────────────────────────────────────────
+	if (month === 11 && day >= 20 && day <= 23) return tv('slate');    // Yule
+	if (month === 2  && day >= 19 && day <= 21) return tv('sage');     // Ostara
+	if (month === 5  && day >= 20 && day <= 22) return tv('amber');     // Litha
+	if (month === 8  && day >= 21 && day <= 24) return tv('rust');       // Mabon
 
-	// ── Cross-quarter fire festivals ────────────────────────────────
-	if (month === 1 && day >= 1 && day <= 2) return THEMES.find((t) => t.value === 'sage') ?? THEMES[0]; // Imbolc
-	if (month === 3 && day === 30) return THEMES.find((t) => t.value === 'amber') ?? THEMES[0]; // Beltane eve
-	if (month === 4 && day === 1) return THEMES.find((t) => t.value === 'amber') ?? THEMES[0]; // Beltane
-	if (month === 7 && day >= 1 && day <= 2) return THEMES.find((t) => t.value === 'coral') ?? THEMES[0]; // Lughnasadh
-	if (month === 9 && day === 31) return THEMES.find((t) => t.value === 'ocean') ?? THEMES[0]; // Samhain
-	if (month === 10 && day === 1) return THEMES.find((t) => t.value === 'ocean') ?? THEMES[0]; // Samhain
+	// ── Cross-quarter fire festivals ──────────────────────────
+	if (month === 1  && day >= 1   && day <= 2)   return tv('frost');   // Imbolc
+	if (month === 3  && day === 30)               return tv('ember');    // Beltane eve
+	if (month === 4  && day === 1)               return tv('ember');    // Beltane
+	if (month === 7  && day >= 1   && day <= 2)   return tv('copper');  // Lughnasadh
+	if (month === 9  && day === 31)               return tv('ocean');    // Samhain
+	if (month === 10 && day === 1)               return tv('ocean');    // Samhain
 
-	// ── Between-sabbat periods ──────────────────────────────────────
-	// Jan 3 – Mar 18: deep winter — slate
-	if ((month === 0 && day > 2) || (month === 1 && day < 19) || (month === 2 && day < 19)) {
-		return THEMES.find((t) => t.value === 'slate') ?? THEMES[0];
-	}
-	// Mar 22 – Apr 29: spring — sage
-	if ((month === 2 && day > 21) || month === 3) {
-		return THEMES.find((t) => t.value === 'sage') ?? THEMES[0];
-	}
-	// May 2 – Jun 19: early summer — amber
-	if (month === 4 || (month === 5 && day < 20)) {
-		return THEMES.find((t) => t.value === 'amber') ?? THEMES[0];
-	}
-	// Jun 23 – Sep 20: summer and harvest — coral
-	if ((month === 5 && day > 22) || month === 6 || month === 7 || (month === 8 && day < 21)) {
-		return THEMES.find((t) => t.value === 'coral') ?? THEMES[0];
-	}
-	// Sep 25 – Oct 30: autumn darkening — coral
-	if (month === 8 || (month === 9 && day < 31)) {
-		return THEMES.find((t) => t.value === 'coral') ?? THEMES[0];
-	}
-	// Nov 2 – Dec 19 + Dec 24+: the dark half — ocean
-	if (month === 10 || (month === 11 && day > 23)) {
-		return THEMES.find((t) => t.value === 'ocean') ?? THEMES[0];
-	}
+	// ── Between-sabbat periods ───────────────────────────────────
+	// Ordered by calendar position, no overlaps
+	// Nov 2 – Dec 19: the dark half
+	if (month === 10 || (month === 11 && day >= 2 && day < 20)) return tv('ocean');
+	// Dec 24 – Feb 18: deep winter
+	if ((month === 11 && day >= 24) || month === 0 || (month === 1 && day < 1)) return tv('slate');
+	// Feb 3 – Mar 18: winter waning toward spring
+	if (month === 1 || (month === 2 && day < 19)) return tv('slate');
+	// Mar 22 – Apr 29: spring
+	if ((month === 2 && day > 21) || month === 3) return tv('sage');
+	// May 2 – Jun 19: early summer
+	if (month === 4 || (month === 5 && day < 20)) return tv('ember');
+	// Jun 23 – Aug 31: high summer
+	if ((month === 5 && day > 22) || month === 6 || month === 7) return tv('amber');
+	// Sep 1 – Sep 20: late harvest
+	if (month === 7 || (month === 8 && day < 21)) return tv('copper');
+	// Sep 25 – Oct 30: autumn darkening
+	if (month === 8 || (month === 9 && day < 31)) return tv('rust');
 
 	// Fallback
-	return THEMES.find((t) => t.value === DEFAULT_THEME) ?? THEMES[0];
+	return tv(DEFAULT_THEME);
 }
 
 function createColorThemeStore() {
@@ -90,9 +97,8 @@ function createColorThemeStore() {
 			if (!browser) return;
 
 			const stored = localStorage.getItem(STORAGE_KEY) as ColorTheme | null;
-			const hasUserChoice = stored !== null;
 
-			if (hasUserChoice) {
+			if (stored) {
 				update((state) => ({ ...state, current: stored as ColorTheme, mounted: true }));
 				applyTheme(stored as ColorTheme);
 			} else {
