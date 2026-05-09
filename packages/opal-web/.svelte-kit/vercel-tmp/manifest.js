@@ -10,7 +10,7 @@ return {
 	assets: new Set(["client-metadata.json","logo/Opal.svg","robots.txt"]),
 	mimeTypes: {".json":"application/json",".svg":"image/svg+xml",".txt":"text/plain"},
 	_: {
-		client: {start:"_app/immutable/entry/start.DGxgsefr.js",app:"_app/immutable/entry/app.CiOJ5aSh.js",imports:["_app/immutable/entry/start.DGxgsefr.js","_app/immutable/chunks/B4kNhNlA.js","_app/immutable/chunks/9VeCAWtE.js","_app/immutable/chunks/DhRmkkCw.js","_app/immutable/entry/app.CiOJ5aSh.js","_app/immutable/chunks/9VeCAWtE.js","_app/immutable/chunks/DdeFJgsq.js","_app/immutable/chunks/DhRmkkCw.js","_app/immutable/chunks/isM9luo4.js","_app/immutable/chunks/CQmILjMx.js","_app/immutable/chunks/BKqvpmVb.js","_app/immutable/chunks/C_hTd_0H.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.DTbutl0K.js",app:"_app/immutable/entry/app.dJPTA0L2.js",imports:["_app/immutable/entry/start.DTbutl0K.js","_app/immutable/chunks/xHqmRZTo.js","_app/immutable/chunks/9VeCAWtE.js","_app/immutable/chunks/DhRmkkCw.js","_app/immutable/entry/app.dJPTA0L2.js","_app/immutable/chunks/9VeCAWtE.js","_app/immutable/chunks/DdeFJgsq.js","_app/immutable/chunks/DhRmkkCw.js","_app/immutable/chunks/isM9luo4.js","_app/immutable/chunks/CQmILjMx.js","_app/immutable/chunks/BKqvpmVb.js","_app/immutable/chunks/C_hTd_0H.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
 			__memo(() => import('../output/server/nodes/0.js')),
 			__memo(() => import('../output/server/nodes/1.js')),
