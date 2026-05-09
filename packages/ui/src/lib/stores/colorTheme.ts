@@ -11,7 +11,9 @@ interface ColorThemeState {
 
 const STORAGE_KEY = 'color-theme';
 
-// Helper to find a theme by value
+// Module-level interval handle, cleared on hot-reload or explicit destroy
+let _intervalId: ReturnType<typeof setInterval> | null = null;
+
 function tv(value: string): ThemeDefinition {
 	return THEMES.find((t) => t.value === value) ?? THEMES[0];
 }
@@ -20,17 +22,17 @@ function tv(value: string): ThemeDefinition {
  * Wheel of the Year — northern hemisphere, traditional neopagan fixed dates.
  *
  * Eight sabbats each have their own seasonal theme. Between sabbats, the
- * theme follows the season in force, creating a smooth arc through the year:
+ * theme follows the season in force, creating a smooth arc through the year.
  *
  * | Sabbat      | Dates              | Theme  | Character               |
  * |-------------|--------------------|--------|-------------------------|
  * | Samhain     | Oct 31 – Nov 1     | ocean  | dark half begins        |
  * | Yule        | Dec 20–23          | slate  | deepest dark            |
  * | Imbolc      | Feb 1–2            | frost  | candlelit stirrings     |
- * | Ostara      | Mar 19–21          | sage   | new life, growth         |
- * | Beltane     | Apr 30 – May 1     | ember  | fire, summer begins     |
+ * | Ostara      | Mar 19–21          | sage   | new life, growth        |
+ * | Beltane     | Apr 30 – May 1      | ember  | fire, summer begins     |
  * | Litha       | Jun 20–22          | amber  | peak light, abundance   |
- * | Lughnasadh  | Aug 1–2            | copper | first harvest           |
+ * | Lughnasadh  | Aug 1–2            | copper | first harvest            |
  * | Mabon       | Sep 21–24          | rust   | autumn equinox           |
  *
  * Between sabbats:
@@ -84,12 +86,52 @@ function getSeasonalTheme(): ThemeDefinition {
 	return tv(DEFAULT_THEME);
 }
 
+/** Seconds until the next sabbat or period boundary at midnight. */
+function msUntilNextBoundary(): number {
+	const now = new Date();
+	const tomorrow = new Date(now);
+	tomorrow.setDate(tomorrow.getDate() + 1);
+	tomorrow.setHours(0, 0, 0, 0);
+	return tomorrow.getTime() - now.getTime();
+}
+
 function createColorThemeStore() {
-	const { subscribe, set, update } = writable<ColorThemeState>({
+	const { subscribe, update } = writable<ColorThemeState>({
 		current: DEFAULT_THEME,
 		mounted: false,
 		isSeasonal: false
 	});
+
+	function startSeasonalTick() {
+		// Clear any existing interval (e.g. from a previous init call on HMR)
+		if (_intervalId !== null) {
+			clearInterval(_intervalId);
+		}
+
+		_intervalId = setInterval(() => {
+			// Re-read current state to check isSeasonal
+			let current: ColorThemeState = { current: DEFAULT_THEME, mounted: false, isSeasonal: false };
+			const unsub = subscribe((s) => {
+				current = s;
+			});
+			unsub();
+
+			if (!current.isSeasonal) {
+				clearInterval(_intervalId!);
+				_intervalId = null;
+				return;
+			}
+
+			const expected = getSeasonalTheme();
+			if (expected.value !== current.current) {
+				update((state) => ({
+					...state,
+					current: expected.value as ColorTheme
+				}));
+				applyTheme(expected.value as ColorTheme);
+			}
+		}, 60_000); // Check every minute
+	}
 
 	return {
 		subscribe,
@@ -101,6 +143,11 @@ function createColorThemeStore() {
 			if (stored) {
 				update((state) => ({ ...state, current: stored as ColorTheme, mounted: true }));
 				applyTheme(stored as ColorTheme);
+				// No seasonal tick needed — user has overridden
+				if (_intervalId !== null) {
+					clearInterval(_intervalId);
+					_intervalId = null;
+				}
 			} else {
 				const seasonal = getSeasonalTheme();
 				update((state) => ({
@@ -110,6 +157,7 @@ function createColorThemeStore() {
 					isSeasonal: true
 				}));
 				applyTheme(seasonal.value as ColorTheme);
+				startSeasonalTick();
 			}
 		},
 		setTheme: (theme: ColorTheme) => {
@@ -117,6 +165,10 @@ function createColorThemeStore() {
 			localStorage.setItem(STORAGE_KEY, theme);
 			update((state) => ({ ...state, current: theme, isSeasonal: false }));
 			applyTheme(theme);
+			if (_intervalId !== null) {
+				clearInterval(_intervalId);
+				_intervalId = null;
+			}
 		},
 		resetToSeasonal: () => {
 			if (!browser) return;
@@ -128,6 +180,7 @@ function createColorThemeStore() {
 				isSeasonal: true
 			}));
 			applyTheme(seasonal.value as ColorTheme);
+			startSeasonalTick();
 		}
 	};
 }
