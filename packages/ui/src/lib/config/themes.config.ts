@@ -8,18 +8,11 @@ export interface ThemeDefinition {
 	label: string;
 	description: string;
 	color: string;
-	category: 'neutral' | 'warm' | 'cool' | 'vibrant';
+	category: 'neutral' | 'warm' | 'cool' | 'vibrant' | 'seasonal';
 }
 
 export const THEMES: readonly ThemeDefinition[] = [
-	// Neutral themes
-	{
-		value: 'sage',
-		label: 'Sage',
-		description: 'Calm green-blue',
-		color: 'oklch(77.77% 0.182 127.42)',
-		category: 'neutral'
-	},
+	// ── Neutral ────────────────────────────────────────────────────
 	{
 		value: 'monochrome',
 		label: 'Monochrome',
@@ -27,26 +20,12 @@ export const THEMES: readonly ThemeDefinition[] = [
 		color: 'oklch(78% 0 0)',
 		category: 'neutral'
 	},
-	{
-		value: 'slate',
-		label: 'Slate',
-		description: 'Blue-grey',
-		color: 'oklch(78.5% 0.095 230)',
-		category: 'neutral'
-	},
-	// Warm themes
+	// ── Warm ──────────────────────────────────────────────────────
 	{
 		value: 'ruby',
 		label: 'Ruby',
 		description: 'Bold red',
 		color: 'oklch(81.5% 0.228 10)',
-		category: 'warm'
-	},
-	{
-		value: 'coral',
-		label: 'Coral',
-		description: 'Orange-pink',
-		color: 'oklch(81.8% 0.212 20)',
 		category: 'warm'
 	},
 	{
@@ -57,13 +36,13 @@ export const THEMES: readonly ThemeDefinition[] = [
 		category: 'warm'
 	},
 	{
-		value: 'amber',
-		label: 'Amber',
-		description: 'Bright yellow',
-		color: 'oklch(82.8% 0.195 85)',
-		category: 'warm'
+		value: 'lavender',
+		label: 'Lavender',
+		description: 'Soft purple',
+		color: 'oklch(82% 0.215 295)',
+		category: 'vibrant'
 	},
-	// Cool themes
+	// ── Cool ──────────────────────────────────────────────────────
 	{
 		value: 'forest',
 		label: 'Forest',
@@ -78,27 +57,71 @@ export const THEMES: readonly ThemeDefinition[] = [
 		color: 'oklch(79% 0.205 195)',
 		category: 'cool'
 	},
-	{
-		value: 'ocean',
-		label: 'Ocean',
-		description: 'Deep blue',
-		color: 'oklch(78.2% 0.188 240)',
-		category: 'cool'
-	},
-	// Vibrant themes
-	{
-		value: 'lavender',
-		label: 'Lavender',
-		description: 'Soft purple',
-		color: 'oklch(82% 0.215 295)',
-		category: 'vibrant'
-	},
+	// ── Vibrant ───────────────────────────────────────────────────
 	{
 		value: 'rose',
 		label: 'Rose',
 		description: 'Pink-red',
 		color: 'oklch(83.5% 0.230 350)',
 		category: 'vibrant'
+	},
+	// ── Seasonal: Wheel of the Year ────────────────────────────────
+	// The Wheel flows: dark half → deep winter → frost → new life → fire → peak light → harvest → dark half
+	{
+		value: 'ocean',
+		label: 'Ocean',
+		description: 'Samhain · deep, the veil thins',
+		color: 'oklch(42% 0.18 240)',
+		category: 'seasonal'
+	},
+	{
+		value: 'slate',
+		label: 'Slate',
+		description: 'Yule · deepest dark, winter solstice',
+		color: 'oklch(60% 0.06 230)',
+		category: 'seasonal'
+	},
+	{
+		value: 'frost',
+		label: 'Frost',
+		description: 'Imbolc · pale, candlelit, stirrings',
+		color: 'oklch(86% 0.04 250)',
+		category: 'seasonal'
+	},
+	{
+		value: 'sage',
+		label: 'Sage',
+		description: 'Ostara · green, new life, growth',
+		color: 'oklch(77.77% 0.182 127.42)',
+		category: 'seasonal'
+	},
+	{
+		value: 'ember',
+		label: 'Ember',
+		description: 'Beltane · fire, summer begins',
+		color: 'oklch(70% 0.20 35)',
+		category: 'seasonal'
+	},
+	{
+		value: 'amber',
+		label: 'Amber',
+		description: 'Litha · peak light, abundance',
+		color: 'oklch(82.8% 0.195 85)',
+		category: 'seasonal'
+	},
+	{
+		value: 'copper',
+		label: 'Copper',
+		description: 'Lughnasadh · first harvest, grain',
+		color: 'oklch(68% 0.17 50)',
+		category: 'seasonal'
+	},
+	{
+		value: 'rust',
+		label: 'Rust',
+		description: 'Mabon · autumn equinox, reflection',
+		color: 'oklch(55% 0.20 40)',
+		category: 'seasonal'
 	}
 ] as const;
 
@@ -109,7 +132,8 @@ export const CATEGORY_LABELS = {
 	neutral: 'Neutral',
 	warm: 'Warm',
 	cool: 'Cool',
-	vibrant: 'Vibrant'
+	vibrant: 'Vibrant',
+	seasonal: 'Wheel of the Year'
 } as const;
 
 export const getThemesByCategory = () => {
@@ -117,7 +141,8 @@ export const getThemesByCategory = () => {
 		neutral: [],
 		warm: [],
 		cool: [],
-		vibrant: []
+		vibrant: [],
+		seasonal: []
 	};
 	THEMES.forEach((theme) => {
 		grouped[theme.category].push(theme);
