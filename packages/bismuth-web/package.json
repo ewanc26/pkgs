@@ -1,6 +1,6 @@
 {
 	"name": "@ewanc26/bismuth-web",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Web frontend for Bismuth — convert ATProto richtext-block documents to Markdown in your browser",
 	"author": "Ewan Croft",
 	"license": "AGPL-3.0-only",
