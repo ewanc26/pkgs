@@ -158,6 +158,8 @@ async function fetchCommand(argv: string[]): Promise<void> {
       did: { type: 'string' },
       rkey: { type: 'string' },
       'output-dir': { type: 'string' },
+      output: { type: 'string', short: 'o' },
+      frontmatter: { type: 'boolean', short: 'f', default: false },
       'no-frontmatter': { type: 'boolean', default: false },
       pds: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
@@ -178,13 +180,17 @@ async function fetchCommand(argv: string[]): Promise<void> {
     die('fetch: --rkey is required')
   }
 
-  const outputDir = values['output-dir'] ?? join(homedir(), 'Downloads')
+  // --output / -o is an alias for --output-dir for consistency with the convert command
+  const outputDir = values['output-dir'] ?? values['output'] ?? join(homedir(), 'Downloads')
+
+  // --frontmatter / -f takes precedence; --no-frontmatter opts out
+  const useFrontmatter = values['frontmatter'] ? true : !values['no-frontmatter']
 
   const results = await fetchPublication({
     did: values.did,
     rkey: values.rkey,
     outputDir,
-    frontmatter: !values['no-frontmatter'],
+    frontmatter: useFrontmatter,
     pdsEndpoint: values.pds,
   })
 
@@ -298,7 +304,9 @@ Files are named {rkey}.md.
 Options:
       --did DID             DID of the repo owner (required).
       --rkey RKEY           rkey of the publication (required).
-      --output-dir DIR      Directory to write files to (default: ~/Downloads).
+  -o, --output DIR          Directory to write files to (default: ~/Downloads).
+      --output-dir DIR      Alias for --output.
+  -f, --frontmatter         Emit YAML front matter (default when neither flag is given).
       --no-frontmatter      Omit YAML front matter from output files.
       --pds URL             Override the auto-resolved PDS endpoint.
   -h, --help                Show this help text and exit.
