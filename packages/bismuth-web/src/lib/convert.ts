@@ -11,3 +11,5 @@ export {
 	offprintContentToMarkdown
 } from '../../../bismuth/src/convert.js';
 export type { ConvertOptions, PcktConvertOptions } from '../../../bismuth/src/convert.js';
+
+export { resolvePdsEndpoint, listDocuments } from '../../../bismuth/src/pds.js';
