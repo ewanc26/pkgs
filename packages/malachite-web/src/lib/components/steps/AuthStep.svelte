@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Eye, EyeOff } from '@lucide/svelte';
+  import { ArrowLeft, ArrowRight, Eye, EyeOff } from '@lucide/svelte';
   import { login } from '$lib/core/auth.js';
   import { signInWithOAuth } from '$lib/core/oauth.js';
   import type { Agent } from '@atproto/api';
@@ -59,7 +59,7 @@
 </script>
 
 <section class="card-section">
-  <button class="back-btn" onclick={onback}>← Back</button>
+  <button class="back-btn inline-flex items-center gap-1" onclick={onback}><ArrowLeft size={13} /> Back</button>
   <h2 class="section-title">Sign in to ATProto</h2>
 
   <div class="tabs">
@@ -94,7 +94,7 @@
         onclick={doOAuth}
         disabled={oauthLoading || !oauthHandle}
       >
-        {#if oauthLoading}<span class="spinner"></span> Redirecting…{:else}Continue with ATProto →{/if}
+        {#if oauthLoading}<span class="spinner"></span> Redirecting…{:else}Continue with ATProto <ArrowRight size={13} />{/if}
       </button>
 
       <p class="oauth-note">
@@ -172,7 +172,7 @@
         onclick={doAuth}
         disabled={authLoading || !handle || !password}
       >
-        {#if authLoading}<span class="spinner"></span> Signing in…{:else}Sign in →{/if}
+        {#if authLoading}<span class="spinner"></span> Signing in…{:else}Sign in <ArrowRight size={13} />{/if}
       </button>
     </div>
   {/if}

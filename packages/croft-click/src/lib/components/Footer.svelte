@@ -1,5 +1,9 @@
+<script lang="ts">
+	import { ExternalLink } from '@lucide/svelte';
+</script>
+
 <footer>
-	<a href="https://github.com/ewanc26/pkgs" target="_blank" rel="noopener">↗ source</a>
+	<a href="https://github.com/ewanc26/pkgs" target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} /> source</a>
 	<span class="sep">·</span>
 	<span>by Ewan Croft</span>
 </footer>

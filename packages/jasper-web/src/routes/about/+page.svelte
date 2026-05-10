@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Check, X } from '@lucide/svelte';
+	import { Check, X, Menu } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -98,7 +98,7 @@
 		<li>
 			<span class="step-num">2</span>
 			<div>
-				<p>Tap the menu (☰) → Settings → Accounts Center</p>
+				<p>Tap the menu (<Menu size={14} class="inline-block align-middle" />) → Settings → Accounts Center</p>
 			</div>
 		</li>
 		<li>

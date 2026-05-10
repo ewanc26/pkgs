@@ -6,6 +6,7 @@
 	import type { Platform, MicroblogPost, ConvertResult } from '@ewanc26/opal';
 	import { initOAuth, signInWithOAuth } from '$lib/core/oauth.js';
 	import { parseExport, runImport } from '$lib/core/import.js';
+	import { ArrowLeft, ExternalLink } from '@lucide/svelte';
 
 	// ─── persistence keys ────────────────────────────────────────────────────────
 
@@ -237,7 +238,7 @@
 							<p class="error">{authError}</p>
 						{/if}
 						<div class="step-actions">
-							<button class="btn-secondary" onclick={handleBack}>← Back</button>
+							<button class="btn-secondary inline-flex items-center gap-1" onclick={handleBack}><ArrowLeft size={13} /> Back</button>
 						</div>
 					</section>
 				{:else if step === 2}
@@ -269,7 +270,7 @@
 							<p class="error">{importError}</p>
 						{/if}
 						<div class="step-actions">
-							<button class="btn-secondary" onclick={handleBack}>← Back</button>
+							<button class="btn-secondary inline-flex items-center gap-1" onclick={handleBack}><ArrowLeft size={13} /> Back</button>
 						</div>
 					</section>
 				{:else if step === 3}
@@ -307,7 +308,7 @@
 							</div>
 						{/if}
 						<div class="step-actions">
-							<button class="btn-secondary" onclick={handleBack}>← Back</button>
+							<button class="btn-secondary inline-flex items-center gap-1" onclick={handleBack}><ArrowLeft size={13} /> Back</button>
 							<button class="btn-primary" onclick={handleStartImport}>
 								Import {selectedPosts.size} posts
 							</button>
@@ -357,11 +358,11 @@
 	</div>
 
 	<footer>
-		<a href="/">← Home</a>
+		<a href="/" class="inline-flex items-center gap-1"><ArrowLeft size={13} /> Home</a>
 		<span class="sep">·</span>
 		<a href="/about">About &amp; privacy</a>
 		<span class="sep">·</span>
-		<a href="https://github.com/ewanc26/pkgs/tree/main/packages/opal" target="_blank" rel="noopener">↗ GitHub</a>
+		<a href="https://github.com/ewanc26/pkgs/tree/main/packages/opal" target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={13} /> GitHub</a>
 	</footer>
 </main>
 

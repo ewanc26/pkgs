@@ -25,11 +25,13 @@
 		Upload,
 		Loader2,
 		ArrowRight,
+		ArrowLeft,
 		FolderOpen,
 		Image,
 		AlertTriangle,
 		RotateCcw,
-		Trash2
+		Trash2,
+		ExternalLink
 	} from '@lucide/svelte';
 
 	let step = $state(0);
@@ -771,14 +773,15 @@
 	</div>
 
 	<footer>
-		<a href="/">← Home</a>
+		<a href="/" class="inline-flex items-center gap-1"><ArrowLeft size={14} /> Home</a>
 		<span class="sep">·</span>
 		<a href="/about">About &amp; privacy</a>
 		<span class="sep">·</span>
 		<a
 			href="https://github.com/ewanc26/pkgs/tree/main/packages/jasper"
 			target="_blank"
-			rel="noopener">↗ GitHub</a
+			rel="noopener"
+			class="inline-flex items-center gap-1"><ExternalLink size={14} /> GitHub</a
 		>
 	</footer>
 </main>

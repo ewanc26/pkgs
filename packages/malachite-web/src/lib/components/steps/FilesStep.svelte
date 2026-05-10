@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CheckCircle2, Music2, Disc3 } from '@lucide/svelte';
+  import { ArrowLeft, ArrowRight, CheckCircle2, Music2, Disc3 } from '@lucide/svelte';
 
   let {
     lastfmFiles  = $bindable<File[]>([]),
@@ -37,7 +37,7 @@
 </script>
 
 <section class="card-section">
-  <button class="back-btn" onclick={onback}>← Back</button>
+  <button class="back-btn inline-flex items-center gap-1" onclick={onback}><ArrowLeft size={13} /> Back</button>
   <h2 class="section-title">
     Upload your export{needs.lastfm && needs.spotify ? 's' : ''}
   </h2>
@@ -141,7 +141,7 @@
     {/if}
   </div>
 
-  <button class="btn-primary" onclick={oncontinue} disabled={!canContinue}>Continue →</button>
+  <button class="btn-primary inline-flex items-center gap-1" onclick={oncontinue} disabled={!canContinue}>Continue <ArrowRight size={13} /></button>
 </section>
 
 <style>

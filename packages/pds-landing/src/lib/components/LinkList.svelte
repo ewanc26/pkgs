@@ -43,7 +43,7 @@
 	}
 
 	.pds-link-list li::before {
-		content: '→ ';
+		content: '› ';
 		color: var(--pds-color-green);
 	}
 
