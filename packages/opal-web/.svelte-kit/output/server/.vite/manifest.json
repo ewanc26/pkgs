@@ -48,6 +48,13 @@
       "_internal.js"
     ]
   },
+  "_Icon.js": {
+    "file": "chunks/Icon.js",
+    "name": "Icon",
+    "imports": [
+      "_renderer.js"
+    ]
+  },
   "_LandingPage.B30L2Q2O.css": {
     "file": "_app/immutable/assets/LandingPage.B30L2Q2O.css",
     "src": "_LandingPage.B30L2Q2O.css"
@@ -116,7 +123,7 @@
       "_renderer.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.DlyWNk37.css",
+      "_app/immutable/assets/_layout.BVIeHM5-.css",
       "_app/immutable/assets/LandingPage.B30L2Q2O.css"
     ]
   },
@@ -126,10 +133,24 @@
     "src": "src/routes/+page.svelte",
     "isEntry": true,
     "imports": [
-      "_renderer.js"
+      "_renderer.js",
+      "_Icon.js"
     ],
     "css": [
       "_app/immutable/assets/LandingPage.B30L2Q2O.css"
+    ]
+  },
+  "src/routes/about/+page.svelte": {
+    "file": "entries/pages/about/_page.svelte.js",
+    "name": "entries/pages/about/_page.svelte",
+    "src": "src/routes/about/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_renderer.js",
+      "_Icon.js"
+    ],
+    "css": [
+      "_app/immutable/assets/_page.BTGHEAxQ.css"
     ]
   },
   "src/routes/import/+page.svelte": {

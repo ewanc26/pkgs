@@ -29,15 +29,16 @@ declare module "$app/types" {
 	type MatcherParam<M> = M extends (param : string) => param is (infer U extends string) ? U : string;
 
 	export interface AppTypes {
-		RouteId(): "/" | "/import";
+		RouteId(): "/" | "/about" | "/import";
 		RouteParams(): {
 			
 		};
 		LayoutParams(): {
 			"/": Record<string, never>;
+			"/about": Record<string, never>;
 			"/import": Record<string, never>
 		};
-		Pathname(): "/" | "/import";
+		Pathname(): "/" | "/about" | "/import";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
 		Asset(): "/client-metadata.json" | "/logo/Opal.svg" | "/robots.txt" | string & {};
 	}
