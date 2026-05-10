@@ -263,7 +263,7 @@ pnpm start -i tweets.js --dry-run</code></pre>
 			</div>
 			<div class="person-links">
 				<a href="https://github.com/ewanc26" target="_blank" rel="noopener">GitHub</a>
-				<a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener">Ko-fi</a>
+				<a href="https://ewancroft.uk/support">Support</a>
 				<a href="https://ewancroft.uk" target="_blank" rel="noopener">Website</a>
 			</div>
 		</div>
@@ -305,7 +305,7 @@ pnpm start -i tweets.js --dry-run</code></pre>
 	<footer>
 		<a href="https://github.com/ewanc26/pkgs/tree/main/packages/opal" target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={13} /> View on GitHub</a>
 		<span class="sep">·</span>
-		<a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener" class="inline-flex items-center gap-1"><Heart size={13} /> Support Opal</a>
+		<a href="https://ewancroft.uk/support" class="inline-flex items-center gap-1"><Heart size={13} /> Support Opal</a>
 	</footer>
 </main>
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { ArrowRight, Github, Heart, Coffee, ExternalLink } from '@lucide/svelte';
+	import { ArrowRight, Github, Heart, ExternalLink } from '@lucide/svelte';
 
 type IconComponent = typeof import('@lucide/svelte').ArrowRight;
 type FeatureIcon = IconComponent | string;
@@ -79,20 +79,10 @@ interface Feature {
 				<Github size={15} /> View on GitHub
 			</a>
 			<a
-				href="https://github.com/sponsors/ewanc26"
-				target="_blank"
-				rel="noopener"
-				class="btn-ghost btn-sponsor-inline"
+				href="https://ewancroft.uk/support"
+				class="btn-ghost"
 			>
-				<Heart size={14} /> Sponsor
-			</a>
-			<a
-				href="https://ko-fi.com/ewancroft"
-				target="_blank"
-				rel="noopener"
-				class="btn-ghost btn-kofi-inline"
-			>
-				<Coffee size={14} /> Ko-fi
+				<Heart size={14} /> Support
 			</a>
 		</div>
 	</section>
@@ -168,7 +158,7 @@ interface Feature {
 		<span class="sep">·</span>
 		<a href={githubUrl} target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} /> GitHub</a>
 		<span class="sep">·</span>
-		<a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener" class="inline-flex items-center gap-1"><Heart size={12} /> Support</a>
+		<a href="https://ewancroft.uk/support" class="inline-flex items-center gap-1"><Heart size={12} /> Support</a>
 	</footer>
 </main>
 
@@ -389,26 +379,6 @@ interface Feature {
 		font-size: 0.875rem;
 		color: var(--muted);
 		margin: 0 0 1.75rem;
-	}
-
-	.btn-sponsor-inline {
-		color: #db61a2;
-		border-color: rgba(219, 97, 162, 0.3);
-	}
-
-	.btn-sponsor-inline:hover {
-		border-color: #db61a2;
-		color: #db61a2;
-	}
-
-	.btn-kofi-inline {
-		color: #ff5e5b;
-		border-color: rgba(255, 94, 91, 0.3);
-	}
-
-	.btn-kofi-inline:hover {
-		border-color: #ff5e5b;
-		color: #ff5e5b;
 	}
 
 	/* ── More tools ──────────────────────────────────────────────────────────── */
