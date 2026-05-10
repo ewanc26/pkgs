@@ -50,6 +50,16 @@ export const projects: Project[] = [
 		logo: '/opal.svg'
 	},
 	{
+		name: 'Tourmaline',
+		slug: 'tourmaline',
+		url: 'https://tourmaline.croft.click',
+		heading: 'AT Protocol scrobble analyser',
+		description:
+			'Analyse your Teal.fm listening history. Personality archetypes, genre profiles, mood mapping, and share-to-Bluesky.',
+		accent: '#4ade80',
+		logo: '/tourmaline.svg'
+	},
+	{
 		name: 'Devlog',
 		slug: 'devlog',
 		url: 'https://devlog.croft.click',
