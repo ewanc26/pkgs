@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Check, X } from '@lucide/svelte';
+	import { ArrowLeft, Check, ExternalLink, Heart, X } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -29,7 +29,7 @@
 </svelte:head>
 
 <main>
-	<a href="/" class="back">← Back</a>
+	<a href="/" class="back inline-flex items-center gap-1"><ArrowLeft size={13} /> Back</a>
 
 	<h1>About Bismuth</h1>
 
@@ -231,11 +231,23 @@ pnpm start input.json --dry-run</code></pre>
 	</section>
 
 	<footer>
-		<a href="https://github.com/ewanc26/pkgs/tree/main/packages/bismuth" target="_blank"
-			rel="noopener">↗ View on GitHub</a
+		<a
+			href="https://github.com/ewanc26/pkgs/tree/main/packages/bismuth"
+			target="_blank"
+			rel="noopener"
+			class="inline-flex items-center gap-1"
 		>
+			<ExternalLink size={13} /> View on GitHub
+		</a>
 		<span class="sep">·</span>
-		<a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener">♥ Support Bismuth</a>
+		<a
+			href="https://ko-fi.com/ewancroft"
+			target="_blank"
+			rel="noopener"
+			class="inline-flex items-center gap-1"
+		>
+			<Heart size={13} /> Support Bismuth
+		</a>
 	</footer>
 </main>
 

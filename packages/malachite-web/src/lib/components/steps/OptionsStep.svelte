@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ArrowLeft, ArrowRight } from '@lucide/svelte';
   import type { ImportMode } from '$lib/types.js';
 
   let {
@@ -19,7 +20,7 @@
 </script>
 
 <section class="card-section">
-  <button class="back-btn" onclick={onback}>← Back</button>
+  <button class="back-btn inline-flex items-center gap-1" onclick={onback}><ArrowLeft size={13} /> Back</button>
   <h2 class="section-title">{mode === 'deduplicate' ? 'Deduplication options' : 'Import options'}</h2>
 
   <div class="options">
@@ -81,12 +82,13 @@
     <div class="alert alert-info">Dry run enabled — no records will be written to Teal.</div>
   {/if}
 
-  <button class="btn-primary" onclick={onstartimport}>
+  <button class="btn-primary inline-flex items-center gap-1" onclick={onstartimport}>
     {#if mode === 'deduplicate'}
-      {dryRun ? 'Preview duplicates →' : 'Start deduplication →'}
+      {dryRun ? 'Preview duplicates' : 'Start deduplication'}
     {:else}
-      {dryRun ? 'Preview import →' : 'Start import →'}
+      {dryRun ? 'Preview import' : 'Start import'}
     {/if}
+    <ArrowRight size={13} />
   </button>
 </section>
 

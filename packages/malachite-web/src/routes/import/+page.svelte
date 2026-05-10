@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ArrowLeft, ExternalLink } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -261,14 +262,14 @@
 		{/key}
 	</div>
 	<footer>
-		<a href="/">← Home</a>
+		<a href="/" class="inline-flex items-center gap-1"><ArrowLeft size={13} /> Home</a>
 		<span class="sep">·</span>
 		<a href="/about">About &amp; privacy</a>
 		<span class="sep">·</span>
 		<a
 			href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite"
 			target="_blank"
-			rel="noopener">↗ GitHub</a
+			rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} /> GitHub</a
 		>
 	</footer>
 </main>
