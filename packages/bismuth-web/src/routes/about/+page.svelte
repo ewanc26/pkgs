@@ -191,7 +191,7 @@ pnpm start input.json --dry-run</code></pre>
 			</div>
 			<div class="person-links">
 				<a href="https://github.com/ewanc26" target="_blank" rel="noopener">GitHub</a>
-				<a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener">Ko-fi</a>
+				<a href="https://ewancroft.uk/support">Support</a>
 				<a href="https://ewancroft.uk" target="_blank" rel="noopener">Website</a>
 			</div>
 		</div>
@@ -241,9 +241,7 @@ pnpm start input.json --dry-run</code></pre>
 		</a>
 		<span class="sep">·</span>
 		<a
-			href="https://ko-fi.com/ewancroft"
-			target="_blank"
-			rel="noopener"
+			href="https://ewancroft.uk/support"
 			class="inline-flex items-center gap-1"
 		>
 			<Heart size={13} /> Support Bismuth
