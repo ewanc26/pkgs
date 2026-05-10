@@ -32,7 +32,7 @@
 		const result: KVItem[] = [
 			{
 				key: 'reachable',
-				value: health.reachable ? '✓ online' : '✗ unreachable',
+				value: health.reachable ? 'online' : 'unreachable',
 				status: health.reachable ? 'ok' : 'err'
 			},
 			{
