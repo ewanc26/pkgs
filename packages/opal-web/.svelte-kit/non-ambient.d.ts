@@ -40,6 +40,6 @@ declare module "$app/types" {
 		};
 		Pathname(): "/" | "/about" | "/import";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
-		Asset(): "/client-metadata.json" | "/logo/Opal.svg" | "/robots.txt" | string & {};
+		Asset(): "/client-metadata.json" | "/logo/Opal.svg" | "/og.svg" | "/robots.txt" | string & {};
 	}
 }

@@ -47,12 +47,8 @@
 		{ icon: bluesky, title: 'Bluesky', description: 'Publish imported posts to ATProto Bluesky with full facet support.' },
 		{ icon: Shield, title: 'Private', description: 'Everything runs in your browser. No data is sent anywhere except your own PDS.' }
 	]}
-	steps={[
-		{ title: 'Choose a platform', description: 'Pick Twitter, Mastodon, Threads, or Nostr.' },
-		{ title: 'Sign in with ATProto', description: 'Use your Bluesky handle and an app password. Nothing is stored.' },
-		{ title: 'Upload your export', description: 'Drop in your archive file — everything is processed locally in your browser.' },
-		{ title: 'Import', description: 'Opal publishes your posts to your PDS with automatic rate-limit handling.' }
-	]}
+	steps={[\n		{ title: 'Choose a platform', description: 'Pick Twitter, Mastodon, Threads, or Nostr.' },\n		{ title: 'Sign in with ATProto', description: 'Use your Bluesky handle and an app password. Nothing is stored.' },\n		{ title: 'Upload your export', description: 'Drop in your archive file — everything is processed locally in your browser.' },\n		{ title: 'Import', description: 'Opal publishes your posts to your PDS with automatic rate-limit handling.' }\n	]}
+	siblings={[\n		{ name: 'Malachite', url: 'https://malachite.croft.click', description: 'Import Last.fm and Spotify listening history into Teal.' },\n		{ name: 'Jasper', url: 'https://jasper.croft.click', description: 'Import Instagram photos and videos to Grain or Spark.' },\n		{ name: 'Bismuth', url: 'https://bismuth.croft.click', description: 'Convert ATProto richtext-block documents to Markdown.' },\n		{ name: 'Tourmaline', url: 'https://tourmaline.croft.click', description: 'Analyse your Teal.fm scrobbles and discover your listener archetype.' }\n	]}
 >
 	{#snippet heading()}
 		Bring your microblog posts<br />to the open web.
