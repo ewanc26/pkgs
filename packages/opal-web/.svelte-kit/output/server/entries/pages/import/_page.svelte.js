@@ -1,4 +1,4 @@
-import { h as head, a as attr, e as escape_html, a4 as ensure_array_like, a7 as attr_class, a8 as stringify } from "../../../chunks/renderer.js";
+import { h as head, a as attr, e as escape_html, a3 as ensure_array_like, a7 as attr_class, a8 as stringify } from "../../../chunks/renderer.js";
 import "@atproto/oauth-client-browser";
 import "@atproto/api";
 (() => {
@@ -93,7 +93,7 @@ function _page($$renderer, $$props) {
       }
       $$renderer2.push(`<!--]--></div>`);
     }
-    $$renderer2.push(`<!----></div> <footer class="svelte-1kumcmu"><a href="/" class="svelte-1kumcmu">← Home</a> <span class="sep svelte-1kumcmu">·</span> <a href="https://github.com/ewanc26/pkgs/tree/main/packages/opal" target="_blank" rel="noopener" class="svelte-1kumcmu">↗ GitHub</a></footer></main>`);
+    $$renderer2.push(`<!----></div> <footer class="svelte-1kumcmu"><a href="/" class="svelte-1kumcmu">← Home</a> <span class="sep svelte-1kumcmu">·</span> <a href="/about" class="svelte-1kumcmu">About &amp; privacy</a> <span class="sep svelte-1kumcmu">·</span> <a href="https://github.com/ewanc26/pkgs/tree/main/packages/opal" target="_blank" rel="noopener" class="svelte-1kumcmu">↗ GitHub</a></footer></main>`);
   });
 }
 export {

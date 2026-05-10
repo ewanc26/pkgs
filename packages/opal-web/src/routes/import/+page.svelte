@@ -359,6 +359,8 @@
 	<footer>
 		<a href="/">← Home</a>
 		<span class="sep">·</span>
+		<a href="/about">About &amp; privacy</a>
+		<span class="sep">·</span>
 		<a href="https://github.com/ewanc26/pkgs/tree/main/packages/opal" target="_blank" rel="noopener">↗ GitHub</a>
 	</footer>
 </main>

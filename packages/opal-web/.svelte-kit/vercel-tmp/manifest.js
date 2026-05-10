@@ -10,12 +10,13 @@ return {
 	assets: new Set(["client-metadata.json","logo/Opal.svg","robots.txt"]),
 	mimeTypes: {".json":"application/json",".svg":"image/svg+xml",".txt":"text/plain"},
 	_: {
-		client: {start:"_app/immutable/entry/start.DTbutl0K.js",app:"_app/immutable/entry/app.dJPTA0L2.js",imports:["_app/immutable/entry/start.DTbutl0K.js","_app/immutable/chunks/xHqmRZTo.js","_app/immutable/chunks/9VeCAWtE.js","_app/immutable/chunks/DhRmkkCw.js","_app/immutable/entry/app.dJPTA0L2.js","_app/immutable/chunks/9VeCAWtE.js","_app/immutable/chunks/DdeFJgsq.js","_app/immutable/chunks/DhRmkkCw.js","_app/immutable/chunks/isM9luo4.js","_app/immutable/chunks/CQmILjMx.js","_app/immutable/chunks/BKqvpmVb.js","_app/immutable/chunks/C_hTd_0H.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.DxTGPUJ3.js",app:"_app/immutable/entry/app.BR4fJfSd.js",imports:["_app/immutable/entry/start.DxTGPUJ3.js","_app/immutable/chunks/C3foBj0y.js","_app/immutable/chunks/C9ycXwdM.js","_app/immutable/chunks/BXMgjFSP.js","_app/immutable/entry/app.BR4fJfSd.js","_app/immutable/chunks/C9ycXwdM.js","_app/immutable/chunks/CnBaZEsy.js","_app/immutable/chunks/BXMgjFSP.js","_app/immutable/chunks/mvCUnwHR.js","_app/immutable/chunks/BswsiB5H.js","_app/immutable/chunks/D_zWhSq2.js","_app/immutable/chunks/D7PBw_Wm.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
 			__memo(() => import('../output/server/nodes/0.js')),
 			__memo(() => import('../output/server/nodes/1.js')),
 			__memo(() => import('../output/server/nodes/2.js')),
-			__memo(() => import('../output/server/nodes/3.js'))
+			__memo(() => import('../output/server/nodes/3.js')),
+			__memo(() => import('../output/server/nodes/4.js'))
 		],
 		remotes: {
 			
@@ -29,10 +30,17 @@ return {
 				endpoint: null
 			},
 			{
+				id: "/about",
+				pattern: /^\/about\/?$/,
+				params: [],
+				page: { layouts: [0,], errors: [1,], leaf: 3 },
+				endpoint: null
+			},
+			{
 				id: "/import",
 				pattern: /^\/import\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 3 },
+				page: { layouts: [0,], errors: [1,], leaf: 4 },
 				endpoint: null
 			}
 		],
