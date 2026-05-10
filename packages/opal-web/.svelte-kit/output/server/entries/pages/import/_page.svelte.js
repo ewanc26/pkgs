@@ -1,6 +1,39 @@
-import { h as head, a as attr, e as escape_html, a3 as ensure_array_like, a7 as attr_class, a8 as stringify } from "../../../chunks/renderer.js";
+import { a2 as spread_props, h as head, a as attr, e as escape_html, a3 as ensure_array_like, a4 as attr_class, a5 as stringify } from "../../../chunks/renderer.js";
 import "@atproto/oauth-client-browser";
 import "@atproto/api";
+import { I as Icon, E as External_link } from "../../../chunks/external-link.js";
+function Arrow_left($$renderer, $$props) {
+  $$renderer.component(($$renderer2) => {
+    let { $$slots, $$events, ...props } = $$props;
+    const iconNode = [
+      ["path", { "d": "m12 19-7-7 7-7" }],
+      ["path", { "d": "M19 12H5" }]
+    ];
+    Icon($$renderer2, spread_props([
+      { name: "arrow-left" },
+      /**
+       * @component @name ArrowLeft
+       * @description Lucide SVG icon component, renders SVG Element with children.
+       *
+       * @preview ![img](data:image/svg+xml;base64,PHN2ZyAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHdpZHRoPSIyNCIKICBoZWlnaHQ9IjI0IgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzAwMCIgc3R5bGU9ImJhY2tncm91bmQtY29sb3I6ICNmZmY7IGJvcmRlci1yYWRpdXM6IDJweCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJtMTIgMTktNy03IDctNyIgLz4KICA8cGF0aCBkPSJNMTkgMTJINSIgLz4KPC9zdmc+Cg==) - https://lucide.dev/icons/arrow-left
+       * @see https://lucide.dev/guide/packages/lucide-svelte - Documentation
+       *
+       * @param {Object} props - Lucide icons props and any valid SVG attribute
+       * @returns {FunctionalComponent} Svelte component
+       *
+       */
+      props,
+      {
+        iconNode,
+        children: ($$renderer3) => {
+          props.children?.($$renderer3);
+          $$renderer3.push(`<!---->`);
+        },
+        $$slots: { default: true }
+      }
+    ]));
+  });
+}
 (() => {
   const buf = new Uint8Array(1);
   (globalThis.crypto ?? globalThis.webcrypto).getRandomValues(buf);
@@ -35,7 +68,9 @@ function _page($$renderer, $$props) {
         {
           $$renderer2.push("<!--[-1-->");
         }
-        $$renderer2.push(`<!--]--> <div class="step-actions svelte-1kumcmu"><button class="btn-secondary svelte-1kumcmu">← Back</button></div></section>`);
+        $$renderer2.push(`<!--]--> <div class="step-actions svelte-1kumcmu"><button class="btn-secondary inline-flex items-center gap-1 svelte-1kumcmu">`);
+        Arrow_left($$renderer2, { size: 13 });
+        $$renderer2.push(`<!----> Back</button></div></section>`);
       } else if (step === 2) {
         $$renderer2.push("<!--[2-->");
         $$renderer2.push(`<section class="step svelte-1kumcmu"><h2 class="svelte-1kumcmu">Upload your export</h2> <p class="step-desc svelte-1kumcmu">`);
@@ -58,14 +93,18 @@ function _page($$renderer, $$props) {
         {
           $$renderer2.push("<!--[-1-->");
         }
-        $$renderer2.push(`<!--]--> <div class="step-actions svelte-1kumcmu"><button class="btn-secondary svelte-1kumcmu">← Back</button></div></section>`);
+        $$renderer2.push(`<!--]--> <div class="step-actions svelte-1kumcmu"><button class="btn-secondary inline-flex items-center gap-1 svelte-1kumcmu">`);
+        Arrow_left($$renderer2, { size: 13 });
+        $$renderer2.push(`<!----> Back</button></div></section>`);
       } else if (step === 3) {
         $$renderer2.push("<!--[3-->");
         $$renderer2.push(`<section class="step svelte-1kumcmu"><h2 class="svelte-1kumcmu">Review posts</h2> `);
         {
           $$renderer2.push("<!--[-1-->");
         }
-        $$renderer2.push(`<!--]--> <div class="step-actions svelte-1kumcmu"><button class="btn-secondary svelte-1kumcmu">← Back</button> <button class="btn-primary svelte-1kumcmu">Import ${escape_html(selectedPosts.size)} posts</button></div></section>`);
+        $$renderer2.push(`<!--]--> <div class="step-actions svelte-1kumcmu"><button class="btn-secondary inline-flex items-center gap-1 svelte-1kumcmu">`);
+        Arrow_left($$renderer2, { size: 13 });
+        $$renderer2.push(`<!----> Back</button> <button class="btn-primary svelte-1kumcmu">Import ${escape_html(selectedPosts.size)} posts</button></div></section>`);
       } else if (step === 4) {
         $$renderer2.push("<!--[4-->");
         $$renderer2.push(`<section class="step svelte-1kumcmu"><h2 class="svelte-1kumcmu">${escape_html("Done")}</h2> `);
@@ -93,7 +132,11 @@ function _page($$renderer, $$props) {
       }
       $$renderer2.push(`<!--]--></div>`);
     }
-    $$renderer2.push(`<!----></div> <footer class="svelte-1kumcmu"><a href="/" class="svelte-1kumcmu">← Home</a> <span class="sep svelte-1kumcmu">·</span> <a href="/about" class="svelte-1kumcmu">About &amp; privacy</a> <span class="sep svelte-1kumcmu">·</span> <a href="https://github.com/ewanc26/pkgs/tree/main/packages/opal" target="_blank" rel="noopener" class="svelte-1kumcmu">↗ GitHub</a></footer></main>`);
+    $$renderer2.push(`<!----></div> <footer class="svelte-1kumcmu"><a href="/" class="inline-flex items-center gap-1 svelte-1kumcmu">`);
+    Arrow_left($$renderer2, { size: 13 });
+    $$renderer2.push(`<!----> Home</a> <span class="sep svelte-1kumcmu">·</span> <a href="/about" class="svelte-1kumcmu">About &amp; privacy</a> <span class="sep svelte-1kumcmu">·</span> <a href="https://github.com/ewanc26/pkgs/tree/main/packages/opal" target="_blank" rel="noopener" class="inline-flex items-center gap-1 svelte-1kumcmu">`);
+    External_link($$renderer2, { size: 13 });
+    $$renderer2.push(`<!----> GitHub</a></footer></main>`);
   });
 }
 export {
