@@ -58,6 +58,7 @@ declare module '$env/static/private' {
 	export const npm_config_registry: string;
 	export const PNPM_HOME: string;
 	export const USER: string;
+	export const npm_config_recursive: string;
 	export const COMMAND_MODE: string;
 	export const PNPM_SCRIPT_SRC_DIR: string;
 	export const npm_config_globalconfig: string;
@@ -224,6 +225,7 @@ declare module '$env/dynamic/private' {
 		npm_config_registry: string;
 		PNPM_HOME: string;
 		USER: string;
+		npm_config_recursive: string;
 		COMMAND_MODE: string;
 		PNPM_SCRIPT_SRC_DIR: string;
 		npm_config_globalconfig: string;

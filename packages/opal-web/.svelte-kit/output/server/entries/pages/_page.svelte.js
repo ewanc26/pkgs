@@ -1,6 +1,7 @@
 import { a2 as spread_props, a as attr, e as escape_html, a3 as ensure_array_like, h as head } from "../../chunks/renderer.js";
 /* empty css                                                     */
-import { I as Icon } from "../../chunks/Icon.js";
+import { I as Icon, E as External_link } from "../../chunks/external-link.js";
+import { H as Heart } from "../../chunks/heart.js";
 function Arrow_right_left($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
     let { $$slots, $$events, ...props } = $$props;
@@ -162,42 +163,6 @@ function Github($$renderer, $$props) {
        * @param {Object} props - Lucide icons props and any valid SVG attribute
        * @returns {FunctionalComponent} Svelte component
        * @deprecated Brand icons have been deprecated and are due to be removed, please refer to https://github.com/lucide-icons/lucide/issues/670. We recommend using https://simpleicons.org/?q=github instead. This icon will be removed in v1.0
-       */
-      props,
-      {
-        iconNode,
-        children: ($$renderer3) => {
-          props.children?.($$renderer3);
-          $$renderer3.push(`<!---->`);
-        },
-        $$slots: { default: true }
-      }
-    ]));
-  });
-}
-function Heart($$renderer, $$props) {
-  $$renderer.component(($$renderer2) => {
-    let { $$slots, $$events, ...props } = $$props;
-    const iconNode = [
-      [
-        "path",
-        {
-          "d": "M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"
-        }
-      ]
-    ];
-    Icon($$renderer2, spread_props([
-      { name: "heart" },
-      /**
-       * @component @name Heart
-       * @description Lucide SVG icon component, renders SVG Element with children.
-       *
-       * @preview ![img](data:image/svg+xml;base64,PHN2ZyAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHdpZHRoPSIyNCIKICBoZWlnaHQ9IjI0IgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzAwMCIgc3R5bGU9ImJhY2tncm91bmQtY29sb3I6ICNmZmY7IGJvcmRlci1yYWRpdXM6IDJweCIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMiA5LjVhNS41IDUuNSAwIDAgMSA5LjU5MS0zLjY3Ni41Ni41NiAwIDAgMCAuODE4IDBBNS40OSA1LjQ5IDAgMCAxIDIyIDkuNWMwIDIuMjktMS41IDQtMyA1LjVsLTUuNDkyIDUuMzEzYTIgMiAwIDAgMS0zIC4wMTlMNSAxNWMtMS41LTEuNS0zLTMuMi0zLTUuNSIgLz4KPC9zdmc+Cg==) - https://lucide.dev/icons/heart
-       * @see https://lucide.dev/guide/packages/lucide-svelte - Documentation
-       *
-       * @param {Object} props - Lucide icons props and any valid SVG attribute
-       * @returns {FunctionalComponent} Svelte component
-       *
        */
       props,
       {
@@ -441,7 +406,11 @@ function LandingPage($$renderer, $$props) {
     } else {
       $$renderer2.push("<!--[-1-->");
     }
-    $$renderer2.push(`<!--]--> <footer class="svelte-20nhzf"><a${attr("href", aboutHref)} class="svelte-20nhzf">About &amp; privacy</a> <span class="sep svelte-20nhzf">·</span> <a${attr("href", githubUrl)} target="_blank" rel="noopener" class="svelte-20nhzf">↗ GitHub</a> <span class="sep svelte-20nhzf">·</span> <a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener" class="svelte-20nhzf">♥ Support</a></footer></main>`);
+    $$renderer2.push(`<!--]--> <footer class="svelte-20nhzf"><a${attr("href", aboutHref)} class="svelte-20nhzf">About &amp; privacy</a> <span class="sep svelte-20nhzf">·</span> <a${attr("href", githubUrl)} target="_blank" rel="noopener" class="inline-flex items-center gap-1 svelte-20nhzf">`);
+    External_link($$renderer2, { size: 12 });
+    $$renderer2.push(`<!----> GitHub</a> <span class="sep svelte-20nhzf">·</span> <a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener" class="inline-flex items-center gap-1 svelte-20nhzf">`);
+    Heart($$renderer2, { size: 12 });
+    $$renderer2.push(`<!----> Support</a></footer></main>`);
   });
 }
 const bluesky = "data:image/svg+xml,%3csvg%20width='64'%20height='64'%20viewBox='0%200%2064%2064'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M14.6366%207.81116C21.8491%2013.3459%2029.607%2024.5681%2032.4553%2030.5905C35.3038%2024.5685%2043.0612%2013.3458%2050.2739%207.81116C55.4781%203.81752%2063.9102%200.727462%2063.9102%2010.5602C63.9102%2012.5239%2062.8087%2027.0565%2062.1627%2029.4158C59.9171%2037.6184%2051.7344%2039.7106%2044.4557%2038.4443C57.1787%2040.6577%2060.4153%2047.9893%2053.4255%2055.3209C40.1504%2069.2451%2034.3454%2051.8273%2032.8572%2047.3642C32.4543%2046.1554%2032.4558%2046.1554%2032.0529%2047.3642C30.5654%2051.8273%2024.7605%2069.2455%2011.4847%2055.3209C4.49475%2047.9893%207.73124%2040.6573%2020.4544%2038.4443C13.1755%2039.7106%204.99271%2037.6184%202.74748%2029.4158C2.10144%2027.0563%201%2012.5237%201%2010.5602C1%200.727462%209.43267%203.81752%2014.6366%207.81116Z'%20fill='%230A7AFF'/%3e%3c/svg%3e";

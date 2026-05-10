@@ -16,6 +16,12 @@ interface Feature {
 		description: string;
 	}
 
+	interface Sibling {
+		name: string;
+		url: string;
+		description: string;
+	}
+
 	interface Props {
 		name: string;
 		logo: string;
@@ -30,6 +36,7 @@ interface Feature {
 		features: Feature[];
 		steps: Step[];
 		aboutHref?: string;
+		siblings?: Sibling[];
 		children?: Snippet;
 	}
 
@@ -47,6 +54,7 @@ interface Feature {
 		features,
 		steps,
 		aboutHref = '/about',
+		siblings = [],
 		children
 	}: Props = $props();
 </script>
@@ -134,6 +142,21 @@ interface Feature {
 			{ctaLabel} <ArrowRight size={16} />
 		</a>
 	</section>
+
+	<!-- ── More tools ──────────────────────────────────────────────────────── -->
+	{#if siblings.length}
+		<section class="siblings">
+			<h2>More tools</h2>
+			<div class="siblings-grid">
+				{#each siblings as sibling}
+					<a href={sibling.url} class="sibling-card">
+						<strong>{sibling.name}</strong>
+						<p>{sibling.description}</p>
+					</a>
+				{/each}
+			</div>
+		</section>
+	{/if}
 
 	<!-- ── Extra content ─────────────────────────────────────────────────────── -->
 	{#if children}
@@ -386,6 +409,49 @@ interface Feature {
 	.btn-kofi-inline:hover {
 		border-color: #ff5e5b;
 		color: #ff5e5b;
+	}
+
+	/* ── More tools ──────────────────────────────────────────────────────────── */
+	.siblings {
+		margin-bottom: 3rem;
+	}
+
+	.siblings-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+		gap: 0.75rem;
+	}
+
+	.sibling-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		padding: 1rem 1.25rem;
+		text-decoration: none;
+		transition:
+			border-color 0.15s,
+			transform 0.1s;
+	}
+
+	.sibling-card:hover {
+		border-color: var(--accent);
+		transform: translateY(-1px);
+	}
+
+	.sibling-card strong {
+		font-size: 0.9rem;
+		font-weight: 500;
+		color: var(--text);
+	}
+
+	.sibling-card p {
+		font-size: 0.8rem;
+		color: var(--muted);
+		line-height: 1.5;
+		margin: 0;
 	}
 
 	/* ── Footer ───────────────────────────────────────────────────────────────── */
