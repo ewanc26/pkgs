@@ -7,10 +7,10 @@ function __memo(fn) {
 return {
 	appDir: "_app",
 	appPath: "_app",
-	assets: new Set(["client-metadata.json","logo/Opal.svg","robots.txt"]),
+	assets: new Set(["client-metadata.json","logo/Opal.svg","og.svg","robots.txt"]),
 	mimeTypes: {".json":"application/json",".svg":"image/svg+xml",".txt":"text/plain"},
 	_: {
-		client: {start:"_app/immutable/entry/start.DxTGPUJ3.js",app:"_app/immutable/entry/app.BR4fJfSd.js",imports:["_app/immutable/entry/start.DxTGPUJ3.js","_app/immutable/chunks/C3foBj0y.js","_app/immutable/chunks/C9ycXwdM.js","_app/immutable/chunks/BXMgjFSP.js","_app/immutable/entry/app.BR4fJfSd.js","_app/immutable/chunks/C9ycXwdM.js","_app/immutable/chunks/CnBaZEsy.js","_app/immutable/chunks/BXMgjFSP.js","_app/immutable/chunks/mvCUnwHR.js","_app/immutable/chunks/BswsiB5H.js","_app/immutable/chunks/D_zWhSq2.js","_app/immutable/chunks/D7PBw_Wm.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.BpeoKpAn.js",app:"_app/immutable/entry/app.Cyu1ezEl.js",imports:["_app/immutable/entry/start.BpeoKpAn.js","_app/immutable/chunks/cTR0NaAQ.js","_app/immutable/chunks/KvXtuy0P.js","_app/immutable/chunks/DIqEgxI-.js","_app/immutable/entry/app.Cyu1ezEl.js","_app/immutable/chunks/KvXtuy0P.js","_app/immutable/chunks/PxZ7_Rs5.js","_app/immutable/chunks/DIqEgxI-.js","_app/immutable/chunks/BdX3pJC1.js","_app/immutable/chunks/BMAd1sdK.js","_app/immutable/chunks/vm8EO2as.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
 			__memo(() => import('../output/server/nodes/0.js')),
 			__memo(() => import('../output/server/nodes/1.js')),

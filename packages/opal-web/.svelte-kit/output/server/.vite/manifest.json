@@ -48,13 +48,6 @@
       "_internal.js"
     ]
   },
-  "_Icon.js": {
-    "file": "chunks/Icon.js",
-    "name": "Icon",
-    "imports": [
-      "_renderer.js"
-    ]
-  },
   "_LandingPage.B30L2Q2O.css": {
     "file": "_app/immutable/assets/LandingPage.B30L2Q2O.css",
     "src": "_LandingPage.B30L2Q2O.css"
@@ -71,9 +64,24 @@
       "_root.js"
     ]
   },
+  "_external-link.js": {
+    "file": "chunks/external-link.js",
+    "name": "external-link",
+    "imports": [
+      "_renderer.js"
+    ]
+  },
   "_false.js": {
     "file": "chunks/false.js",
     "name": "false"
+  },
+  "_heart.js": {
+    "file": "chunks/heart.js",
+    "name": "heart",
+    "imports": [
+      "_renderer.js",
+      "_external-link.js"
+    ]
   },
   "_internal.js": {
     "file": "chunks/internal.js",
@@ -123,7 +131,7 @@
       "_renderer.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.BVIeHM5-.css",
+      "_app/immutable/assets/_layout.BgXMAaHU.css",
       "_app/immutable/assets/LandingPage.B30L2Q2O.css"
     ]
   },
@@ -134,7 +142,8 @@
     "isEntry": true,
     "imports": [
       "_renderer.js",
-      "_Icon.js"
+      "_external-link.js",
+      "_heart.js"
     ],
     "css": [
       "_app/immutable/assets/LandingPage.B30L2Q2O.css"
@@ -147,7 +156,8 @@
     "isEntry": true,
     "imports": [
       "_renderer.js",
-      "_Icon.js"
+      "_external-link.js",
+      "_heart.js"
     ],
     "css": [
       "_app/immutable/assets/_page.BTGHEAxQ.css"
@@ -159,7 +169,8 @@
     "src": "src/routes/import/+page.svelte",
     "isEntry": true,
     "imports": [
-      "_renderer.js"
+      "_renderer.js",
+      "_external-link.js"
     ],
     "css": [
       "_app/immutable/assets/_page.DszxsmSB.css"

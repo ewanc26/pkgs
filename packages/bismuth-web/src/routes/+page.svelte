@@ -27,6 +27,12 @@
 		{ title: 'Convert', description: 'Bismuth detects the content type and converts it to Markdown — all in your browser.' },
 		{ title: 'Copy or download', description: 'Copy the Markdown to your clipboard or download it as a .md file.' }
 	]}
+	siblings={[
+		{ name: 'Malachite', url: 'https://malachite.croft.click', description: 'Import Last.fm and Spotify listening history into Teal.' },
+		{ name: 'Opal', url: 'https://opal.croft.click', description: 'Convert Twitter, Mastodon, Threads, and Nostr posts to Bluesky.' },
+		{ name: 'Jasper', url: 'https://jasper.croft.click', description: 'Import Instagram photos and videos to Grain or Spark.' },
+		{ name: 'Tourmaline', url: 'https://tourmaline.croft.click', description: 'Analyse your Teal.fm scrobbles and discover your listener archetype.' }
+	]}
 >
 	{#snippet heading()}
 		Convert ATProto documents<br />to Markdown.
