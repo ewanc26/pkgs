@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { ArrowRight, Github, Heart, Coffee } from '@lucide/svelte';
+	import { ArrowRight, Github, Heart, Coffee, ExternalLink } from '@lucide/svelte';
 
 type IconComponent = typeof import('@lucide/svelte').ArrowRight;
 type FeatureIcon = IconComponent | string;
@@ -143,9 +143,9 @@ interface Feature {
 	<footer>
 		<a href={aboutHref}>About &amp; privacy</a>
 		<span class="sep">·</span>
-		<a href={githubUrl} target="_blank" rel="noopener">↗ GitHub</a>
+		<a href={githubUrl} target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} /> GitHub</a>
 		<span class="sep">·</span>
-		<a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener">♥ Support</a>
+		<a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener" class="inline-flex items-center gap-1"><Heart size={12} /> Support</a>
 	</footer>
 </main>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ArrowLeft, Check } from '@lucide/svelte';
   import type { ImportMode, LogEntry } from '$lib/types.js';
   import type { PublishProgress } from '$lib/core/import.js';
 
@@ -119,7 +120,7 @@
           {/if}
         </p>
       {:else}
-        <p class="result-label success">{dryRun ? 'Preview complete' : '✓ Done'}</p>
+        <p class="result-label success inline-flex items-center gap-1">{dryRun ? 'Preview complete' : ''}{dryRun ? '' : ''}{dryRun ? null : ''}{dryRun ? '' : ''}{#if dryRun}Preview complete{:else}<Check size={13} /> Done{/if}</p>
         <p class="result-detail">
           {#if isDedup && dryRun}
             {result.success.toLocaleString()} duplicate(s) would be removed.
@@ -134,7 +135,7 @@
         </p>
       {/if}
     </div>
-    <button class="btn-secondary" onclick={onreset}>← Start over</button>
+    <button class="btn-secondary inline-flex items-center gap-1" onclick={onreset}><ArrowLeft size={13} /> Start over</button>
   {/if}
 </section>
 

@@ -1,3 +1,7 @@
+<script lang="ts">
+  import { ArrowLeft, ExternalLink, Heart } from '@lucide/svelte';
+</script>
+
 <svelte:head>
   <title>About — Malachite</title>
   <meta name="description" content="Privacy policy, CLI usage, rate limit details, credits, and licence information for Malachite." />
@@ -17,7 +21,7 @@
 
 <main>
 
-  <a href="/" class="back">← Back</a>
+  <a href="/" class="back inline-flex items-center gap-1"><ArrowLeft size={13} /> Back</a>
 
   <h1>About Malachite</h1>
 
@@ -230,9 +234,9 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
   </section>
 
   <footer>
-    <a href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite" target="_blank" rel="noopener">↗ View on GitHub</a>
+    <a href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite" target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} /> View on GitHub</a>
     <span class="sep">·</span>
-    <a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener">♥ Support Malachite</a>
+    <a href="https://ko-fi.com/ewancroft" target="_blank" rel="noopener" class="inline-flex items-center gap-1"><Heart size={12} /> Support Malachite</a>
   </footer>
 
 </main>
@@ -245,7 +249,8 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
   }
 
   .back {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     font-size: 0.8rem;
     color: var(--muted);
     margin-bottom: 2rem;

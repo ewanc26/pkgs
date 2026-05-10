@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Project } from '$lib/data/projects';
 	import BrowserChrome from './BrowserChrome.svelte';
+	import { ArrowRight } from '@lucide/svelte';
 
 	let { project }: { project: Project } = $props();
 </script>
@@ -19,7 +20,7 @@
 		</a>
 		<h2>{project.heading}</h2>
 		<p>{project.description}</p>
-		<a href={project.url} class="card-link" rel="noopener">{project.slug}.croft.click →</a>
+		<a href={project.url} class="card-link inline-flex items-center gap-1" rel="noopener">{project.slug}.croft.click <ArrowRight size={12} /></a>
 	</div>
 </div>
 
