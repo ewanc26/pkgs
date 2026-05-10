@@ -1,0 +1,187 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <defs>
+    <!-- Background glow (preserved from original hero) -->
+    <radialGradient id="bgGlowJasper" cx="50%" cy="48%" r="42%">
+      <stop offset="0%" stop-color="#2a0a04" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0f0404" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="900" fill="#0f0404"/>
+  <rect width="1600" height="900" fill="url(#bgGlowJasper)"/>
+
+  <!-- Logo centred (content replaced with the actual logo provided) -->
+  <svg x="610" y="200" width="380" height="380" viewBox="0 0 500 500">
+    <defs>
+      <!-- Original hero placeholder defs (removed to replace) -->
+      <!-- Placeholder stoneNoiseJ, swirlBandsJ, etc. removed -->
+
+      <!-- New logo definitions (added) -->
+      <clipPath id="circleClip">
+        <circle cx="250" cy="250" r="220" />
+      </clipPath>
+
+      <!-- Organic stone texture noise (new) -->
+      <filter id="stoneNoise" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="4" seed="7" result="noise" />
+        <feColorMatrix type="saturate" values="0" result="mono" />
+        <feComponentTransfer result="contrast">
+          <feFuncR type="linear" slope="1.8" intercept="-0.4"/>
+          <feFuncG type="linear" slope="1.8" intercept="-0.4"/>
+          <feFuncB type="linear" slope="1.8" intercept="-0.4"/>
+        </feComponentTransfer>
+        <feGaussianBlur stdDeviation="1.5" result="blurred"/>
+      </filter>
+
+      <!-- Swirling bands filter (new) -->
+      <filter id="swirlBands" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="turbulence" baseFrequency="0.008" numOctaves="3" seed="42" result="turb" />
+        <feDisplacementMap in="SourceGraphic" in2="turb" scale="40" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+
+      <!-- Speckle texture (new) -->
+      <filter id="speckles" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="turbulence" baseFrequency="0.08" numOctaves="2" seed="15" result="speckle"/>
+        <feColorMatrix type="matrix" values="
+          1 0 0 0 0.4
+          0 0 0 0 0
+          0 0 0 0 0
+          0 0 0 -3 1.5" result="speckleMask"/>
+      </filter>
+
+      <!-- Mineral band gradient (new, preserved structure, updated colors) -->
+      <linearGradient id="bandGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#8B4513" stop-opacity="0.7"/>
+        <stop offset="25%" stop-color="#CD853F" stop-opacity="0.9"/>
+        <stop offset="50%" stop-color="#D2691E" stop-opacity="0.6"/>
+        <stop offset="75%" stop-color="#A0522D" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#8B4513" stop-opacity="0.7"/>
+      </linearGradient>
+
+      <linearGradient id="bandGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#CD5C5C" stop-opacity="0.5"/>
+        <stop offset="50%" stop-color="#B8860B" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#D2691E" stop-opacity="0.4"/>
+      </linearGradient>
+
+      <radialGradient id="centerGlow" cx="40%" cy="40%" r="60%">
+        <stop offset="0%" stop-color="#E8C39E" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#1a0808" stop-opacity="0"/>
+      </radialGradient>
+
+      <linearGradient id="redGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#CD5C5C" />
+        <stop offset="100%" stop-color="#8B0000" />
+      </linearGradient>
+    </defs>
+
+    <!-- Base dark circle (retained and updated) -->
+    <circle cx="250" cy="250" r="220" fill="#1a0808" />
+
+    <g clip-path="url(#circleClip)">
+      <!-- Stone texture layer (retained, filter updated) -->
+      <rect x="0" y="0" width="500" height="500" fill="#2a1210" filter="url(#stoneNoise)" opacity="0.4"/>
+
+      <!-- Flowing mineral bands - organic curved paths (retained, definitions updated) -->
+      <path d="M -50 180 Q 100 120, 250 200 T 550 150"
+            fill="none" stroke="url(#bandGradient1)" stroke-width="60" filter="url(#swirlBands)" opacity="0.6"/>
+      <path d="M -30 280 Q 150 220, 300 300 T 580 250"
+            fill="none" stroke="url(#bandGradient2)" stroke-width="45" filter="url(#swirlBands)" opacity="0.5"/>
+      <path d="M -40 350 Q 80 300, 200 380 T 560 340"
+            fill="none" stroke="#B8860B" stroke-width="35" filter="url(#swirlBands)" opacity="0.4"/>
+      <path d="M -20 420 Q 120 380, 280 450 T 540 400"
+            fill="none" stroke="#A0522D" stroke-width="28" filter="url(#swirlBands)" opacity="0.35"/>
+
+      <!-- Orbicular jasper patterns - circular mineral deposits (retained and expanded) -->
+      <circle cx="150" cy="200" r="70" fill="none" stroke="#D2691E" stroke-width="3" opacity="0.5"/>
+      <circle cx="150" cy="200" r="55" fill="none" stroke="#CD853F" stroke-width="2" opacity="0.4"/>
+      <circle cx="150" cy="200" r="40" fill="none" stroke="#DEB887" stroke-width="2" opacity="0.3"/>
+      <circle cx="150" cy="200" r="25" fill="#D2B48C" opacity="0.25"/>
+      <circle cx="150" cy="200" r="10" fill="#F4A460" opacity="0.3"/>
+
+      <circle cx="340" cy="280" r="55" fill="none" stroke="#CD853F" stroke-width="2.5" opacity="0.45"/>
+      <circle cx="340" cy="280" r="42" fill="none" stroke="#D2B48C" stroke-width="2" opacity="0.35"/>
+      <circle cx="340" cy="280" r="28" fill="none" stroke="#DEB887" stroke-width="1.5" opacity="0.3"/>
+      <circle cx="340" cy="280" r="15" fill="#D2691E" opacity="0.2"/>
+
+      <circle cx="220" cy="380" r="45" fill="none" stroke="#B8860B" stroke-width="2" opacity="0.4"/>
+      <circle cx="220" cy="380" r="32" fill="none" stroke="#DAA520" stroke-width="1.5" opacity="0.3"/>
+      <circle cx="220" cy="380" r="18" fill="#CD853F" opacity="0.15"/>
+
+      <!-- Speckle layer (new) -->
+      <rect x="0" y="0" width="500" height="500" fill="#000" filter="url(#speckles)" opacity="0.3"/>
+
+      <!-- Secondary organic inclusions (new) -->
+      <ellipse cx="380" cy="180" rx="35" ry="25" fill="#A0522D" filter="url(#swirlBands)" opacity="0.35"/>
+      <ellipse cx="100" cy="320" rx="45" ry="30" fill="#8B4513" filter="url(#swirlBands)" opacity="0.3"/>
+      <ellipse cx="280" cy="120" rx="25" ry="40" fill="#B8860B" filter="url(#swirlBands)" opacity="0.25"/>
+
+      <!-- Concentric ripple rings (retained from original placeholder logic) -->
+      <circle cx="130" cy="160" r="240.0" fill="none" stroke="#CD5C5C" stroke-width="8.0" opacity="0.3"/>
+      <circle cx="130" cy="160" r="213.33333333333334" fill="none" stroke="#B83A3A" stroke-width="8.0" opacity="0.25"/>
+      <circle cx="130" cy="160" r="186.66666666666666" fill="none" stroke="#A82A2A" stroke-width="8.0" opacity="0.2"/>
+      <circle cx="130" cy="160" r="160.0" fill="none" stroke="#780000" stroke-width="8.0" opacity="0.15"/>
+
+      <circle cx="380" cy="320" r="260.0" fill="none" stroke="#B83A3A" stroke-width="7.0909" opacity="0.25"/>
+      <circle cx="380" cy="320" r="212.72727272727272" fill="none" stroke="#880A0A" stroke-width="7.0909" opacity="0.2"/>
+      <circle cx="380" cy="320" r="165.45454545454547" fill="none" stroke="#CD5C5C" stroke-width="7.0909" opacity="0.15"/>
+
+      <circle cx="250" cy="480" r="180.0" fill="none" stroke="#780000" stroke-width="7.7143" opacity="0.2"/>
+      <circle cx="250" cy="480" r="128.57142857142856" fill="none" stroke="#CD5C5C" stroke-width="7.7143" opacity="0.15"/>
+    </g>
+
+    <!-- Center glow highlight (updated definition) -->
+    <circle cx="250" cy="250" r="180" fill="url(#centerGlow)"/>
+
+    <!-- Outer ring (updated definitions) -->
+    <circle cx="250" cy="250" r="220" fill="none" stroke="url(#redGlow)" stroke-width="12" />
+    <circle cx="250" cy="250" r="235" fill="none" stroke="#CD5C5C" stroke-width="3" stroke-dasharray="6, 8" />
+
+    <!-- Stylized star - more organic (path logic retained, updated definition) -->
+    <path d="M 250 35 L 372 418 L 48 190 L 452 190 L 128 418 Z"
+          fill="none"
+          stroke="#FFB07C"
+          stroke-width="5"
+          stroke-linejoin="round"
+          opacity="0.6"
+          filter="url(#swirlBands)"/>
+
+    <!-- Central crystal formation (retained and updated) -->
+    <circle cx="250" cy="250" r="18" fill="#1a0808" stroke="#CD5C5C" stroke-width="4" />
+    <circle cx="250" cy="250" r="8" fill="#DAA520" opacity="0.8"/>
+    <circle cx="250" cy="250" r="3" fill="#FFE4B5"/>
+
+    <!-- Star point nodes with inner mineral spots (updated definitions) -->
+    <g>
+      <circle cx="250" cy="35" r="12" fill="#1a0808" stroke="#FFB07C" stroke-width="3" />
+      <circle cx="250" cy="35" r="4" fill="#D2691E" opacity="0.8"/>
+    </g>
+    <g>
+      <circle cx="372" cy="418" r="12" fill="#1a0808" stroke="#FFB07C" stroke-width="3" />
+      <circle cx="372" cy="418" r="4" fill="#B8860B" opacity="0.8"/>
+    </g>
+    <g>
+      <circle cx="48" cy="190" r="12" fill="#1a0808" stroke="#FFB07C" stroke-width="3" />
+      <circle cx="48" cy="190" r="4" fill="#CD853F" opacity="0.8"/>
+    </g>
+    <g>
+      <circle cx="452" cy="190" r="12" fill="#1a0808" stroke="#FFB07C" stroke-width="3" />
+      <circle cx="452" cy="190" r="4" fill="#A0522D" opacity="0.8"/>
+    </g>
+    <g>
+      <circle cx="128" cy="418" r="12" fill="#1a0808" stroke="#FFB07C" stroke-width="3" />
+      <circle cx="128" cy="418" r="4" fill="#8B4513" opacity="0.8"/>
+    </g>
+  </svg>
+
+  <!-- Name -->
+  <text x="800" y="648" text-anchor="middle" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+        font-size="72" font-weight="700" letter-spacing="6" fill="#FFB07C">jasper</text>
+
+  <!-- Tagline -->
+  <text x="800" y="706" text-anchor="middle" font-family="'SF Pro Text', 'Helvetica Neue', Arial, sans-serif"
+        font-size="28" font-weight="400" letter-spacing="2" fill="#CD5C5C">Instagram data exports → ATProto</text>
+
+  <line x1="680" y1="722" x2="920" y2="722" stroke="#2a0a04" stroke-width="1"/>
+</svg>
