@@ -13,6 +13,7 @@
 	name="bismuth"
 	logo={logo}
 	logoAlt="Bismuth"
+	subtitle="ATProto docs → Markdown"
 	footerTagline="your documents, your format"
 	footerSourceUrl="https://github.com/ewanc26/pkgs"
 	{webVersion}

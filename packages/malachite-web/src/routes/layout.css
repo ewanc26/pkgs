@@ -5,11 +5,32 @@
   --surface: #0e1a13;
   --surface-2: #152019;
   --border: #1f3328;
+  --border-subtle: #162a1e;
   --accent: #3fb968;
+  --accent-bright: #6dd89a;
   --accent-dim: #2d8a4e;
   --accent-glow: rgba(63, 185, 104, 0.14);
   --text: #d8ede1;
+  --text-muted: #9cb8a8;
+  --text-dim: #6b9e7e;
   --muted: #6b9e7e;
   --error: #f87171;
   --warn: #fbbf24;
+}
+
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-accent: var(--accent);
+  --color-accent-bright: var(--accent-bright);
+  --color-accent-dim: var(--accent-dim);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-dim: var(--text-dim);
+  --color-muted: var(--muted);
+  --color-error: var(--error);
+  --color-warn: var(--warn);
 }
