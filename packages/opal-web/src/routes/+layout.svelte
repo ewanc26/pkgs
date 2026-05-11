@@ -13,7 +13,7 @@
 	logo="/logo/Opal.svg"
 	logoAlt="Opal"
 	subtitle="Twitter & Mastodon → Bluesky"
-	footerTagline="privacy-first analytics"
+	footerTagline="privacy-first social import"
 	footerSourceUrl="https://github.com/ewanc26/pkgs/tree/main/packages/opal"
 	{webVersion}
 	{cliVersion}
