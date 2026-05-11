@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowLeft, Check, ExternalLink, Heart, X } from '@lucide/svelte';
+	import { ArrowLeft, Check, X } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -230,23 +230,6 @@ pnpm start input.json --dry-run</code></pre>
 		</ul>
 	</section>
 
-	<footer>
-		<a
-			href="https://github.com/ewanc26/pkgs/tree/main/packages/bismuth"
-			target="_blank"
-			rel="noopener"
-			class="inline-flex items-center gap-1"
-		>
-			<ExternalLink size={13} /> View on GitHub
-		</a>
-		<span class="sep">·</span>
-		<a
-			href="https://ewancroft.uk/support"
-			class="inline-flex items-center gap-1"
-		>
-			<Heart size={13} /> Support Bismuth
-		</a>
-	</footer>
 </main>
 
 <style>
@@ -475,28 +458,6 @@ pnpm start input.json --dry-run</code></pre>
 
 	.deps li:last-child {
 		border-bottom: none;
-	}
-
-	/* ── Footer ─────────────────────────────────────────────────────────────── */
-	footer {
-		text-align: center;
-		font-size: 0.78rem;
-		color: var(--muted);
-		margin-top: 3rem;
-	}
-
-	footer a {
-		color: var(--muted);
-		text-decoration: underline;
-		text-underline-offset: 3px;
-	}
-
-	footer a:hover {
-		color: var(--accent);
-	}
-
-	.sep {
-		margin: 0 0.4rem;
 	}
 
 	@media (max-width: 480px) {
