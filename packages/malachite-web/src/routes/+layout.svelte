@@ -14,7 +14,7 @@
 	logoAlt="Malachite"
 	subtitle="Last.fm & Spotify → Teal"
 	footerTagline="privacy-first analytics"
-	footerSourceUrl="https://github.com/ewanc26/malachite"
+	footerSourceUrl="https://github.com/ewanc26/pkgs/tree/main/packages/malachite"
 	{webVersion}
 	{cliVersion}
 >

@@ -2,8 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { ArrowRight, Github, Heart, ExternalLink } from '@lucide/svelte';
 
-type IconComponent = typeof import('@lucide/svelte').ArrowRight;
-type FeatureIcon = IconComponent | string;
+type FeatureIcon = import('svelte').Component | string;
 
 interface Feature {
 	icon: FeatureIcon;
@@ -29,14 +28,16 @@ interface Feature {
 		eyebrow?: string;
 		heading: Snippet;
 		sub: Snippet;
-		ctaHref: string;
-		ctaLabel: string;
-		ctaSub: string;
-		githubUrl: string;
+		ctaHref?: string;
+		ctaLabel?: string;
+		ctaSub?: string;
+		githubUrl?: string;
 		features: Feature[];
 		steps: Step[];
 		aboutHref?: string;
 		siblings?: Sibling[];
+		heroAction?: Snippet;
+		ctaAction?: Snippet;
 		children?: Snippet;
 	}
 
@@ -55,6 +56,8 @@ interface Feature {
 		steps,
 		aboutHref = '/about',
 		siblings = [],
+		heroAction,
+		ctaAction,
 		children
 	}: Props = $props();
 </script>
@@ -72,18 +75,26 @@ interface Feature {
 		<h1>{@render heading()}</h1>
 		<p class="sub">{@render sub()}</p>
 		<div class="hero-actions">
-			<a href={ctaHref} class="btn-primary">
-				{ctaLabel} <ArrowRight size={16} />
-			</a>
-			<a href={githubUrl} target="_blank" rel="noopener" class="btn-ghost">
-				<Github size={15} /> View on GitHub
-			</a>
-			<a
-				href="https://ewancroft.uk/support"
-				class="btn-ghost"
-			>
-				<Heart size={14} /> Support
-			</a>
+			{#if heroAction}
+				{@render heroAction()}
+			{:else}
+				{#if ctaHref && ctaLabel}
+					<a href={ctaHref} class="btn-primary">
+						{ctaLabel} <ArrowRight size={16} />
+					</a>
+				{/if}
+				{#if githubUrl}
+					<a href={githubUrl} target="_blank" rel="noopener" class="btn-ghost">
+						<Github size={15} /> View on GitHub
+					</a>
+				{/if}
+				<a
+					href="https://ewancroft.uk/support"
+					class="btn-ghost"
+				>
+					<Heart size={14} /> Support
+				</a>
+			{/if}
 		</div>
 	</section>
 
@@ -125,13 +136,19 @@ interface Feature {
 	{/if}
 
 	<!-- ── CTA ────────────────────────────────────────────────────────────────── -->
-	<section class="cta">
-		<h2>Ready?</h2>
-		<p>{ctaSub}</p>
-		<a href={ctaHref} class="btn-primary">
-			{ctaLabel} <ArrowRight size={16} />
-		</a>
-	</section>
+	{#if ctaAction ?? (ctaHref && ctaSub)}
+		<section class="cta">
+			{#if ctaAction}
+				{@render ctaAction()}
+			{:else}
+				<h2>Ready?</h2>
+				<p>{ctaSub}</p>
+				<a href={ctaHref} class="btn-primary">
+					{ctaLabel} <ArrowRight size={16} />
+				</a>
+			{/if}
+		</section>
+	{/if}
 
 	<!-- ── More tools ──────────────────────────────────────────────────────── -->
 	{#if siblings.length}
@@ -155,9 +172,11 @@ interface Feature {
 
 	<footer>
 		<a href={aboutHref}>About &amp; privacy</a>
-		<span class="sep">·</span>
-		<a href={githubUrl} target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} /> GitHub</a>
-		<span class="sep">·</span>
+		{#if githubUrl}
+			<span class="sep">|</span>
+			<a href={githubUrl} target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} /> GitHub</a>
+		{/if}
+		<span class="sep">|</span>
 		<a href="https://ewancroft.uk/support" class="inline-flex items-center gap-1"><Heart size={12} /> Support</a>
 	</footer>
 </main>

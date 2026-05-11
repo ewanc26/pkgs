@@ -1,0 +1,47 @@
+@import 'tailwindcss';
+
+/* Tourmaline colour palette -- chrome tourmaline green */
+:root {
+	/* Backgrounds -- dark with green undertone */
+	--bg: #0a0f0a;
+	--surface: #0f170f;
+	--surface-2: #151f15;
+
+	/* Borders */
+	--border: #1a2b1a;
+	--border-subtle: #141f14;
+
+	/* Primary accent -- chrome tourmaline green */
+	--accent: #4ade80;
+	--accent-bright: #86efac;
+	--accent-dim: #22c55e;
+
+	/* Text */
+	--text: #e5e7eb;
+	--text-muted: #9ca3af;
+	--text-dim: #6b7280;
+
+	/* Functional */
+	--error: #f87171;
+	--warn: #fbbf24;
+}
+
+/* Tourmaline-specific Tailwind tokens */
+@theme {
+	--color-border-subtle: var(--border-subtle);
+	--color-accent-bright: var(--accent-bright);
+	--color-text-muted: var(--text-muted);
+	--color-text-dim: var(--text-dim);
+
+	--animate-indeterminate: indeterminate 1.5s ease-in-out infinite;
+	--animate-spin-slow: spin 2s linear infinite;
+}
+
+@keyframes indeterminate {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(400%);
+	}
+}

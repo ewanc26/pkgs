@@ -2,16 +2,23 @@
 	import type { Snippet } from 'svelte';
 	import { ExternalLink } from '@lucide/svelte';
 
+	interface NavLink {
+		label: string;
+		href: string;
+		external?: boolean;
+	}
+
 	interface Props {
 		name: string;
 		logo: string;
 		logoAlt?: string;
 		subtitle?: string;
+		navLinks?: NavLink[];
 		footerTagline: string;
 		footerSourceUrl: string;
 		footerAboutUrl?: string;
-		webVersion: string;
-		cliVersion: string;
+		webVersion?: string;
+		cliVersion?: string;
 		children: Snippet;
 	}
 
@@ -20,6 +27,7 @@
 		logo,
 		logoAlt = name,
 		subtitle,
+		navLinks = [],
 		footerTagline,
 		footerSourceUrl,
 		footerAboutUrl = '/about',
@@ -50,10 +58,27 @@
 			{/if}
 		</div>
 	</a>
-	<div class="version-strip">
-		<span>web v{webVersion}</span>
-		<span class="sep">–</span>
-		<span>cli v{cliVersion}</span>
+	<div class="header-right">
+		{#if navLinks.length}
+			<nav class="nav-links">
+				{#each navLinks as link}
+					{#if link.external}
+						<a href={link.href} target="_blank" rel="noopener" class="inline-flex items-center gap-1">
+							{link.label} <ExternalLink size={11} />
+						</a>
+					{:else}
+						<a href={link.href}>{link.label}</a>
+					{/if}
+				{/each}
+			</nav>
+		{/if}
+		{#if webVersion && cliVersion}
+			<div class="version-strip">
+				<span>web v{webVersion}</span>
+				<span class="sep">--</span>
+				<span>cli v{cliVersion}</span>
+			</div>
+		{/if}
 	</div>
 </header>
 
@@ -62,16 +87,16 @@
 <footer>
 	<div class="footer-row">
 		<span class="footer-name">{name}</span>
-		<span class="sep">·</span>
+		<span class="sep">|</span>
 		<span>{footerTagline}</span>
-		<span class="sep">·</span>
+		<span class="sep">|</span>
 		<a href={footerSourceUrl} target="_blank" rel="noopener" class="inline-flex items-center gap-1">
 			Source <ExternalLink size={10} />
 		</a>
-		<span class="sep">·</span>
+		<span class="sep">|</span>
 		<a href={footerAboutUrl}>Privacy</a>
 	</div>
-	<span class="footer-copyright">© {year} Ewan Croft · AGPL-3.0</span>
+	<span class="footer-copyright">(c) {year} Ewan Croft | AGPL-3.0</span>
 </footer>
 
 <style>
@@ -83,7 +108,9 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0.6rem 1.5rem;
-		background: var(--bg);
+		background: color-mix(in srgb, var(--bg) 90%, transparent);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
 		border-bottom: 1px solid var(--border);
 	}
 	.brand {
@@ -121,6 +148,26 @@
 		.subtitle {
 			display: block;
 		}
+	}
+	.header-right {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+	.nav-links {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		font-size: 0.75rem;
+		color: var(--muted);
+	}
+	.nav-links a {
+		color: var(--muted);
+		text-decoration: none;
+		transition: color 0.15s;
+	}
+	.nav-links a:hover {
+		color: var(--accent);
 	}
 	.version-strip {
 		font-size: 0.7rem;
