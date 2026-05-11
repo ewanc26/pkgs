@@ -13,6 +13,7 @@
 	name="jasper"
 	logo={logo}
 	logoAlt="Jasper"
+	subtitle="Instagram → Grain & Spark"
 	footerTagline="your photos, your data"
 	footerSourceUrl="https://github.com/ewanc26/pkgs"
 	{webVersion}

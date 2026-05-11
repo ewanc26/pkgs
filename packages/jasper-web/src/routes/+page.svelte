@@ -48,8 +48,18 @@
 		{ icon: spark, title: 'Spark', description: 'Send your Instagram photos, stories, and videos to Spark with the right media metadata.' },
 		{ icon: Zap, title: 'Smart Import', description: 'Handles all Instagram export formats. Detects and skips duplicates automatically.' }
 	]}
-	steps={[\n		{ title: 'Export from Instagram', description: 'Download your data from Instagram as a ZIP file with JSON format.' },\n		{ title: 'Sign in with ATProto', description: 'Use OAuth to securely connect your AT Protocol account. Nothing is stored.' },\n		{ title: 'Upload your export', description: 'Drop in your ZIP file — everything is processed locally in your browser.' },\n		{ title: 'Import', description: 'Jasper uploads your photos to Grain or Spark with their original timestamps preserved.' }\n	]}
-	siblings={[\n		{ name: 'Malachite', url: 'https://malachite.croft.click', description: 'Import Last.fm and Spotify listening history into Teal.' },\n		{ name: 'Opal', url: 'https://opal.croft.click', description: 'Convert Twitter, Mastodon, Threads, and Nostr posts to Bluesky.' },\n		{ name: 'Bismuth', url: 'https://bismuth.croft.click', description: 'Convert ATProto richtext-block documents to Markdown.' },\n		{ name: 'Tourmaline', url: 'https://tourmaline.croft.click', description: 'Analyse your Teal.fm scrobbles and discover your listener archetype.' }\n	]}
+	steps={[
+		{ title: 'Export from Instagram', description: 'Download your data from Instagram as a ZIP file with JSON format.' },
+		{ title: 'Sign in with ATProto', description: 'Use OAuth to securely connect your AT Protocol account. Nothing is stored.' },
+		{ title: 'Upload your export', description: 'Drop in your ZIP file — everything is processed locally in your browser.' },
+		{ title: 'Import', description: 'Jasper uploads your photos to Grain or Spark with their original timestamps preserved.' }
+	]}
+	siblings={[
+		{ name: 'Malachite', url: 'https://malachite.croft.click', description: 'Import Last.fm and Spotify listening history into Teal.' },
+		{ name: 'Opal', url: 'https://opal.croft.click', description: 'Convert Twitter, Mastodon, Threads, and Nostr posts to Bluesky.' },
+		{ name: 'Bismuth', url: 'https://bismuth.croft.click', description: 'Convert ATProto richtext-block documents to Markdown.' },
+		{ name: 'Tourmaline', url: 'https://tourmaline.croft.click', description: 'Analyse your Teal.fm scrobbles and discover your listener archetype.' }
+	]}
 >
 	{#snippet heading()}
 		Take your Instagram photos<br />out of the platform.

@@ -15,7 +15,7 @@
 		RefreshCw,
 		Globe,
 	} from "@lucide/svelte";
-	import type { StandardDocument } from "../../../bismuth/src/types.js";
+	import type { StandardDocument } from "@ewanc26/bismuth";
 
 	type Mode = "convert" | "fetch";
 	let mode = $state<Mode>("convert");
