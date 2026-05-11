@@ -5,10 +5,14 @@
 	--surface: #0c1a14;
 	--surface-2: #142820;
 	--border: #1f3d2e;
+	--border-subtle: #152e22;
 	--accent: #a7f3d0;
+	--accent-bright: #c9fbe5;
 	--accent-dim: #065f46;
 	--accent-glow: rgba(167, 243, 208, 0.14);
 	--text: #e0f5ea;
+	--text-muted: #a0d4b5;
+	--text-dim: #6db88a;
 	--muted: #6db88a;
 	--error: #f87171;
 	--warn: #fbbf24;
@@ -18,4 +22,21 @@
 	--surface-1: var(--surface-2);
 	--base: var(--bg);
 	--font-mono: 'JetBrains Mono', monospace;
+}
+
+@theme {
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-surface-2: var(--surface-2);
+	--color-border: var(--border);
+	--color-border-subtle: var(--border-subtle);
+	--color-accent: var(--accent);
+	--color-accent-bright: var(--accent-bright);
+	--color-accent-dim: var(--accent-dim);
+	--color-text: var(--text);
+	--color-text-muted: var(--text-muted);
+	--color-text-dim: var(--text-dim);
+	--color-muted: var(--muted);
+	--color-error: var(--error);
+	--color-warn: var(--warn);
 }

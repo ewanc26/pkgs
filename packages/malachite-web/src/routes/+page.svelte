@@ -39,13 +39,23 @@
 	githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/malachite"
 	features={[
 		{ icon: Music2, title: 'Last.fm', description: 'Import your full scrobble history from a Last.fm CSV data export.' },
-		{ icon: Disc3, title: 'Spotify', description: 'Import extended streaming history from Spotify\'s JSON data export.' },
+		{ icon: Disc3, title: 'Spotify', description: "Import extended streaming history from Spotify's JSON data export." },
 		{ icon: Layers2, title: 'Combined', description: 'Merge both sources together with smart deduplication to avoid double-counting plays.' },
 		{ icon: RefreshCw, title: 'Sync', description: 'Only import records not already in Teal — safe to re-run any time.' },
 		{ icon: ListFilter, title: 'Deduplicate', description: 'Find and remove duplicate records already in your Teal account.' }
 	]}
-	steps={[\n		{ title: 'Choose a mode', description: 'Pick Last.fm, Spotify, combined, sync, or deduplicate.' },\n		{ title: 'Sign in with ATProto', description: 'Use your Bluesky handle and an app password. Nothing is stored.' },\n		{ title: 'Upload your export', description: 'Drop in your CSV or JSON files — everything is processed locally in your browser.' },\n		{ title: 'Import', description: 'Malachite publishes your records to your PDS with automatic rate-limit handling.' }\n	]}
-	siblings={[\n		{ name: 'Opal', url: 'https://opal.croft.click', description: 'Convert Twitter, Mastodon, Threads, and Nostr posts to Bluesky.' },\n		{ name: 'Jasper', url: 'https://jasper.croft.click', description: 'Import Instagram photos and videos to Grain or Spark.' },\n		{ name: 'Bismuth', url: 'https://bismuth.croft.click', description: 'Convert ATProto richtext-block documents to Markdown.' },\n		{ name: 'Tourmaline', url: 'https://tourmaline.croft.click', description: 'Analyse your Teal.fm scrobbles and discover your listener archetype.' }\n	]}
+	steps={[
+		{ title: 'Choose a mode', description: 'Pick Last.fm, Spotify, combined, sync, or deduplicate.' },
+		{ title: 'Sign in with ATProto', description: 'Use your Bluesky handle and an app password. Nothing is stored.' },
+		{ title: 'Upload your export', description: 'Drop in your CSV or JSON files — everything is processed locally in your browser.' },
+		{ title: 'Import', description: 'Malachite publishes your records to your PDS with automatic rate-limit handling.' }
+	]}
+	siblings={[
+		{ name: 'Opal', url: 'https://opal.croft.click', description: 'Convert Twitter, Mastodon, Threads, and Nostr posts to Bluesky.' },
+		{ name: 'Jasper', url: 'https://jasper.croft.click', description: 'Import Instagram photos and videos to Grain or Spark.' },
+		{ name: 'Bismuth', url: 'https://bismuth.croft.click', description: 'Convert ATProto richtext-block documents to Markdown.' },
+		{ name: 'Tourmaline', url: 'https://tourmaline.croft.click', description: 'Analyse your Teal.fm scrobbles and discover your listener archetype.' }
+	]}
 >
 	{#snippet heading()}
 		Bring your listening history<br />back under your control.

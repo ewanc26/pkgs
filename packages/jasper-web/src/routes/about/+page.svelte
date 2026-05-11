@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Check, X, Menu } from '@lucide/svelte';
+	import { ArrowLeft, Check, X, Menu } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -20,6 +20,8 @@
 </svelte:head>
 
 <main>
+	<a href="/" class="back inline-flex items-center gap-1"><ArrowLeft size={13} /> Back</a>
+
 	<h1>About Jasper</h1>
 
 	<p>
