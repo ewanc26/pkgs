@@ -15,7 +15,7 @@
 	logoAlt="Bismuth"
 	subtitle="ATProto docs → Markdown"
 	footerTagline="your documents, your format"
-	footerSourceUrl="https://github.com/ewanc26/pkgs"
+	footerSourceUrl="https://github.com/ewanc26/pkgs/tree/main/packages/bismuth"
 	{webVersion}
 	{cliVersion}
 >
