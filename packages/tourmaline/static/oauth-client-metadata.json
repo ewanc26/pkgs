@@ -1,0 +1,15 @@
+{
+	"client_id": "https://tourmaline.croft.click/oauth-client-metadata.json",
+	"client_name": "tourmaline",
+	"client_uri": "https://tourmaline.croft.click",
+	"logo_uri": "https://tourmaline.croft.click/logo.svg",
+	"tos_uri": "https://tourmaline.croft.click/about",
+	"policy_uri": "https://tourmaline.croft.click/about",
+	"redirect_uris": ["https://tourmaline.croft.click/share"],
+	"grant_types": ["authorization_code", "refresh_token"],
+	"response_types": ["code"],
+	"scope": "atproto repo:app.bsky.feed.post blob:image/png",
+	"application_type": "web",
+	"token_endpoint_auth_method": "none",
+	"dpop_bound_access_tokens": true
+}

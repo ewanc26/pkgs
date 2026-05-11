@@ -15,7 +15,7 @@
 	logoAlt="Jasper"
 	subtitle="Instagram → Grain & Spark"
 	footerTagline="your photos, your data"
-	footerSourceUrl="https://github.com/ewanc26/pkgs"
+	footerSourceUrl="https://github.com/ewanc26/pkgs/tree/main/packages/jasper"
 	{webVersion}
 	{cliVersion}
 >
