@@ -11,8 +11,7 @@
 	logoAlt="Tourmaline"
 	subtitle="Teal.fm scrobble analyser"
 	navLinks={[
-		{ label: 'About', href: '/about' },
-		{ label: 'GitHub', href: 'https://github.com/ewanc26/pkgs/tree/main/packages/tourmaline', external: true }
+		{ label: 'About', href: '/about' }
 	]}
 	footerTagline="privacy-first listening analysis"
 	footerSourceUrl="https://github.com/ewanc26/pkgs/tree/main/packages/tourmaline"

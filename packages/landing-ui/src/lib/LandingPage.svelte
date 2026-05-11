@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { ArrowRight, Github, Heart, ExternalLink } from '@lucide/svelte';
+	import { ArrowRight, Github, Heart } from '@lucide/svelte';
 
 type FeatureIcon = import('svelte').Component | string;
 
@@ -34,7 +34,6 @@ interface Feature {
 		githubUrl?: string;
 		features: Feature[];
 		steps: Step[];
-		aboutHref?: string;
 		siblings?: Sibling[];
 		heroAction?: Snippet;
 		ctaAction?: Snippet;
@@ -54,7 +53,6 @@ interface Feature {
 		githubUrl,
 		features,
 		steps,
-		aboutHref = '/about',
 		siblings = [],
 		heroAction,
 		ctaAction,
@@ -169,16 +167,6 @@ interface Feature {
 	{#if children}
 		{@render children()}
 	{/if}
-
-	<footer>
-		<a href={aboutHref}>About &amp; privacy</a>
-		{#if githubUrl}
-			<span class="sep">|</span>
-			<a href={githubUrl} target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} /> GitHub</a>
-		{/if}
-		<span class="sep">|</span>
-		<a href="https://ewancroft.uk/support" class="inline-flex items-center gap-1"><Heart size={12} /> Support</a>
-	</footer>
 </main>
 
 <style>
@@ -441,25 +429,6 @@ interface Feature {
 		color: var(--muted);
 		line-height: 1.5;
 		margin: 0;
-	}
-
-	/* ── Footer ───────────────────────────────────────────────────────────────── */
-	footer {
-		text-align: center;
-		font-size: 0.78rem;
-		color: var(--muted);
-	}
-
-	footer a {
-		color: var(--muted);
-		text-decoration: underline;
-		text-underline-offset: 3px;
-	}
-	footer a:hover {
-		color: var(--accent);
-	}
-	.sep {
-		margin: 0 0.4rem;
 	}
 
 	/* ── Responsive ───────────────────────────────────────────────────── */
