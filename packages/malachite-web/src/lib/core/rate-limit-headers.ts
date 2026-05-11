@@ -1,2 +1,2 @@
-// Shared implementation lives in src/core/ — no duplication.
-export * from '$core/rate-limit-headers.js';
+// Re-export from the CLI package's core subpath
+export { parseRateLimitHeaders, isRateLimitError, normalizeHeaders, type RateLimitHeaders } from '@ewanc26/malachite/core';

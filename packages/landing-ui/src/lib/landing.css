@@ -8,6 +8,9 @@
  *   --bg, --surface, --surface-2, --border, --accent, --accent-dim,
  *   --accent-glow, --text, --muted, --error, --warn
  *
+ * Optional tokens (used if present):
+ *   --border-subtle, --accent-bright, --text-muted, --text-dim
+ *
  * Usage:
  *   @import 'tailwindcss';
  *   :root { --bg: #...; ... }
@@ -29,6 +32,34 @@ body {
 		sans-serif;
 	min-height: 100vh;
 	margin: 0;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Tailwind token bridge ────────────────────────────────────────────────
+ * Expose CSS custom properties as Tailwind utility classes.
+ * This lets you use bg-[var(--bg)] etc. via Tailwind.
+ * Consuming projects should also declare their own @theme block
+ * in their layout.css for project-specific tokens.
+ * ─────────────────────────────────────────────────────────────────────── */
+@theme {
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-surface-2: var(--surface-2);
+	--color-border: var(--border);
+	--color-accent: var(--accent);
+	--color-accent-dim: var(--accent-dim);
+	--color-text: var(--text);
+	--color-muted: var(--muted);
+	--color-error: var(--error);
+	--color-warn: var(--warn);
+	--animate-spin: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 a {
@@ -301,11 +332,6 @@ a:hover {
 	border-radius: 50%;
 	animation: spin 0.6s linear infinite;
 	flex-shrink: 0;
-}
-@keyframes spin {
-	to {
-		transform: rotate(360deg);
-	}
 }
 
 /* ── output ──────────────────────────────────────────────────────────────── */
