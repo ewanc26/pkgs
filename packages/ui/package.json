@@ -45,6 +45,7 @@
   "scripts": {
     "build": "svelte-package -i src/lib -o dist",
     "dev": "svelte-package -i src/lib -o dist --watch",
+    "prepare": "pnpm run build",
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
