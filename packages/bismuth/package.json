@@ -47,6 +47,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "prepare": "pnpm run build",
     "type-check": "tsc --noEmit",
     "test": "pnpm run build && node --test dist/tests/bismuth.test.js",
     "clean": "rm -rf dist"

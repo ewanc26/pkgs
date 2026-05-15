@@ -43,6 +43,7 @@
     "test-atproto": "ts-node src/test-atproto.ts",
     "sync": "ts-node src/index.ts",
     "sync:force": "ts-node src/index.ts --force",
+    "prepare": "pnpm run build",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
