@@ -47,6 +47,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
+    "prepare": "pnpm run build",
     "dry-run": "pnpm run build && node dist/index.js --dry-run",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit"

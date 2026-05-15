@@ -43,6 +43,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "prepare": "pnpm run build",
     "type-check": "tsc --noEmit",
     "test": "node --test dist/index.test.js"
   },
