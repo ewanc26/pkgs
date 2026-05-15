@@ -49,6 +49,7 @@
 		"prebuild": "node scripts/prebuild.mjs",
 		"build": "tsup",
 		"dev": "node scripts/prebuild.mjs && tsup --watch",
+		"prepare": "pnpm run build",
 		"check": "tsc --noEmit"
 	},
 	"dependencies": {
