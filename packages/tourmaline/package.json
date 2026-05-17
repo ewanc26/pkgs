@@ -1,39 +1,39 @@
 {
-	"name": "@ewanc26/tourmaline",
-	"private": true,
-	"version": "0.5.0",
-	"type": "module",
-	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"format": "prettier --write .",
-		"lint": "prettier --check ."
-	},
-	"devDependencies": {
-		"@sveltejs/adapter-vercel": "^6.3.3",
-		"@sveltejs/kit": "^2.57.0",
-		"@sveltejs/vite-plugin-svelte": "^7.0.0",
-		"@tailwindcss/vite": "^4.3.0",
-		"@types/node": "^25.6.2",
-		"prettier": "^3.8.3",
-		"prettier-plugin-svelte": "^3.5.1",
-		"prettier-plugin-tailwindcss": "^0.8.0",
-		"svelte": "^5.55.2",
-		"svelte-check": "^4.4.6",
-		"tailwindcss": "^4.3.0",
-		"typescript": "^6.0.2",
-		"vite": "^8.0.7"
-	},
-	"dependencies": {
-		"@atproto/api": "^0.19.16",
-		"@atproto/oauth-client-browser": "^0.3.42",
-		"@ewanc26/landing-ui": "workspace:*",
-		"@ewanc26/noise-avatar": "workspace:*",
-		"@lucide/svelte": "^1.14.0",
-		"chart.js": "^4.5.1"
-	}
+  "name": "@ewanc26/tourmaline",
+  "private": true,
+  "version": "0.6.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "prepare": "svelte-kit sync || echo ''",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "format": "prettier --write .",
+    "lint": "prettier --check ."
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-vercel": "^6.3.3",
+    "@sveltejs/kit": "^2.57.0",
+    "@sveltejs/vite-plugin-svelte": "^7.0.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/node": "^25.6.2",
+    "prettier": "^3.8.3",
+    "prettier-plugin-svelte": "^3.5.1",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "svelte": "^5.55.2",
+    "svelte-check": "^4.4.6",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.7"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.19.16",
+    "@atproto/oauth-client-browser": "^0.3.42",
+    "@ewanc26/landing-ui": "workspace:*",
+    "@ewanc26/noise-avatar": "workspace:*",
+    "@lucide/svelte": "^1.14.0",
+    "chart.js": "^4.5.1"
+  }
 }
