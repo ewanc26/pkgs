@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { LandingLayout } from '@ewanc26/landing-ui';
 	import '@ewanc26/landing-ui/landing.css';
-	import './app.css';
+	import '../app.css';
 	let { children } = $props();
 </script>
 

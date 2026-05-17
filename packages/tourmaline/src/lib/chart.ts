@@ -7,28 +7,28 @@
  * Components should import `Chart` from here, not from `chart.js` directly.
  */
 import {
-	Chart,
-	BarController,
-	BarElement,
-	RadarController,
-	RadialLinearScale,
-	CategoryScale,
-	LinearScale,
-	Filler,
-	Tooltip,
-	Legend
-} from 'chart.js';
+  Chart,
+  BarController,
+  BarElement,
+  RadarController,
+  RadialLinearScale,
+  CategoryScale,
+  LinearScale,
+  Filler,
+  Tooltip,
+  Legend,
+} from "chart.js";
 
 Chart.register(
-	BarController,
-	BarElement,
-	RadarController,
-	RadialLinearScale,
-	CategoryScale,
-	LinearScale,
-	Filler,
-	Tooltip,
-	Legend
+  BarController,
+  BarElement,
+  RadarController,
+  RadialLinearScale,
+  CategoryScale,
+  LinearScale,
+  Filler,
+  Tooltip,
+  Legend,
 );
 
 export { Chart };
