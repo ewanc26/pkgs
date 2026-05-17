@@ -1,8 +1,16 @@
 <script lang="ts">
-	import { Flame, TrendingUp, Calendar, Hash } from '@lucide/svelte';
-	import type { DailyScrobble } from '$lib/types';
+	import { Flame, TrendingUp, Calendar, Hash, Clock } from '@lucide/svelte';
+	import type { DailyScrobble, Gap } from '$lib/types';
 
-	let { dailyScrobbles = [], totalScrobbles = 0 }: { dailyScrobbles: DailyScrobble[]; totalScrobbles: number } = $props();
+	let {
+		dailyScrobbles = [],
+		totalScrobbles = 0,
+		longestGap = null
+	}: {
+		dailyScrobbles: DailyScrobble[];
+		totalScrobbles: number;
+		longestGap: Gap | null;
+	} = $props();
 
 	const stats = $derived.by(() => {
 		if (dailyScrobbles.length === 0) {
@@ -74,15 +82,26 @@
 		const d = new Date(dateStr + 'T00:00:00Z');
 		return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 	}
+	function formatGap(ms: number): string {
+		const mins = Math.floor(ms / 60000);
+		const hours = Math.floor(mins / 60);
+		const days = Math.floor(hours / 24);
+
+		if (days > 0) return `${days}d ${hours % 24}h`;
+		if (hours > 0) return `${hours}h ${mins % 60}m`;
+		return `${mins}m`;
+	}
 </script>
 
-<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-5 sm:gap-4">
 	<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
 		<div class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
 			<Flame size={12} class="text-orange-500" />
 			Longest streak
 		</div>
-		<p class="mt-1 text-xl font-bold sm:text-2xl">{stats.longestStreak}<span class="text-sm text-[var(--text-muted)]"> days</span></p>
+		<p class="mt-1 text-xl font-bold sm:text-2xl">
+			{stats.longestStreak}<span class="text-sm text-[var(--text-muted)]"> days</span>
+		</p>
 	</div>
 
 	<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
@@ -90,7 +109,22 @@
 			<TrendingUp size={12} class="text-green-500" />
 			Current streak
 		</div>
-		<p class="mt-1 text-xl font-bold sm:text-2xl">{stats.currentStreak}<span class="text-sm text-[var(--text-muted)]"> days</span></p>
+		<p class="mt-1 text-xl font-bold sm:text-2xl">
+			{stats.currentStreak}<span class="text-sm text-[var(--text-muted)]"> days</span>
+		</p>
+	</div>
+
+	<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
+		<div class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+			<Clock size={12} class="text-purple-400" />
+			Longest silence
+		</div>
+		{#if longestGap}
+			<p class="mt-1 text-xl font-bold sm:text-2xl">{formatGap(longestGap.durationMs)}</p>
+			<p class="text-[10px] text-[var(--text-dim)]">{formatDate(longestGap.start.slice(0, 10))}</p>
+		{:else}
+			<p class="mt-1 text-xl font-bold sm:text-2xl">—</p>
+		{/if}
 	</div>
 
 	<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">

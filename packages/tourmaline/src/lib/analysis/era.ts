@@ -1,5 +1,5 @@
-import type { AggregatedData } from './aggregator';
-import type { ArtistInfo, EraEntry } from '$lib/types';
+import type { AggregatedData } from "./aggregator";
+import type { ArtistInfo, EraEntry } from "$lib/types";
 
 /**
  * Build an era preference profile from artist start years.
@@ -13,20 +13,20 @@ import type { ArtistInfo, EraEntry } from '$lib/types';
  * Still, it's a reasonable approximation of era preference.
  */
 export function buildEraProfile(
-	data: AggregatedData,
-	artistInfos: Map<string, ArtistInfo>
+  data: AggregatedData,
+  artistInfos: Map<string, ArtistInfo>,
 ): EraEntry[] {
-	const decadeCounts = new Map<string, number>();
+  const decadeCounts = new Map<string, number>();
 
-	for (const { name, count } of data.topArtists) {
-		const info = artistInfos.get(name);
-		if (!info?.startYear) continue;
+  for (const { name, count } of data.topArtists) {
+    const info = artistInfos.get(name);
+    if (!info?.startYear) continue;
 
-		const decade = `${Math.floor(info.startYear / 10) * 10}s`;
-		decadeCounts.set(decade, (decadeCounts.get(decade) ?? 0) + count);
-	}
+    const decade = `${Math.floor(info.startYear / 10) * 10}s`;
+    decadeCounts.set(decade, (decadeCounts.get(decade) ?? 0) + count);
+  }
 
-	return [...decadeCounts.entries()]
-		.map(([decade, count]) => ({ decade, count }))
-		.sort((a, b) => a.decade.localeCompare(b.decade));
+  return [...decadeCounts.entries()]
+    .map(([decade, count]) => ({ decade, count }))
+    .sort((a, b) => a.decade.localeCompare(b.decade));
 }
