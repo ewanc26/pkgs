@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { renderNoiseAvatar } from '@ewanc26/noise-avatar';
 	import { Loader2, Cpu, Sparkles, Music2, Users, LayoutGrid, Gem } from '@lucide/svelte';
-	import type { ListenerProfile, TealScrobble, ArtistInfo } from '$lib/types';
+	import type { ListenerProfile, TealScrobble, ArtistInfo, UnusualMonth } from '$lib/types';
 	import type { SessionStats } from '$lib/analysis/sessions';
 	import type { OnThisDayEntry } from '$lib/analysis/on-this-day';
 	import type { StoryRecap as StoryRecapData } from '$lib/analysis/story-recap';
@@ -16,13 +16,18 @@
 	import { buildMoodProfile } from '$lib/analysis/mood';
 	import { buildEraProfile } from '$lib/analysis/era';
 	import { buildRemarkableDays } from '$lib/analysis/remarkable-days';
-	import { buildDiscoveredArtists } from '$lib/analysis/discovery';
+	import {
+		buildDiscoveredArtists,
+		buildDiscoveredTracks,
+		buildDiscoveredAlbums
+	} from '$lib/analysis/discovery';
 	import { buildListeningPhases } from '$lib/analysis/phases';
 	import { deriveSessions, buildSessionStats } from '$lib/analysis/sessions';
 	import { buildOnThisDay } from '$lib/analysis/on-this-day';
 	import { buildStoryRecap } from '$lib/analysis/story-recap';
 	import { buildPersonality } from '$lib/analysis/personality';
 	import { filterScrobbles, presetRange } from '$lib/analysis/date-range';
+	import { topZScorePerMonth } from '$lib/analysis/zscore';
 	import GenreChart from './GenreChart.svelte';
 	import TimelineHeatmap from './TimelineHeatmap.svelte';
 	import MoodRadar from './MoodRadar.svelte';
@@ -35,6 +40,7 @@
 	import MusicEvolution from './MusicEvolution.svelte';
 	import RemarkableDays from './RemarkableDays.svelte';
 	import Discovery from './Discovery.svelte';
+	import Milestones from './Milestones.svelte';
 	import YearlyWrapped from './YearlyWrapped.svelte';
 	import ProfileTabs from './ProfileTabs.svelte';
 	import ListeningSessions from './ListeningSessions.svelte';
@@ -42,6 +48,8 @@
 	import DateRangePicker from './DateRangePicker.svelte';
 	import ListeningPhases from './ListeningPhases.svelte';
 	import StoryRecap from './StoryRecap.svelte';
+	import PunchcardHeatmap from './PunchcardHeatmap.svelte';
+	import EddingtonChart from './EddingtonChart.svelte';
 
 	type RangeKey = 'all' | '7d' | '30d' | '90d' | '365d';
 	const RANGES: RangeKey[] = ['all', '7d', '30d', '90d', '365d'];
@@ -77,7 +85,35 @@
 		const monthlyGenres = buildMonthlyGenres(data, artistInfos);
 		const remarkableDays = buildRemarkableDays(data);
 		const discoveredArtists = buildDiscoveredArtists(data, artistInfos);
+		const discoveredTracks = buildDiscoveredTracks(data);
+		const discoveredAlbums = buildDiscoveredAlbums(data);
 		const phases = buildListeningPhases(data, monthlyGenres, artistInfos);
+
+		const zScoreMap = topZScorePerMonth(data.monthlyArtistPlays);
+		const unusualMonths: UnusualMonth[] = [...zScoreMap.entries()]
+			.map(([month, entry]) => ({
+				month,
+				artist: entry.artist,
+				plays: entry.plays,
+				mean: entry.mean,
+				std: entry.std,
+				z: entry.z
+			}))
+			.sort((a, b) => a.month.localeCompare(b.month));
+
+		const topArtistAvgDeltas = [...data.artistTimestamps.entries()]
+			.filter(([_, ts]) => ts.length >= 5)
+			.map(([name, ts]) => {
+				const sorted = [...ts].sort((a, b) => a - b);
+				const first = sorted[0];
+				const last = sorted[sorted.length - 1];
+				const diffMs = last - first;
+				const avgMs = diffMs / (ts.length - 1);
+				const avgDays = avgMs / (1000 * 60 * 60 * 24);
+				return { name, avgDaysBetween: avgDays, count: ts.length };
+			})
+			.sort((a, b) => a.avgDaysBetween - b.avgDaysBetween)
+			.slice(0, 20);
 
 		const profile: ListenerProfile = {
 			did,
@@ -107,7 +143,23 @@
 			monthlyGenres,
 			remarkableDays,
 			discoveredArtists,
-			phases
+			discoveredTracks,
+			discoveredAlbums,
+			phases,
+			unusualMonths,
+			eddingtonNumber: data.eddingtonNumber,
+			longestScrobbleStreak: data.longestScrobbleStreak,
+			longestArtistStreak: data.longestArtistStreak,
+			longestTrackStreak: data.longestTrackStreak,
+			weeklyScrobbles: [...data.weeklyScrobbles.entries()]
+				.map(([week, count]) => ({ week, count }))
+				.sort((a, b) => a.week.localeCompare(b.week)),
+			topArtistAvgDeltas,
+			scrobbleMilestones: data.scrobbleMilestones,
+			artistMilestones: data.artistMilestones,
+			trackMilestones: data.trackMilestones,
+			albumMilestones: data.albumMilestones,
+			longestNotListenedGap: data.longestNotListenedGap
 		};
 
 		const sessions = deriveSessions(filtered);
@@ -466,7 +518,12 @@
 
 			{#if profile.dailyScrobbles.length > 0}
 				<div class="mb-6 sm:mb-8">
-					<ListeningStats dailyScrobbles={profile.dailyScrobbles} totalScrobbles={profile.totalScrobbles} />
+					<ListeningStats
+						dailyScrobbles={profile.dailyScrobbles}
+						totalScrobbles={profile.totalScrobbles}
+						longestGap={profile.longestNotListenedGap}
+					/>
+
 				</div>
 			{/if}
 
@@ -523,6 +580,17 @@
 				</div>
 			{/if}
 
+			{#if profile.scrobbleMilestones.length > 0}
+				<div class="mb-6 sm:mb-8">
+					<Milestones
+						scrobbles={profile.scrobbleMilestones}
+						artists={profile.artistMilestones}
+						tracks={profile.trackMilestones}
+						albums={profile.albumMilestones}
+					/>
+				</div>
+			{/if}
+
 		<!-- ── Habits tab ────────────────────────────────── -->
 		{:else if activeTab === 'habits'}
 			{#if profile.scrobblesByHour.some((n) => n > 0)}
@@ -534,8 +602,25 @@
 
 			{#if profile.timeline.length > 0}
 				<div class="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
+					<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Hour × Day Heatmap</h2>
+					<PunchcardHeatmap timeline={profile.timeline} />
+				</div>
+			{/if}
+
+			{#if profile.dailyScrobbles.length > 0}
+				<div class="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
 					<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Listening Timeline</h2>
 					<TimelineHeatmap dailyScrobbles={profile.dailyScrobbles} />
+				</div>
+			{/if}
+
+			{#if profile.dailyScrobbles.length > 0}
+				<div class="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
+					<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Scrobbles per Day</h2>
+					<EddingtonChart
+						dailyScrobbles={profile.dailyScrobbles}
+						eddingtonNumber={profile.eddingtonNumber}
+					/>
 				</div>
 			{/if}
 
@@ -608,9 +693,13 @@
 				</div>
 			</div>
 
-			{#if profile.discoveredArtists.length > 0}
+			{#if profile.discoveredArtists.length > 0 || profile.discoveredTracks.length > 0 || profile.discoveredAlbums.length > 0}
 				<div class="mb-6 sm:mb-8">
-					<Discovery artists={profile.discoveredArtists} />
+					<Discovery
+						artists={profile.discoveredArtists}
+						tracks={profile.discoveredTracks}
+						albums={profile.discoveredAlbums}
+					/>
 				</div>
 			{/if}
 
