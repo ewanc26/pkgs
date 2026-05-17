@@ -335,8 +335,15 @@
 {/snippet}
 
 {#snippet ctaAction()}
-	<h2>Try it</h2>
-	<p>Enter any AT Protocol handle or DID. No account needed.</p>
+	<div class="cta-header">
+		<h2>Ready to decode your soundscape?</h2>
+		<p>
+			No logins, no tracking, and absolutely no app passwords required.
+			Just drop your AT Protocol handle or DID below and reveal your
+			profile instantly.
+		</p>
+	</div>
+
 	<form
 		onsubmit={(e) => {
 			e.preventDefault();
@@ -564,17 +571,42 @@
 		border-radius: 3px;
 	}
 
+	/* ── CTA Heading Styles ────────────────────────────────────────────────── */
+	.cta-header {
+		text-align: center;
+		margin-bottom: 2rem;
+	}
+
+	.cta-header h2 {
+		font-size: 1.75rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		margin-bottom: 0.75rem;
+		color: var(--text);
+	}
+
+	.cta-header p {
+		font-size: 1rem;
+		color: var(--text-dim);
+		line-height: 1.5;
+		max-width: 540px;
+		margin: 0 auto;
+	}
+
 	/* ── Responsive ──────────────────────────────────────────────────────── */
 	@media (max-width: 640px) {
 		.search-form {
-			grid-template-columns: minmax(0, 1fr) auto;
+			grid-template-columns: 1fr;
 			width: 100%;
 		}
 
 		.btn-primary {
-			width: auto;
+			width: 100%;
 			min-width: 0;
-			padding: 0.9rem 1rem;
+		}
+
+		.cta-header h2 {
+			font-size: 1.5rem;
 		}
 	}
 </style>
