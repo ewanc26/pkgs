@@ -5,11 +5,13 @@
 	let {
 		dailyScrobbles = [],
 		totalScrobbles = 0,
-		longestGap = null
+		longestGap = null,
+		range = 'all'
 	}: {
 		dailyScrobbles: DailyScrobble[];
 		totalScrobbles: number;
 		longestGap: Gap | null;
+		range?: string;
 	} = $props();
 
 	const stats = $derived.by(() => {
@@ -50,13 +52,16 @@
 		let checkDate = new Date(today);
 
 		// If today has no scrobbles, start from yesterday
-		const todayStr = today.toISOString().substring(0, 10);
+		const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 		if (!dates.has(todayStr)) {
 			checkDate.setDate(checkDate.getDate() - 1);
 		}
 
 		while (true) {
-			const dateStr = checkDate.toISOString().substring(0, 10);
+			const y = checkDate.getFullYear();
+			const m = String(checkDate.getMonth() + 1).padStart(2, '0');
+			const d = String(checkDate.getDate()).padStart(2, '0');
+			const dateStr = `${y}-${m}-${d}`;
 			if (dates.has(dateStr)) {
 				currentStreak++;
 				checkDate.setDate(checkDate.getDate() - 1);
@@ -71,9 +76,19 @@
 			if (d.count > biggestDay.count) biggestDay = d;
 		}
 
-		// Average per active day
+		// Average per day in period
+		let avgPerDay = 0;
 		const activeDays = sorted.length;
-		const avgPerDay = Math.round(totalScrobbles / Math.max(activeDays, 1));
+
+		if (range !== 'all') {
+			const periodDays = { '7d': 7, '30d': 30, '90d': 90, '365d': 365 }[range] || activeDays;
+			avgPerDay = Math.round(totalScrobbles / periodDays);
+		} else if (sorted.length > 0) {
+			const first = new Date(sorted[0].date + 'T00:00:00Z');
+			const last = new Date(sorted[sorted.length - 1].date + 'T00:00:00Z');
+			const totalDays = Math.max(1, Math.round((last.getTime() - first.getTime()) / 86400000) + 1);
+			avgPerDay = Math.round(totalScrobbles / totalDays);
+		}
 
 		return { longestStreak, currentStreak, biggestDay, avgPerDay, activeDays };
 	});
