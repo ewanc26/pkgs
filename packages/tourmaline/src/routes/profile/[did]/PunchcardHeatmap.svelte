@@ -3,8 +3,8 @@
 
 	let { timeline = [] }: { timeline: TimelineBucket[] } = $props();
 
-	// JS Date.getDay() returns 0=Sun … 6=Sat; timeline uses the same convention.
-	const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+	// JS Date.getDay() returns 0=Sun … 6=Sat; we shift it to start on Mon.
+	const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 	const HOURS = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
 	// Build [day][hour] lookup grid
@@ -12,7 +12,9 @@
 		const g: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
 		for (const b of timeline) {
 			if (b.day >= 0 && b.day < 7 && b.hour >= 0 && b.hour < 24) {
-				g[b.day][b.hour] = b.count;
+				// Shift Sunday (0) to index 6, Monday (1) to index 0, etc.
+				const shiftedDay = (b.day + 6) % 7;
+				g[shiftedDay][b.hour] = b.count;
 			}
 		}
 		return g;

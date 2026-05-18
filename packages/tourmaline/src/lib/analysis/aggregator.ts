@@ -217,10 +217,13 @@ export class Aggregator {
       this.byDay[day]++;
       this.byHourDay[day][hour]++;
 
-      const dateKey = scrobble.playedTime.substring(0, 10); // YYYY-MM-DD
+      const Y = date.getFullYear();
+      const M = String(date.getMonth() + 1).padStart(2, "0");
+      const D = String(date.getDate()).padStart(2, "0");
+      const dateKey = `${Y}-${M}-${D}`; // Local YYYY-MM-DD
       this.dailyCounts.set(dateKey, (this.dailyCounts.get(dateKey) ?? 0) + 1);
 
-      const monthKey = dateKey.substring(0, 7); // YYYY-MM
+      const monthKey = `${Y}-${M}`; // Local YYYY-MM
       this.monthlyCounts.set(
         monthKey,
         (this.monthlyCounts.get(monthKey) ?? 0) + 1,
