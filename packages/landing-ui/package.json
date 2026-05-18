@@ -47,6 +47,7 @@
 		"check": "svelte-check --tsconfig ./tsconfig.json"
 	},
 	"dependencies": {
+		"@ewanc26/utils": "workspace:*",
 		"@lucide/svelte": "^0.575.0"
 	},
 	"peerDependencies": {
