@@ -53,7 +53,7 @@
 		<p class="text-sm text-[var(--text-dim)]">Nothing remarkable yet — keep listening!</p>
 	{:else}
 		<div class="grid gap-3 sm:grid-cols-2">
-			{#each days as day, i (day.date + day.type)}
+			{#each days as day, i (day.date + day.type + i)}
 				{@const Icon = ICONS[day.type] ?? Zap}
 				<div
 					class="stagger-item flex gap-3 rounded border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3"
