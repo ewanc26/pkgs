@@ -216,12 +216,20 @@
 	let enrichElapsed = $state(0);
 
 	// Profile data
-	let profiles = $state<Record<string, ListenerProfile>>({});
-	let profile = $state<ListenerProfile | null>(null);
-	let sessionStats = $state<SessionStats | null>(null);
-	let onThisDayEntries = $state<OnThisDayEntry[]>([]);
-	let storyRecap_ = $state<StoryRecapData | null>(null);
-	let personality = $state<PersonalityProfile | null>(null);
+	interface ProfileResult {
+		profile: ListenerProfile;
+		sessionStats: SessionStats;
+		onThisDay: OnThisDayEntry[];
+		storyRecap: StoryRecapData;
+		personality: PersonalityProfile;
+	}
+
+	let results = $state<Record<string, ProfileResult>>({});
+	let profile = $derived(results[dateRange]?.profile ?? null);
+	let sessionStats = $derived(results[dateRange]?.sessionStats ?? null);
+	let onThisDayEntries = $derived(results[dateRange]?.onThisDay ?? []);
+	let storyRecap_ = $derived(results[dateRange]?.storyRecap ?? null);
+	let personality = $derived(results[dateRange]?.personality ?? null);
 
 	type Tab = 'overview' | 'taste' | 'habits' | 'catalogue';
 	let activeTab = $state<Tab>('overview');
@@ -233,13 +241,6 @@
 	}
 
 	let dateRange = $state<DateRangePreset>('all');
-
-	// Switch profile when date range changes (all profiles pre-computed server-side)
-	$effect(() => {
-		if (profiles[dateRange]) {
-			profile = profiles[dateRange];
-		}
-	});
 
 	onMount(async () => {
 		if (data.error) { error = data.error; phase = 'error'; return; }
@@ -291,20 +292,11 @@
 			phase = 'computing';
 
 			for (const range of RANGES) {
-				const result = computeProfile(did, allScrobbles, range, artistInfos, handle);
-				profiles[range] = result.profile;
-
-				if (range === 'all') {
-					sessionStats = result.sessionStats;
-					onThisDayEntries = result.onThisDay;
-					storyRecap_ = result.storyRecap;
-					personality = result.personality;
-				}
+				results[range] = computeProfile(did, allScrobbles, range, artistInfos, handle);
 			}
-			profile = profiles[dateRange];
 
 			// 3. Enrich top artists server-side (needs API keys)
-			const topArtists = profiles.all.topArtists.map((a) => a.name);
+			const topArtists = results.all?.profile.topArtists.map((a) => a.name) ?? [];
 			if (topArtists.length > 0) {
 				phase = 'enriching';
 				enrichStartTime = Date.now();
@@ -322,17 +314,17 @@
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ queue: enrichQueue, enrichment })
 					});
-					const data = await res.json();
+					const batch = await res.json();
 
-					if (data.error) {
-						console.warn('[tourmaline] enrichment error:', data.error);
+					if (batch.error) {
+						console.warn('[tourmaline] enrichment error:', batch.error);
 						break;
 					}
 
-					enrichment = data.enrichment;
-					enrichQueue = data.remaining;
-					enrichProgress = { current: data.current, total: data.total };
-					enrichDone = data.done;
+					enrichment = batch.enrichment;
+					enrichQueue = batch.remaining;
+					enrichProgress = { current: batch.current, total: batch.total };
+					enrichDone = batch.done;
 				}
 
 				clearInterval(enrichTimer);
@@ -344,17 +336,8 @@
 				}
 
 				for (const range of RANGES) {
-					const result = computeProfile(did, allScrobbles, range, artistInfos, handle);
-					profiles[range] = result.profile;
-
-					if (range === 'all') {
-						sessionStats = result.sessionStats;
-						onThisDayEntries = result.onThisDay;
-						storyRecap_ = result.storyRecap;
-						personality = result.personality;
-					}
+					results[range] = computeProfile(did, allScrobbles, range, artistInfos, handle);
 				}
-				profile = profiles[dateRange];
 			}
 
 			phase = 'complete';
@@ -536,8 +519,8 @@
 						dailyScrobbles={profile.dailyScrobbles}
 						totalScrobbles={profile.totalScrobbles}
 						longestGap={profile.longestNotListenedGap}
+						range={dateRange}
 					/>
-
 				</div>
 			{/if}
 
