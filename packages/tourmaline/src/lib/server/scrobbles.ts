@@ -9,6 +9,31 @@ interface ListRecordsResponse {
   cursor?: string;
 }
 
+/**
+ * Safely parse a playedTime value from an ATProto record.
+ *
+ * The fm.teal.alpha.feed.play lexicon marks playedTime as optional, so it may
+ * be absent (undefined) in some records. Some older clients also stored it as
+ * a numeric Unix timestamp instead of an ISO 8601 string. Both cases need to
+ * be handled without throwing — an empty string is returned as a sentinel that
+ * the Aggregator's isNaN guard will discard rather than process.
+ */
+function parsePlayedTime(val: unknown): string {
+  if (typeof val === "string") return val;
+  if (typeof val === "number" && isFinite(val)) {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      try {
+        return d.toISOString();
+      } catch {
+        // Date is out of the valid ECMAScript range — fall through to sentinel
+      }
+    }
+  }
+  // Missing or unparseable — return a sentinel the aggregator will skip
+  return "";
+}
+
 function parseScrobble(v: Record<string, unknown>): TealScrobble {
   return {
     trackName: v.trackName as string,
@@ -23,10 +48,7 @@ function parseScrobble(v: Record<string, unknown>): TealScrobble {
     releaseMbId: v.releaseMbId as string | undefined,
     duration: v.duration as number | undefined,
     originUrl: v.originUrl as string | undefined,
-    playedTime:
-      typeof v.playedTime === "string"
-        ? v.playedTime
-        : new Date(v.playedTime as number).toISOString(),
+    playedTime: parsePlayedTime(v.playedTime),
     submissionClientAgent: v.submissionClientAgent as string | undefined,
     musicServiceBaseDomain: v.musicServiceBaseDomain as string | undefined,
     trackDiscriminant: v.trackDiscriminant as string | undefined,

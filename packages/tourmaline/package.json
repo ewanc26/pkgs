@@ -1,7 +1,7 @@
 {
   "name": "@ewanc26/tourmaline",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.6.1",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -17,14 +17,14 @@
     "@sveltejs/adapter-vercel": "^6.3.3",
     "@sveltejs/kit": "^2.57.0",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
-    "@tailwindcss/vite": "^4.3.0",
+    "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^25.6.2",
     "prettier": "^3.8.3",
     "prettier-plugin-svelte": "^3.5.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "svelte": "^5.55.2",
     "svelte-check": "^4.4.6",
-    "tailwindcss": "^4.3.0",
+    "tailwindcss": "^4.1.18",
     "typescript": "^6.0.2",
     "vite": "^8.0.7"
   },
@@ -33,7 +33,7 @@
     "@atproto/oauth-client-browser": "^0.3.42",
     "@ewanc26/landing-ui": "workspace:*",
     "@ewanc26/noise-avatar": "workspace:*",
-    "@lucide/svelte": "^1.14.0",
+    "@lucide/svelte": "^0.575.0",
     "chart.js": "^4.5.1"
   }
 }
