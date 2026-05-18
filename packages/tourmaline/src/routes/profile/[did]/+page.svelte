@@ -242,7 +242,7 @@
 	});
 
 	onMount(async () => {
-		if (data.error) { error = data.error; return; }
+		if (data.error) { error = data.error; phase = 'error'; return; }
 		if (!did || !pdsUrl) return;
 
 		const t0 = performance.now();
@@ -267,20 +267,25 @@
 				if (cursor) params.set('cursor', cursor);
 
 				const res = await fetch(`/api/scrobbles/${encodeURIComponent(did)}?${params}`);
-				const data = await res.json();
+				const batch = await res.json();
 
-				if (data.error) {
-					throw new Error(data.error);
+				if (batch.error) {
+					throw new Error(batch.error);
 				}
 
-				allScrobbles.push(...data.scrobbles);
+				allScrobbles.push(...batch.scrobbles);
 				loaded = allScrobbles.length;
-				cursor = data.cursor;
-				fetchDone = data.done;
+				cursor = batch.cursor;
+				fetchDone = batch.done;
 			}
 
 			clearInterval(fetchTimer);
 			elapsed = Math.floor((Date.now() - fetchStartTime) / 1000);
+
+			if (allScrobbles.length === 0) {
+				phase = 'complete';
+				return;
+			}
 
 			// 2. Compute all profiles client-side (pure functions, no API keys)
 			phase = 'computing';
@@ -457,6 +462,15 @@
 	{#if phase === 'error'}
 		<div class="mb-8 rounded border border-[var(--error)]/40 bg-[var(--error)]/10 p-5">
 			<p class="text-sm font-medium text-[var(--error)]">{error}</p>
+		</div>
+	{/if}
+
+	<!-- ── Empty state ────────────────────────────────────────────────────── -->
+	{#if phase === 'complete' && loaded === 0}
+		<div class="mb-8 rounded border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
+			<p class="text-sm text-[var(--text-muted)]">No scrobbles found for this user.</p>
+			<p class="mt-2 text-xs text-[var(--text-dim)]">Make sure the handle is correct and scrobbles are public.</p>
+			<a href="/" class="mt-6 inline-block text-sm text-[var(--accent)] hover:underline">Go back</a>
 		</div>
 	{/if}
 

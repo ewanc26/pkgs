@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { goto } from "$app/navigation";
 	import { LandingPage } from "@ewanc26/landing-ui";
 	import {
 		BarChart3,
@@ -107,9 +108,8 @@
 		error = "";
 
 		const encoded = encodeURIComponent(input);
-		window.location.href = `/profile/${encoded}`;
+		goto(`/profile/${encoded}`);
 	}
-
 	onMount(() => {
 		return () => {
 			if (debounceTimer) clearTimeout(debounceTimer);
@@ -262,6 +262,7 @@
 			analyse();
 		}}
 		class="search-form"
+		action="javascript:void(0)"
 	>
 		<div class="input-wrapper">
 			<input
@@ -350,6 +351,7 @@
 			analyse();
 		}}
 		class="search-form"
+		action="javascript:void(0)"
 	>
 		<div class="input-wrapper">
 			<input
