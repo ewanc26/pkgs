@@ -89,9 +89,14 @@ export async function resolveIdentifier(
   }
 
   const pdsService = doc.service?.find((s) => s.id === "#atproto_pds");
-  const pdsUrl = pdsService?.serviceEndpoint;
+  let pdsUrl = pdsService?.serviceEndpoint;
 
   if (!pdsUrl) throw new Error("No PDS endpoint found in DID document");
+
+  // Strip trailing slash
+  if (pdsUrl.endsWith("/")) {
+    pdsUrl = pdsUrl.slice(0, -1);
+  }
 
   return { did, pdsUrl, handle };
 }
