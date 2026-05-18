@@ -1,4 +1,5 @@
 import type { TealScrobble } from "$lib/types";
+import { pdsRateLimiter, isRateLimitError } from "./rate-limit";
 
 interface ListRecordsResponse {
   records: Array<{
@@ -86,12 +87,25 @@ export async function fetchScrobbleBatch(
     if (currentCursor) params.set("cursor", currentCursor);
 
     const url = `${pdsUrl}/xrpc/com.atproto.repo.listRecords?${params}`;
+
+    // Wait for rate limit permit
+    await pdsRateLimiter.waitForPermit(1);
+
     const res = await fetch(url);
 
     if (!res.ok) {
       const body = await res.text();
+      if (isRateLimitError(res.status, body)) {
+        pdsRateLimiter.handleRateLimitHit(res.headers);
+        throw new Error(
+          `Rate limit exceeded. Try again in a minute. (PDS: ${pdsUrl})`,
+        );
+      }
       throw new Error(`listRecords failed: ${res.status} ${body}`);
     }
+
+    // Update rate limiter stats
+    pdsRateLimiter.updateFromHeaders(res.headers);
 
     const data: ListRecordsResponse = await res.json();
 

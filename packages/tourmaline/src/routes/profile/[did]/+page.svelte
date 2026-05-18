@@ -224,7 +224,13 @@
 		personality: PersonalityProfile;
 	}
 
-	let results = $state<Record<string, ProfileResult>>({});
+	let results = $state<Record<string, ProfileResult | null>>({
+		all: null,
+		'7d': null,
+		'30d': null,
+		'90d': null,
+		'365d': null
+	});
 	let profile = $derived(results[dateRange]?.profile ?? null);
 	let sessionStats = $derived(results[dateRange]?.sessionStats ?? null);
 	let onThisDayEntries = $derived(results[dateRange]?.onThisDay ?? []);
@@ -291,12 +297,14 @@
 			// 2. Compute all profiles client-side (pure functions, no API keys)
 			phase = 'computing';
 
+			const initialResults: Record<string, ProfileResult | null> = { ...results };
 			for (const range of RANGES) {
-				results[range] = computeProfile(did, allScrobbles, range, artistInfos, handle);
+				initialResults[range] = computeProfile(did, allScrobbles, range, artistInfos, handle);
 			}
+			results = initialResults;
 
 			// 3. Enrich top artists server-side (needs API keys)
-			const topArtists = results.all?.profile.topArtists.map((a) => a.name) ?? [];
+			const topArtists = results['all']?.profile.topArtists.map((a) => a.name) ?? [];
 			if (topArtists.length > 0) {
 				phase = 'enriching';
 				enrichStartTime = Date.now();
@@ -335,9 +343,11 @@
 					artistInfos.set(name, info);
 				}
 
+				const updatedResults: Record<string, ProfileResult | null> = { ...results };
 				for (const range of RANGES) {
-					results[range] = computeProfile(did, allScrobbles, range, artistInfos, handle);
+					updatedResults[range] = computeProfile(did, allScrobbles, range, artistInfos, handle);
 				}
+				results = updatedResults;
 			}
 
 			phase = 'complete';
@@ -512,6 +522,22 @@
 					<MinutesListened minutes={profile.totalMinutes} />
 				</div>
 			{/if}
+
+			<div class="mb-6 grid gap-4 sm:mb-8 sm:gap-8 lg:grid-cols-2">
+				{#if profile.scrobblesByHour.some((n) => n > 0)}
+					<div class="rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
+						<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Listening Clock</h2>
+						<ListeningClock scrobblesByHour={profile.scrobblesByHour} />
+					</div>
+				{/if}
+
+				{#if Object.keys(profile.mood).length > 0 && Object.values(profile.mood).some((v) => v > 0)}
+					<div class="rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
+						<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Mood Profile</h2>
+						<MoodRadar mood={profile.mood} />
+					</div>
+				{/if}
+			</div>
 
 			{#if profile.dailyScrobbles.length > 0}
 				<div class="mb-6 sm:mb-8">
