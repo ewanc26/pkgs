@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { ArrowRight, Github, Heart } from '@lucide/svelte';
+	import { ArrowRight, Heart } from '@lucide/svelte';
 
 type FeatureIcon = import('svelte').Component | string;
 
@@ -83,7 +83,7 @@ interface Feature {
 				{/if}
 				{#if githubUrl}
 					<a href={githubUrl} target="_blank" rel="noopener" class="btn-ghost">
-						<Github size={15} /> View on GitHub
+						View on GitHub
 					</a>
 				{/if}
 				<a
