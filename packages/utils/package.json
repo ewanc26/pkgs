@@ -31,6 +31,11 @@
       "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./atproto/search": {
+      "source": "./src/atproto/search.ts",
+      "types": "./dist/atproto/search.d.ts",
+      "default": "./dist/atproto/search.js"
     }
   },
   "main": "./dist/index.js",
