@@ -48,6 +48,10 @@
 	import DateRangePicker from './DateRangePicker.svelte';
 	import ListeningPhases from './ListeningPhases.svelte';
 	import StoryRecap from './StoryRecap.svelte';
+	import OverviewTab from './OverviewTab.svelte';
+	import TasteTab from './TasteTab.svelte';
+	import HabitsTab from './HabitsTab.svelte';
+	import CatalogueTab from './CatalogueTab.svelte';
 	import PunchcardHeatmap from './PunchcardHeatmap.svelte';
 	import EddingtonChart from './EddingtonChart.svelte';
 
@@ -165,7 +169,7 @@
 		const sessions = deriveSessions(filtered);
 		const sessionStats = buildSessionStats(sessions);
 		const onThisDay = buildOnThisDay(filtered);
-		const storyRecap = buildStoryRecap(profile, '', phases);
+		const storyRecap = buildStoryRecap(profile, '', phases, range);
 		const personality = buildPersonality(profile);
 
 		return { profile, sessionStats, onThisDay, storyRecap, personality };
@@ -511,11 +515,13 @@
 
 		<!-- ── Overview tab ─────────────────────────────── -->
 		{#if activeTab === 'overview'}
-			{#if storyRecap_}
-				<div class="mb-6 sm:mb-8">
-					<StoryRecap recap={storyRecap_} />
-				</div>
-			{/if}
+			{#key dateRange}
+				{#if storyRecap_}
+					<div class="mb-6 sm:mb-8">
+						<StoryRecap recap={storyRecap_} />
+					</div>
+				{/if}
+			{/key}
 
 			{#if profile.totalMinutes > 0}
 				<div class="mb-6 sm:mb-8">
@@ -546,6 +552,7 @@
 						totalScrobbles={profile.totalScrobbles}
 						longestGap={profile.longestNotListenedGap}
 						range={dateRange}
+						statsData={profile}
 					/>
 				</div>
 			{/if}
