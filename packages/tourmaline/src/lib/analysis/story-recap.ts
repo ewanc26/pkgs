@@ -36,7 +36,7 @@ export function buildStoryRecap(
   range: string,
 ): StoryRecap {
   const year = new Date().getFullYear();
-  const label = range === 'all' ? year.toString() : range.replace('d', '-day');
+  const label = range === 'all' ? 'all-time' : range.replace('d', '-day');
   const cards: StoryRecapCard[] = [];
 
   // Intro
