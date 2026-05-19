@@ -21,7 +21,7 @@ export interface StoryRecapCard {
 }
 
 export interface StoryRecap {
-  year: number;
+  label: string;
   cards: StoryRecapCard[];
 }
 
@@ -35,7 +35,6 @@ export function buildStoryRecap(
   phases: ListeningPhase[],
   range: string,
 ): StoryRecap {
-  const year = new Date().getFullYear();
   const label = range === 'all' ? 'all-time' : range.replace('d', '-day');
   const cards: StoryRecapCard[] = [];
 
