@@ -33,14 +33,16 @@ export function buildStoryRecap(
   profile: ListenerProfile,
   displayName: string,
   phases: ListeningPhase[],
+  range: string,
 ): StoryRecap {
   const year = new Date().getFullYear();
+  const label = range === 'all' ? year.toString() : range.replace('d', '-day');
   const cards: StoryRecapCard[] = [];
 
   // Intro
   cards.push({
     type: "intro",
-    heading: `Your ${year} in music`,
+    heading: `Your ${label} recap`,
     body: `${displayName}'s listening story`,
   });
 
