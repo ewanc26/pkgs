@@ -30,7 +30,8 @@
     } = $props();
 
     $effect(() => {
-        console.log('[debug] minutes:', profile.totalMinutes);
+        console.log('[debug] OverviewTab mounted');
+        console.log('[debug] profile:', profile);
     });
 </script>
 
