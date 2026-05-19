@@ -17,7 +17,10 @@
 
 	const unit = $derived(minutes >= 60 ? 'hours' : 'minutes');
 	const target = $derived(minutes >= 60 ? Math.floor(minutes / 60) : minutes);
+    // Display as days if > 24 hours, but only if significant.
+    // Actually, maybe I should just check if days > 0.
 	const days = $derived(Math.floor(minutes / 1440));
+    const showDays = $derived(days >= 1);
 
 	function animateCounter(to: number) {
 		const duration = 1600;
@@ -68,7 +71,7 @@
 		<span class="mb-2 text-xl text-[var(--text-muted)] sm:text-2xl">{unit}</span>
 	</div>
 
-	{#if days >= 1}
+	{#if showDays}
 		<p class="text-sm text-[var(--text-muted)]">
 			That's <span class="font-semibold text-[var(--text)]">{days.toLocaleString()} day{days === 1 ? '' : 's'}</span> of music
 		</p>
