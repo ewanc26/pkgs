@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let { minutes = 0 }: { minutes: number } = $props();
+	let { minutes = 0, rangeLabel = '' }: { minutes: number, rangeLabel?: string } = $props();
 
 	let displayed = $state(0);
 	let revealed = $state(false);
@@ -57,7 +57,9 @@
 	class="scroll-reveal rounded border border-[var(--border)] bg-[var(--surface)] p-6 text-center sm:p-10"
 	class:revealed
 >
-	<p class="font-mono text-xs uppercase tracking-widest text-[var(--text-dim)]">Time spent listening</p>
+	<p class="font-mono text-xs uppercase tracking-widest text-[var(--text-dim)]">
+        Time spent listening {rangeLabel ? `(${rangeLabel})` : ''}
+    </p>
 
 	<div class="my-4 flex items-end justify-center gap-2">
 		<span class="tabular-nums text-6xl font-bold tracking-tight text-[var(--accent)] sm:text-8xl">
