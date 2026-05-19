@@ -17,10 +17,9 @@
 
 	const unit = $derived(minutes >= 60 ? 'hours' : 'minutes');
 	const target = $derived(minutes >= 60 ? Math.floor(minutes / 60) : minutes);
-    // Display as days if > 24 hours, but only if significant.
-    // Actually, maybe I should just check if days > 0.
+    // Convert to days: 1 day = 1440 minutes.
 	const days = $derived(Math.floor(minutes / 1440));
-    const showDays = $derived(days >= 1);
+    const showDays = $derived(days > 0);
 
 	function animateCounter(to: number) {
 		const duration = 1600;
