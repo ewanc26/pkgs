@@ -1,10 +1,28 @@
 import type { ArtistInfo } from "$lib/types";
 
 const MB_USER_AGENT =
-  "Tourmaline/0.5.0 (https://github.com/ewanc26/pkgs/tree/main/packages/tourmaline)";
+  "Tourmaline/0.6.1 (https://github.com/ewanc26/pkgs/tree/main/packages/tourmaline)";
 const MB_BASE = "https://musicbrainz.org/ws/2";
 const LFM_BASE = "https://ws.audioscrobbler.com/2.0/";
 const DZ_BASE = "https://api.deezer.com";
+
+// ── Server-side in-memory cache (warm-instance only, 7-day TTL) ──────────
+// Serverless cold-starts get a fresh cache; this helps for concurrent
+// requests hitting the same warm instance (e.g. two users viewing the
+// same popular artist at the same time).
+const SERVER_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+const serverCache = new Map<string, { info: ArtistInfo; exp: number }>();
+
+function getServerCache(name: string): ArtistInfo | null {
+  const entry = serverCache.get(name);
+  if (!entry) return null;
+  if (Date.now() > entry.exp) { serverCache.delete(name); return null; }
+  return entry.info;
+}
+
+function setServerCache(name: string, info: ArtistInfo): void {
+  serverCache.set(name, { info, exp: Date.now() + SERVER_CACHE_TTL });
+}
 
 // ── Rate limiters ─────────────────────────────────────────────────────
 
@@ -214,10 +232,13 @@ export async function enrichArtistBatch(
   const toProcess = artists.slice(0, batchSize);
   const enriched: Array<{ name: string; info: ArtistInfo }> = [];
 
+  console.log(`[tourmaline] enrichArtistBatch: processing ${toProcess.length} artists from a queue of ${artists.length}`);
+
   for (const name of toProcess) {
-    // Skip if already enriched
-    if (existing.has(name)) {
-      enriched.push({ name, info: existing.get(name)! });
+    // Skip if already enriched in this request or server cache
+    const serverCached = getServerCache(name);
+    if (existing.has(name) || serverCached) {
+      enriched.push({ name, info: serverCached ?? existing.get(name)! });
       continue;
     }
 
@@ -228,20 +249,28 @@ export async function enrichArtistBatch(
       similar: [],
     };
 
-    // MusicBrainz
+    // MusicBrainz (fetch tags/genres)
     try {
       const mbId = await mbSearchArtist(name);
       if (mbId) {
         const mbInfo = await mbGetArtistInfo(mbId);
         if (mbInfo) {
-          info = { ...info, ...mbInfo };
+          info = {
+            ...info,
+            genres: mbInfo.genres?.length ? mbInfo.genres : info.genres,
+            tags: mbInfo.tags?.length ? mbInfo.tags : info.tags,
+            mbId: mbInfo.mbId,
+          };
         }
+      } else {
+        console.log(`[tourmaline] enrichArtistBatch: no MBID found for ${name}`);
       }
-    } catch {
+    } catch (e) {
+      console.log(`[tourmaline] enrichArtistBatch: MB search error for ${name}:`, e);
       // MusicBrainz failure is non-critical
     }
 
-    // Last.fm (supplements tags, similar, listener count, image)
+    // Last.fm (only if key present)
     if (lfmApiKey) {
       try {
         const lfmInfo = await lfmGetArtistInfo(name, lfmApiKey);
@@ -254,8 +283,11 @@ export async function enrichArtistBatch(
             playCount: lfmInfo.playCount ?? info.playCount,
             imageUrl: lfmInfo.imageUrl ?? info.imageUrl,
           };
+        } else {
+          console.log(`[tourmaline] enrichArtistBatch: no Last.fm info for ${name}`);
         }
-      } catch {
+      } catch (e) {
+        console.log(`[tourmaline] enrichArtistBatch: Last.fm error for ${name}:`, e);
         // Last.fm failure is non-critical
       }
     }
@@ -265,12 +297,15 @@ export async function enrichArtistBatch(
       try {
         const dzImage = await dzGetArtistImage(name);
         if (dzImage) info.imageUrl = dzImage;
-      } catch {
+        else console.log(`[tourmaline] enrichArtistBatch: no Deezer image for ${name}`);
+      } catch (e) {
+        console.log(`[tourmaline] enrichArtistBatch: Deezer error for ${name}:`, e);
         // Deezer failure is non-critical
       }
     }
 
     enriched.push({ name, info });
+    setServerCache(name, info);
   }
 
   const remaining = artists.slice(batchSize);

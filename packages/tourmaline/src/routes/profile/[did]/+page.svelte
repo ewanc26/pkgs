@@ -30,6 +30,8 @@
 	import { topZScorePerMonth } from '$lib/analysis/zscore';
 	import GenreChart from './GenreChart.svelte';
 	import TimelineHeatmap from './TimelineHeatmap.svelte';
+	import TimelineChart from '$lib/components/TimelineChart.svelte';
+	import TopArtistsChart from '$lib/components/TopArtistsChart.svelte';
 	import MoodRadar from './MoodRadar.svelte';
 	import EraBarChart from './EraBarChart.svelte';
 	import PersonalityCard from './PersonalityCard.svelte';
@@ -126,6 +128,7 @@
 			uniqueArtists: data.uniqueArtists,
 			uniqueTracks: data.uniqueTracks,
 			totalMinutes: data.totalMinutes,
+            allArtists: data.allArtists,
 			topArtists: data.topArtists.map((a) => ({
 				...a,
 				imageUrl: artistInfos.get(a.name)?.imageUrl
@@ -198,6 +201,26 @@
 		return formatTime(remaining);
 	}
 
+	// ── Artist enrichment cache (localStorage, 30-day TTL) ────────────────
+	const CACHE_PREFIX = 'tm:a:';
+	const CACHE_TTL = 30 * 24 * 60 * 60 * 1000;
+
+	function readArtistCache(name: string): ArtistInfo | null {
+		try {
+			const raw = localStorage.getItem(CACHE_PREFIX + name);
+			if (!raw) return null;
+			const entry = JSON.parse(raw) as { info: ArtistInfo; exp: number };
+			if (Date.now() > entry.exp) { localStorage.removeItem(CACHE_PREFIX + name); return null; }
+			return entry.info;
+		} catch { return null; }
+	}
+
+	function writeArtistCache(name: string, info: ArtistInfo): void {
+		try {
+			localStorage.setItem(CACHE_PREFIX + name, JSON.stringify({ info, exp: Date.now() + CACHE_TTL }));
+		} catch { /* storage full or unavailable — silent fail */ }
+	}
+
 	let { data }: { data: { did: string; handle?: string; pdsUrl?: string; displayName?: string; avatar?: string; error?: string } } = $props();
 
 	// Identity from server load (already resolved — immutable)
@@ -211,6 +234,8 @@
 	let phase = $state<'idle' | 'fetching' | 'computing' | 'enriching' | 'complete' | 'error'>('idle');
 	let loaded = $state(0);
 	let enrichProgress = $state({ current: 0, total: 0 });
+    let totalArtistsDiscovered = $state(0);
+    let knownArtists = $state(new Set<string>());
 	let error = $state('');
 
 	// Timing
@@ -264,7 +289,7 @@
 		const artistInfos = new Map<string, ArtistInfo>();
 
 		try {
-			// 1. Fetch scrobbles in batches (stateless endpoint)
+			// 1. Fetch scrobbles
 			phase = 'fetching';
 			fetchStartTime = Date.now();
 			let fetchDone = false;
@@ -298,64 +323,79 @@
 				return;
 			}
 
-			// 2. Compute all profiles client-side (pure functions, no API keys)
+			// 2. Compute profiles
 			phase = 'computing';
-
 			const initialResults: Record<string, ProfileResult | null> = { ...results };
 			for (const range of RANGES) {
 				initialResults[range] = computeProfile(did, allScrobbles, range, artistInfos, handle);
 			}
 			results = initialResults;
 
-			// 3. Enrich top artists server-side (needs API keys)
-			const topArtists = results['all']?.profile.topArtists.map((a) => a.name) ?? [];
-			if (topArtists.length > 0) {
-				phase = 'enriching';
-				enrichStartTime = Date.now();
-				let enrichQueue = [...topArtists];
-				let enrichment: Record<string, ArtistInfo> = {};
-				let enrichDone = false;
+			// 3. Enrich artists
+			phase = 'enriching';
+			enrichStartTime = Date.now();
+			const uniqueArtists = Array.from(new Set(allScrobbles.flatMap((s) => s.artists.map((a) => a.name))));
 
-				const enrichTimer = setInterval(() => {
-					enrichElapsed = Math.floor((Date.now() - enrichStartTime) / 1000);
-				}, 1000);
-
-				while (!enrichDone) {
-					const res = await fetch(`/api/enrich/${encodeURIComponent(did)}`, {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ queue: enrichQueue, enrichment })
-					});
-					const batch = await res.json();
-
-					if (batch.error) {
-						console.warn('[tourmaline] enrichment error:', batch.error);
-						break;
-					}
-
-					enrichment = batch.enrichment;
-					enrichQueue = batch.remaining;
-					enrichProgress = { current: batch.current, total: batch.total };
-					enrichDone = batch.done;
-				}
-
-				clearInterval(enrichTimer);
-				enrichElapsed = Math.floor((Date.now() - enrichStartTime) / 1000);
-
-				// Re-compute profiles with enrichment applied
-				for (const [name, info] of Object.entries(enrichment)) {
-					artistInfos.set(name, info);
-				}
-
-				const updatedResults: Record<string, ProfileResult | null> = { ...results };
-				for (const range of RANGES) {
-					updatedResults[range] = computeProfile(did, allScrobbles, range, artistInfos, handle);
-				}
-				results = updatedResults;
+			// Pre-populate from localStorage — artists seen before skip the API entirely.
+			for (const name of uniqueArtists) {
+				const cached = readArtistCache(name);
+				if (cached) artistInfos.set(name, cached);
 			}
 
+			let enrichQueue = uniqueArtists.filter((name) => !artistInfos.has(name));
+			let enrichment: Record<string, ArtistInfo> = {};
+			enrichProgress = { current: artistInfos.size, total: uniqueArtists.length };
+			let enrichDone = enrichQueue.length === 0;
+
+            const enrichTimer = setInterval(() => {
+				enrichElapsed = Math.floor((Date.now() - enrichStartTime) / 1000);
+			}, 1000);
+
+			while (!enrichDone) {
+				const queue = enrichQueue.splice(0, 5);
+				if (queue.length === 0) {
+					enrichDone = true;
+					continue;
+				}
+
+				const enrichRes = await fetch(`/api/enrich/${encodeURIComponent(did)}`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ queue, enrichment })
+				});
+				const enrichBatch = await enrichRes.json();
+
+				if (enrichBatch.error) {
+					console.warn('[tourmaline] enrichment error:', enrichBatch.error);
+					break;
+				}
+
+				enrichment = enrichBatch.enrichment;
+
+				for (const [name, info] of Object.entries(enrichBatch.enrichment)) {
+					artistInfos.set(name, info as ArtistInfo);
+					writeArtistCache(name, info as ArtistInfo);
+				}
+
+				enrichProgress = { current: artistInfos.size, total: uniqueArtists.length };
+
+				// Only recompute the active range mid-enrichment — recomputing all 5
+				// ranges on every batch is expensive for large scrobble sets.
+				const midResults = { ...results };
+				midResults[dateRange] = computeProfile(did, allScrobbles, dateRange as RangeKey, artistInfos, handle);
+				results = midResults;
+			}
+            clearInterval(enrichTimer);
+
+				// Full recompute of all ranges now that enrichment is complete.
+				const finalResults: Record<string, ProfileResult | null> = { ...results };
+				for (const range of RANGES) {
+					finalResults[range] = computeProfile(did, allScrobbles, range, artistInfos, handle);
+				}
+				results = finalResults;
+
 			phase = 'complete';
-			console.log(`[tourmaline] complete in ${((performance.now() - t0) / 1000).toFixed(1)}s — ${loaded} scrobbles`);
+			console.log(`[tourmaline] complete in ${((performance.now() - t0) / 1000).toFixed(1)}s`);
 		} catch (e) {
 			phase = 'error';
 			error = e instanceof Error ? e.message : String(e);
@@ -391,67 +431,33 @@
 
 	<!-- ── Loading state ──────────────────────────────────────────────────── -->
 	{#if phase !== 'complete' && phase !== 'error'}
-		<div class="mb-8 overflow-hidden rounded border border-[var(--border)] bg-[var(--surface)]">
-			{#if phase === 'fetching'}
+		<div class="mb-8 grid gap-4">
+			<!-- Fetching/Processing Card -->
+			<div class="overflow-hidden rounded border border-[var(--border)] bg-[var(--surface)]">
 				<div class="p-5">
 					<div class="flex items-center gap-3">
 						<Loader2 size={16} class="shrink-0 animate-spin text-[var(--accent)]" />
 						<div class="min-w-0">
-							<p class="text-sm font-medium text-[var(--text)]">Fetching scrobbles</p>
+							<p class="text-sm font-medium text-[var(--text)]">
+                                {phase === 'fetching' ? 'Fetching scrobbles' : phase === 'computing' ? 'Computing profile' : 'Enriching artist data…'}
+                            </p>
 							<p class="mt-0.5 text-xs text-[var(--text-dim)]">
-								{loaded.toLocaleString()} loaded
-								{#if elapsed > 0}
-									· {formatTime(elapsed)} elapsed
-									· {loaded > 0 ? (loaded / elapsed).toFixed(0) : '—'}/sec
-								{/if}
+								{phase === 'fetching' ? `${loaded.toLocaleString()} loaded` : 'This may take a moment…'}
 							</p>
 						</div>
 					</div>
 					<div class="mt-3.5 h-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
-						<div class="h-full w-1/3 animate-indeterminate rounded-full bg-[var(--accent-dim)]"></div>
+					 {#if phase === 'enriching' && enrichProgress.total > 0}
+					<div
+					 class="h-full rounded-full bg-[var(--accent-dim)] transition-[width] duration-300"
+					 style="width: {(enrichProgress.current / enrichProgress.total) * 100}%"
+					 ></div>
+					 {:else}
+					 <div class="h-full w-1/3 animate-indeterminate rounded-full bg-[var(--accent-dim)]"></div>
+					 {/if}
+					 </div>
 					</div>
-				</div>
-			{:else if phase === 'computing'}
-				<div class="p-5">
-					<div class="flex items-center gap-3">
-						<Cpu size={16} class="shrink-0 animate-pulse text-[var(--accent)]" />
-						<div>
-							<p class="text-sm font-medium text-[var(--text)]">Computing profile</p>
-							<p class="mt-0.5 text-xs text-[var(--text-dim)]">Aggregating {loaded.toLocaleString()} scrobbles…</p>
-						</div>
-					</div>
-					<div class="mt-3.5 h-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
-						<div class="h-full w-2/3 animate-indeterminate rounded-full bg-[var(--accent-dim)]"></div>
-					</div>
-				</div>
-			{:else if phase === 'enriching'}
-				<div class="p-5">
-					<div class="flex items-center gap-3">
-						<Sparkles size={16} class="shrink-0 animate-pulse text-[var(--accent)]" />
-						<div class="min-w-0 flex-1">
-							<p class="text-sm font-medium text-[var(--text)]">Enriching artist data</p>
-							<p class="mt-0.5 text-xs text-[var(--text-dim)]">
-								{enrichProgress.current} / {enrichProgress.total} artists
-								{#if enrichElapsed > 0}
-									· {formatTime(enrichElapsed)} elapsed
-									{#if enrichProgress.current > 0}
-										· {estimateRemaining(enrichProgress.current, enrichProgress.total, enrichElapsed)} remaining
-									{/if}
-								{/if}
-							</p>
-						</div>
-						<span class="shrink-0 font-mono text-xs text-[var(--text-dim)]">
-							{enrichProgress.total > 0 ? Math.round((enrichProgress.current / enrichProgress.total) * 100) : 0}%
-						</span>
-					</div>
-					<div class="mt-3.5 h-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
-						<div
-							class="h-full rounded-full bg-[var(--accent-dim)] transition-all duration-300"
-							style="width: {enrichProgress.total > 0 ? (enrichProgress.current / enrichProgress.total) * 100 : 0}%"
-						></div>
-					</div>
-				</div>
-			{/if}
+			</div>
 		</div>
 	{/if}
 
@@ -472,7 +478,7 @@
 	{/if}
 
 	<!-- ── Profile content ────────────────────────────────────────────────── -->
-	{#if profile && profile.totalScrobbles > 0}
+	{#if phase === 'complete' && profile && profile.totalScrobbles > 0}
 		<!-- Stats row (always visible) -->
 		<div class="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:grid-cols-4 sm:gap-4">
 			<div class="flex flex-col gap-1 rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
@@ -546,14 +552,18 @@
 			</div>
 
 			{#if profile.dailyScrobbles.length > 0}
-				<div class="mb-6 sm:mb-8">
-					<ListeningStats
-						dailyScrobbles={profile.dailyScrobbles}
-						totalScrobbles={profile.totalScrobbles}
-						longestGap={profile.longestNotListenedGap}
-						range={dateRange}
-						statsData={profile}
-					/>
+				<div class="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
+					<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Scrobbles per Year</h2>
+					<!-- We need to pass the stats to the chart, but profile is ListenerProfile.
+					     Let's temporarily create a stats object for the chart from existing data. -->
+					<TimelineChart stats={{...profile, years: profile.weeklyScrobbles.reduce<Record<string, number>>((acc, w) => { const year = w.week.slice(0, 4); acc[year] = (acc[year] ?? 0) + w.count; return acc; }, {})} as any} />
+				</div>
+			{/if}
+
+			{#if profile.topArtists.length > 0}
+				<div class="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
+					<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Top Artists</h2>
+					<TopArtistsChart stats={{seenArtists: Object.fromEntries(profile.topArtists.map(a => [a.name, {scrobbles: Array(a.count).fill(0)}]))} as any} />
 				</div>
 			{/if}
 

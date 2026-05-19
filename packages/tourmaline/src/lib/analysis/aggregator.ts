@@ -1,12 +1,12 @@
 import type { TealScrobble, Milestone, Gap } from "$lib/types";
 import { calcEddington } from "./eddington";
 import { calcScrobbleStreaks, ItemStreakStack, type Streak } from "./streaks";
-
 export interface AggregatedData {
   totalScrobbles: number;
   totalMinutes: number;
   uniqueArtists: number;
   uniqueTracks: number;
+  allArtists: string[];
   topArtists: Array<{ name: string; count: number }>;
   topTracks: Array<{ name: string; artist: string; count: number }>;
   topAlbums: Array<{ name: string; artist: string; count: number }>;
@@ -16,6 +16,7 @@ export interface AggregatedData {
   scrobblesByHour: number[];
   scrobblesByDay: number[];
   scrobblesByHourDay: number[][];
+
   dailyScrobbles: Map<string, number>; // YYYY-MM-DD → count
   monthlyScrobbles: Map<string, number>; // YYYY-MM → count
   serviceOrigins: Map<string, number>;
@@ -319,10 +320,6 @@ export class Aggregator {
     const daysScrobbled = this.dailyCounts.size;
     const daysScrobbledPercentage = (daysScrobbled / daysSinceFirstScrobble) * 100;
 
-    const firstScrobbleRecord = this.lastScrobble; // Wait, this needs to track the very first.
-    // I need to track `this.firstScrobble` and `this.lastScrobble` explicitly in the class.
-
-    // Calculate one-hit wonders
     const oneHitWondersCount = [...this.artistCounts.values()].filter(
       (c) => c === 1,
     ).length;
@@ -375,6 +372,7 @@ export class Aggregator {
       totalMinutes: Math.round(this.minutesCount),
       uniqueArtists: this.artistCounts.size,
       uniqueTracks: this.trackCounts.size,
+      allArtists: Array.from(this.artistCounts.keys()),
       topArtists,
       topTracks,
       topAlbums,

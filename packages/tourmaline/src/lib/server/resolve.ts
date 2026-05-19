@@ -102,18 +102,25 @@ export async function resolveIdentifier(
 }
 
 async function resolveDidDocument(did: string): Promise<DidDocument> {
-  if (did.startsWith("did:plc:")) {
-    const res = await fetch(`https://plc.directory/${did}`);
-    if (!res.ok) throw new Error(`Failed to resolve DID: ${res.status}`);
-    return await res.json();
-  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
 
-  if (did.startsWith("did:web:")) {
-    const domain = did.replace("did:web:", "");
-    const res = await fetch(`https://${domain}/.well-known/did.json`);
-    if (!res.ok) throw new Error(`Failed to resolve DID: ${res.status}`);
-    return await res.json();
-  }
+  try {
+    if (did.startsWith("did:plc:")) {
+      const res = await fetch(`https://plc.directory/${did}`, { signal: controller.signal });
+      if (!res.ok) throw new Error(`Failed to resolve DID: ${res.status}`);
+      return await res.json();
+    }
 
-  throw new Error(`Unsupported DID method: ${did}`);
+    if (did.startsWith("did:web:")) {
+      const domain = did.replace("did:web:", "");
+      const res = await fetch(`https://${domain}/.well-known/did.json`, { signal: controller.signal });
+      if (!res.ok) throw new Error(`Failed to resolve DID: ${res.status}`);
+      return await res.json();
+    }
+
+    throw new Error(`Unsupported DID method: ${did}`);
+  } finally {
+    clearTimeout(timeout);
+  }
 }

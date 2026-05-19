@@ -93,6 +93,7 @@ export interface ListenerProfile {
   totalScrobbles: number;
   uniqueArtists: number;
   uniqueTracks: number;
+  allArtists: string[];
   totalMinutes: number;
   topArtists: Array<{ name: string; count: number; imageUrl?: string }>;
   topTracks: Array<{ name: string; artist: string; count: number }>;

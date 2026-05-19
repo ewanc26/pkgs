@@ -681,19 +681,18 @@ function obscurityTrait(profile: ListenerProfile): PersonalityTrait {
   const idx = profile.obscurityIndex;
   let detail: string;
 
-  if (idx >= 80) detail = "Most artists have under 10k listeners";
-  else if (idx >= 60) detail = "Skews heavily toward lesser-known acts";
-  else if (idx >= 40) detail = "Mix of known and unknown artists";
-  else if (idx >= 20) detail = "Mostly established, well-followed artists";
-  else detail = "Listens almost exclusively to major acts";
+  if (idx >= 85) detail = "Most artists have under 10k listeners";
+  else if (idx >= 65) detail = "Skews toward lesser-known, independent acts";
+  else if (idx >= 45) detail = "Balanced mix of popular and independent music";
+  else if (idx >= 25) detail = "Mostly established, well-followed artists";
+  else detail = "Listens almost exclusively to major household names";
 
-  // Obscurity label from analysis module — replicate here to avoid circular import
   let value: string;
-  if (idx >= 80) value = "Deep cuts";
-  else if (idx >= 60) value = "Underground";
-  else if (idx >= 40) value = "Eclectic";
-  else if (idx >= 20) value = "Mainstream";
-  else value = "Top 40";
+  if (idx >= 85) value = "Deep Digger";
+  else if (idx >= 65) value = "Underground Enthusiast";
+  else if (idx >= 45) value = "Versatile Listener";
+  else if (idx >= 25) value = "Pop Connoisseur";
+  else value = "Mainstream Advocate";
 
   return { label: "Taste profile", value, detail };
 }
@@ -708,18 +707,15 @@ function genreBreadthTrait(profile: ListenerProfile): PersonalityTrait {
   let value: string;
   let detail: string;
 
-  if (count <= 2) {
-    value = "Genre purist";
-    detail = `Almost entirely: ${topThree}`;
-  } else if (count <= 5) {
-    value = "Focused range";
-    detail = `Centred on ${topThree}`;
-  } else if (count <= 9) {
-    value = "Wide taste";
+  if (count <= 3) {
+    value = "Genre Focused";
+    detail = `Centred on: ${topThree}`;
+  } else if (count <= 7) {
+    value = "Broad Taste";
     detail = `Spans ${count} genres — led by ${topThree}`;
   } else {
-    value = "Omnivorous";
-    detail = `${count} genres represented — restless by nature`;
+    value = "Genre Adventurer";
+    detail = `${count} genres represented — highly varied taste`;
   }
 
   return { label: "Genre range", value, detail };
