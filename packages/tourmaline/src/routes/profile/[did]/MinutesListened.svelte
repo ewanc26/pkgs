@@ -8,18 +8,14 @@
 	let containerEl: HTMLDivElement;
 
 	function formatMinutes(m: number): string {
-		if (m >= 60) {
-			const h = Math.floor(m / 60);
-			return h.toLocaleString();
-		}
 		return m.toLocaleString();
 	}
 
-	const unit = $derived(minutes >= 60 ? 'hours' : 'minutes');
-	const target = $derived(minutes >= 60 ? Math.floor(minutes / 60) : minutes);
-    // Convert to days: 1 day = 1440 minutes.
 	const days = $derived(Math.floor(minutes / 1440));
-    const showDays = $derived(days > 0);
+	const hours = $derived(Math.floor((minutes % 1440) / 60));
+	const showDays = $derived(days > 0);
+	const unit = $derived(days > 0 ? 'days' : 'hours');
+	const target = $derived(days > 0 ? days : Math.floor(minutes / 60));
 
 	function animateCounter(to: number) {
 		const duration = 1600;
@@ -70,9 +66,9 @@
 		<span class="mb-2 text-xl text-[var(--text-muted)] sm:text-2xl">{unit}</span>
 	</div>
 
-	{#if showDays}
+	{#if showDays && hours > 0}
 		<p class="text-sm text-[var(--text-muted)]">
-			That's <span class="font-semibold text-[var(--text)]">{days.toLocaleString()} day{days === 1 ? '' : 's'}</span> of music
+			({hours} extra hour{hours === 1 ? '' : 's'})
 		</p>
 	{/if}
 </div>

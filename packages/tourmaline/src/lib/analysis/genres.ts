@@ -148,10 +148,14 @@ export function buildGenreProfile(
   artistInfos: Map<string, ArtistInfo>,
 ): GenreEntry[] {
   const genreWeights = new Map<Category, number>();
+  console.log(`[tourmaline] building genre profile, artistCounts: ${data.artistPlayCounts.size}, artistInfos: ${artistInfos.size}`);
 
   for (const [name, count] of data.artistPlayCounts) {
     const info = artistInfos.get(name);
-    if (!info) continue;
+    if (!info) {
+        console.log(`[tourmaline] artist not in info: ${name}`);
+        continue;
+    }
 
     const allRaw = [...info.genres, ...info.tags];
     const seen = new Set<Category>();
@@ -164,10 +168,12 @@ export function buildGenreProfile(
     }
   }
 
-  return [...genreWeights.entries()]
+  const result = [...genreWeights.entries()]
     .map(([name, weight]) => ({ name, weight }))
     .sort((a, b) => b.weight - a.weight)
     .slice(0, 20);
+  console.log(`[tourmaline] genre result: ${result.length} genres`);
+  return result;
 }
 
 /**
