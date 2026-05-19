@@ -1,17 +1,19 @@
 <script lang="ts">
-	import { Flame, TrendingUp, Calendar, Hash, Clock } from '@lucide/svelte';
+	import { Flame, TrendingUp, Calendar, Hash, Clock, User, Zap, Star } from '@lucide/svelte';
 	import type { DailyScrobble, Gap } from '$lib/types';
 
 	let {
 		dailyScrobbles = [],
 		totalScrobbles = 0,
 		longestGap = null,
-		range = 'all'
+		range = 'all',
+		statsData = null
 	}: {
 		dailyScrobbles: DailyScrobble[];
 		totalScrobbles: number;
 		longestGap: Gap | null;
 		range?: string;
+		statsData?: any;
 	} = $props();
 
 	const stats = $derived.by(() => {
@@ -95,7 +97,7 @@
 
 	function formatDate(dateStr: string): string {
 		const d = new Date(dateStr + 'T00:00:00Z');
-		return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+		return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 	}
 	function formatGap(ms: number): string {
 		const mins = Math.floor(ms / 60000);
@@ -162,3 +164,38 @@
 		<p class="text-xs text-[var(--text-dim)]">{stats.activeDays} active days</p>
 	</div>
 </div>
+
+{#if statsData}
+	<div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5 sm:gap-4">
+		<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
+			<div class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+				<Calendar size={12} class="text-indigo-400" />
+				Days scrobbled
+			</div>
+			<p class="mt-1 text-xl font-bold sm:text-2xl">
+				{statsData.daysScrobbled}
+				<span class="text-sm text-[var(--text-muted)]">({(statsData.daysScrobbledPercentage ?? 0).toFixed(1)}%)</span>
+			</p>
+		</div>
+
+		<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
+			<div class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+				<Star size={12} class="text-amber-400" />
+				One-hit wonders
+			</div>
+			<p class="mt-1 text-xl font-bold sm:text-2xl">
+				{statsData.oneHitWondersCount}
+				<span class="text-sm text-[var(--text-muted)]">({(statsData.oneHitWondersPercentage ?? 0).toFixed(1)}%)</span>
+			</p>
+		</div>
+
+		<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
+			<div class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+				<Zap size={12} class="text-rose-400" />
+				Most popular month
+			</div>
+			<p class="mt-1 text-lg font-bold sm:text-xl truncate">{statsData.mostPopularMonth?.month ?? '—'}</p>
+			<p class="text-xs text-[var(--text-dim)]">{(statsData.mostPopularMonth?.count ?? 0).toLocaleString()} scrobbles</p>
+		</div>
+	</div>
+{/if}
