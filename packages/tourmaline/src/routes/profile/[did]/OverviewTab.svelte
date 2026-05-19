@@ -40,7 +40,7 @@
 
 {#if profile.totalMinutes > 0}
     <div class="mb-6 sm:mb-8">
-        <MinutesListened minutes={profile.totalMinutes} />
+        <MinutesListened minutes={profile.totalMinutes} rangeLabel={dateRange === 'all' ? 'all-time' : dateRange.replace('d', '-day')} />
     </div>
 {/if}
 
