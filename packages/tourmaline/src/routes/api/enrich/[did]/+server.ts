@@ -42,7 +42,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
   // Enrich a batch
   try {
-    const result = await enrichArtistBatch(body.queue, existingEnrichment);
+    const result = await enrichArtistBatch(body.queue, existingEnrichment, 5);
 
     // Build updated enrichment and remaining queue
     const enrichment: Record<string, ArtistInfo> = {
