@@ -169,7 +169,7 @@
 		const sessions = deriveSessions(filtered);
 		const sessionStats = buildSessionStats(sessions);
 		const onThisDay = buildOnThisDay(filtered);
-		const storyRecap = buildStoryRecap(profile, '', phases, range);
+		const storyRecap = buildStoryRecap(profile, bskyDisplayName ?? handle ?? did, phases, range);
 		const personality = buildPersonality(profile);
 
 		return { profile, sessionStats, onThisDay, storyRecap, personality };
