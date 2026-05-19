@@ -28,6 +28,10 @@
         did: string;
         personality: PersonalityProfile | null;
     } = $props();
+
+    $effect(() => {
+        console.log('[debug] minutes:', profile.totalMinutes);
+    });
 </script>
 
 {#if storyRecap}
