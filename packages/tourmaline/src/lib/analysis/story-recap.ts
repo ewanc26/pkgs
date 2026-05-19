@@ -179,5 +179,5 @@ export function buildStoryRecap(
           : "You go deep on your favourites — commitment is a kind of taste",
   });
 
-  return { year, cards };
+  return { label, cards };
 }
