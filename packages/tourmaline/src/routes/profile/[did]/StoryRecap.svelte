@@ -85,7 +85,7 @@
 		<!-- Content -->
 		<div class="relative">
 			<p class="font-mono text-xs uppercase tracking-widest text-[var(--accent)]">
-				{recap.year} recap · {current + 1}/{total}
+				{recap.label} recap · {current + 1}/{total}
 			</p>
 
 			{#if card.stat}
