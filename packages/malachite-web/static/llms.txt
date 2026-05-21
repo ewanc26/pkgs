@@ -1,0 +1,42 @@
+# Malachite
+
+> Import Last.fm and Spotify listening history to Teal on ATProto.
+
+Malachite is a free, open-source tool that imports listening history from Last.fm CSV exports and Spotify JSON exports to Teal (fm.teal.alpha.feed.play records on ATProto). It supports smart deduplication, sync mode to skip already-imported records, and automatic rate-limit handling. Available as both a browser-based web app and a Node.js CLI tool.
+
+## Modes
+
+- lastfm: Import from a Last.fm CSV export
+- spotify: Import from a Spotify data export directory
+- combined: Merge Last.fm and Spotify sources
+- sync: Skip records already present on the PDS
+- deduplicate: Remove duplicate records from the Teal feed
+
+## Pages
+
+- /: Landing page and feature overview
+- /import: Import tool (ATProto sign-in and file upload)
+- /about: Privacy details, CLI usage, rate limit documentation, licence, and credits
+
+## Privacy
+
+Runs entirely in the browser. Export files are parsed locally. The only external requests are to Slingshot (ATProto identity resolution) and the user's PDS. No cookies, no local storage, no fingerprinting.
+
+## Rate limit handling
+
+Reads ratelimit-* headers from each PDS response, maintains a 15% headroom buffer before the quota ceiling, auto-adjusts batch size (up to 200 records), and respects abort signals immediately.
+
+## CLI
+
+Also available as a Node.js CLI. Clone https://github.com/ewanc26/pkgs, install dependencies in packages/malachite, then run `pnpm start`. Supports interactive and command-line modes.
+
+Key flags: -i (input), -h (handle), -p (app password), -m (mode), -y (skip prompts), --dry-run.
+
+## Licence
+
+AGPL-3.0-only
+
+## Author
+
+Ewan Croft — https://ewancroft.uk
+Support: https://ewancroft.uk/support

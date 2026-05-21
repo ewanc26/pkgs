@@ -1,0 +1,46 @@
+# Jasper
+
+> Import Instagram photos, stories, and videos to Grain or Spark on ATProto.
+
+Jasper is a free, open-source, browser-based tool that imports an Instagram data export to Grain (grain.social) or Spark (sprk.so) on the AT Protocol. Original timestamps are preserved and duplicates are skipped. No data is sent to any intermediate server — photos are uploaded directly from the browser to the user's PDS.
+
+## What's imported
+
+- Photos (JPEG, PNG, WebP, GIF) with original timestamps
+- Captions (as alt text)
+- Carousel posts (multiple photos)
+- Videos (MP4, MOV) — Spark only
+- Stories — Spark only
+
+Not imported: Reels. Videos and stories are not supported by Grain.
+
+## How it works
+
+1. Download an Instagram data export as JSON from Instagram settings.
+2. Upload the ZIP or extracted folder in the import tool.
+3. Authenticate with an AT Protocol identity via OAuth.
+4. Photos are uploaded directly to the user's PDS with original timestamps.
+
+## Pages
+
+- /: Landing page and feature overview
+- /import: Import tool (OAuth sign-in and file upload)
+- /about: Privacy details, what's imported, OAuth scope, and how to get an Instagram export
+
+## OAuth scope
+
+Grain: `atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery repo:social.grain.gallery.item`
+Spark: `atproto blob:*/* repo:so.sprk.feed.post repo:so.sprk.story.post`
+
+## Privacy
+
+Runs entirely in the browser. Instagram exports are processed locally and uploaded directly to the user's PDS. No cookies, no local storage, no fingerprinting.
+
+## Licence
+
+AGPL-3.0-only
+
+## Author
+
+Ewan Croft — https://ewancroft.uk
+Support: https://ewancroft.uk/support

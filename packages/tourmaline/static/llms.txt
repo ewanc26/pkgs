@@ -1,0 +1,47 @@
+# Tourmaline
+
+> Analyse Teal.fm scrobble history and discover your listener personality.
+
+Tourmaline is a free, open-source scrobble analyser for Teal.fm (fm.teal.alpha.feed.play records on ATProto). It fetches scrobbles from a user's PDS, computes a listening profile, enriches artist data via MusicBrainz and Last.fm, and assigns a listener personality archetype. No sign-in is required to view a profile; OAuth is only used to share the personality card to Bluesky.
+
+## What's analysed
+
+- Top artists, tracks, and albums
+- Genre profile (MusicBrainz + Last.fm tags)
+- Mood mapping (energetic, melancholic, etc.)
+- Listening timeline (365-day heatmap)
+- Era preference (decade distribution)
+- Diversity score (0–100)
+- Obscurity index (0–100)
+- Listener personality archetype
+
+## Pages
+
+- /: Home — enter an ATProto handle or DID to start analysis
+- /profile/[did]: Full listening profile for a given DID
+- /share: Share personality card to Bluesky (requires OAuth)
+- /about: Privacy details, how it works, what's analysed, licence, and credits
+
+## How it works
+
+1. Handle or DID is resolved to a PDS URL via Slingshot.
+2. fm.teal.alpha.feed.play records are fetched page-by-page from the PDS.
+3. Scrobbles are aggregated server-side into top artists/tracks/albums, genre profiles, mood mapping, era preference, diversity, and obscurity.
+4. Top artists are enriched with genre data (MusicBrainz), listener counts and images (Last.fm), and image fallback (Deezer).
+
+## Privacy
+
+Analysis runs server-side. Scrobbles are held in an in-memory session (10-minute inactivity timeout, never written to disk). No persistent database. No tracking, no fingerprinting. Reading scrobbles is unauthenticated.
+
+## External services used
+
+Slingshot (identity resolution), user PDS (scrobble records), MusicBrainz (genre/tags), Last.fm (listener counts and images), Deezer (image fallback), Bluesky CDN (avatar).
+
+## Licence
+
+AGPL-3.0-only
+
+## Author
+
+Ewan Croft — https://ewancroft.uk
+Support: https://ewancroft.uk/support
