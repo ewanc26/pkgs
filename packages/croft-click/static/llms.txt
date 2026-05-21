@@ -1,0 +1,26 @@
+# croft.click
+
+> Landing page for Ewan Croft's suite of open-source AT Protocol tools.
+
+croft.click is the central hub for a collection of browser-based tools that help users move their data to the open social web via the AT Protocol (ATProto). All tools are free, open-source, and run in the browser with no server-side data storage.
+
+## Tools
+
+- Jasper (jasper.croft.click): Import Instagram photos, stories, and videos to Grain or Spark on ATProto. Original timestamps preserved, duplicates skipped.
+- Malachite (malachite.croft.click): Import Last.fm and Spotify listening history to Teal (fm.teal.alpha lexicon). Smart deduplication and sync support.
+- Bismuth (bismuth.croft.click): Convert ATProto richtext-block documents from Standard.site publications (Leaflet, Pckt, Offprint) to Markdown.
+- Opal (opal.croft.click): Convert microblog posts from Twitter, Mastodon, Threads, and Nostr to Bluesky. Original timestamps preserved.
+- Tourmaline (tourmaline.croft.click): Analyse Teal.fm scrobble history. Personality archetypes, genre profiles, mood mapping, and share-to-Bluesky.
+- Devlog (devlog.croft.click): Changelog and devlog for Ewan's projects, published via Sequoia on ATProto.
+
+## Pages
+
+- /: Project index with cards for all tools
+
+## Source
+
+https://github.com/ewanc26/pkgs
+
+## Author
+
+Ewan Croft — https://ewancroft.uk
