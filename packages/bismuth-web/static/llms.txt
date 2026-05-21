@@ -1,0 +1,38 @@
+# Bismuth
+
+> Convert ATProto richtext-block documents from Standard.site publications to Markdown.
+
+Bismuth is a free, open-source, browser-based tool that converts ATProto richtext-block documents from Standard.site publications — Leaflet, Pckt, and Offprint — into clean Markdown. No data leaves the browser. No sign-in required.
+
+## Supported formats
+
+- Leaflet: pub.leaflet.content and site.standard.document records with full block support (headings, paragraphs, lists, images, embeds).
+- Pckt: blog.pckt.content with inline and blob-mode content resolution.
+- Offprint: app.offprint.content including task lists, web embeds, and coloured highlights.
+
+## What's converted
+
+Headings (h1–h6), paragraphs and line breaks, bold/italic/strikethrough, ordered and unordered lists, links and images, fenced code blocks, block quotes, task lists (Offprint). Embeds are represented as links. Complex layouts are flattened.
+
+## Pages
+
+- /: Landing page and feature overview
+- /convert: Document converter (paste JSON or upload a .json file)
+- /about: Privacy details, supported formats, CLI usage, licence, and credits
+
+## Privacy
+
+Runs entirely in the browser. Documents are parsed locally and never uploaded to any server. No cookies, no local storage, no fingerprinting.
+
+## CLI
+
+Also available as a Node.js CLI tool. Clone https://github.com/ewanc26/pkgs, install dependencies in packages/bismuth, then run `pnpm start input.json`.
+
+## Licence
+
+AGPL-3.0-only
+
+## Author
+
+Ewan Croft — https://ewancroft.uk
+Support: https://ewancroft.uk/support

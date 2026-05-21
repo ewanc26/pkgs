@@ -1,0 +1,47 @@
+# Opal
+
+> Convert microblog posts from Twitter, Mastodon, Threads, and Nostr to Bluesky.
+
+Opal is a free, open-source tool that converts a user's microblog post history from Twitter, Mastodon, Threads, and Nostr to Bluesky (app.bsky.feed.post records on ATProto). Original timestamps are preserved. Available as both a browser-based web app and a Node.js CLI tool.
+
+## Supported platforms
+
+- Twitter / X: Tweet archive (tweets.js). Supports tweets, retweets, and quote tweets with facets.
+- Mastodon: ActivityPub outbox or CSV export. Supports content warnings, media attachments, and poll metadata.
+- Threads: Meta data export. Supports text posts and media attachments.
+- Nostr: Kind 1 text note events.
+
+## What's converted
+
+Posts with original timestamps, links/mentions/hashtags as facets, media attachments (images), reply threads (where resolvable), content warnings (Mastodon). Not converted: videos, polls, DMs, bookmarks, circle-only posts.
+
+## Pages
+
+- /: Landing page and feature overview
+- /import: Import tool (OAuth sign-in and file upload)
+- /about: Privacy details, supported platforms, OAuth scope, CLI usage, rate limit documentation, licence, and credits
+
+## OAuth scope
+
+`atproto transition:generic`
+
+## Privacy
+
+Runs entirely in the browser. Export files are processed locally and published directly to the user's PDS. No cookies, no local storage, no fingerprinting.
+
+## Rate limit handling
+
+Reads ratelimit-* headers, maintains a 15% headroom buffer, auto-adjusts batch size (up to 200 records), and respects abort signals immediately.
+
+## CLI
+
+Also available as a Node.js CLI. Clone https://github.com/ewanc26/pkgs, install dependencies in packages/opal, then run `pnpm start`. Key flags: -i (input), -h (handle), -p (app password), -m (mode: twitter/mastodon/threads/nostr/sync), -y, --dry-run.
+
+## Licence
+
+AGPL-3.0-only
+
+## Author
+
+Ewan Croft — https://ewancroft.uk
+Support: https://ewancroft.uk/support
