@@ -1,26 +1,17 @@
 <script lang="ts">
 	import type { Project } from '$lib/data/projects';
-	import BrowserChrome from './BrowserChrome.svelte';
-	import { ArrowRight } from '@lucide/svelte';
 
 	let { project }: { project: Project } = $props();
 </script>
 
 <div class="project-card" style="--accent: {project.accent}">
-	<div class="card-preview">
-		<BrowserChrome url="{project.slug}.croft.click" accent={project.accent} />
-		<div class="preview-viewport">
-			<img src={project.logo} alt="The {project.name} logo" class="preview-logo" />
-		</div>
-	</div>
+	<a href={project.url} class="card-preview" rel="noopener" aria-label="Visit {project.name}">
+		<img src={project.logo} alt="" class="preview-logo" />
+		<span class="card-eyebrow">{project.name.toUpperCase()}</span>
+	</a>
 	<div class="card-body">
-		<a href={project.url} class="card-header" rel="noopener">
-			<img src={project.logo} alt="The {project.name} logo" class="card-logo" width={28} height={28} />
-			<span class="card-eyebrow">{project.name.toUpperCase()}</span>
-		</a>
 		<h2>{project.heading}</h2>
 		<p>{project.description}</p>
-		<a href={project.url} class="card-link inline-flex items-center gap-1" rel="noopener">{project.slug}.croft.click <ArrowRight size={12} /></a>
 	</div>
 </div>
 
@@ -42,27 +33,41 @@
 		border-color: var(--accent);
 	}
 
-	/* ── browser preview ──────────────────────────────────────────────────── */
+	/* ── preview (logo + name, links to project) ──────────────────────────── */
 	.card-preview {
 		display: flex;
 		flex-direction: column;
-		border-bottom: 1px solid var(--border);
-	}
-
-	.preview-viewport {
-		overflow: hidden;
-		height: 130px;
-		display: flex;
 		align-items: center;
 		justify-content: center;
+		gap: 0.75rem;
+		height: 160px;
 		background: color-mix(in srgb, var(--accent) 18%, var(--surface-2));
+		border-bottom: 1px solid var(--border);
+		text-decoration: none;
+		transition: background 0.2s;
+	}
+
+	.card-preview:hover {
+		background: color-mix(in srgb, var(--accent) 26%, var(--surface-2));
 	}
 
 	.preview-logo {
-		width: 100%;
-		height: 100%;
+		width: 64px;
+		height: 64px;
 		object-fit: contain;
 		display: block;
+	}
+
+	.card-eyebrow {
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 0.72rem;
+		letter-spacing: 0.14em;
+		color: var(--muted);
+		transition: color 0.15s;
+	}
+
+	.card-preview:hover .card-eyebrow {
+		color: var(--text);
 	}
 
 	/* ── card body ─────────────────────────────────────────────────────────── */
@@ -71,34 +76,6 @@
 		display: flex;
 		flex-direction: column;
 		flex: 1;
-	}
-
-	.card-header {
-		display: flex;
-		align-items: center;
-		gap: 0.6rem;
-		margin-bottom: 0.75rem;
-		text-decoration: none;
-		color: var(--text);
-	}
-
-	.card-header:hover .card-eyebrow {
-		color: var(--text);
-	}
-
-	.card-logo {
-		width: 28px;
-		height: 28px;
-		flex-shrink: 0;
-		object-fit: contain;
-	}
-
-	.card-eyebrow {
-		font-family: 'JetBrains Mono', monospace;
-		font-size: 0.75rem;
-		letter-spacing: 0.12em;
-		color: var(--muted);
-		transition: color 0.15s;
 	}
 
 	h2 {
@@ -112,31 +89,14 @@
 		color: var(--muted);
 		font-size: 0.875rem;
 		line-height: 1.5;
-		margin: 0 0 1.25rem;
+		margin: 0;
 		flex: 1;
-	}
-
-	.card-link {
-		font-family: 'JetBrains Mono', monospace;
-		font-size: 0.75rem;
-		color: var(--muted);
-		letter-spacing: 0.02em;
-		text-decoration: none;
-		transition: color 0.15s;
-	}
-
-	.project-card:hover .card-link {
-		color: var(--accent);
 	}
 
 	/* ── responsive ───────────────────────────────────────────────────────── */
 	@media (max-width: 768px) {
 		.card-preview {
-			display: none;
-		}
-
-		.card-body {
-			padding: 1.75rem;
+			height: 120px;
 		}
 	}
 </style>
