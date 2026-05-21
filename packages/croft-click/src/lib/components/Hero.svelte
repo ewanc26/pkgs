@@ -19,11 +19,12 @@
 	}
 
 	h1 {
-		font-size: 3rem;
+		font-size: 4rem;
 		font-weight: 700;
 		line-height: 1.1;
 		letter-spacing: -0.03em;
 		margin: 0 0 1rem;
+		color: #fafaf9;
 	}
 
 	.sub {
@@ -36,7 +37,7 @@
 
 	@media (max-width: 768px) {
 		h1 {
-			font-size: 2.25rem;
+			font-size: 2.75rem;
 		}
 	}
 </style>

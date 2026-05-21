@@ -3,8 +3,10 @@
 </script>
 
 <footer>
-	<a href="https://github.com/ewanc26/pkgs" target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} /> source</a>
-	<span class="sep">·</span>
+	<a href="https://github.com/ewanc26/pkgs" target="_blank" rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} aria-hidden="true" /> source</a>
+	<span class="sep" aria-hidden="true">·</span>
+	<a href="https://ewancroft.uk/support" target="_blank" rel="noopener">support</a>
+	<span class="sep" aria-hidden="true">·</span>
 	<span>by Ewan Croft</span>
 </footer>
 
