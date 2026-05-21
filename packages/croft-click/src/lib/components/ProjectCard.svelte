@@ -7,7 +7,7 @@
 <div class="project-card" style="--accent: {project.accent}">
 	<a href={project.url} class="card-preview" rel="noopener" aria-label="Visit {project.name}">
 		<img src={project.logo} alt="" class="preview-logo" />
-		<span class="card-eyebrow">{project.name.toUpperCase()}</span>
+		<span class="card-eyebrow" aria-hidden="true">{project.name.toUpperCase()}</span>
 	</a>
 	<div class="card-body">
 		<h2>{project.heading}</h2>
@@ -62,7 +62,7 @@
 		font-family: 'JetBrains Mono', monospace;
 		font-size: 0.72rem;
 		letter-spacing: 0.14em;
-		color: var(--muted);
+		color: #ffffff;
 		transition: color 0.15s;
 	}
 
@@ -79,10 +79,11 @@
 	}
 
 	h2 {
-		font-size: 1.2rem;
+		font-size: 1.25rem;
 		font-weight: 600;
 		margin: 0 0 0.6rem;
 		line-height: 1.3;
+		color: #ffffff;
 	}
 
 	.card-body p {
