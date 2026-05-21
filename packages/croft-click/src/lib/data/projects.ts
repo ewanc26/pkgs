@@ -33,7 +33,7 @@ export const projects: Project[] = [
 		name: 'Bismuth',
 		slug: 'bismuth',
 		url: 'https://bismuth.croft.click',
-		heading: 'site.standard.document → Markdown',
+		heading: 'standard.site → Markdown',
 		description:
 			'Convert ATProto richtext-block documents from Leaflet, Pckt, and Offprint to Markdown in your browser.',
 		accent: '#c4b5fd',
