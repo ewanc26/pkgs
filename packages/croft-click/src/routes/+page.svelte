@@ -7,9 +7,12 @@
 	import Hero from '$lib/components/Hero.svelte';
 	import StatsCard from '$lib/components/StatsCard.svelte';
 	import ToolkitStatsCard from '$lib/components/ToolkitStatsCard.svelte';
+	import ToolkitStatsGraph from '$lib/components/ToolkitStatsGraph.svelte';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import PairingGraph from '$lib/components/PairingGraph.svelte';
+
+	let stats = $state([]);
 </script>
 
 <main>
@@ -17,7 +20,8 @@
 
 	<div class="cards-row">
 		<StatsCard />
-		<ToolkitStatsCard />
+		<ToolkitStatsCard bind:toolStats={stats} />
+		<ToolkitStatsGraph {stats} />
 	</div>
 
 	<section class="projects">
