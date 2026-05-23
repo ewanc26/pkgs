@@ -1,0 +1,15 @@
+{
+	"client_id": "https://bismuth.croft.click/client-metadata.json",
+	"client_name": "Bismuth",
+	"client_uri": "https://bismuth.croft.click",
+	"logo_uri": "https://bismuth.croft.click/favicon.png",
+	"tos_uri": "https://bismuth.croft.click/about",
+	"policy_uri": "https://bismuth.croft.click/about",
+	"redirect_uris": ["https://bismuth.croft.click/convert"],
+	"scope": "atproto repo:click.croft.toolkit.use",
+	"grant_types": ["authorization_code", "refresh_token"],
+	"response_types": ["code"],
+	"token_endpoint_auth_method": "none",
+	"application_type": "native",
+	"dpop_bound_access_tokens": true
+}

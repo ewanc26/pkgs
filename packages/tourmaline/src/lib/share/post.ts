@@ -84,5 +84,24 @@ export async function sharePersonality(
     createdAt: new Date().toISOString(),
   });
 
+  // 6. Log toolkit usage — best-effort, don't let it fail the share
+  try {
+    await agent.com.atproto.repo.createRecord({
+      repo: agent.session!.did,
+      collection: 'click.croft.toolkit.use',
+      record: {
+        $type: 'click.croft.toolkit.use',
+        tool: {
+          $type: 'click.croft.tools.tourmaline',
+          ...(card.totalScrobbles != null ? { scrobblesAnalyzed: card.totalScrobbles } : {}),
+          sharedToBluesky: true,
+        },
+        createdAt: new Date().toISOString(),
+      },
+    });
+  } catch {
+    // non-fatal
+  }
+
   return { uri: result.uri, cid: result.cid };
 }

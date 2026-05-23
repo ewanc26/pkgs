@@ -903,6 +903,25 @@ export async function runImport(
       onStateUpdate?.(state);
     }
 
+    if (!dryRun && photosImported > 0) {
+      try {
+        await agent.com.atproto.repo.createRecord({
+          repo: agent.did!,
+          collection: 'click.croft.toolkit.use',
+          record: {
+            $type: 'click.croft.toolkit.use',
+            tool: {
+              $type: 'click.croft.tools.jasper',
+              recordsImported: photosImported,
+            },
+            createdAt: new Date().toISOString()
+          }
+        });
+      } catch (err) {
+        logger.warn(`Failed to log toolkit usage: ${(err as Error).message}`);
+      }
+    }
+
     return {
       success: photosImported,
       errors,

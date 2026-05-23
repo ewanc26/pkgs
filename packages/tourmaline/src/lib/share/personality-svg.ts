@@ -18,6 +18,7 @@ export interface PersonalityCardData {
   diversityScore?: number;
   obscurityIndex?: number;
   displayName?: string;
+  totalScrobbles?: number;
 }
 
 const BG = "#0a0f0a";

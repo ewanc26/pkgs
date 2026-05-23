@@ -35,6 +35,8 @@
 		"format": "prettier --write ."
 	},
 	"dependencies": {
+		"@atproto/api": "^0.20.5",
+		"@atproto/oauth-client-browser": "^0.4.0",
 		"@ewanc26/bismuth": "workspace:*",
 		"@ewanc26/landing-ui": "workspace:*",
 		"@lucide/svelte": "^0.575.0"

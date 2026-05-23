@@ -8,7 +8,7 @@
 import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
 import { Agent } from "@atproto/api";
 
-const SCOPE = "atproto repo:app.bsky.feed.post blob:image/png";
+const SCOPE = "atproto repo:app.bsky.feed.post blob:image/png repo:click.croft.toolkit.use";
 
 const CLIENT_ID = import.meta.env.DEV
   ? `http://localhost?${new URLSearchParams([

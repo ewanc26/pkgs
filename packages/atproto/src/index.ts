@@ -51,7 +51,14 @@ export type {
 	SifaHonor,
 	SifaCourse,
 	SifaPublication,
-	SifaPublicationAuthor
+	SifaPublicationAuthor,
+	ToolkitUseMalachite,
+	ToolkitUseJasper,
+	ToolkitUseBismuth,
+	ToolkitUseOpal,
+	ToolkitUseTourmaline,
+	ToolkitUseTool,
+	ToolkitUseRecord
 } from './types.js';
 
 export {
