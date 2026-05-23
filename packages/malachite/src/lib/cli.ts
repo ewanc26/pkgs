@@ -884,7 +884,7 @@ export async function runCLI(): Promise<void> {
 
       try {
         await agent.com.atproto.repo.createRecord({
-          repo: agent.session!.did,
+          repo: agent.session?.did ?? agent.did ?? '',
           collection: 'click.croft.toolkit.use',
           record: {
             $type: 'click.croft.toolkit.use',
