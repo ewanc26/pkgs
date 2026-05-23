@@ -52,6 +52,25 @@ export async function runImport(
     isCancelled,
   });
 
+  if (!dryRun && !res.cancelled && res.successCount > 0) {
+    try {
+      await agent.com.atproto.repo.createRecord({
+        repo: agent.session!.did,
+        collection: 'click.croft.toolkit.use',
+        record: {
+          $type: 'click.croft.toolkit.use',
+          tool: {
+            $type: 'click.croft.tools.opal',
+            postsImported: res.successCount,
+          },
+          createdAt: new Date().toISOString()
+        }
+      });
+    } catch (err) {
+      onLog('warn', `Failed to log toolkit usage: ${(err as Error).message}`);
+    }
+  }
+
   return {
     success: res.successCount,
     errors: res.errorCount,

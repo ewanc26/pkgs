@@ -15,7 +15,7 @@ import { Agent } from '@atproto/api';
 //
 // In production, load() fetches the metadata from the https:// URL.
 const SCOPE =
-	'atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery repo:social.grain.gallery.item repo:so.sprk.feed.post repo:so.sprk.story.post repo:app.bsky.actor.profile';
+	'atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery repo:social.grain.gallery.item repo:so.sprk.feed.post repo:so.sprk.story.post repo:app.bsky.actor.profile repo:click.croft.toolkit.use';
 
 const CLIENT_ID = import.meta.env.DEV
 	? `http://localhost?${new URLSearchParams([

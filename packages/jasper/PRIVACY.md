@@ -16,6 +16,7 @@ Jasper processes your Instagram export data **entirely on your local machine**. 
 2. **Extracts** photo files and metadata (captions, timestamps)
 3. **Uploads** photos to your Grain account
 4. **Creates** photo records with your original timestamps
+5. **Logs** tool usage to your repository (if using OAuth)
 
 ### What Jasper Does NOT Do
 
@@ -32,6 +33,7 @@ All processing happens on your computer:
 - **Parsing** — Instagram export is read and parsed locally
 - **Image processing** — Photos are resized/converted locally using Sharp
 - **Deduplication** — Existing posts are checked against your Grain account only
+- **Usage logging** — If signed in via OAuth, Jasper creates a record in your repository using the `click.croft.toolkit.use` lexicon. This record contains only the count of photos imported and a timestamp.
 
 Your Instagram export files are never modified. They remain exactly as downloaded from Instagram.
 

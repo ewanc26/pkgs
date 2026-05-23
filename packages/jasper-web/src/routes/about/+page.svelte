@@ -72,6 +72,12 @@
 		intermediate server.
 	</p>
 	<p>
+		If you sign in via OAuth, Jasper also creates a record in your own repository using the
+		<code>click.croft.toolkit.use</code> lexicon each time you perform an import. This record contains
+		the number of photos imported and a timestamp, helping you track your activity across the
+		croft.click suite.
+	</p>
+	<p>
 		No cookies, no local storage, no fingerprinting.
 	</p>
 
@@ -128,13 +134,13 @@
 	<p><strong>Grain:</strong></p>
 	<code
 		>atproto blob:*/* repo:social.grain.photo repo:social.grain.gallery
-		repo:social.grain.gallery.item</code
+		repo:social.grain.gallery.item repo:click.croft.toolkit.use</code
 	>
 	<p><strong>Spark:</strong></p>
-	<code>atproto blob:*/* repo:so.sprk.feed.post repo:so.sprk.story.post</code>
+	<code>atproto blob:*/* repo:so.sprk.feed.post repo:so.sprk.story.post repo:click.croft.toolkit.use</code>
 	<p>
-		This allows uploading photos as blobs and writing to the relevant collections. Your Bluesky
-		profile is read directly from your PDS.
+		This allows uploading photos as blobs, writing to the relevant collections, and logging tool
+		usage. Your Bluesky profile is read directly from your PDS.
 	</p>
 
 	<h2>Source</h2>

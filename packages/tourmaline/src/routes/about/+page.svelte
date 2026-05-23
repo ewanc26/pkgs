@@ -47,7 +47,11 @@
 			</li>
 			<li>
 				<strong>Your PDS</strong> — reads <code>fm.teal.alpha.feed.play</code> records from
-				your Personal Data Server. Reading is unauthenticated; the only write is sharing your personality profile to Bluesky — which requires explicit OAuth consent.
+				your Personal Data Server. Reading is unauthenticated. If you choose to share your
+				personality profile to Bluesky, Tourmaline will use OAuth to publish the post and will
+				also create a usage record in your repository via the
+				<code>click.croft.toolkit.use</code> lexicon. This record contains the total number of
+				scrobbles analysed and a timestamp.
 			</li>
 			<li>
 				<strong>MusicBrainz</strong> — enriches top artists with genre and tag data. Rate-limited
