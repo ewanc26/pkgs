@@ -132,6 +132,11 @@
 		const uri = postUri.replace('at://', '');
 		return `https://aturi.to/${uri}`;
 	}
+	function doLogout() {
+		agent = null;
+		sessionStorage.clear();
+		window.location.reload();
+	}
 </script>
 
 <svelte:head>
@@ -139,7 +144,14 @@
 </svelte:head>
 
 <div class="mx-auto max-w-lg px-3 py-8 sm:px-4">
-	<h1 class="text-lg font-bold text-[var(--text)]">Share to Bluesky</h1>
+	<div class="flex items-center justify-between">
+		<h1 class="text-lg font-bold text-[var(--text)]">Share to Bluesky</h1>
+		{#if agent}
+			<button class="text-sm text-[var(--muted)] hover:text-[var(--text)]" onclick={doLogout}>
+				Sign out
+			</button>
+		{/if}
+	</div>
 
 	{#if error}
 		<div class="mt-4 rounded border border-red-800/30 bg-red-900/20 p-3 text-sm text-red-400">
