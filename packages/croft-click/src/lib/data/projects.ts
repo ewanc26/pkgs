@@ -8,7 +8,7 @@ export interface Project {
 	logo: string;
 }
 
-export const projects: Project[] = [
+export const coreProjects: Project[] = [
 	{
 		name: 'Jasper',
 		slug: 'jasper',
@@ -49,6 +49,9 @@ export const projects: Project[] = [
 		accent: '#a7f3d0',
 		logo: '/opal.svg'
 	},
+];
+
+export const extraProjects: Project[] = [
 	{
 		name: 'Tourmaline',
 		slug: 'tourmaline',
@@ -70,3 +73,5 @@ export const projects: Project[] = [
 		logo: '/devlog.svg'
 	}
 ];
+
+export const projects: Project[] = [...coreProjects, ...extraProjects];
