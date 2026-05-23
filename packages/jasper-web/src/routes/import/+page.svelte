@@ -490,21 +490,24 @@
 								<span class="choice-title">Organize existing photos</span>
 								<span class="choice-desc">Add photos from previous imports to a gallery</span>
 							</button>
-						</div>
+						function doLogout() {
+							agent = null;
+							sessionStorage.clear();
+							window.location.reload();
+						}
 
-						<div class="actions">
-							<button
-								class="btn-secondary"
-								onclick={() => {
-									agent = null;
-									goTo(0);
-								}}
-							>
-								Sign out
-							</button>
-						</div>
-					</div>
-				{:else if step === 2}
+						async function doLogin() {
+						...
+													<div class="actions">
+														<button
+															class="btn-secondary"
+															onclick={doLogout}
+														>
+															Sign out
+														</button>
+													</div>
+												</div>
+											{:else if step === 2}
 					<div class="card-section">
 						<h2 class="section-title">Upload your export</h2>
 
