@@ -8,7 +8,7 @@
   "redirect_uris": ["https://tourmaline.croft.click/share"],
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],
-  "scope": "atproto repo:app.bsky.feed.post blob:image/png",
+  "scope": "atproto repo:app.bsky.feed.post blob:image/png repo:click.croft.toolkit.use",
   "application_type": "web",
   "token_endpoint_auth_method": "none",
   "dpop_bound_access_tokens": true

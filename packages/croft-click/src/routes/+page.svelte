@@ -5,6 +5,8 @@
 <script lang="ts">
 	import { coreProjects, extraProjects } from '$lib/data/projects';
 	import Hero from '$lib/components/Hero.svelte';
+	import StatsCard from '$lib/components/StatsCard.svelte';
+	import ToolkitStatsCard from '$lib/components/ToolkitStatsCard.svelte';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import PairingGraph from '$lib/components/PairingGraph.svelte';
@@ -12,6 +14,11 @@
 
 <main>
 	<Hero />
+
+	<div class="cards-row">
+		<StatsCard />
+		<ToolkitStatsCard />
+	</div>
 
 	<section class="projects">
 		{#each coreProjects as project}
@@ -41,6 +48,27 @@
 		align-items: center;
 		min-height: 100vh;
 		padding: 3rem 1.5rem 1.5rem;
+	}
+
+	.cards-row {
+		display: flex;
+		gap: 1.25rem;
+		width: 100%;
+		max-width: 72rem;
+		margin-bottom: 3rem;
+		align-items: flex-start;
+	}
+
+	.cards-row :global(.stats-card) {
+		flex: 1;
+		max-width: none;
+		margin: 0;
+	}
+
+	@media (max-width: 768px) {
+		.cards-row {
+			flex-direction: column;
+		}
 	}
 
 	.projects {

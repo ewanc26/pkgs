@@ -88,6 +88,26 @@
 		try {
 			const result = await sharePersonality(agent, card);
 			postUri = result.uri;
+
+			// Log toolkit usage
+			try {
+				await agent.com.atproto.repo.createRecord({
+					repo: agent.session!.did,
+					collection: 'click.croft.toolkit.use',
+					record: {
+						$type: 'click.croft.toolkit.use',
+						tool: {
+							$type: 'click.croft.tools.tourmaline',
+							scrobblesAnalyzed: card.totalScrobbles ?? 0,
+							sharedToBluesky: true
+						},
+						createdAt: new Date().toISOString()
+					}
+				});
+			} catch (logErr) {
+				console.warn('[tourmaline] Failed to log toolkit usage:', logErr);
+			}
+
 			done = true;
 			sessionStorage.removeItem(STORAGE_KEY);
 		} catch (e: any) {

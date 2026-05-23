@@ -1,0 +1,41 @@
+{
+  "lexicon": 1,
+  "id": "click.croft.toolkit.use",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A record of a tool being used in the croft.click suite.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "tool",
+          "createdAt"
+        ],
+        "properties": {
+          "tool": {
+            "type": "union",
+            "refs": [
+              "click.croft.tools.malachite",
+              "click.croft.tools.jasper",
+              "click.croft.tools.bismuth",
+              "click.croft.tools.opal",
+              "click.croft.tools.tourmaline"
+            ],
+            "description": "The specific tool being used and its associated metadata."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "The time the tool use occurred."
+          },
+          "context": {
+            "type": "string",
+            "description": "Optional context, description, or URI related to the tool use.",
+            "maxLength": 3000
+          }
+        }
+      }
+    }
+  }
+}

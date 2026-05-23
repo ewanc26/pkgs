@@ -1,0 +1,16 @@
+{
+  "lexicon": 1,
+  "id": "click.croft.tools.jasper",
+  "defs": {
+    "main": {
+      "type": "object",
+      "description": "Metadata for the Jasper tool usage.",
+      "properties": {
+        "recordsImported": {
+          "type": "integer",
+          "description": "The number of records (photos, videos, or stories) imported."
+        }
+      }
+    }
+  }
+}

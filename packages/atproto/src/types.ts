@@ -449,3 +449,46 @@ export interface SifaPublication {
 	publishedAt?: string;
 	uri: string;
 }
+
+// Croft Click Toolkit Use Types
+
+export interface ToolkitUseMalachite {
+	$type: 'click.croft.tools.malachite';
+	recordsImported?: number;
+	mode?: string;
+}
+
+export interface ToolkitUseJasper {
+	$type: 'click.croft.tools.jasper';
+	recordsImported?: number;
+}
+
+export interface ToolkitUseBismuth {
+	$type: 'click.croft.tools.bismuth';
+	documentsConverted?: number;
+}
+
+export interface ToolkitUseOpal {
+	$type: 'click.croft.tools.opal';
+	postsImported?: number;
+}
+
+export interface ToolkitUseTourmaline {
+	$type: 'click.croft.tools.tourmaline';
+	scrobblesAnalyzed?: number;
+	sharedToBluesky?: boolean;
+}
+
+export type ToolkitUseTool =
+	| ToolkitUseMalachite
+	| ToolkitUseJasper
+	| ToolkitUseBismuth
+	| ToolkitUseOpal
+	| ToolkitUseTourmaline;
+
+export interface ToolkitUseRecord {
+	$type: 'click.croft.toolkit.use';
+	tool: ToolkitUseTool;
+	createdAt: string;
+	context?: string;
+}
