@@ -17,7 +17,7 @@
  */
 
 import { AtpAgent } from '@atproto/api';
-import { generateTID } from '@ewanc26/tid';
+import { generateTID } from "@ewanc26/tid";
 import type { KofiSupporter, KofiEventType } from './types.js';
 
 const COLLECTION = 'uk.ewancroft.support.kofi';

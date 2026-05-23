@@ -16,7 +16,7 @@
  */
 
 import { AtpAgent } from '@atproto/api';
-import { generateTID, decodeTid } from '@ewanc26/tid';
+import { generateTID, decodeTid } from "@ewanc26/tid";
 import type { GitHubSponsor, GitHubSponsorshipAction } from './github-types.js';
 
 const COLLECTION = 'uk.ewancroft.support.github';
