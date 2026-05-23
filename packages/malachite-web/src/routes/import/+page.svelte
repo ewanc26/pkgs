@@ -211,6 +211,9 @@
 		<p class="tagline">
 			Import Last.fm &amp; Spotify history to Teal — own your listening data, not the platforms'
 		</p>
+		{#if agent}
+			<button class="btn-secondary" onclick={handleReset}>Sign out</button>
+		{/if}
 	</header>
 
 	<div class="step-viewport">

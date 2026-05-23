@@ -184,6 +184,9 @@
 		<p class="tagline">
 			Convert microblog posts to Bluesky — own your words, not the platforms'
 		</p>
+		{#if agent}
+			<button class="btn-secondary" onclick={handleReset}>Sign out</button>
+		{/if}
 	</header>
 
 	<div class="step-viewport">
