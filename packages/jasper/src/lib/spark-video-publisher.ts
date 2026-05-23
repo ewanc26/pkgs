@@ -4,7 +4,7 @@
  * and so.sprk.feed.post record creation with so.sprk.media.video
  */
 import type { Agent } from "@atproto/api";
-import { generateTID } from "@ewanc26/malachite/core";
+import { generateTID } from "@ewanc26/tid";
 import type {
   SparkMediaVideo,
   SparkPostRecord,
