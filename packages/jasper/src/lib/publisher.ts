@@ -3,7 +3,7 @@
  * Handles blob upload and record creation
  */
 import type { Agent } from "@atproto/api";
-import { generateTID } from "@ewanc26/malachite/core";
+import { generateTID } from "@ewanc26/tid";
 import type { ParsedPost } from "../core/types.js";
 import { config, GRAIN_GALLERY_COLLECTION, GRAIN_GALLERY_ITEM_COLLECTION } from "../core/config.js";
 import { log } from "../utils/logger.js";
