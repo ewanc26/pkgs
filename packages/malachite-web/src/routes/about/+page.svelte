@@ -51,7 +51,10 @@
       <li>
         <strong>Your PDS</strong> — Malachite authenticates directly with your Personal Data
         Server and publishes records there on your behalf, exactly as any other ATProto client
-        would. Your app password is used only for this request and is never stored or logged.
+        would. If you sign in via OAuth, Malachite also creates a record in your repository using the
+        <code>click.croft.toolkit.use</code> lexicon each time you perform an import. This record
+        contains the number of scrobbles imported and a timestamp, helping you track your activity
+        across the croft.click suite.
       </li>
       <li>
         <strong>Google Fonts</strong> — the layout loads Inter and JetBrains Mono via Google

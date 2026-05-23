@@ -83,7 +83,10 @@
 			<li>
 				<strong>Your PDS</strong> — Opal authenticates directly with your Personal Data
 				Server and publishes records there on your behalf, exactly as any other ATProto client
-				would. Your app password is used only for this request and is never stored or logged.
+				would. If you sign in via OAuth, Opal also creates a record in your repository using the
+				<code>click.croft.toolkit.use</code> lexicon each time you perform an import. This record
+				contains the number of posts imported and a timestamp, helping you track your activity
+				across the croft.click suite.
 			</li>
 			<li>
 				<strong>Google Fonts</strong> — the layout loads Inter and JetBrains Mono via Google
@@ -142,10 +145,10 @@
 	<section>
 		<h2>OAuth scope</h2>
 		<p>Opal requests minimal permissions to publish posts:</p>
-		<code>atproto transition:generic</code>
+		<code>atproto repo:app.bsky.feed.post repo:click.croft.toolkit.use</code>
 		<p>
-			This allows reading your profile and writing records to your repository. Your Bluesky
-			profile is read directly from your PDS.
+			This allows reading your profile, writing posts to your repository, and logging tool
+			usage. Your Bluesky profile is read directly from your PDS.
 		</p>
 	</section>
 

@@ -779,6 +779,25 @@ async function runImport(options: {
   if (skipped > 0) log.info(`Skipped (duplicates/videos): ${skipped}`);
   if (failed > 0) log.error(`Failed: ${failed}`);
 
+  if (!options.dryRun && imported > 0) {
+    try {
+      await agent.com.atproto.repo.createRecord({
+        repo: agent.did!,
+        collection: 'click.croft.toolkit.use',
+        record: {
+          $type: 'click.croft.toolkit.use',
+          tool: {
+            $type: 'click.croft.tools.jasper',
+            recordsImported: imported,
+          },
+          createdAt: new Date().toISOString()
+        }
+      });
+    } catch (err) {
+      log.warn(`Failed to log toolkit usage: ${(err as Error).message}`);
+    }
+  }
+
   // Show remaining if daily limit was hit
   if (importState) {
     const remaining = getRemainingPosts(importState);

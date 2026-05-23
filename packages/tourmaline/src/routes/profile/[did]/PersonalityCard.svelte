@@ -64,7 +64,8 @@
 				mood: Object.fromEntries(topMoods),
 				diversityScore: profile.diversityScore,
 				obscurityIndex: profile.obscurityIndex,
-				displayName
+				displayName,
+				totalScrobbles: profile.totalScrobbles
 			})
 		);
 		const params = new URLSearchParams({ handle: profile.handle ?? '', did: profile.did });

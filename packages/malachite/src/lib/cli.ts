@@ -881,6 +881,24 @@ export async function runCLI(): Promise<void> {
           log.info(`Skipped: ${skipped.toLocaleString()} duplicates`);
         }
       }
+
+      try {
+        await agent.com.atproto.repo.createRecord({
+          repo: agent.session!.did,
+          collection: 'click.croft.toolkit.use',
+          record: {
+            $type: 'click.croft.toolkit.use',
+            tool: {
+              $type: 'click.croft.tools.malachite',
+              recordsImported: result.successCount,
+              mode: mode,
+            },
+            createdAt: new Date().toISOString()
+          }
+        });
+      } catch (err) {
+        log.warn(`Failed to log toolkit usage: ${(err as Error).message}`);
+      }
     }
   } catch (error) {
     const err = error as Error;

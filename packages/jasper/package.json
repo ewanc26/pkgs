@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/jasper",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Convert Instagram data exports into posts, stories, and videos on Grain or Spark",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",

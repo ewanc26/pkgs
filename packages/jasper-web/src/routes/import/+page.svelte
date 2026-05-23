@@ -206,6 +206,25 @@
 					{ level: 'success', message: dryRun ? 'Dry run complete' : 'Import complete' }
 				];
 			}
+
+			if (!dryRun && !importResult.dailyLimitReached && (importResult.photosImported || importResult.success) > 0 && agent) {
+				try {
+					await agent.com.atproto.repo.createRecord({
+						repo: agent.session!.did,
+						collection: 'click.croft.toolkit.use',
+						record: {
+							$type: 'click.croft.toolkit.use',
+							tool: {
+								$type: 'click.croft.tools.jasper',
+								recordsImported: importResult.photosImported || importResult.success
+							},
+							createdAt: new Date().toISOString()
+						}
+					});
+				} catch (e) {
+					console.warn('[jasper] Failed to log toolkit usage:', e);
+				}
+			}
 		} catch (error) {
 			logs = [...logs, { level: 'error', message: `Import failed: ${error}` }];
 			result = { success: 0, errors: 1 };

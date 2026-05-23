@@ -14,11 +14,74 @@
 		Upload,
 		RefreshCw,
 		Globe,
+		LogIn,
+		LogOut,
 	} from "@lucide/svelte";
 	import type { StandardDocument } from "@ewanc26/bismuth";
+	import { onMount } from "svelte";
+	import { initOAuth, signInWithOAuth } from "$lib/core/oauth";
+	import type { Agent } from "@atproto/api";
 
 	type Mode = "convert" | "fetch";
 	let mode = $state<Mode>("convert");
+
+	// ── OAuth state ───────────────────────────────────────────────────────────
+	let agent = $state<Agent | null>(null);
+	let authHandle = $state("");
+	let authLoading = $state(true);
+	let authError = $state("");
+
+	onMount(async () => {
+		try {
+			agent = await initOAuth();
+		} catch (e: any) {
+			console.warn("[bismuth] OAuth init failed:", e);
+		} finally {
+			authLoading = false;
+		}
+	});
+
+	async function doLogin() {
+		if (!authHandle.trim()) return;
+		authError = "";
+		try {
+			await signInWithOAuth(authHandle.trim());
+		} catch (e: any) {
+			authError = e.message || "Sign-in failed";
+		}
+	}
+
+	async function doLogout() {
+		// BrowserOAuthClient handles session removal on init if no session is found,
+		// but to manually log out we just need to clear the session from the client.
+		// For now, simple reload works as we don't store the session across reloads 
+		// unless BrowserOAuthClient.init() finds it.
+		// Actually, we should probably have a proper logout in the oauth helper.
+		// But clearing localStorage/sessionStorage works.
+		localStorage.clear();
+		sessionStorage.clear();
+		window.location.reload();
+	}
+
+	async function logToolkitUse(count: number) {
+		if (!agent) return;
+		try {
+			await agent.com.atproto.repo.createRecord({
+				repo: agent.session!.did,
+				collection: 'click.croft.toolkit.use',
+				record: {
+					$type: 'click.croft.toolkit.use',
+					tool: {
+						$type: 'click.croft.tools.bismuth',
+						documentsConverted: count
+					},
+					createdAt: new Date().toISOString()
+				}
+			});
+		} catch (e) {
+			console.warn("[bismuth] Failed to log toolkit usage:", e);
+		}
+	}
 
 	// ── Convert state ─────────────────────────────────────────────────────────
 	let inputJson = $state("");
@@ -104,6 +167,11 @@
 			}
 
 			output = md;
+			
+			// Log use if signed in
+			if (agent) {
+				await logToolkitUse(1);
+			}
 		} catch (e: unknown) {
 			convertError =
 				e instanceof Error ? e.message : "Conversion failed.";
@@ -239,6 +307,11 @@
 					frontmatter: fetchFrontmatter,
 				}),
 			}));
+
+			// Log use if signed in
+			if (agent) {
+				await logToolkitUse(fetchResults.length);
+			}
 		} catch (e: unknown) {
 			fetchError = e instanceof Error ? e.message : "Fetch failed.";
 		} finally {
@@ -266,10 +339,46 @@
 </svelte:head>
 
 <main>
-	<a href="/" class="back-btn">
-		<ArrowLeft size={14} />
-		Back
-	</a>
+	<div class="header-row">
+		<a href="/" class="back-btn">
+			<ArrowLeft size={14} />
+			Back
+		</a>
+
+		<div class="auth-box">
+			{#if authLoading}
+				<div class="auth-loading">
+					<RefreshCw size={12} class="spin" />
+				</div>
+			{:else if agent}
+				<div class="auth-user">
+					<span class="user-handle">{agent.session?.handle}</span>
+					<button class="btn-ghost-icon" onclick={doLogout} title="Sign out">
+						<LogOut size={14} />
+					</button>
+				</div>
+			{:else}
+				<div class="auth-login">
+					<input
+						type="text"
+						bind:value={authHandle}
+						placeholder="handle.bsky.social"
+						class="auth-input"
+						onkeydown={(e) => e.key === "Enter" && doLogin()}
+					/>
+					<button class="btn-auth" onclick={doLogin} title="Sign in to log usage">
+						<LogIn size={14} />
+					</button>
+				</div>
+			{/if}
+		</div>
+	</div>
+
+	{#if authError}
+		<div class="alert alert-error auth-alert">
+			{authError}
+		</div>
+	{/if}
 
 	<div class="mode-tabs">
 		<button
