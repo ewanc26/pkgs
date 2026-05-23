@@ -43,11 +43,10 @@
 		'click.croft.tools.tourmaline':{ slug: 'tourmaline',name: 'Tourmaline',accent: '#4ade80', metricLabel: 'scrobbles analysed'},
 	};
 
-	let { toolStats = $bindable([]) } = $props<{ toolStats?: any[] }>();
-
 	let loading = $state(true);
 	let error = $state('');
 	let totalRecords = $state(0);
+	let toolStats = $state<ToolStats[]>([]);
 
 	async function fetchStats() {
 		loading = true;
@@ -127,7 +126,8 @@
 					};
 				})
 				.sort((a, b) => b.count - a.count);
-			} catch (e: unknown) {			error = e instanceof Error ? e.message : String(e);
+		} catch (e: unknown) {
+			error = e instanceof Error ? e.message : String(e);
 		} finally {
 			loading = false;
 		}
