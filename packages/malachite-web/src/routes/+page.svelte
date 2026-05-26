@@ -4,27 +4,27 @@
 </script>
 
 <svelte:head>
-	<title>Malachite — Import your music history to Teal</title>
+	<title>Malachite — Import your music scrobbles to Teal</title>
 	<meta
 		name="description"
-		content="Import your music history from Last.fm and Spotify into Teal. Own your listening data instead of leaving it behind on closed platforms."
+		content="Import your music scrobbles from Last.fm, Spotify, Apple Music, and YouTube Music into Teal. Own your listening data instead of leaving it behind on closed platforms."
 	/>
 	<link rel="canonical" href="https://malachite.croft.click" />
 
 	<!-- Open Graph -->
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://malachite.croft.click" />
-	<meta property="og:title" content="Malachite — Import your music history to Teal" />
+	<meta property="og:title" content="Malachite — Import your music scrobbles to Teal" />
 	<meta
 		property="og:description"
-		content="Import your music history from Last.fm and Spotify into Teal. Own your listening data instead of leaving it behind on closed platforms."
+		content="Import your music scrobbles from Last.fm, Spotify, Apple Music, and YouTube Music into Teal. Own your listening data instead of leaving it behind on closed platforms."
 	/>
 	<!-- Twitter / X card -->
 	<meta name="twitter:card" content="summary" />
-	<meta name="twitter:title" content="Malachite — Import your music history to Teal" />
+	<meta name="twitter:title" content="Malachite — Import your music scrobbles to Teal" />
 	<meta
-		name="twitter:description"
-		content="Import your music history from Last.fm and Spotify into Teal. Own your listening data instead of leaving it behind on closed platforms."
+		property="twitter:description"
+		content="Import your music scrobbles from Last.fm, Spotify, Apple Music, and YouTube Music into Teal. Own your listening data instead of leaving it behind on closed platforms."
 	/>
 </svelte:head>
 
@@ -40,7 +40,9 @@
 	features={[
 		{ icon: Music2, title: 'Last.fm', description: 'Import your full scrobble history from a Last.fm CSV data export.' },
 		{ icon: Disc3, title: 'Spotify', description: "Import extended streaming history from Spotify's JSON data export." },
-		{ icon: Layers2, title: 'Combined', description: 'Merge both sources together with smart deduplication to avoid double-counting plays.' },
+		{ icon: Music2, title: 'Apple Music', description: 'Import your library and play history from Apple Music CSV exports.' },
+		{ icon: Music2, title: 'YouTube Music', description: 'Import your music history from YouTube Music (via Google Takeout).' },
+		{ icon: Layers2, title: 'Combined', description: 'Merge sources together with smart deduplication to avoid double-counting plays.' },
 		{ icon: RefreshCw, title: 'Sync', description: 'Only import records not already in Teal — safe to re-run any time.' },
 		{ icon: ListFilter, title: 'Deduplicate', description: 'Find and remove duplicate records already in your Teal account.' }
 	]}
