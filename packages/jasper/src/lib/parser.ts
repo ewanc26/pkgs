@@ -150,13 +150,13 @@ type ZipEntry = EntryMetaData & { directory?: boolean };
  */
 function findPostsJsonInZip(entries: ZipEntry[]): FileEntry | undefined {
   for (const p of POSTS_JSON_PATHS) {
-    const entry = entries.find((e) => e.filename === p);
-    // Check if it's a file entry (not a directory)
+    const entry = entries.find((e) => e.filename.endsWith(p));
     if (entry && !entry.directory) {
       return entry as FileEntry;
     }
   }
-  return undefined;
+  // Fallback: any entry ending with posts_1.json
+  return entries.find((e) => e.filename.endsWith("posts_1.json")) as FileEntry | undefined;
 }
 
 /**
@@ -164,12 +164,13 @@ function findPostsJsonInZip(entries: ZipEntry[]): FileEntry | undefined {
  */
 function findStoriesJsonInZip(entries: ZipEntry[]): FileEntry | undefined {
   for (const p of STORIES_JSON_PATHS) {
-    const entry = entries.find((e) => e.filename === p);
+    const entry = entries.find((e) => e.filename.endsWith(p));
     if (entry && !entry.directory) {
       return entry as FileEntry;
     }
   }
-  return undefined;
+  // Fallback: any entry ending with stories_1.json
+  return entries.find((e) => e.filename.endsWith("stories_1.json")) as FileEntry | undefined;
 }
 
 /**
