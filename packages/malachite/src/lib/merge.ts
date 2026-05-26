@@ -1,6 +1,8 @@
 import type { PlayRecord, Config } from '../types.js';
 import { parseLastFmCsv, convertToPlayRecord } from './csv.js';
 import { parseSpotifyJson, convertSpotifyToPlayRecord } from './spotify.js';
+import { parseAppleMusicCsv, convertAppleMusicToPlayRecord } from './apple-music.js';
+import { parseYouTubeMusicJson, convertYouTubeMusicToPlayRecord } from './youtube-music.js';
 import { formatDate, normalizeString } from '../utils/helpers.js';
 import { log } from '../utils/logger.js';
 
@@ -12,7 +14,7 @@ interface NormalizedRecord {
   normalizedTrack: string;
   normalizedArtist: string;
   timestamp: number;
-  source: 'lastfm' | 'spotify';
+  source: 'lastfm' | 'spotify' | 'apple' | 'youtube';
 }
 
 /**
@@ -57,9 +59,11 @@ function chooseBetterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayRecor
   if (aHasMbIds && !bHasMbIds) return a.original;
   if (bHasMbIds && !aHasMbIds) return b.original;
 
-  // Otherwise prefer Spotify for its better metadata quality
+  // Otherwise prefer Spotify/Apple for their better metadata quality over YouTube
   if (a.source === 'spotify') return a.original;
   if (b.source === 'spotify') return b.original;
+  if (a.source === 'apple') return a.original;
+  if (b.source === 'apple') return b.original;
 
   // Default to first record
   return a.original;
@@ -70,17 +74,23 @@ function chooseBetterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayRecor
  */
 function mergeRecords(
   lastfmRecords: PlayRecord[],
-  spotifyRecords: PlayRecord[]
+  spotifyRecords: PlayRecord[],
+  appleRecords: PlayRecord[] = [],
+  youtubeRecords: PlayRecord[] = []
 ): { merged: PlayRecord[]; stats: MergeStats } {
-  log.info('Merging Last.fm and Spotify exports...');
+  log.info('Merging all exports...');
   log.blank();
   
   const stats: MergeStats = {
     lastfmTotal: lastfmRecords.length,
     spotifyTotal: spotifyRecords.length,
+    appleTotal: appleRecords.length,
+    youtubeTotal: youtubeRecords.length,
     duplicatesRemoved: 0,
     lastfmUnique: 0,
     spotifyUnique: 0,
+    appleUnique: 0,
+    youtubeUnique: 0,
     mergedTotal: 0,
   };
 
@@ -101,8 +111,24 @@ function mergeRecords(
     source: 'spotify' as const,
   }));
 
+  const normalizedApple: NormalizedRecord[] = appleRecords.map(record => ({
+    original: record,
+    normalizedTrack: normalizeString(record.trackName),
+    normalizedArtist: normalizeString(record.artists[0]?.artistName || ''),
+    timestamp: new Date(record.playedTime).getTime(),
+    source: 'apple' as const,
+  }));
+
+  const normalizedYouTube: NormalizedRecord[] = youtubeRecords.map(record => ({
+    original: record,
+    normalizedTrack: normalizeString(record.trackName),
+    normalizedArtist: normalizeString(record.artists[0]?.artistName || ''),
+    timestamp: new Date(record.playedTime).getTime(),
+    source: 'youtube' as const,
+  }));
+
   // Combine all records
-  const allRecords = [...normalizedLastFm, ...normalizedSpotify];
+  const allRecords = [...normalizedLastFm, ...normalizedSpotify, ...normalizedApple, ...normalizedYouTube];
 
   // Sort by timestamp
   allRecords.sort((a, b) => a.timestamp - b.timestamp);
@@ -118,24 +144,35 @@ function mergeRecords(
     if (seen.has(key)) {
       // Find the existing record to compare
       const existingIndex = uniqueRecords.findIndex(r => {
+        let eSrc: 'lastfm' | 'spotify' | 'apple' | 'youtube' = 'spotify';
+        if (r.musicServiceBaseDomain === 'last.fm') eSrc = 'lastfm';
+        else if (r.musicServiceBaseDomain === 'music.apple.com') eSrc = 'apple';
+        else if (r.musicServiceBaseDomain === 'music.youtube.com') eSrc = 'youtube';
+
         const normalized: NormalizedRecord = {
           original: r,
           normalizedTrack: normalizeString(r.trackName),
           normalizedArtist: normalizeString(r.artists[0]?.artistName || ''),
           timestamp: new Date(r.playedTime).getTime(),
-          source: r.musicServiceBaseDomain === 'last.fm' ? 'lastfm' : 'spotify',
+          source: eSrc,
         };
         return areRecordsDuplicates(record, normalized);
       });
 
       if (existingIndex !== -1) {
         // This is a duplicate - choose the better one
+        let eeSrc: 'lastfm' | 'spotify' | 'apple' | 'youtube' = 'spotify';
+        const exDom = uniqueRecords[existingIndex].musicServiceBaseDomain;
+        if (exDom === 'last.fm') eeSrc = 'lastfm';
+        else if (exDom === 'music.apple.com') eeSrc = 'apple';
+        else if (exDom === 'music.youtube.com') eeSrc = 'youtube';
+
         const existing: NormalizedRecord = {
           original: uniqueRecords[existingIndex],
           normalizedTrack: normalizeString(uniqueRecords[existingIndex].trackName),
           normalizedArtist: normalizeString(uniqueRecords[existingIndex].artists[0]?.artistName || ''),
           timestamp: new Date(uniqueRecords[existingIndex].playedTime).getTime(),
-          source: uniqueRecords[existingIndex].musicServiceBaseDomain === 'last.fm' ? 'lastfm' : 'spotify',
+          source: eeSrc,
         };
 
         uniqueRecords[existingIndex] = chooseBetterRecord(existing, record);
@@ -150,8 +187,12 @@ function mergeRecords(
     // Track source statistics
     if (record.source === 'lastfm') {
       stats.lastfmUnique++;
-    } else {
+    } else if (record.source === 'spotify') {
       stats.spotifyUnique++;
+    } else if (record.source === 'apple') {
+      stats.appleUnique++;
+    } else {
+      stats.youtubeUnique++;
     }
   }
 
@@ -173,9 +214,13 @@ function mergeRecords(
 export interface MergeStats {
   lastfmTotal: number;
   spotifyTotal: number;
+  appleTotal: number;
+  youtubeTotal: number;
   duplicatesRemoved: number;
   lastfmUnique: number;
   spotifyUnique: number;
+  appleUnique: number;
+  youtubeUnique: number;
   mergedTotal: number;
 }
 
@@ -187,6 +232,8 @@ function displayMergeStats(stats: MergeStats, merged: PlayRecord[]): void {
   log.section('Merge Statistics');
   log.info(`Last.fm: ${stats.lastfmTotal.toLocaleString()} records`);
   log.info(`Spotify: ${stats.spotifyTotal.toLocaleString()} records`);
+  log.info(`Apple Music: ${stats.appleTotal.toLocaleString()} records`);
+  log.info(`YouTube Music: ${stats.youtubeTotal.toLocaleString()} records`);
   log.info(`Duplicates: ${stats.duplicatesRemoved.toLocaleString()} removed`);
   log.info(`Result: ${stats.mergedTotal.toLocaleString()} unique records`);
 
@@ -202,26 +249,44 @@ function displayMergeStats(stats: MergeStats, merged: PlayRecord[]): void {
  * Parse and merge Last.fm and Spotify exports
  */
 export function parseCombinedExports(
-  lastfmPath: string,
-  spotifyPath: string,
+  paths: { lastfm?: string, spotify?: string, apple?: string, youtube?: string },
   config: Config,
   debug = false
 ): PlayRecord[] {
   log.section('Combined Import Mode');
   log.blank();
 
-  // Parse Last.fm
-  log.info('Parsing Last.fm export...');
-  const lastfmCsvRecords = parseLastFmCsv(lastfmPath);
-  const lastfmRecords = lastfmCsvRecords.map(r => convertToPlayRecord(r, config, debug));
+  let lastfmRecords: PlayRecord[] = [];
+  let spotifyRecords: PlayRecord[] = [];
+  let appleRecords: PlayRecord[] = [];
+  let youtubeRecords: PlayRecord[] = [];
 
-  // Parse Spotify
-  log.info('Parsing Spotify export...');
-  const spotifyJsonRecords = parseSpotifyJson(spotifyPath);
-  const spotifyRecords = spotifyJsonRecords.map(r => convertSpotifyToPlayRecord(r, config, debug));
+  if (paths.lastfm) {
+    log.info('Parsing Last.fm export...');
+    const lastfmCsvRecords = parseLastFmCsv(paths.lastfm);
+    lastfmRecords = lastfmCsvRecords.map(r => convertToPlayRecord(r, config, debug));
+  }
+
+  if (paths.spotify) {
+    log.info('Parsing Spotify export...');
+    const spotifyJsonRecords = parseSpotifyJson(paths.spotify);
+    spotifyRecords = spotifyJsonRecords.map(r => convertSpotifyToPlayRecord(r, config, debug));
+  }
+
+  if (paths.apple) {
+    log.info('Parsing Apple Music export...');
+    const appleCsvRecords = parseAppleMusicCsv(paths.apple);
+    appleRecords = appleCsvRecords.map(r => convertAppleMusicToPlayRecord(r, config, debug));
+  }
+
+  if (paths.youtube) {
+    log.info('Parsing YouTube Music export...');
+    const youtubeJsonRecords = parseYouTubeMusicJson(paths.youtube);
+    youtubeRecords = youtubeJsonRecords.map(r => convertYouTubeMusicToPlayRecord(r, config, debug));
+  }
 
   // Merge and deduplicate
-  const { merged, stats } = mergeRecords(lastfmRecords, spotifyRecords);
+  const { merged, stats } = mergeRecords(lastfmRecords, spotifyRecords, appleRecords, youtubeRecords);
 
   // Display statistics
   displayMergeStats(stats, merged);

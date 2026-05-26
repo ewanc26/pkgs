@@ -13,6 +13,8 @@ import {
 } from './oauth-login.js';
 import { parseLastFmCsv, convertToPlayRecord } from '../lib/csv.js';
 import { parseSpotifyJson, convertSpotifyToPlayRecord } from '../lib/spotify.js';
+import { parseAppleMusicCsv, convertAppleMusicToPlayRecord } from '../lib/apple-music.js';
+import { parseYouTubeMusicJson, convertYouTubeMusicToPlayRecord } from '../lib/youtube-music.js';
 import { parseCombinedExports } from '../lib/merge.js';
 import { publishRecordsWithApplyWrites } from './publisher.js';
 import { prompt, confirm, promptWithValidation, validateFilePath } from '../utils/input.js';
@@ -60,14 +62,18 @@ ${'\x1b[1m'}AUTHENTICATION:${'\x1b[0m'}
   --pds <url>                    PDS base URL to bypass identity resolution (optional)
 
 ${'\x1b[1m'}INPUT:${'\x1b[0m'}
-  -i, --input <path>             Path to Last.fm CSV or Spotify JSON export
-  --spotify-input <path>         Path to Spotify export (for combined mode)
+  -i, --input <path>             Path to Last.fm CSV export
+  --spotify-input <path>         Path to Spotify JSON export
+  --apple-input <path>           Path to Apple Music CSV export
+  --youtube-input <path>         Path to YouTube Music JSON export
 
 ${'\x1b[1m'}MODE:${'\x1b[0m'}
   -m, --mode <mode>              Import mode (default: lastfm)
                                  lastfm          Import Last.fm export only
                                  spotify         Import Spotify export only
-                                 combined        Merge Last.fm + Spotify exports
+                                 apple           Import Apple Music export only
+                                 youtube         Import YouTube Music export only
+                                 combined        Merge any provided exports
                                  sync            Skip existing records (sync mode)
                                  deduplicate     Remove duplicate records
 
@@ -148,6 +154,8 @@ export function parseCommandLineArgs(): CommandLineArgs {
     input: { type: 'string', short: 'i' },
     pds: { type: 'string' },
     'spotify-input': { type: 'string' },
+    'apple-input': { type: 'string' },
+    'youtube-input': { type: 'string' },
     mode: { type: 'string', short: 'm' },
     'batch-size': { type: 'string', short: 'b' },
     'batch-delay': { type: 'string', short: 'd' },
@@ -184,6 +192,8 @@ export function parseCommandLineArgs(): CommandLineArgs {
       pds: values.pds,
       input: values.input || values.file,
       'spotify-input': values['spotify-input'] || values['spotify-file'],
+      'apple-input': values['apple-input'],
+      'youtube-input': values['youtube-input'],
       'batch-size': values['batch-size'],
       'batch-delay': values['batch-delay'],
       reverse: values.reverse || values['reverse-chronological'],
@@ -228,13 +238,13 @@ export function parseCommandLineArgs(): CommandLineArgs {
 /**
  * Validate and normalize mode
  */
-function validateMode(mode: string): 'lastfm' | 'spotify' | 'combined' | 'sync' | 'deduplicate' {
-  const validModes = ['lastfm', 'spotify', 'combined', 'sync', 'deduplicate'];
+function validateMode(mode: string): 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'combined' | 'sync' | 'deduplicate' {
+  const validModes = ['lastfm', 'spotify', 'apple', 'youtube', 'combined', 'sync', 'deduplicate'];
   const normalized = mode.toLowerCase();
   if (!validModes.includes(normalized)) {
     throw new Error(`Invalid mode: ${mode}. Must be one of: ${validModes.join(', ')}`);
   }
-  return normalized as 'lastfm' | 'spotify' | 'combined' | 'sync' | 'deduplicate';
+  return normalized as 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'combined' | 'sync' | 'deduplicate';
 }
 
 /**
@@ -256,36 +266,42 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   console.log('\x1b[36m│\x1b[0m  \x1b[1m2\x1b[0m │ Import Spotify history                     \x1b[36m│\x1b[0m');
   console.log('\x1b[36m│\x1b[0m    │ \x1b[2mFrom Spotify JSON export\x1b[0m                  \x1b[36m│\x1b[0m');
   console.log('\x1b[36m│\x1b[0m                                                 \x1b[36m│\x1b[0m');
-  console.log('\x1b[36m│\x1b[0m  \x1b[1m3\x1b[0m │ Combine Last.fm + Spotify                  \x1b[36m│\x1b[0m');
-  console.log('\x1b[36m│\x1b[0m    │ \x1b[2mMerge both sources with deduplication\x1b[0m     \x1b[36m│\x1b[0m');
+  console.log('\x1b[36m│\x1b[0m  \x1b[1m3\x1b[0m │ Import Apple Music history                 \x1b[36m│\x1b[0m');
+  console.log('\x1b[36m│\x1b[0m    │ \x1b[2mFrom Apple Data Privacy CSV\x1b[0m               \x1b[36m│\x1b[0m');
   console.log('\x1b[36m│\x1b[0m                                                 \x1b[36m│\x1b[0m');
-  console.log('\x1b[36m│\x1b[0m  \x1b[1m4\x1b[0m │ Sync new records only                      \x1b[36m│\x1b[0m');
+  console.log('\x1b[36m│\x1b[0m  \x1b[1m4\x1b[0m │ Import YouTube Music history               \x1b[36m│\x1b[0m');
+  console.log('\x1b[36m│\x1b[0m    │ \x1b[2mFrom Google Takeout JSON\x1b[0m                  \x1b[36m│\x1b[0m');
+  console.log('\x1b[36m│\x1b[0m                                                 \x1b[36m│\x1b[0m');
+  console.log('\x1b[36m│\x1b[0m  \x1b[1m5\x1b[0m │ Combine multiple sources                   \x1b[36m│\x1b[0m');
+  console.log('\x1b[36m│\x1b[0m    │ \x1b[2mMerge with deduplication\x1b[0m                  \x1b[36m│\x1b[0m');
+  console.log('\x1b[36m│\x1b[0m                                                 \x1b[36m│\x1b[0m');
+  console.log('\x1b[36m│\x1b[0m  \x1b[1m6\x1b[0m │ Sync new records only                      \x1b[36m│\x1b[0m');
   console.log('\x1b[36m│\x1b[0m    │ \x1b[2mSkip records already in Teal\x1b[0m              \x1b[36m│\x1b[0m');
   console.log('\x1b[36m│\x1b[0m                                                 \x1b[36m│\x1b[0m');
   console.log('\x1b[36m╰─────────────────────────────────────────────────╯\x1b[0m\n');
   
   console.log('\x1b[33m╭─ MAINTENANCE ───────────────────────────────────╮\x1b[0m');
   console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
-  console.log('\x1b[33m│\x1b[0m  \x1b[1m5\x1b[0m │ Remove duplicate records                   \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m  \x1b[1m7\x1b[0m │ Remove duplicate records                   \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m    │ \x1b[2mClean up duplicates in Teal\x1b[0m               \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
-  console.log('\x1b[33m│\x1b[0m  \x1b[1m6\x1b[0m │ Clear cache                                \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m  \x1b[1m8\x1b[0m │ Clear cache                                \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m    │ \x1b[2mRemove cached Teal records\x1b[0m                \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
-  console.log('\x1b[33m│\x1b[0m  \x1b[1m7\x1b[0m │ Clear saved credentials                    \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m  \x1b[1m9\x1b[0m │ Clear saved credentials                    \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m    │ \x1b[2mRemove stored app-password login info\x1b[0m     \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
-  console.log('\x1b[33m│\x1b[0m  \x1b[1m8\x1b[0m │ Sign in with OAuth                         \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m \x1b[1m10\x1b[0m │ Sign in with OAuth                         \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m    │ \x1b[2mBrowser-based login — recommended\x1b[0m         \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
-  console.log('\x1b[33m│\x1b[0m  \x1b[1m9\x1b[0m │ Sign out (OAuth)                           \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m \x1b[1m11\x1b[0m │ Sign out (OAuth)                           \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m    │ \x1b[2mRemove a stored OAuth session\x1b[0m             \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
   console.log('\x1b[33m╰─────────────────────────────────────────────────╯\x1b[0m\n');
   
   console.log('\x1b[90m  0 │ Exit\x1b[0m\n');
   
-  const mode = await prompt('\x1b[1mEnter your choice [0-9]:\x1b[0m ');
+  const mode = await prompt('\x1b[1mEnter your choice [0-11]:\x1b[0m ');
   
   if (mode === '0' || !mode) {
     console.log('\nGoodbye!');
@@ -293,8 +309,8 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   }
   
   // Validate input
-  if (!['1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(mode)) {
-    console.log('\nInvalid choice. Please run again and select a valid option (0-9).');
+  if (!['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'].includes(mode)) {
+    console.log('\nInvalid choice. Please run again and select a valid option (0-11).');
     process.exit(1);
   }
   
@@ -303,22 +319,24 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   // Map selection to mode
   if (mode === '1') args.mode = 'lastfm';
   else if (mode === '2') args.mode = 'spotify';
-  else if (mode === '3') args.mode = 'combined';
-  else if (mode === '4') args.mode = 'sync';
-  else if (mode === '5') args.mode = 'deduplicate';
-  else if (mode === '6') {
+  else if (mode === '3') args.mode = 'apple';
+  else if (mode === '4') args.mode = 'youtube';
+  else if (mode === '5') args.mode = 'combined';
+  else if (mode === '6') args.mode = 'sync';
+  else if (mode === '7') args.mode = 'deduplicate';
+  else if (mode === '8') {
     args['clear-cache'] = true;
     return args;
   }
-  else if (mode === '7') {
+  else if (mode === '9') {
     args['clear-credentials'] = true;
     return args;
   }
-  else if (mode === '8') {
+  else if (mode === '10') {
     args['oauth-login'] = true;
     return args;
   }
-  else if (mode === '9') {
+  else if (mode === '11') {
     args['logout'] = ''; // empty string = logout first/only session
     return args;
   }
@@ -326,7 +344,7 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   console.log('');
   
   // Get authentication (not needed for clear cache)
-  if (args.mode === 'deduplicate' || args.mode === 'sync' || args.mode === 'combined' || args.mode === 'lastfm' || args.mode === 'spotify') {
+  if (args.mode === 'deduplicate' || args.mode === 'sync' || args.mode === 'combined' || args.mode === 'lastfm' || args.mode === 'spotify' || args.mode === 'apple' || args.mode === 'youtube') {
     // Prefer stored OAuth sessions
     const oauthDids = await listOAuthSessions();
     if (oauthDids.length > 0) {
@@ -395,23 +413,49 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
       console.log('\n📁 Input Files');
       console.log('─'.repeat(50));
       
-      args.input = await promptWithValidation(
-        '📄 Path to Last.fm CSV file: ',
-        (input) => validateFilePath(input, 'csv')
-      );
-      console.log('✓ Last.fm file validated\n');
-      
-      args['spotify-input'] = await promptWithValidation(
-        '📁 Path to Spotify export (file or directory): ',
-        (input) => validateFilePath(input, 'json')
-      );
-      console.log('✓ Spotify file/directory validated');
+      const lastfm = await promptWithValidation('📄 Path to Last.fm CSV file (optional, Enter to skip): ', (input) => validateFilePath(input, 'csv'), true);
+      if (lastfm) {
+        args.input = lastfm;
+      }
+
+      const spotify = await promptWithValidation('📁 Path to Spotify export (optional, Enter to skip): ', (input) => validateFilePath(input, 'json'), true);
+      if (spotify) {
+        args['spotify-input'] = spotify;
+      }
+
+      const apple = await promptWithValidation('📄 Path to Apple Music CSV file (optional, Enter to skip): ', (input) => validateFilePath(input, 'csv'), true);
+      if (apple) {
+        args['apple-input'] = apple;
+      }
+
+      const youtube = await promptWithValidation('📁 Path to YouTube Music JSON export (optional, Enter to skip): ', (input) => validateFilePath(input, 'json'), true);
+      if (youtube) {
+        args['youtube-input'] = youtube;
+      }
     } else if (args.mode === 'spotify') {
       console.log('\n📁 Input File');
       console.log('─'.repeat(50));
       
       args.input = await promptWithValidation(
         '📁 Path to Spotify export (file or directory): ',
+        (input) => validateFilePath(input, 'json')
+      );
+      console.log('✓ File/directory validated');
+    } else if (args.mode === 'apple') {
+      console.log('\n📁 Input File');
+      console.log('─'.repeat(50));
+      
+      args.input = await promptWithValidation(
+        '📄 Path to Apple Music CSV file: ',
+        (input) => validateFilePath(input, 'csv')
+      );
+      console.log('✓ File validated');
+    } else if (args.mode === 'youtube') {
+      console.log('\n📁 Input File');
+      console.log('─'.repeat(50));
+      
+      args.input = await promptWithValidation(
+        '📁 Path to YouTube Music JSON export (file or directory): ',
         (input) => validateFilePath(input, 'json')
       );
       console.log('✓ File/directory validated');
@@ -590,8 +634,8 @@ export async function runCLI(): Promise<void> {
     log.debug(`Log level: ${args.verbose ? 'DEBUG' : args.quiet ? 'WARN' : 'INFO'}`);
 
     if (mode === 'combined') {
-      if (!args.input || !args['spotify-input']) {
-        throw new Error('Combined mode requires both --input (Last.fm) and --spotify-input (Spotify)');
+      if (!args.input && !args['spotify-input'] && !args['apple-input'] && !args['youtube-input']) {
+        throw new Error('Combined mode requires at least one input file (--input, --spotify-input, --apple-input, --youtube-input)');
       }
     } else if (mode !== 'deduplicate' && !args.input) {
       throw new Error('Missing required argument: --input <path>');
@@ -680,14 +724,29 @@ export async function runCLI(): Promise<void> {
     const isDebug = isVerbose;
 
     if (mode === 'combined') {
-      log.info('Merging Last.fm and Spotify exports...');
-      records = parseCombinedExports(args.input!, args['spotify-input']!, cfg, isDebug);
+      log.info('Merging multiple exports...');
+      records = parseCombinedExports({
+        lastfm: args.input,
+        spotify: args['spotify-input'],
+        apple: args['apple-input'],
+        youtube: args['youtube-input']
+      }, cfg, isDebug);
       rawRecordCount = records.length;
     } else if (mode === 'spotify') {
       log.info('Importing from Spotify export...');
       const spotifyRecords = parseSpotifyJson(args.input!);
       rawRecordCount = spotifyRecords.length;
       records = spotifyRecords.map(record => convertSpotifyToPlayRecord(record, cfg, isDebug));
+    } else if (mode === 'apple') {
+      log.info('Importing from Apple Music export...');
+      const appleRecords = parseAppleMusicCsv(args.input!);
+      rawRecordCount = appleRecords.length;
+      records = appleRecords.map(record => convertAppleMusicToPlayRecord(record, cfg, isDebug));
+    } else if (mode === 'youtube') {
+      log.info('Importing from YouTube Music export...');
+      const youtubeRecords = parseYouTubeMusicJson(args.input!);
+      rawRecordCount = youtubeRecords.length;
+      records = youtubeRecords.map(record => convertYouTubeMusicToPlayRecord(record, cfg, isDebug));
     } else {
       log.info('Importing from Last.fm CSV export...');
       const csvRecords = parseLastFmCsv(args.input!);
@@ -809,19 +868,20 @@ export async function runCLI(): Promise<void> {
     log.blank();
 
     let importState: ImportState | null = null;
-    if (!dryRun && args.input) {
+    const primaryInput = args.input || args['spotify-input'] || args['apple-input'] || args['youtube-input'];
+    if (!dryRun && primaryInput) {
       if (args.fresh) {
-        clearImportState(args.input, mode);
+        clearImportState(primaryInput, mode);
         log.info('Starting fresh import (previous state cleared)');
       } else {
-        importState = loadImportState(args.input, mode);
+        importState = loadImportState(primaryInput, mode);
         if (importState && !importState.completed) {
           displayResumeInfo(importState);
           if (!args.yes) {
             const answer = await prompt('Resume from previous import? (Y/n) ');
             if (answer.toLowerCase() === 'n') {
               importState = null;
-              clearImportState(args.input, mode);
+              clearImportState(primaryInput, mode);
               log.info('Starting fresh import');
               log.blank();
             }
@@ -832,11 +892,11 @@ export async function runCLI(): Promise<void> {
         } else if (importState?.completed) {
           log.info('Previous import was completed - starting fresh');
           importState = null;
-          clearImportState(args.input, mode);
+          clearImportState(primaryInput, mode);
         }
       }
       if (!importState) {
-        importState = createImportState(args.input, mode, totalRecords);
+        importState = createImportState(primaryInput, mode, totalRecords);
         log.debug('Created new import state');
       }
     }

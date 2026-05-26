@@ -38,7 +38,7 @@ export interface PublishResult {
   cancelled: boolean;
 }
 
-export type ImportMode = 'lastfm' | 'spotify' | 'combined' | 'sync' | 'deduplicate';
+export type ImportMode = 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'combined' | 'sync' | 'deduplicate';
 
 export interface SpotifyRecord {
   ts: string;
@@ -59,6 +59,29 @@ export interface SpotifyRecord {
   offline: boolean;
   offline_timestamp: number | null;
   incognito_mode: boolean;
+}
+
+export interface AppleMusicRecord {
+  'Content Name': string;
+  'Artist Name': string;
+  'Event End Timestamp'?: string;
+  'Event Start Timestamp'?: string;
+  'Play Duration Milliseconds'?: string;
+}
+
+export interface YouTubeMusicSubtitle {
+  name: string;
+  url?: string;
+}
+
+export interface YouTubeMusicRecord {
+  header: string;
+  title: string;
+  titleUrl?: string;
+  subtitles?: YouTubeMusicSubtitle[];
+  time: string;
+  products?: string[];
+  activityControls?: string[];
 }
 
 export type LogLevel = 'info' | 'success' | 'warn' | 'error' | 'progress' | 'section';
