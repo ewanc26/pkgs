@@ -15,10 +15,10 @@ interface NormalizedRecord {
   normalizedTrack: string;
   normalizedArtist: string;
   timestamp: number;
-  source: 'lastfm' | 'spotify';
+  source: 'lastfm' | 'spotify' | 'apple' | 'youtube';
 }
 
-function toNorm(r: PlayRecord, source: 'lastfm' | 'spotify'): NormalizedRecord {
+function toNorm(r: PlayRecord, source: 'lastfm' | 'spotify' | 'apple' | 'youtube'): NormalizedRecord {
   return {
     original: r,
     normalizedTrack: normalizeString(r.trackName),
@@ -42,7 +42,11 @@ function betterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayRecord {
     (n.original.recordingMbId || n.original.releaseMbId || n.original.artists[0]?.artistMbId);
   if (hasMb(a) && !hasMb(b)) return a.original;
   if (hasMb(b) && !hasMb(a)) return b.original;
-  return a.source === 'spotify' ? a.original : b.original;
+  if (a.source === 'spotify') return a.original;
+  if (b.source === 'spotify') return b.original;
+  if (a.source === 'apple') return a.original;
+  if (b.source === 'apple') return b.original;
+  return a.original;
 }
 
 // ─── public API ───────────────────────────────────────────────────────────────
@@ -50,22 +54,28 @@ function betterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayRecord {
 export interface MergeStats {
   lastfmTotal: number;
   spotifyTotal: number;
+  appleTotal: number;
+  youtubeTotal: number;
   duplicatesRemoved: number;
   mergedTotal: number;
 }
 
 /**
- * Merge Last.fm and Spotify exports, deduplicating records within ±5 minutes
- * of each other.  Prefers Last.fm records that carry MusicBrainz IDs, otherwise
- * prefers Spotify for its richer metadata.
+ * Merge exports from all sources, deduplicating records within ±5 minutes
+ * of each other. Prefers Last.fm records that carry MusicBrainz IDs, otherwise
+ * prefers Spotify/Apple for its richer metadata, and finally YouTube.
  */
 export function mergePlayRecords(
   lastfmRecords: PlayRecord[],
-  spotifyRecords: PlayRecord[]
+  spotifyRecords: PlayRecord[],
+  appleRecords: PlayRecord[] = [],
+  youtubeRecords: PlayRecord[] = []
 ): { merged: PlayRecord[]; stats: MergeStats } {
   const all = [
     ...lastfmRecords.map((r) => toNorm(r, 'lastfm')),
     ...spotifyRecords.map((r) => toNorm(r, 'spotify')),
+    ...appleRecords.map((r) => toNorm(r, 'apple')),
+    ...youtubeRecords.map((r) => toNorm(r, 'youtube')),
   ].sort((a, b) => a.timestamp - b.timestamp);
 
   const unique: PlayRecord[] = [];
@@ -76,11 +86,19 @@ export function mergePlayRecords(
     const key = `${rec.normalizedTrack}|${rec.normalizedArtist}|${Math.floor(rec.timestamp / 60_000)}`;
     if (seen.has(key)) {
       const idx = unique.findIndex((u) => {
-        const n = toNorm(u, u.musicServiceBaseDomain === 'last.fm' ? 'lastfm' : 'spotify');
+        let uSrc: 'lastfm' | 'spotify' | 'apple' | 'youtube' = 'spotify';
+        if (u.musicServiceBaseDomain === 'last.fm') uSrc = 'lastfm';
+        else if (u.musicServiceBaseDomain === 'music.apple.com') uSrc = 'apple';
+        else if (u.musicServiceBaseDomain === 'music.youtube.com') uSrc = 'youtube';
+        const n = toNorm(u, uSrc);
         return areDuplicates(rec, n);
       });
       if (idx !== -1) {
-        const existing = toNorm(unique[idx], unique[idx].musicServiceBaseDomain === 'last.fm' ? 'lastfm' : 'spotify');
+        let eSrc: 'lastfm' | 'spotify' | 'apple' | 'youtube' = 'spotify';
+        if (unique[idx].musicServiceBaseDomain === 'last.fm') eSrc = 'lastfm';
+        else if (unique[idx].musicServiceBaseDomain === 'music.apple.com') eSrc = 'apple';
+        else if (unique[idx].musicServiceBaseDomain === 'music.youtube.com') eSrc = 'youtube';
+        const existing = toNorm(unique[idx], eSrc);
         unique[idx] = betterRecord(existing, rec);
         dups++;
         continue;
@@ -97,6 +115,8 @@ export function mergePlayRecords(
     stats: {
       lastfmTotal: lastfmRecords.length,
       spotifyTotal: spotifyRecords.length,
+      appleTotal: appleRecords.length,
+      youtubeTotal: youtubeRecords.length,
       duplicatesRemoved: dups,
       mergedTotal: unique.length,
     },

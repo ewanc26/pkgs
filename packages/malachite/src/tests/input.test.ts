@@ -148,7 +148,7 @@ describe('Input Utilities', () => {
 
   describe('Mode validation', () => {
     it('should validate import modes', () => {
-      const VALID_MODES = ['lastfm', 'spotify', 'combined', 'sync', 'deduplicate'];
+      const VALID_MODES = ['lastfm', 'spotify', 'apple', 'youtube', 'combined', 'sync', 'deduplicate'];
 
       const isValidMode = (mode: string): boolean => {
         return VALID_MODES.includes(mode.toLowerCase());

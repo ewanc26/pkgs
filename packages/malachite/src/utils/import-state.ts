@@ -19,7 +19,7 @@ export interface ImportState {
   successfulRecords: number;
   failedRecords: number;
   lastSuccessfulIndex: number;
-  mode: 'lastfm' | 'spotify' | 'combined' | 'sync';
+  mode: 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'combined' | 'sync';
   completed: boolean;
 }
 
@@ -115,7 +115,7 @@ export function saveImportState(state: ImportState): void {
  */
 export function createImportState(
   inputFile: string,
-  mode: 'lastfm' | 'spotify' | 'combined' | 'sync',
+  mode: 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'combined' | 'sync',
   totalRecords: number
 ): ImportState {
   return {
