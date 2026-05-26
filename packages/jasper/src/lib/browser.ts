@@ -176,25 +176,30 @@ export async function parseExportFromFile(file: File): Promise<ParsedPost[]> {
 /**
  * Find posts_1.json in the ZIP entries
  */
+import { POSTS_JSON_PATHS, STORIES_JSON_PATHS } from "../core/config.js";
+
+/**
+ * Find posts_1.json in the ZIP entries using known possible paths
+ */
 function findPostsJsonInZip(entries: FileEntry[]): FileEntry | null {
-  for (const entry of entries) {
-    if (entry.filename.endsWith("posts_1.json")) {
-      return entry;
-    }
+  // Try known paths first
+  for (const path of POSTS_JSON_PATHS) {
+    const entry = entries.find(e => e.filename.endsWith(path));
+    if (entry) return entry;
   }
-  return null;
+  // Fallback: any entry ending with posts_1.json
+  return entries.find(e => e.filename.endsWith("posts_1.json")) || null;
 }
 
 /**
- * Find stories_1.json in the ZIP entries
+ * Find stories_1.json in the ZIP entries using known possible paths
  */
 function findStoriesJsonInZip(entries: FileEntry[]): FileEntry | null {
-  for (const entry of entries) {
-    if (entry.filename.endsWith("stories_1.json")) {
-      return entry;
-    }
+  for (const path of STORIES_JSON_PATHS) {
+    const entry = entries.find(e => e.filename.endsWith(path));
+    if (entry) return entry;
   }
-  return null;
+  return entries.find(e => e.filename.endsWith("stories_1.json")) || null;
 }
 
 /**
