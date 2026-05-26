@@ -490,13 +490,14 @@
 								<span class="choice-title">Organize existing photos</span>
 								<span class="choice-desc">Add photos from previous imports to a gallery</span>
 							</button>
-						function doLogout() {
-							agent = null;
-							sessionStorage.clear();
-							window.location.reload();
-						}
+						<script>
+							function doLogout() {
+								agent = null;
+								sessionStorage.clear();
+								window.location.reload();
+							}
 
-						async function doLogin() {
+							async function doLogin() {
 						...
 													<div class="actions">
 														<button
