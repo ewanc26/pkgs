@@ -6,6 +6,20 @@
 import type { LastFmCsvRecord, PlayRecord } from './types.js';
 import { RECORD_TYPE } from './config.js';
 
+const MBID_URI_RE = /^mbid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function normalizeMusicBrainzId(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (MBID_URI_RE.test(trimmed)) return `mbid:${trimmed.slice(5).toLowerCase()}`;
+
+  const withoutUrl = trimmed.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0];
+  if (withoutUrl && UUID_RE.test(withoutUrl)) return `mbid:${withoutUrl.toLowerCase()}`;
+
+  return undefined;
+}
+
 // ─── delimiter detection ──────────────────────────────────────────────────────
 
 function detectDelimiter(content: string): string {
@@ -118,7 +132,8 @@ export function convertToPlayRecord(csv: LastFmCsvRecord, clientAgent: string): 
   const artists: PlayRecord['artists'] = [];
   if (csv.artist) {
     const a: PlayRecord['artists'][0] = { artistName: csv.artist };
-    if (csv.artist_mbid?.trim()) a.artistMbId = csv.artist_mbid;
+    const artistMbId = normalizeMusicBrainzId(csv.artist_mbid);
+    if (artistMbId) a.artistMbId = artistMbId;
     artists.push(a);
   }
 
@@ -133,8 +148,10 @@ export function convertToPlayRecord(csv: LastFmCsvRecord, clientAgent: string): 
   };
 
   if (csv.album?.trim()) record.releaseName = csv.album;
-  if (csv.album_mbid?.trim()) record.releaseMbId = csv.album_mbid;
-  if (csv.track_mbid?.trim()) record.recordingMbId = csv.track_mbid;
+  const releaseMbId = normalizeMusicBrainzId(csv.album_mbid);
+  if (releaseMbId) record.releaseMbId = releaseMbId;
+  const recordingMbId = normalizeMusicBrainzId(csv.track_mbid);
+  if (recordingMbId) record.recordingMbId = recordingMbId;
 
   const aEnc = encodeURIComponent(csv.artist);
   const tEnc = encodeURIComponent(csv.track);
