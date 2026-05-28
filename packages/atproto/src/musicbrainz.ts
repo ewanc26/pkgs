@@ -32,6 +32,13 @@ interface iTunesSearchResponse {
 	results: Array<{ artworkUrl100?: string }>;
 }
 
+// Teal stores MusicBrainz IDs as URI strings (`mbid:<uuid>`), while Cover Art
+// Archive release URLs still require the raw UUID path segment.
+function toMusicBrainzUuid(value: string): string | null {
+	const match = value.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+	return match?.[0].toLowerCase() ?? null;
+}
+
 export async function searchMusicBrainzRelease(
 	trackName: string,
 	artistName: string,
@@ -88,7 +95,8 @@ async function searchByTrackName(trackName: string, artistName: string): Promise
 }
 
 export function buildCoverArtUrl(releaseMbId: string, size: 250 | 500 | 1200 = 500): string {
-	return `https://coverartarchive.org/release/${releaseMbId}/front-${size}`;
+	const mbid = toMusicBrainzUuid(releaseMbId) ?? releaseMbId;
+	return `https://coverartarchive.org/release/${mbid}/front-${size}`;
 }
 
 export async function searchiTunesArtwork(
