@@ -12,7 +12,7 @@ import type { ImportMode, LogEntry, PlayRecord } from '$lib/types.js';
 import { CLIENT_AGENT } from '../config.js';
 import { parseLastFmFile, convertToPlayRecord } from './csv.js';
 import { parseSpotifyFiles, convertSpotifyToPlayRecord } from './spotify.js';
-import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '$lib/core/merge.js';
+import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '@ewanc26/malachite/core';
 import {
   fetchExistingRecords,
   filterNewRecords,
@@ -20,8 +20,8 @@ import {
   findDuplicateGroups,
   removeDuplicateRecords,
   type ExistingRecord,
-} from '$lib/core/sync.js';
-import { publishRecords, type PublishProgress } from '$lib/core/publisher.js';
+} from '@ewanc26/malachite/core';
+import { publishRecords, type PublishProgress } from '@ewanc26/malachite/core';
 
 export type { PublishProgress };
 
