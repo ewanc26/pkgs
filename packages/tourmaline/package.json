@@ -33,6 +33,7 @@
     "@atproto/oauth-client-browser": "^0.3.42",
     "@ewanc26/landing-ui": "workspace:*",
     "@ewanc26/noise-avatar": "workspace:*",
+    "@ewanc26/utils": "workspace:*",
     "@lucide/svelte": "^0.575.0",
     "chart.js": "^4.5.1"
   }
