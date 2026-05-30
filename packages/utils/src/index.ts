@@ -5,3 +5,4 @@ export * from './validators.js';
 export * from './rss.js';
 export * from './locale.js';
 export * from './slug.js';
+export * from './config.js';
