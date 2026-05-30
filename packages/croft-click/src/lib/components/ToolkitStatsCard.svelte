@@ -139,7 +139,7 @@
 <div class="stats-card">
 	<div class="card-header">
 		<div class="title-group">
-			<BarChart3 size={14} class="header-icon" />
+			<BarChart3 size={14} color="#4ade80" />
 			<span class="label">TOOLKIT USAGE</span>
 		</div>
 		<button class="refresh-btn" onclick={fetchStats} disabled={loading} title="Refresh">
@@ -229,10 +229,6 @@
 		align-items: center;
 		gap: 0.5rem;
 		color: var(--muted);
-	}
-
-	.header-icon {
-		color: #4ade80;
 	}
 
 	.label {

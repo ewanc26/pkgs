@@ -20,7 +20,7 @@
 		aspectRatio?: { width: number; height: number };
 	}
 
-	interface OrderedListItem {
+	export interface OrderedListItem {
 		content?: OrderedListContent;
 		checked?: boolean;
 		children?: OrderedListItem[];
@@ -53,7 +53,7 @@
 	}
 
 	function isImageContent(content: OrderedListContent): boolean {
-		return !!(content?.image);
+		return !!content?.image;
 	}
 </script>
 
@@ -63,7 +63,7 @@
 			{#if item.checked !== undefined}
 				<!-- Checklist item -->
 				<div
-					class="checkbox-marker z-1 mx-2 mt-3.5 h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center"
+					class="checkbox-marker z-1 mx-2 mt-3.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2"
 					class:themed={hasTheme}
 					class:checked={item.checked}
 				>
@@ -76,7 +76,7 @@
 			{:else}
 				<!-- Regular numbered item -->
 				<div
-					class="list-number z-1 mx-2 mt-1 h-6 w-6 shrink-0 flex items-center justify-center text-sm font-medium"
+					class="list-number z-1 mx-2 mt-1 flex h-6 w-6 shrink-0 items-center justify-center text-sm font-medium"
 					class:themed={hasTheme}
 				>
 					{(block.startIndex || 1) + i}
@@ -87,7 +87,11 @@
 				{#if item.content}
 					<div class="textBlock mt-1 mb-2">
 						{#if isTextContent(item.content)}
-							<RichText plaintext={item.content.plaintext} facets={item.content.facets} {hasTheme} />
+							<RichText
+								plaintext={item.content.plaintext}
+								facets={item.content.facets}
+								{hasTheme}
+							/>
 						{:else if isHeaderContent(item.content)}
 							<HeaderBlock block={item.content as any} {hasTheme} />
 						{:else if isImageContent(item.content)}
@@ -101,7 +105,10 @@
 				{/if}
 
 				{#if item.unorderedListChildren && item.unorderedListChildren.children.length > 0}
-					<UnorderedListBlock block={{ children: item.unorderedListChildren.children }} {hasTheme} />
+					<UnorderedListBlock
+						block={{ children: item.unorderedListChildren.children }}
+						{hasTheme}
+					/>
 				{/if}
 			</div>
 		</li>
