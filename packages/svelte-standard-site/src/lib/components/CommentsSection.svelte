@@ -2,7 +2,7 @@
 	import Comment from './Comment.svelte';
 	import { organizeCommentsIntoThreads } from '$lib/utils/native-comments.js';
 
-	interface CommentProps {
+	export interface CommentProps {
 		uri: string;
 		cid: string;
 		author: {

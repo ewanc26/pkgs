@@ -302,6 +302,12 @@
 		// User still needs to upload the file
 	}
 
+	function handleSignOut() {
+		agent = null;
+		sessionStorage.clear();
+		window.location.reload();
+	}
+
 	onMount(async () => {
 		try {
 			// Check for saved import state
@@ -490,24 +496,13 @@
 								<span class="choice-title">Organize existing photos</span>
 								<span class="choice-desc">Add photos from previous imports to a gallery</span>
 							</button>
-						<script>
-							function doLogout() {
-								agent = null;
-								sessionStorage.clear();
-								window.location.reload();
-							}
-
-							async function doLogin() {
-						...
-													<div class="actions">
-														<button
-															class="btn-secondary"
-															onclick={doLogout}
-														>
-															Sign out
-														</button>
-													</div>
-												</div>
+						</div>
+						<div class="actions">
+						<button class="btn-secondary" onclick={handleSignOut}>
+						Sign out
+						</button>
+						</div>
+					</div>
 											{:else if step === 2}
 					<div class="card-section">
 						<h2 class="section-title">Upload your export</h2>
