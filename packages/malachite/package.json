@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/malachite",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Import Last.fm and Spotify listening history to ATProto with intelligent deduplication and rate limiting",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
