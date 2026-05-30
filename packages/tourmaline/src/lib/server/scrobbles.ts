@@ -1,3 +1,4 @@
+import { TEAL_LEXICON } from "@ewanc26/utils";
 import type { TealScrobble } from "$lib/types";
 import { pdsRateLimiter, isRateLimitError } from "./rate-limit";
 
@@ -13,7 +14,7 @@ interface ListRecordsResponse {
 /**
  * Safely parse a playedTime value from an ATProto record.
  *
- * The fm.teal.alpha.feed.play lexicon marks playedTime as optional, so it may
+ * The TEAL_LEXICON lexicon marks playedTime as optional, so it may
  * be absent (undefined) in some records. Some older clients also stored it as
  * a numeric Unix timestamp instead of an ISO 8601 string. Both cases need to
  * be handled without throwing — an empty string is returned as a sentinel that
@@ -81,7 +82,7 @@ export async function fetchScrobbleBatch(
   for (let page = 0; page < maxPages; page++) {
     const params = new URLSearchParams({
       repo: did,
-      collection: "fm.teal.alpha.feed.play",
+      collection: TEAL_LEXICON,
       limit: String(limit),
     });
     if (currentCursor) params.set("cursor", currentCursor);
