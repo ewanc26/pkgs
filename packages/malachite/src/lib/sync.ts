@@ -120,6 +120,18 @@ export function createRecordKey(record: PlayRecord): string {
 }
 
 /**
+ * Create a fuzzy unique key for a play record, rounding the timestamp.
+ */
+export function createFuzzyRecordKey(record: PlayRecord): string {
+  const artist = (record.artists[0]?.artistName ?? '').toLowerCase().trim();
+  const track = record.trackName.toLowerCase().trim();
+  const date = new Date(record.playedTime);
+  // Round to nearest minute
+  date.setSeconds(0, 0);
+  return `${artist}|||${track}|||${date.toISOString()}`;
+}
+
+/**
  * Deduplicate input records before submission.
  * Keeps the first occurrence of each duplicate.
  */
@@ -227,11 +239,11 @@ export function displaySyncStats(
  * Find duplicate records in the existing records.
  * Returns groups of duplicates (each group has 2+ records with the same key).
  */
-export function findDuplicates(allRecords: ExistingRecord[]): DuplicateGroup[] {
+export function findDuplicates(allRecords: ExistingRecord[], fuzzy = true): DuplicateGroup[] {
   const keyGroups = new Map<string, ExistingRecord[]>();
 
   for (const record of allRecords) {
-    const key = createRecordKey(record.value);
+    const key = fuzzy ? createFuzzyRecordKey(record.value) : createRecordKey(record.value);
     if (!keyGroups.has(key)) keyGroups.set(key, []);
     keyGroups.get(key)!.push(record);
   }
