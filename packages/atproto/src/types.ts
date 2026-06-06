@@ -111,6 +111,7 @@ export interface BlogPost {
 	tags?: string[];
 	coverImage?: string;
 	textContent?: string;
+	content?: unknown;
 	updatedAt?: string;
 }
 

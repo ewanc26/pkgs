@@ -239,6 +239,7 @@ export async function fetchBlogPosts(
 		tags: doc.tags,
 		coverImage: doc.coverImage,
 		textContent: doc.textContent,
+		content: doc.content,
 		updatedAt: doc.updatedAt
 	}));
 	return { posts };
