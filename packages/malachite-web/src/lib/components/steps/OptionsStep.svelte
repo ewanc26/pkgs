@@ -7,6 +7,9 @@
     dryRun       = $bindable(false),
     reverseOrder = $bindable(false),
     fresh        = $bindable(false),
+    batchSize    = $bindable(100),
+    batchDelay   = $bindable(2000),
+    aggressive   = $bindable(false),
     onstartimport,
     onback,
   }: {
@@ -14,6 +17,9 @@
     dryRun: boolean;
     reverseOrder: boolean;
     fresh: boolean;
+    batchSize: number;
+    batchDelay: number;
+    aggressive: boolean;
     onstartimport: () => void;
     onback: () => void;
   } = $props();
@@ -75,6 +81,39 @@
           <span class="toggle-thumb"></span>
         </button>
       </div>
+
+      <div class="option-row">
+        <div class="option-info">
+          <span class="option-name">Batch size</span>
+          <input type="number" bind:value={batchSize} min="10" max="500" class="num-input" />
+          <span class="option-desc">Records per batch</span>
+        </div>
+      </div>
+
+      <div class="option-row">
+        <div class="option-info">
+          <span class="option-name">Batch delay (ms)</span>
+          <input type="number" bind:value={batchDelay} min="1000" class="num-input" />
+          <span class="option-desc">Delay between batches</span>
+        </div>
+      </div>
+
+      <div class="option-row">
+        <div class="option-info">
+          <span class="option-name">Aggressive mode</span>
+          <span class="option-desc">Faster imports (8,500/day vs 7,500/day default)</span>
+        </div>
+        <button
+          class="toggle"
+          class:on={aggressive}
+          onclick={() => (aggressive = !aggressive)}
+          type="button"
+          aria-label="Toggle aggressive mode"
+          aria-pressed={aggressive}
+        >
+          <span class="toggle-thumb"></span>
+        </button>
+      </div>
     {/if}
   </div>
 
@@ -113,6 +152,16 @@
   .option-info  { flex: 1; }
   .option-name  { font-size: 0.875rem; color: var(--text); display: block; }
   .option-desc  { font-size: 0.75rem; color: var(--muted); display: block; margin-top: 0.15rem; }
+
+  .num-input {
+    width: 80px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface-1);
+    color: var(--text);
+    font-size: 0.875rem;
+  }
 
   .toggle {
     width: 40px;
