@@ -39,6 +39,9 @@
 	let dryRun = $state(false);
 	let reverseOrder = $state(false);
 	let fresh = $state(false);
+	let batchSize = $state(100);
+	let batchDelay = $state(2000);
+	let aggressive = $state(false);
 
 	let isRunning = $state(false);
 	// Plain variable (not $state) — only ever read inside the isCancelled() closure.
@@ -110,7 +113,7 @@
 				mode,
 				lastfmFiles,
 				spotifyFiles,
-				{ dryRun, reverseOrder, fresh },
+				{ dryRun, reverseOrder, fresh, batchSize, batchDelay, aggressive },
 				{
 					onLog: addLog,
 					onProgress: (p) => {
@@ -241,6 +244,9 @@
 						bind:dryRun
 						bind:reverseOrder
 						bind:fresh
+						bind:batchSize
+						bind:batchDelay
+						bind:aggressive
 						onstartimport={handleStartImport}
 						onback={handleBack}
 					/>

@@ -489,7 +489,7 @@
 							placeholder="did:plc:… — required for extended-mode Pckt blobs"
 						/>
 					</div>
-				{:else}
+				{#else}
 					<button
 						type="button"
 						class="ghost-hint"
@@ -580,6 +580,98 @@
 
 					<div class="output-area">
 						{output}
+					</div>
+				</div>
+			{/if}
+		</div>
+	{:else if mode === "fetch"}
+		<div class="card-section">
+			<h2 class="section-title">Fetch publication</h2>
+
+			<p class="section-sub">
+				Fetch all documents from a publication and convert them to Markdown.
+			</p>
+
+			<div class="form">
+				<div class="field">
+					<label class="field-label" for="fetch-did">Source DID</label>
+					<input
+						id="fetch-did"
+						class="text-input"
+						type="text"
+						bind:value={fetchDid}
+						placeholder="did:plc:…"
+					/>
+				</div>
+
+				<div class="field">
+					<label class="field-label" for="fetch-rkey">Publication Rkey</label>
+					<input
+						id="fetch-rkey"
+						class="text-input"
+						type="text"
+						bind:value={fetchRkey}
+						placeholder="rkey"
+					/>
+				</div>
+
+				<div class="toggle-row">
+					<input
+						type="checkbox"
+						id="fetch-frontmatter"
+						bind:checked={fetchFrontmatter}
+					/>
+					<label for="fetch-frontmatter"> Include YAML front matter </label>
+				</div>
+
+				<div class="field">
+					<label class="field-label" for="fetch-pds">PDS Endpoint (optional)</label>
+					<input
+						id="fetch-pds"
+						class="text-input"
+						type="text"
+						bind:value={fetchPdsOverride}
+						placeholder="https://bsky.social"
+					/>
+				</div>
+
+				<button
+					type="button"
+					class="btn-primary"
+					onclick={fetchDocs}
+					disabled={fetchLoading}
+				>
+					{#if fetchLoading}
+						<RefreshCw size={14} class="spin" />
+						Fetching…
+					{:else}
+						Fetch documents
+					{/if}
+				</button>
+			</div>
+
+			{#if fetchError}
+				<div class="alert alert-error" style="margin-top: 1rem;">
+					{fetchError}
+				</div>
+			{/if}
+
+			{#if fetchResults.length > 0}
+				<div class="output-section">
+					<div class="output-header">
+						<span>Fetched {fetchResults.length} documents</span>
+						<button class="btn-primary" onclick={downloadAll}>Download all</button>
+					</div>
+
+					<div class="results-list" style="margin-top: 1rem;">
+						{#each fetchResults as result}
+							<div class="result-item" style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+								<span>{result.rkey} — {result.title}</span>
+								<button class="btn-icon" onclick={() => downloadFetchResult(result)}>
+									<Download size={15} />
+								</button>
+							</div>
+						{/each}
 					</div>
 				</div>
 			{/if}
