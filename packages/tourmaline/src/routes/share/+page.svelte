@@ -92,7 +92,7 @@
 			// Log toolkit usage
 			try {
 				await agent.com.atproto.repo.createRecord({
-					repo: agent.session?.did ?? agent.did ?? '',
+					repo: agent.sessionManager.did ?? agent.did ?? '',
 					collection: 'click.croft.toolkit.use',
 					record: {
 						$type: 'click.croft.toolkit.use',
