@@ -260,6 +260,9 @@
 		'90d': null,
 		'365d': null
 	});
+
+	let dateRange = $state<DateRangePreset>('all');
+
 	let profile = $derived(results[dateRange]?.profile ?? null);
 	let sessionStats = $derived(results[dateRange]?.sessionStats ?? null);
 	let onThisDayEntries = $derived(results[dateRange]?.onThisDay ?? []);
@@ -274,8 +277,6 @@
 	if (urlTab === 'taste' || urlTab === 'habits' || urlTab === 'catalogue') {
 		activeTab = urlTab;
 	}
-
-	let dateRange = $state<DateRangePreset>('all');
 
 	onMount(async () => {
 		if (data.error) { error = data.error; phase = 'error'; return; }

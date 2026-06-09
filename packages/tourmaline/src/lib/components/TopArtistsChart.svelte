@@ -1,8 +1,11 @@
 <script lang="ts">
   import BaseChart from '$lib/components/BaseChart.svelte';
-  import type { TempStats } from '$lib/analysis/statsBuilder';
 
-  let { stats }: { stats: TempStats } = $props();
+  type TopArtistsStats = {
+    seenArtists: Record<string, { scrobbles: any[] }>;
+  };
+
+  let { stats }: { stats: TopArtistsStats } = $props();
 
   const topArtists = $derived(
     Object.entries(stats.seenArtists)

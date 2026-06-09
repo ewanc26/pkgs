@@ -1,8 +1,8 @@
 <script lang="ts">
   import BaseChart from '$lib/components/BaseChart.svelte';
-  import type { TempStats } from '$lib/analysis/statsBuilder';
+  import type { ListenerProfile } from '$lib/types';
 
-  let { stats }: { stats: TempStats } = $props();
+  let { stats }: { stats: ListenerProfile & { years: Record<string, number> } } = $props();
 
   const config = $derived({
     type: 'bar' as const,
