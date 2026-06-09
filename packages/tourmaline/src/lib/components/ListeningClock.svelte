@@ -1,9 +1,10 @@
 <script lang="ts">
-  import BaseChart from '$lib/components/BaseChart.svelte';
-  import type { TempStats } from '$lib/analysis/statsBuilder';
+  /* import BaseChart from '$lib/components/BaseChart.svelte'; */
+  /* import type { TempStats } from '$lib/analysis/statsBuilder'; */
 
-  let { stats }: { stats: TempStats } = $props();
+  let { stats }: { stats: any } = $props();
 
+  /*
   const config = $derived({
     type: 'radar' as const,
     data: {
@@ -25,8 +26,9 @@
       }
     }
   });
+  */
 </script>
 
 <div class="h-64">
-  <BaseChart config={config} />
+  <!-- <BaseChart config={config} /> -->
 </div>
