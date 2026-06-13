@@ -21,11 +21,19 @@ export interface CircleNoiseOptions {
 	colorMode?: OgNoiseConfig['colorMode']
 }
 
+// Simple in-memory cache for noise textures
+const noiseCache = new Map<string, string>()
+
 /**
  * Generate a noise PNG as a data URL.
  */
 export function generateNoiseDataUrl(options: NoiseOptions): string {
 	const { seed, width, height, opacity = 0.4, colorMode = 'grayscale' } = options
+	
+	const cacheKey = `noise:${seed}:${width}:${height}:${opacity}:${colorMode}`
+	if (noiseCache.has(cacheKey)) {
+		return noiseCache.get(cacheKey)!
+	}
 
 	const pixels = generateNoisePixels(width, height, seed, {
 		gridSize: 4,
@@ -42,7 +50,10 @@ export function generateNoiseDataUrl(options: NoiseOptions): string {
 	}
 
 	const pngBuffer = PNGEncoder.encode(pixels, width, height)
-	return `data:image/png;base64,${pngBuffer.toString('base64')}`
+	const dataUrl = `data:image/png;base64,${pngBuffer.toString('base64')}`
+	
+	noiseCache.set(cacheKey, dataUrl)
+	return dataUrl
 }
 
 /**
@@ -51,6 +62,11 @@ export function generateNoiseDataUrl(options: NoiseOptions): string {
  */
 export function generateCircleNoiseDataUrl(options: CircleNoiseOptions): string {
 	const { seed, size, opacity = 0.15, colorMode = 'grayscale' } = options
+
+	const cacheKey = `circle:${seed}:${size}:${opacity}:${colorMode}`
+	if (noiseCache.has(cacheKey)) {
+		return noiseCache.get(cacheKey)!
+	}
 
 	const pixels = generateNoisePixels(size, size, seed, {
 		gridSize: 4,
@@ -86,5 +102,8 @@ export function generateCircleNoiseDataUrl(options: CircleNoiseOptions): string 
 	}
 
 	const pngBuffer = PNGEncoder.encode(pixels, size, size)
-	return `data:image/png;base64,${pngBuffer.toString('base64')}`
+	const dataUrl = `data:image/png;base64,${pngBuffer.toString('base64')}`
+	
+	noiseCache.set(cacheKey, dataUrl)
+	return dataUrl
 }
