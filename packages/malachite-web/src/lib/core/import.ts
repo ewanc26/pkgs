@@ -1,6 +1,6 @@
 /**
  * Import orchestration logic — pure TypeScript, no Svelte deps.
- * Handles all five ImportMode flows with progress + cancellation callbacks.
+ * Handles all seven ImportMode flows with progress + cancellation callbacks.
  *
  * All heavy logic (publisher, sync, merge) lives in src/core/ and is shared
  * with the CLI. Only the browser File-loading helpers and this orchestrator
@@ -12,6 +12,8 @@ import type { ImportMode, LogEntry, PlayRecord } from '$lib/types.js';
 import { CLIENT_AGENT } from '../config.js';
 import { parseLastFmFile, convertToPlayRecord } from './csv.js';
 import { parseSpotifyFiles, convertSpotifyToPlayRecord } from './spotify.js';
+import { parseAppleMusicFile, convertAppleMusicToPlayRecord } from './apple-music.js';
+import { parseYouTubeMusicFiles, convertYouTubeMusicToPlayRecord } from './youtube-music.js';
 import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '@ewanc26/malachite/core';
 import {
   fetchExistingRecords,
@@ -48,6 +50,8 @@ export async function runImport(
   mode: ImportMode,
   lastfmFiles: File[],
   spotifyFiles: File[],
+  appleFiles: File[],
+  youtubeFiles: File[],
   { dryRun, reverseOrder, fresh }: ImportOptions,
   { onLog, onProgress, isCancelled }: ImportCallbacks,
 ): Promise<ImportResult> {
@@ -98,38 +102,60 @@ export async function runImport(
     let records: PlayRecord[] = [];
 
     if (mode === 'combined') {
-      const lfRaw = await parseLastFmFile(lastfmFiles[0]);
-      onLog('info', `Last.fm: ${lfRaw.length.toLocaleString()} scrobbles`);
-      const spRaw = await parseSpotifyFiles(spotifyFiles);
-      onLog('info', `Spotify: ${spRaw.length.toLocaleString()} tracks`);
-      const { merged, stats } = mergePlayRecords(
-        lfRaw.map((r) => convertToPlayRecord(r, CLIENT_AGENT)),
-        spRaw.map((r) => convertSpotifyToPlayRecord(r, CLIENT_AGENT)),
-      );
-      records = merged;
-      onLog('success', `Merged: ${stats.mergedTotal.toLocaleString()} unique records (${stats.duplicatesRemoved} removed)`);
+      let combinedRecords: PlayRecord[] = [];
+      
+      if (lastfmFiles.length > 0) {
+        const lfRaw = await parseLastFmFile(lastfmFiles[0]);
+        onLog('info', `Last.fm: ${lfRaw.length.toLocaleString()} scrobbles`);
+        combinedRecords = combinedRecords.concat(lfRaw.map(r => convertToPlayRecord(r, CLIENT_AGENT)));
+      }
+      
+      if (spotifyFiles.length > 0) {
+        const spRaw = await parseSpotifyFiles(spotifyFiles);
+        onLog('info', `Spotify: ${spRaw.length.toLocaleString()} tracks`);
+        combinedRecords = combinedRecords.concat(spRaw.map(r => convertSpotifyToPlayRecord(r, CLIENT_AGENT)));
+      }
+
+      if (appleFiles.length > 0) {
+        const amRaw = await parseAppleMusicFile(appleFiles[0]);
+        onLog('info', `Apple Music: ${amRaw.length.toLocaleString()} plays`);
+        combinedRecords = combinedRecords.concat(amRaw.map(r => convertAppleMusicToPlayRecord(r, CLIENT_AGENT)));
+      }
+
+      if (youtubeFiles.length > 0) {
+        const ytRaw = await parseYouTubeMusicFiles(youtubeFiles);
+        onLog('info', `YouTube Music: ${ytRaw.length.toLocaleString()} plays`);
+        combinedRecords = combinedRecords.concat(ytRaw.map(r => convertYouTubeMusicToPlayRecord(r, CLIENT_AGENT)));
+      }
+
+      const { unique, duplicates: inputDups } = deduplicateInputRecords(combinedRecords);
+      records = unique;
+      onLog('success', `Merged: ${records.length.toLocaleString()} unique records (${inputDups} duplicates removed)`);
     } else if (mode === 'spotify') {
       const spRaw = await parseSpotifyFiles(spotifyFiles);
       records = spRaw.map((r) => convertSpotifyToPlayRecord(r, CLIENT_AGENT));
       onLog('success', `Loaded ${records.length.toLocaleString()} Spotify records`);
+    } else if (mode === 'apple') {
+      const amRaw = await parseAppleMusicFile(appleFiles[0]);
+      records = amRaw.map((r) => convertAppleMusicToPlayRecord(r, CLIENT_AGENT));
+      onLog('success', `Loaded ${records.length.toLocaleString()} Apple Music records`);
+    } else if (mode === 'youtube') {
+      const ytRaw = await parseYouTubeMusicFiles(youtubeFiles);
+      records = ytRaw.map((r) => convertYouTubeMusicToPlayRecord(r, CLIENT_AGENT));
+      onLog('success', `Loaded ${records.length.toLocaleString()} YouTube Music records`);
     } else {
       const lfRaw = await parseLastFmFile(lastfmFiles[0]);
       records = lfRaw.map((r) => convertToPlayRecord(r, CLIENT_AGENT));
       onLog('success', `Loaded ${records.length.toLocaleString()} Last.fm records`);
     }
 
-    const { unique, duplicates: inputDups } = deduplicateInputRecords(records);
-    records = unique;
-    if (inputDups > 0) onLog('warn', `Removed ${inputDups.toLocaleString()} duplicate(s) from input`);
+    if (mode !== 'combined') {
+      const { unique, duplicates: inputDups } = deduplicateInputRecords(records);
+      records = unique;
+      if (inputDups > 0) onLog('warn', `Removed ${inputDups.toLocaleString()} duplicate(s) from input`);
+    }
 
     // ── Sync check (CAR primary; applyWrites fallback) ───────────────────────
-    // CAR export (com.atproto.sync.getRepo) sits on a separate, far more
-    // generous rate-limit bucket and costs zero write-quota points — it's the
-    // preferred way to identify records we already have so we skip them.
-    // If CAR is unavailable for any reason we fall back gracefully: the record
-    // list is left unfiltered and applyWrites handles everything.  The PDS
-    // will reject creates for rkeys that already exist, but new records still
-    // land correctly and the import isn't aborted.
     onLog('section', '── Sync Check ───────────────────────────────────────');
     onLog('info', 'Fetching existing records via CAR export…');
     let existing: Map<string, ExistingRecord>;
