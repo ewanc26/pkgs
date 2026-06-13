@@ -1,4 +1,6 @@
 {
+	"framework": "sveltekit",
+	"buildCommand": "pnpm build",
 	"installCommand": "cd ../.. && pnpm install",
-	"buildCommand": "pnpm run build"
+	"outputDirectory": ".vercel/output"
 }

@@ -489,7 +489,7 @@
 							placeholder="did:plc:… — required for extended-mode Pckt blobs"
 						/>
 					</div>
-				{#else}
+				{:else}
 					<button
 						type="button"
 						class="ghost-hint"
