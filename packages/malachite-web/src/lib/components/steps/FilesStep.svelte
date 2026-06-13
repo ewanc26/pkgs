@@ -1,45 +1,60 @@
 <script lang="ts">
-  import { ArrowLeft, ArrowRight, CheckCircle2, Music2, Disc3 } from '@lucide/svelte';
+  import { ArrowLeft, ArrowRight, CheckCircle2, Music2, Disc3, Apple, Youtube } from '@lucide/svelte';
 
   let {
     lastfmFiles  = $bindable<File[]>([]),
     spotifyFiles = $bindable<File[]>([]),
+    appleFiles   = $bindable<File[]>([]),
+    youtubeFiles = $bindable<File[]>([]),
     needs,
     oncontinue,
     onback,
   }: {
     lastfmFiles:  File[];
     spotifyFiles: File[];
-    needs: { lastfm: boolean; spotify: boolean; files: boolean };
+    appleFiles:   File[];
+    youtubeFiles: File[];
+    needs: { lastfm: boolean; spotify: boolean; apple: boolean; youtube: boolean; files: boolean };
     oncontinue: () => void;
     onback: () => void;
   } = $props();
 
   let lfDragging = $state(false);
   let spDragging = $state(false);
+  let amDragging = $state(false);
+  let ytDragging = $state(false);
 
-  function handleDrop(e: DragEvent, type: 'lf' | 'sp') {
+  function handleDrop(e: DragEvent, type: 'lf' | 'sp' | 'am' | 'yt') {
     e.preventDefault();
+    const files = Array.from(e.dataTransfer?.files ?? []);
     if (type === 'lf') {
       lfDragging  = false;
-      lastfmFiles = Array.from(e.dataTransfer?.files ?? []).filter((f) => f.name.endsWith('.csv'));
-    } else {
+      lastfmFiles = files.filter((f) => f.name.endsWith('.csv'));
+    } else if (type === 'sp') {
       spDragging   = false;
-      spotifyFiles = Array.from(e.dataTransfer?.files ?? []).filter((f) => f.name.endsWith('.json'));
+      spotifyFiles = files.filter((f) => f.name.endsWith('.json'));
+    } else if (type === 'am') {
+      amDragging  = false;
+      appleFiles  = files.filter((f) => f.name.endsWith('.csv'));
+    } else if (type === 'yt') {
+      ytDragging   = false;
+      youtubeFiles = files.filter((f) => f.name.endsWith('.json'));
     }
   }
 
   let canContinue = $derived(
-    (needs.lastfm && needs.spotify && lastfmFiles.length > 0 && spotifyFiles.length > 0) ||
-    (needs.lastfm && !needs.spotify && lastfmFiles.length > 0) ||
-    (!needs.lastfm && needs.spotify && spotifyFiles.length > 0),
+    (!needs.lastfm || lastfmFiles.length > 0) &&
+    (!needs.spotify || spotifyFiles.length > 0) &&
+    (!needs.apple || appleFiles.length > 0) &&
+    (!needs.youtube || youtubeFiles.length > 0) &&
+    (lastfmFiles.length > 0 || spotifyFiles.length > 0 || appleFiles.length > 0 || youtubeFiles.length > 0)
   );
 </script>
 
 <section class="card-section">
   <button class="back-btn inline-flex items-center gap-1" onclick={onback}><ArrowLeft size={13} /> Back</button>
   <h2 class="section-title">
-    Upload your export{needs.lastfm && needs.spotify ? 's' : ''}
+    Upload your exports
   </h2>
 
   <div class="drop-zones">
@@ -115,6 +130,79 @@
         {/if}
       </div>
     {/if}
+
+    {#if needs.apple}
+      <div
+        class="drop-zone"
+        class:dragging={amDragging}
+        class:filled={appleFiles.length > 0}
+        role="button"
+        tabindex="0"
+        aria-label="Upload Apple Music CSV file"
+        ondragover={(e) => { e.preventDefault(); amDragging = true; }}
+        ondragleave={() => (amDragging = false)}
+        ondrop={(e) => handleDrop(e, 'am')}
+        onclick={() => document.getElementById('amInput')?.click()}
+        onkeydown={(e) => e.key === 'Enter' && document.getElementById('amInput')?.click()}
+      >
+        <input
+          id="amInput"
+          type="file"
+          accept=".csv"
+          hidden
+          onchange={(e) => { appleFiles = Array.from((e.target as HTMLInputElement).files ?? []); }}
+        />
+        {#if appleFiles.length > 0}
+          <span class="drop-icon drop-done"><CheckCircle2 size={28} /></span>
+          <span class="drop-filename">{appleFiles[0].name}</span>
+          <span class="drop-meta">{(appleFiles[0].size / 1024).toFixed(0)} KB · CSV</span>
+        {:else}
+          <span class="drop-icon"><Apple size={28} /></span>
+          <span class="drop-title">Apple Music CSV</span>
+          <span class="drop-hint">Drag & drop or click to select</span>
+        {/if}
+      </div>
+    {/if}
+
+    {#if needs.youtube}
+      <div
+        class="drop-zone"
+        class:dragging={ytDragging}
+        class:filled={youtubeFiles.length > 0}
+        role="button"
+        tabindex="0"
+        aria-label="Upload YouTube Music JSON files"
+        ondragover={(e) => { e.preventDefault(); ytDragging = true; }}
+        ondragleave={() => (ytDragging = false)}
+        ondrop={(e) => handleDrop(e, 'yt')}
+        onclick={() => document.getElementById('ytInput')?.click()}
+        onkeydown={(e) => e.key === 'Enter' && document.getElementById('ytInput')?.click()}
+      >
+        <input
+          id="ytInput"
+          type="file"
+          accept=".json"
+          multiple
+          hidden
+          onchange={(e) => { youtubeFiles = Array.from((e.target as HTMLInputElement).files ?? []); }}
+        />
+        {#if youtubeFiles.length > 0}
+          <span class="drop-icon drop-done"><CheckCircle2 size={28} /></span>
+          <span class="drop-filename">
+            {youtubeFiles.length === 1 ? youtubeFiles[0].name : `${youtubeFiles.length} files selected`}
+          </span>
+          <span class="drop-meta">
+            {youtubeFiles.length === 1
+              ? `${(youtubeFiles[0].size / 1024).toFixed(0)} KB · JSON`
+              : 'JSON · Watch_History.json'}
+          </span>
+        {:else}
+          <span class="drop-icon"><Youtube size={28} /></span>
+          <span class="drop-title">YouTube Music JSON</span>
+          <span class="drop-hint">Select one or more JSON files</span>
+        {/if}
+      </div>
+    {/if}
   </div>
 
   <div class="how-to">
@@ -136,6 +224,26 @@
             spotify.com/account/privacy
           </a>, request "Extended streaming history", and upload all
           <code>Streaming_History_Audio_*.json</code> files.
+        </p>
+      </details>
+    {/if}
+    {#if needs.apple}
+      <details>
+        <summary>How to export from Apple Music</summary>
+        <p>
+          Go to <a href="https://privacy.apple.com/" target="_blank" rel="noopener">privacy.apple.com</a>, 
+          request a copy of your data (Apple Media Services), and once ready, upload the 
+          <code>Apple_Media_Services/Apple Music Activity/Apple Music - Play History Daily.csv</code> file.
+        </p>
+      </details>
+    {/if}
+    {#if needs.youtube}
+      <details>
+        <summary>How to export from YouTube Music</summary>
+        <p>
+          Go to <a href="https://takeout.google.com/" target="_blank" rel="noopener">takeout.google.com</a>, 
+          deselect all and select only "YouTube and YouTube Music", choose "JSON" format, and upload the 
+          <code>YouTube and YouTube Music/history/watch-history.json</code> file.
         </p>
       </details>
     {/if}
