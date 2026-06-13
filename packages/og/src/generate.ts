@@ -5,6 +5,8 @@
 
 import satori from 'satori'
 import { Resvg } from '@resvg/resvg-js'
+import { head, put } from '@vercel/blob'
+import { createHash } from 'node:crypto'
 import { loadFonts, createSatoriFonts } from './fonts.js'
 import { generateNoiseDataUrl, generateCircleNoiseDataUrl } from './noise.js'
 import { getTemplate } from './templates/index.js'
@@ -18,6 +20,24 @@ import type {
 // Standard OG image dimensions
 export const OG_WIDTH = 1200
 export const OG_HEIGHT = 630
+
+/**
+ * Generate a deterministic hash for the options to use as a blob key.
+ */
+function getOptionsHash(options: OgGenerateOptions): string {
+	const str = JSON.stringify({
+		title: options.title,
+		description: options.description,
+		siteName: options.siteName,
+		image: options.image,
+		template: options.template || 'blog',
+		colors: options.colors,
+		noise: options.noise,
+		width: options.width || OG_WIDTH,
+		height: options.height || OG_HEIGHT,
+	})
+	return createHash('sha256').update(str).digest('hex')
+}
 
 /**
  * Generate an OG image as PNG Buffer.
@@ -37,6 +57,26 @@ export async function generateOgImage(options: OgGenerateOptions): Promise<Buffe
 		height = OG_HEIGHT,
 		debugSvg = false,
 	} = options
+
+	// Check Vercel Blob if not in debug mode
+	const hash = getOptionsHash(options)
+	const blobPath = `og-cache/${hash}.png`
+	
+	if (!debugSvg && process.env.BLOB_READ_WRITE_TOKEN) {
+		try {
+			const blobUrl = `https://${process.env.VERCEL_BLOB_STORE_ID}.public.blob.vercel-storage.com/${blobPath}`
+			const existingBlob = await head(blobUrl).catch(() => null)
+			if (existingBlob) {
+				const response = await fetch(blobUrl)
+				if (response.ok) {
+					const arrayBuffer = await response.arrayBuffer()
+					return Buffer.from(arrayBuffer)
+				}
+			}
+		} catch (e) {
+			console.error('Failed to check Vercel Blob:', e)
+		}
+	}
 
 	// Merge colours
 	const colors: OgColorConfig = {
@@ -110,8 +150,22 @@ export async function generateOgImage(options: OgGenerateOptions): Promise<Buffe
 		},
 	})
 	const pngData = resvg.render()
+	const buffer = Buffer.from(pngData.asPng())
 
-	return Buffer.from(pngData.asPng())
+	// Store in Vercel Blob if token is available
+	if (process.env.BLOB_READ_WRITE_TOKEN) {
+		try {
+			await put(blobPath, buffer, {
+				access: 'public',
+				contentType: 'image/png',
+				addRandomSuffix: false,
+			})
+		} catch (e) {
+			console.error('Failed to store in Vercel Blob:', e)
+		}
+	}
+
+	return buffer
 }
 
 /**
