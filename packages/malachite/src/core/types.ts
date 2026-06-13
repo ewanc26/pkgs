@@ -61,6 +61,31 @@ export interface SpotifyRecord {
   incognito_mode: boolean;
 }
 
+export interface ListenBrainzRecord {
+  listened_at: number;
+  track_metadata: {
+    additional_info?: {
+      artist_mbids?: string[];
+      release_mbid?: string;
+      recording_mbid?: string;
+      track_mbid?: string;
+      isrc?: string;
+      music_service?: string;
+      origin_url?: string;
+    };
+    mbid_mapping: {
+      artist_mbids?: string[];
+      release_mbid?: string;
+      recording_mbid?: string;
+      recording_name?: string;
+      artists?: { artist_credit_name: string; artist_mbid: string; }[];
+    }
+    artist_name: string;
+    track_name: string;
+    release_name?: string;
+  };
+}
+
 export interface AppleMusicRecord {
   'Content Name': string;
   'Artist Name': string;
