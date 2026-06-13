@@ -35,6 +35,8 @@
 	let agent = $state<Agent | null>(null);
 	let lastfmFiles = $state<File[]>([]);
 	let spotifyFiles = $state<File[]>([]);
+	let appleFiles = $state<File[]>([]);
+	let youtubeFiles = $state<File[]>([]);
 
 	let dryRun = $state(false);
 	let reverseOrder = $state(false);
@@ -113,6 +115,8 @@
 				mode,
 				lastfmFiles,
 				spotifyFiles,
+				appleFiles,
+				youtubeFiles,
 				{ dryRun, reverseOrder, fresh, batchSize, batchDelay, aggressive },
 				{
 					onLog: addLog,
@@ -169,6 +173,8 @@
 		agent = null;
 		lastfmFiles = [];
 		spotifyFiles = [];
+		appleFiles = [];
+		youtubeFiles = [];
 		dryRun = false;
 		reverseOrder = false;
 		fresh = false;
@@ -234,6 +240,8 @@
 					<FilesStep
 						bind:lastfmFiles
 						bind:spotifyFiles
+						bind:appleFiles
+						bind:youtubeFiles
 						{needs}
 						oncontinue={() => goTo(3)}
 						onback={handleBack}
