@@ -1,4 +1,4 @@
-import { Music2, Disc3, Layers2, RefreshCw, ListFilter } from '@lucide/svelte';
+import { Music2, Disc3, Layers2, RefreshCw, ListFilter, Apple, Youtube } from '@lucide/svelte';
 import type { ImportMode } from '$lib/types.js';
 import type { Component } from 'svelte';
 
@@ -14,7 +14,9 @@ export interface ModeConfig {
 export const MODES: ModeConfig[] = [
   { id: 'lastfm',      icon: Music2 as IconComponent,    title: 'Last.fm',     description: 'Import scrobble history from a Last.fm CSV export' },
   { id: 'spotify',     icon: Disc3 as IconComponent,      title: 'Spotify',     description: 'Import play history from a Spotify JSON export' },
-  { id: 'combined',    icon: Layers2 as IconComponent,    title: 'Combined',    description: 'Merge Last.fm + Spotify with smart deduplication' },
+  { id: 'apple',       icon: Apple as IconComponent,      title: 'Apple Music', description: 'Import history from an Apple Data Privacy CSV' },
+  { id: 'youtube',     icon: Youtube as IconComponent,    title: 'YouTube',     description: 'Import history from a Google Takeout JSON' },
+  { id: 'combined',    icon: Layers2 as IconComponent,    title: 'Combined',    description: 'Merge multiple sources with smart deduplication' },
   { id: 'sync',        icon: RefreshCw as IconComponent,  title: 'Sync',        description: 'Only import records not already in Teal' },
   { id: 'deduplicate', icon: ListFilter as IconComponent, title: 'Deduplicate', description: 'Find and remove duplicate records from Teal' },
 ];
@@ -24,6 +26,8 @@ export function modeNeeds(mode: ImportMode | null) {
   return {
     lastfm:  mode === 'lastfm'  || mode === 'combined' || mode === 'sync',
     spotify: mode === 'spotify' || mode === 'combined',
+    apple:   mode === 'apple'   || mode === 'combined',
+    youtube: mode === 'youtube' || mode === 'combined',
     files:   mode !== 'deduplicate',
   };
 }
