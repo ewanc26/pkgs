@@ -73,7 +73,7 @@ export interface ListenBrainzRecord {
       music_service?: string;
       origin_url?: string;
     };
-    mbid_mapping?: {
+    mbid_mapping: {
       artist_mbids?: string[];
       release_mbid?: string;
       recording_mbid?: string;
