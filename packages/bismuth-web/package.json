@@ -26,8 +26,7 @@
 	},
 	"scripts": {
 		"dev": "vite dev",
-		"prebuild": "pnpm --filter @ewanc26/bismuth build && pnpm --filter @ewanc26/landing-ui build",
-		"build": "vite build",
+		"build": "pnpm --filter @ewanc26/bismuth build && pnpm --filter @ewanc26/landing-ui build && vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
