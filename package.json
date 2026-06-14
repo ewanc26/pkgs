@@ -23,13 +23,13 @@
     "py:install": "pip install -r packages/llm-analyser/requirements.txt"
   },
   "engines": {
-    "node": ">=18",
+    "node": "26.3.0",
     "pnpm": ">=9"
   },
   "devDependencies": {
-    "prettier": "latest",
-    "prettier-plugin-svelte": "latest",
-    "prettier-plugin-tailwindcss": "latest",
-    "vercel": "latest"
+    "prettier": "^3.8.3",
+    "prettier-plugin-svelte": "^3.5.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "vercel": "^51.4.0"
   }
 }
