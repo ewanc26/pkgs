@@ -1,11 +1,7 @@
 /**
  * ATProto record publisher — environment-agnostic.
  * Converts MicroblogPost[] into app.bsky.feed.post records and publishes
- * them via com.atproto.repo.createRecord with rate-limit-aware throttling.
- *
- * Posts are published sequentially (not batched) so that thread references
- * (replyTo, threadRoot) can be resolved to real AT URIs + CIDs. Posts
- * within a split thread must be published in order.
+ * them via com.atproto.repo.applyWrites with rate-limit-aware throttling.
  */
 
 import type { Agent } from '@atproto/api';
@@ -16,6 +12,7 @@ import { normalizeHeaders, isRateLimitError } from './rate-limit-headers.js';
 
 const RECORD_TYPE = 'app.bsky.feed.post';
 const POINTS_PER_RECORD = 1;
+const MAX_BATCH_SIZE = 50;
 
 export interface PublishProgress {
   recordsProcessed: number;
@@ -77,7 +74,6 @@ async function withRetry<T>(
 
 /**
  * Convert a MicroblogPost into an app.bsky.feed.post record value.
- * Resolves opal-internal: references using the publishedPostMap.
  */
 function toPostRecord(
   post: MicroblogPost,
@@ -96,7 +92,6 @@ function toPostRecord(
     }));
   }
 
-  // Resolve reply references
   const replyTo = resolveRef(post.replyTo, publishedMap);
   const threadRoot = resolveRef(post.threadRoot, publishedMap);
 
@@ -107,12 +102,10 @@ function toPostRecord(
     };
   }
 
-  // Language tags
   if (post.langs && post.langs.length > 0) {
     record.langs = post.langs;
   }
 
-  // Content warning tags
   if (post.contentWarning) {
     record.tags = [`cw:${post.contentWarning}`];
   }
@@ -120,34 +113,24 @@ function toPostRecord(
   return record;
 }
 
-/**
- * Resolve a reference to a { uri, cid } strongRef.
- * Handles opal-internal: refs (split thread continuations) and at:// refs.
- */
 function resolveRef(
   ref: string | undefined,
   publishedMap: Map<string, { uri: string; cid: string }>,
 ): { uri: string; cid: string } | undefined {
   if (!ref) return undefined;
 
-  // opal-internal: references — look up the published post
   if (ref.startsWith('opal-internal:')) {
     const key = ref.replace('opal-internal:', '');
     return publishedMap.get(key);
   }
 
-  // at:// references — we have the URI but need the CID
   if (ref.startsWith('at://')) {
-    // Try to find in published map by URI
     for (const [, v] of publishedMap) {
       if (v.uri === ref) return v;
     }
-    // Return without CID — the PDS may reject this
     return { uri: ref, cid: '' };
   }
 
-  // Platform-specific references (twitter:status:..., nostr:..., etc.)
-  // These can't be resolved to AT URIs — skip the reply ref
   return undefined;
 }
 
@@ -162,18 +145,8 @@ export async function publishRecords(
 
   if (dryRun) {
     onLog('info', `[DRY RUN] Would publish ${total.toLocaleString()} posts`);
-    posts.slice(0, 5).forEach((p, i) => {
-      const threadInfo = p.threadTotal && p.threadTotal > 1
-        ? ` [thread ${p.threadIndex}/${p.threadTotal}]`
-        : '';
-      onLog('info', `  ${i + 1}. ${p.text.slice(0, 60)}${p.text.length > 60 ? '…' : ''}${threadInfo} (${p.createdAt.slice(0, 10)})`);
-    });
-    if (total > 5) onLog('info', `  …and ${total - 5} more`);
     return { successCount: total, errorCount: 0, cancelled: false };
   }
-
-  const ac = new AbortController();
-  const cancelPoll = setInterval(() => { if (isCancelled()) ac.abort(); }, 50);
 
   const rl = new RateLimiter({ headroom: 0.15 });
   let delay = 500;
@@ -181,11 +154,9 @@ export async function publishRecords(
   let errorCount = 0;
   let i = 0;
   const startTime = Date.now();
-
-  // Track all published posts so thread continuations can reference them
   const publishedMap = new Map<string, { uri: string; cid: string }>();
 
-  onLog('info', `Publishing ${total.toLocaleString()} posts to ATProto…`);
+  onLog('info', `Publishing ${total.toLocaleString()} posts to ATProto using batch processing…`);
 
   try {
     while (i < total) {
@@ -194,23 +165,42 @@ export async function publishRecords(
         return { successCount, errorCount, cancelled: true };
       }
 
-      const post = posts[i];
-      const pct = ((i / total) * 100).toFixed(1);
+      // Batching logic: group posts that don't depend on each other's URIs/CIDs
+      // within the same batch.
+      const batchPosts: MicroblogPost[] = [];
+      while (batchPosts.length < MAX_BATCH_SIZE && i + batchPosts.length < total) {
+        const nextPost = posts[i + batchPosts.length];
+        
+        const dependsOnCurrentBatch = (nextPost.replyTo?.startsWith('opal-internal:') && 
+          batchPosts.some(p => `opal-internal:${p.originalId}` === nextPost.replyTo)) ||
+          (nextPost.threadRoot?.startsWith('opal-internal:') && 
+          batchPosts.some(p => `opal-internal:${p.originalId}` === nextPost.threadRoot));
 
+        if (dependsOnCurrentBatch && batchPosts.length > 0) break;
+        
+        batchPosts.push(nextPost);
+        if (dependsOnCurrentBatch) break; 
+      }
+
+      const pct = ((i / total) * 100).toFixed(1);
       onProgress({
         recordsProcessed: i,
         totalRecords: total,
         successCount,
         errorCount,
-        message: `[${pct}%] Post ${i + 1}/${total}`,
+        message: `[${pct}%] Processing batch of ${batchPosts.length} posts (${i + 1}-${i + batchPosts.length}/${total})`,
       });
 
-      const record = toPostRecord(post, publishedMap);
-      // TID-based rkey — time-sortable, spec-compliant, derived from the
-      // original post's timestamp. Monotonicity is guaranteed by @ewanc26/tid.
-      const rkey = generateTID(post.createdAt);
+      const writes = batchPosts.map(post => ({
+        $type: 'com.atproto.repo.applyWrites#create',
+        collection: RECORD_TYPE,
+        rkey: generateTID(post.createdAt),
+        value: toPostRecord(post, publishedMap),
+      }));
 
-      await rl.waitForPermit(POINTS_PER_RECORD, isCancelled);
+      const pointsNeeded = batchPosts.length * POINTS_PER_RECORD;
+      await rl.waitForPermit(pointsNeeded, isCancelled);
+      
       if (isCancelled()) {
         onLog('warn', 'Import cancelled by user.');
         return { successCount, errorCount, cancelled: true };
@@ -218,65 +208,56 @@ export async function publishRecords(
 
       try {
         const response = await withRetry(
-          () => agent.com.atproto.repo.createRecord({
+          () => agent.com.atproto.repo.applyWrites({
             repo: agent.did ?? (agent as any).sessionManager?.did ?? '',
-            collection: RECORD_TYPE,
-            rkey,
-            record: record as any,
-          }, { signal: ac.signal }),
+            writes: writes as any,
+          }),
           3,
-          (attempt, err) => onLog('warn', `Post ${i + 1} failed (attempt ${attempt}/3): ${err.message} — retrying…`),
+          (attempt, err) => onLog('warn', `Batch failed (attempt ${attempt}/3): ${err.message} — retrying…`),
         );
 
-        const uri = (response.data as any).uri as string;
-        const cid = (response.data as any).cid as string;
+        const results = response.data.results || [];
+        batchPosts.forEach((post, idx) => {
+          const res = results[idx];
+          if (res && (res as any).uri && (res as any).cid) {
+            publishedMap.set(post.originalId, { uri: (res as any).uri, cid: (res as any).cid });
+          }
+        });
 
-        // Store for thread reference resolution
-        publishedMap.set(post.originalId, { uri, cid });
-
-        successCount++;
+        successCount += batchPosts.length;
+        i += batchPosts.length;
 
         const rawHeaders = extractHeaders(response);
         if (Object.keys(rawHeaders).length > 0) {
           rl.updateFromHeaders(normalizeHeaders(rawHeaders));
-
-          if (i === 0) {
-            const cap = rl.getServerCapacity();
-            if (cap) {
-              const remaining = rl.getActualRemaining();
-              const recsPerSec = (cap.limit / cap.windowSeconds / POINTS_PER_RECORD) * 0.8;
-              delay = Math.max(500, Math.floor(1000 / recsPerSec));
-              onLog('info', `Server: ${cap.limit} pts/${cap.windowSeconds}s — delay ${delay}ms between posts`);
-              onLog('info', `   Remaining quota: ${remaining.toLocaleString()}/${cap.limit.toLocaleString()}`);
+          const cap = rl.getServerCapacity();
+          if (cap) {
+            const remaining = rl.getActualRemaining();
+            const safeQuota = cap.limit * 0.8;
+            if (remaining < safeQuota * 0.2) {
+              delay = Math.min(5000, delay + 500);
+            } else if (remaining > safeQuota * 0.5) {
+              delay = Math.max(100, delay - 100);
             }
           }
         }
 
-        const threadInfo = post.threadTotal && post.threadTotal > 1
-          ? ` [${post.threadIndex}/${post.threadTotal}]`
-          : '';
         const rps = (successCount / ((Date.now() - startTime) / 1000)).toFixed(1);
-        onLog('progress', `${successCount}/${total} posts (${rps} rec/s)${threadInfo}`);
+        onLog('progress', `${successCount}/${total} posts (${rps} rec/s)`);
 
-        i++;
       } catch (err: unknown) {
         const e = err as any;
-        if (ac.signal.aborted || isCancelled()) {
-          return { successCount, errorCount, cancelled: true };
-        }
         if (isRateLimitError(e)) {
           onLog('warn', 'Rate limit hit — waiting for quota reset…');
-          const rawErrHeaders: Record<string, string> =
-            typeof e?.response?.headers?.forEach === 'function'
-              ? (() => { const o: Record<string, string> = {}; e.response.headers.forEach((v: string, k: string) => { o[k] = v; }); return o; })()
-              : (e?.response?.headers ?? e?.headers ?? {});
+          const rawErrHeaders: Record<string, string> = e?.headers ?? {};
           rl.handleRateLimitHit(normalizeHeaders(rawErrHeaders));
-          await rl.waitForPermit(POINTS_PER_RECORD, isCancelled);
-          continue; // retry same post
+          await rl.waitForPermit(pointsNeeded, isCancelled);
+          continue; 
         }
-        errorCount++;
-        onLog('error', `Post ${i + 1} failed: ${e?.message ?? e}`);
-        i++;
+        
+        onLog('error', `Batch starting at ${i + 1} failed: ${e?.message ?? e}`);
+        errorCount += batchPosts.length;
+        i += batchPosts.length;
       }
 
       if (i < total) {
@@ -284,7 +265,7 @@ export async function publishRecords(
       }
     }
   } finally {
-    clearInterval(cancelPoll);
+    // Cleanup if needed
   }
 
   return { successCount, errorCount, cancelled: false };
