@@ -10,6 +10,7 @@
  * so we only pull the functions from spotify.ts to avoid a duplicate export.
  */
 
+export * from './apple-music.js';
 export * from './auth.js';
 export * from './car-fetch.js';
 export * from './config.js';
@@ -22,3 +23,4 @@ export { parseSpotifyJsonContent, convertSpotifyToPlayRecord } from './spotify.j
 export * from './sync.js';
 export * from './tid.js';
 export * from './types.js';
+export * from './youtube-music.js';
