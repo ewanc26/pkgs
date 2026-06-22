@@ -1,5 +1,5 @@
 {
 	"framework": "sveltekit",
-	"installCommand": "npm install --include=dev",
-	"buildCommand": "npm run build"
+	"installCommand": "cd ../.. && pnpm install --ignore-scripts --filter @ewanc26/croft-click...",
+	"buildCommand": "cd ../.. && pnpm --filter @ewanc26/croft-click... build"
 }
