@@ -1,5 +1,5 @@
 {
 	"framework": "sveltekit",
-	"installCommand": "cd ../.. && pnpm install --ignore-scripts --frozen-lockfile --filter @ewanc26/utils --filter @ewanc26/tid --filter @ewanc26/malachite --filter @ewanc26/landing-ui --filter @ewanc26/malachite-web",
-	"buildCommand": "cd ../.. && pnpm --filter @ewanc26/utils --filter @ewanc26/tid --filter @ewanc26/malachite --filter @ewanc26/landing-ui --filter @ewanc26/malachite-web build"
+	"installCommand": "cd ../.. && pnpm install --ignore-scripts --frozen-lockfile --filter @ewanc26/malachite-web...",
+	"buildCommand": "cd ../.. && pnpm --filter @ewanc26/malachite-web... build"
 }
