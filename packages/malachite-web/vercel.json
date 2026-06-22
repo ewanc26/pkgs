@@ -1,6 +1,6 @@
 {
-  "framework": "sveltekit",
-  "buildCommand": "pnpm build",
-  "installCommand": "cd ../.. && pnpm install",
-  "outputDirectory": ".vercel/output"
+	"framework": "sveltekit",
+	"nodeVersion": "22.x",
+	"installCommand": "cd ../.. && pnpm install --ignore-scripts --filter @ewanc26/malachite-web...",
+	"buildCommand": "cd ../.. && pnpm --filter @ewanc26/malachite-web... build"
 }

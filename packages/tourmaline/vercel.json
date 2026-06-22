@@ -1,0 +1,6 @@
+{
+	"framework": "sveltekit",
+	"nodeVersion": "22.x",
+	"installCommand": "cd ../.. && pnpm install --ignore-scripts --filter @ewanc26/tourmaline...",
+	"buildCommand": "cd ../.. && pnpm --filter @ewanc26/tourmaline... build"
+}
