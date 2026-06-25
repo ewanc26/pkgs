@@ -24,6 +24,14 @@ minimumReleaseAgeExclude:
   - '@vercel/node@5.8.21'
   - '@vercel/static-build@2.11.3'
   - vercel@54.17.1
+  - '@shikijs/core@4.3.0'
+  - '@shikijs/engine-javascript@4.3.0'
+  - '@shikijs/engine-oniguruma@4.3.0'
+  - '@shikijs/langs@4.3.0'
+  - '@shikijs/primitive@4.3.0'
+  - '@shikijs/themes@4.3.0'
+  - '@shikijs/types@4.3.0'
+  - shiki@4.3.0
 
 onlyBuiltDependencies:
   - core-js
