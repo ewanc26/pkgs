@@ -94,6 +94,20 @@
 		}
 	}
 
+	// ─── download ────────────────────────────────────────────────────────────────
+
+	function downloadJSON() {
+		if (!convertResult) return;
+		const posts = convertResult.posts.filter((_, i) => selectedPosts.has(i));
+		const blob = new Blob([JSON.stringify(posts, null, 2)], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `opal-${platform}-${posts.length}-posts.json`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
 	// ─── import ──────────────────────────────────────────────────────────────────
 
 	function addLog(level: string, message: string) {
@@ -312,9 +326,14 @@
 						{/if}
 						<div class="step-actions">
 							<button class="btn-secondary inline-flex items-center gap-1" onclick={handleBack}><ArrowLeft size={13} /> Back</button>
-							<button class="btn-primary" onclick={handleStartImport}>
-								Import {selectedPosts.size} posts
-							</button>
+							<div class="step-actions-right">
+								<button class="btn-secondary" onclick={downloadJSON}>
+									Download JSON
+								</button>
+								<button class="btn-primary" onclick={handleStartImport}>
+									Import {selectedPosts.size} posts
+								</button>
+							</div>
 						</div>
 					</section>
 				{:else if step === 4}
@@ -471,6 +490,11 @@
 		display: flex;
 		justify-content: space-between;
 		margin-top: 1.5rem;
+	}
+
+	.step-actions-right {
+		display: flex;
+		gap: 0.5rem;
 	}
 
 	.btn-primary {

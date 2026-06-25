@@ -182,20 +182,17 @@ pnpm build</code></pre>
 
 		<h3>Usage</h3>
 		<div class="code-block">
-			<pre><code># Interactive mode
-pnpm start
+			<pre><code># Convert Twitter archive to JSON
+opal --source twitter --input tweets.js --output posts.json
 
-# Import from Twitter archive
-pnpm start -i tweets.js -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx -y
+# Convert Mastodon outbox and preview
+opal --source mastodon --input outbox.json --dry-run
 
-# Import from Mastodon outbox
-pnpm start -i outbox.json -m mastodon -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx -y
+# Convert Nostr events
+opal --source nostr --input events.json --output posts.json
 
-# Sync (skip already-imported records)
-pnpm start -i tweets.js -m sync -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx -y
-
-# Preview without publishing
-pnpm start -i tweets.js --dry-run</code></pre>
+# Convert Threads export
+opal --source threads --input threads.json</code></pre>
 		</div>
 
 		<h3>Key flags</h3>
@@ -203,15 +200,19 @@ pnpm start -i tweets.js --dry-run</code></pre>
 			<div class="flag-row flag-row--header">
 				<span>Flag</span><span>Description</span>
 			</div>
-			<div class="flag-row"><code>-i &lt;path&gt;</code><span>Input file or directory</span></div>
-			<div class="flag-row"><code>-h &lt;handle&gt;</code><span>ATProto handle or DID</span></div>
-			<div class="flag-row"><code>-p &lt;password&gt;</code><span>App password (not your main password)</span></div>
-			<div class="flag-row"><code>-m &lt;mode&gt;</code><span><code>twitter</code> · <code>mastodon</code> · <code>threads</code> · <code>nostr</code> · <code>sync</code></span></div>
-			<div class="flag-row"><code>-y</code><span>Skip confirmation prompts</span></div>
-			<div class="flag-row"><code>--dry-run</code><span>Preview without writing records</span></div>
-			<div class="flag-row"><code>-v</code><span>Verbose / debug output</span></div>
-			<div class="flag-row"><code>-q</code><span>Quiet mode (warnings &amp; errors only)</span></div>
+			<div class="flag-row"><code>--source &lt;platform&gt;</code><span><strong>Required.</strong> One of: <code>twitter</code> · <code>mastodon</code> · <code>threads</code> · <code>nostr</code></span></div>
+			<div class="flag-row"><code>--input &lt;file&gt;</code><span><strong>Required.</strong> Path to the export file</span></div>
+			<div class="flag-row"><code>--output &lt;file&gt;</code><span>Write converted JSON to a file</span></div>
+			<div class="flag-row"><code>--publish</code><span>Publish to AT Protocol (requires authentication)</span></div>
+			<div class="flag-row"><code>--dry-run</code><span>Preview conversion without publishing</span></div>
+			<div class="flag-row"><code>-h, --help</code><span>Show help message</span></div>
 		</div>
+
+		<p>
+			Publishing directly from the CLI is currently in development. For browser-based
+			publishing with OAuth authentication, use the
+			<a href="/import">web interface</a>.
+		</p>
 
 		<p>
 			Full documentation is available at
