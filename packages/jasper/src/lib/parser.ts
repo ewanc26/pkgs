@@ -20,20 +20,8 @@ import type {
 import { POSTS_JSON_PATHS, STORIES_JSON_PATHS } from "../core/config.js";
 import { log } from "../utils/logger.js";
 
-/**
- * Fix Facebook/Instagram's broken UTF-8 encoding
- * See: https://sorashi.github.io/fix-facebook-json-archive-encoding
- * See: https://github.com/pixelfed/pixelfed/pull/4726
- */
-export function fixFacebookEncoding(str: string): string {
-  // Replace \\u00XX sequences with actual characters
-  const replaced = str.replace(/\\u00([a-f0-9]{2})/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16)),
-  );
-  // Convert to proper UTF-8
-  const buffer = Array.from(replaced, (c) => c.charCodeAt(0));
-  return new TextDecoder().decode(new Uint8Array(buffer));
-}
+import { fixFacebookEncoding } from "./encoding.js";
+export { fixFacebookEncoding };
 
 /**
  * Check if a path is a ZIP file
