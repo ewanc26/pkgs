@@ -6,9 +6,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { PlayRecord } from '../types.js';
-import type { YouTubeMusicRecord } from '../core/types.js';
-import { parseYouTubeMusicJsonContent, convertYouTubeMusicToPlayRecord as coreConvert } from '../core/youtube-music.js';
-import { VERSION } from '../core/config.js';
+import type { YouTubeMusicRecord } from '@ewanc26/croft-click-core';
+import { parseYouTubeMusicJsonContent, convertYouTubeMusicToPlayRecord as coreConvert, VERSION } from '@ewanc26/croft-click-core';
 
 export { parseYouTubeMusicJsonContent };
 export type { YouTubeMusicRecord };

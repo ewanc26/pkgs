@@ -17,6 +17,7 @@ import type {
 } from "../core/types.js";
 import { browserLog as log } from "./browser-logger.js";
 import { fixFacebookEncoding } from "./parser.js";
+import { RateLimiter } from "@ewanc26/croft-click-core";
 import {
   publishPhoto,
   createGallery,
@@ -473,6 +474,58 @@ async function getImageDimensionsFromBlob(
 }
 
 /**
+ * Wrap an ATProto Agent to capture rate-limit headers from all XRPC responses.
+ * The proxy intercepts method calls on the agent (uploadBlob, com.atproto.repo.*, etc.)
+ * and feeds response headers into a RateLimiter for server-driven burst protection.
+ */
+function withRateLimitCapture(agent: Agent, rateLimiter: RateLimiter): Agent {
+  const wrapPromise = (p: Promise<unknown>): Promise<unknown> =>
+    p.then(
+      (res) => {
+        const r = res as Record<string, unknown>;
+        if (r.headers && typeof r.headers === "object") {
+          rateLimiter.updateFromHeaders(r.headers as Record<string, string>);
+        }
+        return res;
+      },
+      (err) => {
+        const e = err as Record<string, unknown>;
+        if (e.status === 429) {
+          rateLimiter.handleRateLimitHit(
+            e.headers as Record<string, string> | undefined,
+          );
+        } else if (e.headers && typeof e.headers === "object") {
+          rateLimiter.updateFromHeaders(e.headers as Record<string, string>);
+        }
+        throw err;
+      },
+    );
+
+  const handler: ProxyHandler<object> = {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+
+      if (typeof value === "function") {
+        return new Proxy(value, {
+          apply(fn, _thisArg, args) {
+            const result = Reflect.apply(fn, target, args);
+            return result instanceof Promise ? wrapPromise(result) : result;
+          },
+        });
+      }
+
+      if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+        return new Proxy(value, handler);
+      }
+
+      return value;
+    },
+  };
+
+  return new Proxy(agent, handler) as Agent;
+}
+
+/**
  * Run the full import process in browser
  * Supports gallery selection, batch limiting, state persistence, and alt text override
  */
@@ -505,6 +558,9 @@ export async function runImport(
         error: (msg: string) => onLog("error", msg),
       }
     : log;
+
+  const rateLimiter = new RateLimiter();
+  agent = withRateLimitCapture(agent, rateLimiter);
 
   try {
     logger.info("Parsing Instagram export...");
@@ -694,6 +750,9 @@ export async function runImport(
       }
 
       onProgress?.(i + 1, postsToProcess.length);
+
+      // Wait for rate-limit permit before publishing to ATProto
+      await rateLimiter.waitForPermit(1);
 
       for (const media of post.media) {
         if (target === "spark") {

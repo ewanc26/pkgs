@@ -1,4 +1,4 @@
-// All shared types live in @ewanc26/malachite/core — single source of truth.
+// All shared types live in @ewanc26/croft-click-core — single source of truth.
 // Re-export everything from there so the rest of the web app can import
 // from '$lib/types.js' as before without any path changes.
 export type {
@@ -10,4 +10,4 @@ export type {
   SpotifyRecord,
   LogLevel,
   LogEntry,
-} from '@ewanc26/malachite/core';
+} from '@ewanc26/croft-click-core';

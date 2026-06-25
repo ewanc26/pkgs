@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { DynamicBatchCalculator } from '../utils/dynamic-batch-calculator.js';
+import { DynamicBatchCalculator } from '@ewanc26/croft-click-core';
 
 describe('DynamicBatchCalculator', () => {
   describe('calculateBatchSizeFromQuota', () => {
