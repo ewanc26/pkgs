@@ -1,13 +1,15 @@
 /**
  * Publisher for Spark posts
  * Handles blob upload and so.sprk.feed.post record creation
+ *
+ * Supports batch record creation via com.atproto.repo.applyWrites
+ * for efficient bulk imports.
  */
 import type { Agent } from "@atproto/api";
 import { generateTID } from "@ewanc26/tid";
 import type {
   SparkMediaImage,
   SparkMediaImages,
-  SparkPostRecord,
   SparkAspectRatio,
 } from "../core/types.js";
 import { SPARK_POST_COLLECTION, SPARK_MEDIA_IMAGES } from "../core/config.js";
@@ -22,6 +24,26 @@ export interface SparkPublishResult {
   cid?: string;
   error?: string;
 }
+
+/**
+ * Input descriptor for batch Spark post publishing
+ */
+export interface SparkPostInput {
+  images: Array<{
+    data: Uint8Array;
+    mimeType: string;
+    size: number;
+    alt: string;
+    aspectRatio?: SparkAspectRatio;
+  }>;
+  createdAt: string;
+  caption?: string;
+}
+
+/**
+ * Maximum writes in a single applyWrites call (AT Protocol hard limit)
+ */
+const APPLY_WRITES_MAX = 200;
 
 /**
  * Upload an image as a blob
@@ -72,6 +94,8 @@ function buildMediaImage(
  *
  * For multi-image Instagram posts (carousels), all images are combined
  * into a single so.sprk.feed.post with so.sprk.media.images (max 12).
+ *
+ * This is a thin wrapper around publishSparkPosts for backward compatibility.
  */
 export async function publishSparkPost(
   agent: Agent,
@@ -86,60 +110,126 @@ export async function publishSparkPost(
   caption?: string,
   dryRun = false,
 ): Promise<SparkPublishResult> {
+  const results = await publishSparkPosts(agent, [{
+    images,
+    createdAt,
+    caption,
+  }], dryRun);
+  return results[0];
+}
+
+/**
+ * Batch publish multiple Spark posts using com.atproto.repo.applyWrites
+ *
+ * 1. Upload all blobs for each post sequentially
+ * 2. Batch-create all post records in a single API call
+ *
+ * Each post can contain up to 12 images. The blob uploads happen per-post,
+ * but all record creations are batched into one applyWrites call.
+ */
+export async function publishSparkPosts(
+  agent: Agent,
+  posts: SparkPostInput[],
+  dryRun = false,
+): Promise<SparkPublishResult[]> {
   if (dryRun) {
-    log.debug(
-      `[DRY RUN] Would publish Spark post from ${createdAt} with ${images.length} image(s)`,
-    );
-    return { success: true, uri: "dry-run", cid: "dry-run" };
+    return posts.map(() => ({ success: true, uri: "dry-run", cid: "dry-run" }));
   }
 
-  try {
-    // Upload all image blobs
-    const mediaImages: SparkMediaImage[] = [];
-
-    for (const img of images) {
-      const blob = await uploadBlob(agent, img.data, img.mimeType);
-      mediaImages.push(
-        buildMediaImage(blob, img.size, img.alt, img.aspectRatio),
-      );
-    }
-
-    // Build the media union
-    const media: SparkMediaImages = {
-      $type: SPARK_MEDIA_IMAGES,
-      images: mediaImages,
-    };
-
-    // Build the record
-    const record: SparkPostRecord = {
-      $type: SPARK_POST_COLLECTION,
-      createdAt,
-      media,
-    };
-
-    if (caption) {
-      record.caption = { text: caption };
-    }
-
-    const result = await agent.com.atproto.repo.createRecord({
-      repo: agent.did!,
-      collection: SPARK_POST_COLLECTION,
-      rkey: generateTID(createdAt),
-      record,
-    });
-
-    return {
-      success: true,
-      uri: result.data.uri,
-      cid: result.data.cid,
-    };
-  } catch (error) {
-    const err = error as Error;
-    return {
-      success: false,
-      error: err.message,
-    };
+  if (posts.length === 0) {
+    return [];
   }
+
+  const results: SparkPublishResult[] = [];
+  const writes: Array<{
+    $type: string;
+    collection: string;
+    rkey: string;
+    value: Record<string, unknown>;
+  }> = [];
+
+  // Process each post: upload blobs, build record
+  for (let i = 0; i < posts.length; i++) {
+    const post = posts[i];
+    try {
+      // Upload all image blobs for this post
+      const mediaImages: SparkMediaImage[] = [];
+
+      for (const img of post.images.slice(0, 12)) {
+        const blob = await uploadBlob(agent, img.data, img.mimeType);
+        mediaImages.push(
+          buildMediaImage(blob, img.size, img.alt, img.aspectRatio),
+        );
+      }
+
+      // Build the media union
+      const media: SparkMediaImages = {
+        $type: SPARK_MEDIA_IMAGES,
+        images: mediaImages,
+      };
+
+      // Build the record
+      const record: Record<string, unknown> = {
+        $type: SPARK_POST_COLLECTION,
+        createdAt: post.createdAt,
+        media,
+      };
+
+      if (post.caption) {
+        record.caption = { text: post.caption };
+      }
+
+      writes.push({
+        $type: 'com.atproto.repo.applyWrites#create',
+        collection: SPARK_POST_COLLECTION,
+        rkey: generateTID(post.createdAt),
+        value: record,
+      });
+    } catch (error) {
+      // Individual post processing/upload failed
+      results[i] = { success: false, error: (error as Error).message };
+    }
+  }
+
+  // Execute applyWrites in chunks if necessary
+  if (writes.length > 0) {
+    for (let chunkStart = 0; chunkStart < writes.length; chunkStart += APPLY_WRITES_MAX) {
+      const chunk = writes.slice(chunkStart, chunkStart + APPLY_WRITES_MAX);
+      try {
+        const response = await agent.com.atproto.repo.applyWrites({
+          repo: agent.did!,
+          writes: chunk as any,
+        });
+
+        const respResults = (response.data as any)?.results as Array<{ uri: string; cid: string }> | undefined;
+
+        if (respResults) {
+          for (let j = 0; j < respResults.length; j++) {
+            const globalIdx = chunkStart + j;
+            results[globalIdx] = {
+              success: true,
+              uri: respResults[j].uri,
+              cid: respResults[j].cid,
+            };
+          }
+        }
+      } catch (error) {
+        for (let j = 0; j < chunk.length; j++) {
+          const globalIdx = chunkStart + j;
+          results[globalIdx] = { success: false, error: (error as Error).message };
+        }
+      }
+    }
+  }
+
+  // Fill any remaining gaps
+  for (let i = 0; i < posts.length; i++) {
+    if (!results[i]) {
+      results[i] = { success: false, error: "Unknown error during batch publish" };
+    }
+  }
+
+  return results;
 }
 
 /**

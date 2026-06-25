@@ -1,21 +1,26 @@
 /**
  * ATProto record publisher — environment-agnostic.
  * Converts MicroblogPost[] into app.bsky.feed.post records and publishes
- * them via com.atproto.repo.createRecord with rate-limit-aware throttling.
+ * them via com.atproto.repo.applyWrites for batch record creation.
  *
- * Posts are published sequentially (not batched) so that thread references
- * (replyTo, threadRoot) can be resolved to real AT URIs + CIDs. Posts
- * within a split thread must be published in order.
+ * Posts are grouped into batches respecting thread dependency ordering:
+ * posts that reply to an earlier post must be in a subsequent batch so the
+ * parent's AT URI + CID is known when the child record is constructed.
  */
 
 import type { Agent } from '@atproto/api';
 import type { MicroblogPost, Facet } from './types.js';
 import { generateTID } from '@ewanc26/tid';
-import { RateLimiter } from './rate-limiter.js';
-import { normalizeHeaders, isRateLimitError } from './rate-limit-headers.js';
+import {
+  RateLimiter,
+  retryWithBackoff,
+  normalizeHeaders,
+  isRateLimitError,
+} from '@ewanc26/croft-click-core';
 
 const RECORD_TYPE = 'app.bsky.feed.post';
 const POINTS_PER_RECORD = 1;
+const MAX_BATCH_SIZE = 200;
 
 export interface PublishProgress {
   recordsProcessed: number;
@@ -53,26 +58,6 @@ function extractHeaders(response: unknown): Record<string, string> {
     }
   }
   return headers;
-}
-
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  maxAttempts = 3,
-  onRetry?: (attempt: number, err: Error) => void,
-): Promise<T> {
-  let lastErr!: Error;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (err: unknown) {
-      lastErr = err as Error;
-      const isTransient = /fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|network|timeout|503|502|504/i.test(lastErr.message ?? '');
-      if (!isTransient || attempt === maxAttempts) throw lastErr;
-      onRetry?.(attempt, lastErr);
-      await new Promise((r) => setTimeout(r, 1000 * attempt));
-    }
-  }
-  throw lastErr;
 }
 
 /**
@@ -151,6 +136,35 @@ function resolveRef(
   return undefined;
 }
 
+/**
+ * Check whether a post's thread dependencies are satisfied by already-published
+ * posts. A post with no replyTo/threadRoot has no dependencies. Posts that
+ * reference at:// URIs are always considered satisfied (CID resolved at publish
+ * time).
+ */
+function dependenciesMet(
+  post: MicroblogPost,
+  publishedMap: Map<string, { uri: string; cid: string }>,
+): boolean {
+  if (!post.replyTo && !post.threadRoot) return true;
+
+  // at:// references don't need pre-published mapping
+  if (post.replyTo?.startsWith('at://')) return true;
+  if (post.threadRoot?.startsWith('at://')) return true;
+
+  if (post.replyTo?.startsWith('opal-internal:')) {
+    const key = post.replyTo.replace('opal-internal:', '');
+    if (!publishedMap.has(key)) return false;
+  }
+
+  if (post.threadRoot?.startsWith('opal-internal:')) {
+    const key = post.threadRoot.replace('opal-internal:', '');
+    if (!publishedMap.has(key)) return false;
+  }
+
+  return true;
+}
+
 export async function publishRecords(
   agent: Agent,
   posts: MicroblogPost[],
@@ -179,6 +193,7 @@ export async function publishRecords(
   let delay = 500;
   let successCount = 0;
   let errorCount = 0;
+  let batchCounter = 0;
   let i = 0;
   const startTime = Date.now();
 
@@ -194,76 +209,129 @@ export async function publishRecords(
         return { successCount, errorCount, cancelled: true };
       }
 
-      const post = posts[i];
-      const pct = ((i / total) * 100).toFixed(1);
+      // Build a batch: collect consecutive posts whose thread dependencies are
+      // already satisfied by previously-published posts. Posts that reference
+      // opal-internal: targets not yet in publishedMap are deferred to the next
+      // batch so the parent's URI+CID is available.
+      const batch: { post: MicroblogPost; rkey: string; record: Record<string, unknown> }[] = [];
+      while (i < total && batch.length < MAX_BATCH_SIZE && dependenciesMet(posts[i], publishedMap)) {
+        const post = posts[i];
+        const rkey = generateTID(post.createdAt);
+        const record = toPostRecord(post, publishedMap);
+        batch.push({ post, rkey, record });
+        i++;
+      }
+
+      // Edge case: a post's dependency isn't met (shouldn't happen with correct
+      // ordering). Force it as a single-post batch so the parent gets published
+      // first.
+      if (batch.length === 0 && i < total) {
+        const post = posts[i];
+        const rkey = generateTID(post.createdAt);
+        const record = toPostRecord(post, publishedMap);
+        batch.push({ post, rkey, record });
+        i++;
+      }
+
+      batchCounter++;
+      const pct = ((successCount / total) * 100).toFixed(1);
 
       onProgress({
-        recordsProcessed: i,
+        recordsProcessed: successCount,
         totalRecords: total,
         successCount,
         errorCount,
-        message: `[${pct}%] Post ${i + 1}/${total}`,
+        message: `[${pct}%] Batch ${batchCounter} — ${batch.length} posts (posts ${successCount + 1}–${Math.min(successCount + batch.length, total)} of ${total})`,
       });
 
-      const record = toPostRecord(post, publishedMap);
-      // TID-based rkey — time-sortable, spec-compliant, derived from the
-      // original post's timestamp. Monotonicity is guaranteed by @ewanc26/tid.
-      const rkey = generateTID(post.createdAt);
+      const writes = batch.map(({ rkey, record }) => ({
+        $type: 'com.atproto.repo.applyWrites#create' as const,
+        collection: RECORD_TYPE,
+        rkey,
+        value: record,
+      }));
 
-      await rl.waitForPermit(POINTS_PER_RECORD, isCancelled);
+      const batchPoints = batch.length * POINTS_PER_RECORD;
+
+      // Wait for rate-limit quota to be available
+      await rl.waitForPermit(batchPoints, isCancelled);
       if (isCancelled()) {
         onLog('warn', 'Import cancelled by user.');
         return { successCount, errorCount, cancelled: true };
       }
 
       try {
-        const response = await withRetry(
-          () => agent.com.atproto.repo.createRecord({
-            repo: agent.did ?? (agent as any).sessionManager?.did ?? '',
-            collection: RECORD_TYPE,
-            rkey,
-            record: record as any,
-          }, { signal: ac.signal }),
-          3,
-          (attempt, err) => onLog('warn', `Post ${i + 1} failed (attempt ${attempt}/3): ${err.message} — retrying…`),
+        const response = await retryWithBackoff(
+          () => agent.com.atproto.repo.applyWrites(
+            {
+              repo: agent.did ?? (agent as any).sessionManager?.did ?? '',
+              writes: writes as any,
+            },
+            { signal: ac.signal },
+          ),
+          {
+            maxAttempts: 3,
+            initialDelayMs: 1000,
+            backoffMultiplier: 2,
+            retryableErrors: [
+              'fetch failed',
+              'ECONNRESET',
+              'ETIMEDOUT',
+              'ENOTFOUND',
+              'ECONNREFUSED',
+              'network',
+              'socket hang up',
+              'timeout',
+              '503',
+              '502',
+              '504',
+            ],
+            onRetry: (attempt, maxAttempts, _delay, error) => {
+              onLog('warn', `Batch ${batchCounter} failed (attempt ${attempt}/${maxAttempts}): ${error.message} — retrying…`);
+            },
+          },
         );
 
-        const uri = (response.data as any).uri as string;
-        const cid = (response.data as any).cid as string;
+        // Extract results and build publishedMap for thread reference resolution
+        const results = (response.data as any)?.results ?? [];
+        for (let j = 0; j < Math.min(results.length, batch.length); j++) {
+          const result = results[j] as { uri?: string; cid?: string } | undefined;
+          if (result?.uri && result?.cid) {
+            publishedMap.set(batch[j].post.originalId, { uri: result.uri, cid: result.cid });
+          }
+        }
 
-        // Store for thread reference resolution
-        publishedMap.set(post.originalId, { uri, cid });
+        const batchSuccessCount = results.length;
+        successCount += batchSuccessCount;
 
-        successCount++;
-
+        // Learn / update rate limits from response headers (continuous adaptation)
         const rawHeaders = extractHeaders(response);
         if (Object.keys(rawHeaders).length > 0) {
           rl.updateFromHeaders(normalizeHeaders(rawHeaders));
 
-          if (i === 0) {
+          // After first batch, log the learned capacity and calculate delay
+          if (batchCounter === 1 && rl.hasServerInfo()) {
             const cap = rl.getServerCapacity();
+            const remaining = rl.getActualRemaining();
             if (cap) {
-              const remaining = rl.getActualRemaining();
               const recsPerSec = (cap.limit / cap.windowSeconds / POINTS_PER_RECORD) * 0.8;
-              delay = Math.max(500, Math.floor(1000 / recsPerSec));
-              onLog('info', `Server: ${cap.limit} pts/${cap.windowSeconds}s — delay ${delay}ms between posts`);
-              onLog('info', `   Remaining quota: ${remaining.toLocaleString()}/${cap.limit.toLocaleString()}`);
+              delay = Math.max(500, Math.floor(1000 / Math.max(recsPerSec, 0.01)));
+              onLog('info', `Server: ${cap.limit} pts/${cap.windowSeconds}s — delay ${delay}ms between batches`);
+              onLog('info', `   Remaining quota: ${remaining}/${cap.limit}`);
             }
           }
         }
 
-        const threadInfo = post.threadTotal && post.threadTotal > 1
-          ? ` [${post.threadIndex}/${post.threadTotal}]`
-          : '';
         const rps = (successCount / ((Date.now() - startTime) / 1000)).toFixed(1);
-        onLog('progress', `${successCount}/${total} posts (${rps} rec/s)${threadInfo}`);
+        onLog('progress', `Batch ${batchCounter} — ${successCount}/${total} posts (${rps} rec/s)`);
 
-        i++;
       } catch (err: unknown) {
         const e = err as any;
+
         if (ac.signal.aborted || isCancelled()) {
           return { successCount, errorCount, cancelled: true };
         }
+
         if (isRateLimitError(e)) {
           onLog('warn', 'Rate limit hit — waiting for quota reset…');
           const rawErrHeaders: Record<string, string> =
@@ -271,14 +339,15 @@ export async function publishRecords(
               ? (() => { const o: Record<string, string> = {}; e.response.headers.forEach((v: string, k: string) => { o[k] = v; }); return o; })()
               : (e?.response?.headers ?? e?.headers ?? {});
           rl.handleRateLimitHit(normalizeHeaders(rawErrHeaders));
-          await rl.waitForPermit(POINTS_PER_RECORD, isCancelled);
-          continue; // retry same post
+          await rl.waitForPermit(batchPoints, isCancelled);
+          continue; // retry same batch
         }
-        errorCount++;
-        onLog('error', `Post ${i + 1} failed: ${e?.message ?? e}`);
-        i++;
+
+        errorCount += batch.length;
+        onLog('error', `Batch ${batchCounter} failed: ${e?.message ?? e}`);
       }
 
+      // Wait before next batch
       if (i < total) {
         await cancellableSleep(delay, isCancelled);
       }

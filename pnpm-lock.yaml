@@ -468,6 +468,9 @@ importers:
       '@atproto/oauth-client-node':
         specifier: ^0.3.16
         version: 0.3.17
+      '@ewanc26/croft-click-core':
+        specifier: workspace:*
+        version: link:../croft-click-core
       '@ewanc26/tid':
         specifier: workspace:*
         version: link:../tid
