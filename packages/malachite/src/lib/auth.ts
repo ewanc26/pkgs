@@ -4,7 +4,7 @@
  */
 
 import type { Agent } from '@atproto/api';
-import { login as coreLogin, resolveIdentity } from '../core/auth.js';
+import { login as coreLogin, resolveIdentity } from '@ewanc26/croft-click-core';
 import { prompt } from '../utils/input.js';
 import * as ui from '../utils/ui.js';
 import { saveCredentials } from '../utils/credentials.js';

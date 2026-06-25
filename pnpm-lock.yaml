@@ -149,6 +149,28 @@ importers:
         specifier: 8.0.7
         version: 8.0.7(@types/node@25.9.1)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)
 
+  packages/croft-click-core:
+    dependencies:
+      '@atproto/api':
+        specifier: ^0.19.3
+        version: 0.19.16
+      '@ewanc26/tid':
+        specifier: workspace:*
+        version: link:../tid
+      '@ipld/car':
+        specifier: ^5.3.2
+        version: 5.4.3
+      '@ipld/dag-cbor':
+        specifier: ^9.2.2
+        version: 9.2.6
+      multiformats:
+        specifier: ^13.3.1
+        version: 13.4.2
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/jasper:
     dependencies:
       '@atproto/api':
@@ -157,9 +179,9 @@ importers:
       '@atproto/oauth-client-node':
         specifier: ^0.3.16
         version: 0.3.17
-      '@ewanc26/malachite':
+      '@ewanc26/croft-click-core':
         specifier: workspace:*
-        version: link:../malachite
+        version: link:../croft-click-core
       '@ewanc26/tid':
         specifier: workspace:*
         version: link:../tid
@@ -206,6 +228,9 @@ importers:
       '@lucide/svelte':
         specifier: ^0.575.0
         version: 0.575.0(svelte@5.55.4)
+      '@zip.js/zip.js':
+        specifier: ^2.7.57
+        version: 2.8.26
     devDependencies:
       '@sveltejs/adapter-vercel':
         specifier: ^6.3.1
@@ -286,6 +311,9 @@ importers:
       '@atproto/oauth-client-node':
         specifier: ^0.3.16
         version: 0.3.17
+      '@ewanc26/croft-click-core':
+        specifier: workspace:*
+        version: link:../croft-click-core
       '@ewanc26/tid':
         specifier: workspace:*
         version: link:../tid
@@ -332,12 +360,12 @@ importers:
       '@atproto/oauth-client-browser':
         specifier: ^0.3.41
         version: 0.3.41
+      '@ewanc26/croft-click-core':
+        specifier: workspace:*
+        version: link:../croft-click-core
       '@ewanc26/landing-ui':
         specifier: workspace:*
         version: link:../landing-ui
-      '@ewanc26/malachite':
-        specifier: workspace:*
-        version: link:../malachite
       '@lucide/svelte':
         specifier: ^0.575.0
         version: 0.575.0(svelte@5.55.4)

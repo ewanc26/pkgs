@@ -1,0 +1,48 @@
+{
+  "name": "@ewanc26/croft-click-core",
+  "version": "0.1.0",
+  "description": "Shared core library for croft.click ATProto tools — publishing, rate limiting, sync, and data conversion",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/croft-click-core"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/croft-click-core",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepare": "pnpm run build",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.19.3",
+    "@ewanc26/tid": "workspace:*",
+    "@ipld/car": "^5.3.2",
+    "@ipld/dag-cbor": "^9.2.2",
+    "multiformats": "^13.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

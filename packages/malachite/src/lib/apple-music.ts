@@ -6,9 +6,8 @@
 import * as fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import type { PlayRecord } from '../types.js';
-import type { AppleMusicRecord } from '../core/types.js';
-import { parseAppleMusicCsvContent, convertAppleMusicToPlayRecord as coreConvert } from '../core/apple-music.js';
-import { VERSION } from '../core/config.js';
+import type { AppleMusicRecord } from '@ewanc26/croft-click-core';
+import { parseAppleMusicCsvContent, convertAppleMusicToPlayRecord as coreConvert, VERSION } from '@ewanc26/croft-click-core';
 
 export { parseAppleMusicCsvContent };
 export type { AppleMusicRecord };

@@ -21,6 +21,7 @@
 		type Target
 	} from '@ewanc26/jasper/browser';
 	import logo from '$lib/assets/favicon.svg';
+	import { ZipWriter, BlobWriter, BlobReader } from '@zip.js/zip.js';
 	import {
 		Upload,
 		Loader2,
@@ -31,7 +32,9 @@
 		AlertTriangle,
 		RotateCcw,
 		Trash2,
-		ExternalLink
+		ExternalLink,
+		FileArchive,
+		FolderInput
 	} from '@lucide/svelte';
 
 	let step = $state(0);
@@ -51,6 +54,12 @@
 	let reverseOrder = $state(false);
 	let totalLimit = $state<number | null>(null);
 	let target = $state<Target>('grain');
+
+	// Upload mode state
+	let uploadMode = $state<'zip' | 'directory'>('zip');
+	let creatingZip = $state(false);
+	let zipError = $state<string | null>(null);
+	let fileCount = $state(0);
 
 	// Gallery state
 	let galleries = $state<GalleryInfo[]>([]);
@@ -92,7 +101,38 @@
 	function handleFileChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		if (target.files && target.files[0]) {
+			zipError = null;
 			file = target.files[0];
+		}
+	}
+
+	async function handleDirectoryChange(e: Event) {
+		const target = e.target as HTMLInputElement;
+		if (!target.files || target.files.length === 0) return;
+
+		creatingZip = true;
+		zipError = null;
+		fileCount = target.files.length;
+
+		try {
+			const blobWriter = new BlobWriter('application/zip');
+			const zipWriter = new ZipWriter(blobWriter);
+
+			const files = Array.from(target.files);
+			// Sort for consistent ordering
+			files.sort((a, b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath));
+
+			for (const f of files) {
+				await zipWriter.add(f.webkitRelativePath, new BlobReader(f));
+			}
+
+			const zipBlob = await zipWriter.close();
+			file = new File([zipBlob], 'instagram-export.zip', { type: 'application/zip' });
+		} catch (err) {
+			zipError = `Failed to create ZIP from directory: ${(err as Error).message}`;
+			file = null;
+		} finally {
+			creatingZip = false;
 		}
 	}
 
@@ -281,6 +321,9 @@
 		logs = [];
 		result = null;
 		savedState = null;
+		zipError = null;
+		creatingZip = false;
+		uploadMode = 'zip';
 	}
 
 	function handleResetOrphans() {
@@ -475,6 +518,31 @@
 							</div>
 						{/if}
 
+						{#if savedState}
+							<div class="saved-imports-section">
+								<h3 class="subsection-title" style="margin-top: 0;">Saved Imports</h3>
+								<div class="saved-state-card">
+									<div class="saved-state-summary">
+										<span class="saved-state-date">
+											{new Date(savedState.createdAt).toLocaleDateString()}
+										</span>
+										<span class="saved-state-progress">
+											{savedState.importedTimestamps.length} imported, {getBrowserRemainingPosts(
+												savedState
+											)} remaining
+										</span>
+									</div>
+									<button
+										class="btn-secondary btn-icon saved-state-clear"
+										onclick={handleClearSavedState}
+										title="Clear saved state"
+									>
+										<Trash2 size={16} /> Clear
+									</button>
+								</div>
+							</div>
+						{/if}
+
 						<div class="choice-cards">
 							<button
 								class="choice-card"
@@ -485,7 +553,7 @@
 							>
 								<Upload size={24} />
 								<span class="choice-title">Import Instagram export</span>
-								<span class="choice-desc">Upload a ZIP file from your Instagram data export</span>
+								<span class="choice-desc">Upload a ZIP or extracted folder from your Instagram data export</span>
 							</button>
 
 							<button
@@ -511,17 +579,67 @@
 					<div class="card-section">
 						<h2 class="section-title">Upload your export</h2>
 
-						<label class="file-drop">
-							<input type="file" accept=".zip,application/zip" onchange={handleFileChange} />
-							{#if file}
-								<span class="file-name">{file.name}</span>
-							{:else}
-								<span class="file-prompt">
-									<Upload size={28} />
-									<span>Drop ZIP file or click to browse</span>
-								</span>
-							{/if}
-						</label>
+						<div class="upload-mode-selector">
+							<button
+								class="upload-mode-btn"
+								class:selected={uploadMode === 'zip'}
+								onclick={() => { uploadMode = 'zip'; file = null; zipError = null; }}
+							>
+								<FileArchive size={20} />
+								<span>Upload ZIP file</span>
+							</button>
+							<button
+								class="upload-mode-btn"
+								class:selected={uploadMode === 'directory'}
+								onclick={() => { uploadMode = 'directory'; file = null; zipError = null; }}
+							>
+								<FolderInput size={20} />
+								<span>Upload extracted folder</span>
+							</button>
+						</div>
+
+						{#if uploadMode === 'zip'}
+							<label class="file-drop">
+								<input
+									type="file"
+									accept=".zip,application/zip"
+									onchange={handleFileChange}
+								/>
+								{#if file}
+									<span class="file-name">{file.name}</span>
+								{:else}
+									<span class="file-prompt">
+										<Upload size={28} />
+										<span>Drop ZIP file or click to browse</span>
+									</span>
+								{/if}
+							</label>
+						{:else}
+							<label class="file-drop">
+								<input
+									type="file"
+									webkitdirectory
+									onchange={handleDirectoryChange}
+								/>
+								{#if creatingZip}
+									<span class="file-prompt">
+										<Loader2 class="spin" size={28} />
+										<span>Creating ZIP from {fileCount} files...</span>
+									</span>
+								{:else if file}
+									<span class="file-name">{file.name} ({fileCount} files)</span>
+								{:else}
+									<span class="file-prompt">
+										<FolderInput size={28} />
+										<span>Select extracted folder or click to browse</span>
+									</span>
+								{/if}
+							</label>
+						{/if}
+
+						{#if zipError}
+							<p class="alert alert-error">{zipError}</p>
+						{/if}
 
 						<h3 class="subsection-title">Target platform</h3>
 						<div class="target-selector">
@@ -946,6 +1064,47 @@
 		justify-content: center;
 	}
 
+	.saved-imports-section {
+		margin-bottom: 1.5rem;
+	}
+
+	.saved-state-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+	}
+
+	.saved-state-summary {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.saved-state-date {
+		font-size: 0.85rem;
+		font-weight: 500;
+		color: var(--text);
+	}
+
+	.saved-state-progress {
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+
+	.saved-state-clear {
+		flex: 0 0 auto;
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.8rem;
+		padding: 0.4rem 0.65rem;
+	}
+
 	.choice-card {
 		display: flex;
 		flex-direction: column;
@@ -1040,6 +1199,40 @@
 		font-size: 0.8rem;
 		color: var(--muted);
 		margin-top: 0.25rem;
+	}
+
+	.upload-mode-selector {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.upload-mode-btn {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1rem;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 0.9rem;
+		color: var(--text);
+		transition:
+			border-color 0.15s,
+			background 0.15s;
+	}
+
+	.upload-mode-btn:hover {
+		border-color: var(--accent);
+		background: var(--bg-hover);
+	}
+
+	.upload-mode-btn.selected {
+		border-color: var(--accent);
+		background: var(--bg-hover);
 	}
 
 	.checkbox-line {

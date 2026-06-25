@@ -14,7 +14,7 @@ import { parseLastFmFile, convertToPlayRecord } from './csv.js';
 import { parseSpotifyFiles, convertSpotifyToPlayRecord } from './spotify.js';
 import { parseAppleMusicFile, convertAppleMusicToPlayRecord } from './apple-music.js';
 import { parseYouTubeMusicFiles, convertYouTubeMusicToPlayRecord } from './youtube-music.js';
-import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '@ewanc26/malachite/core';
+import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '@ewanc26/croft-click-core';
 import {
   fetchExistingRecords,
   filterNewRecords,
@@ -22,10 +22,12 @@ import {
   findDuplicateGroups,
   removeDuplicateRecords,
   type ExistingRecord,
-} from '@ewanc26/malachite/core';
-import { publishRecords, type PublishProgress } from '@ewanc26/malachite/core';
+} from '@ewanc26/croft-click-core';
+import { publishRecords, type PublishProgress } from '@ewanc26/croft-click-core';
 
 export type { PublishProgress };
+
+import { loadRecordsCache, saveRecordsCache } from './web-cache.js';
 
 export interface ImportOptions {
   dryRun: boolean;
@@ -54,6 +56,8 @@ export async function runImport(
   youtubeFiles: File[],
   { dryRun, reverseOrder, fresh }: ImportOptions,
   { onLog, onProgress, isCancelled }: ImportCallbacks,
+  /** Number of records to skip when resuming a previous import. */
+  startIndex = 0,
 ): Promise<ImportResult> {
   // Single AbortController for every network call in this run.
   const ac = new AbortController();
@@ -160,19 +164,40 @@ export async function runImport(
     onLog('info', 'Fetching existing records via CAR export…');
     let existing: Map<string, ExistingRecord>;
     let carSyncOk = true;
-    try {
-      existing = await fetchExistingRecords(
-        agent,
-        (n) => onLog('progress', `  Fetched ${n.toLocaleString()} existing records…`),
-        fresh,
-        sig,
-      );
-    } catch (carErr) {
-      carSyncOk = false;
-      const msg = carErr instanceof Error ? carErr.message : String(carErr);
-      onLog('warn', `⚠️  CAR sync check unavailable: ${msg}`);
-      onLog('warn', `   Falling back to full applyWrites — existing records will be rejected by the PDS, new ones will land correctly.`);
-      existing = new Map();
+
+    // Check web cache (sessionStorage with 24h TTL) before fetching.
+    const did = agent.did ?? (agent as any)?.sessionManager?.did;
+    let fromCache = false;
+    if (!fresh && did) {
+      const cached = loadRecordsCache(did);
+      if (cached) {
+        existing = cached as Map<string, ExistingRecord>;
+        carSyncOk = true;
+        fromCache = true;
+        onLog('success', `Loaded ${existing.size.toLocaleString()} existing records from cache`);
+      }
+    }
+
+    if (!fromCache) {
+      try {
+        existing = await fetchExistingRecords(
+          agent,
+          (n) => onLog('progress', `  Fetched ${n.toLocaleString()} existing records…`),
+          fresh,
+          sig,
+        );
+        // Persist to web cache (skip if fresh, since the user explicitly asked
+        // to bypass caches — the in-memory session cache in the core is fine).
+        if (did && !fresh && existing.size > 0) {
+          saveRecordsCache(did, existing as any);
+        }
+      } catch (carErr) {
+        carSyncOk = false;
+        const msg = carErr instanceof Error ? carErr.message : String(carErr);
+        onLog('warn', `⚠️  CAR sync check unavailable: ${msg}`);
+        onLog('warn', `   Falling back to full applyWrites — existing records will be rejected by the PDS, new ones will land correctly.`);
+        existing = new Map();
+      }
     }
     const before = records.length;
     records = filterNewRecords(records, existing);
@@ -189,6 +214,16 @@ export async function runImport(
       return { success: 0, errors: 0, cancelled: false };
     }
     if (mode !== 'combined') records = sortRecords(records, reverseOrder);
+
+    // ── Resume support ──────────────────────────────────────────────────────
+    if (startIndex > 0) {
+      if (startIndex >= records.length) {
+        onLog('success', `✓ All ${startIndex.toLocaleString()} records were already published in the previous session. Nothing more to do.`);
+        return { success: 0, errors: 0, cancelled: false };
+      }
+      onLog('info', `Resuming from record ${startIndex + 1} — skipping ${startIndex.toLocaleString()} already-published record(s)`);
+      records = records.slice(startIndex);
+    }
 
     // ── Publish ──────────────────────────────────────────────────────────────
     onLog('section', '── Publishing ───────────────────────────────────────');

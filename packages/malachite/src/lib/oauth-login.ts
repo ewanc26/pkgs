@@ -8,7 +8,7 @@
 
 import http from 'node:http';
 import { Agent } from '@atproto/api';
-import { resolveIdentity } from '../core/auth.js';
+import { resolveIdentity } from '@ewanc26/croft-click-core';
 import * as ui from '../utils/ui.js';
 import { prompt } from '../utils/input.js';
 import {

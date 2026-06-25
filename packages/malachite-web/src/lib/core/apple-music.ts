@@ -2,8 +2,8 @@
  * Apple Music CSV — web layer.
  * Re-exports the shared core logic and adds a browser File API loader.
  */
-import type { AppleMusicRecord } from '@ewanc26/malachite/core';
-import { parseAppleMusicCsvContent, convertAppleMusicToPlayRecord } from '@ewanc26/malachite/core';
+import type { AppleMusicRecord } from '@ewanc26/croft-click-core';
+import { parseAppleMusicCsvContent, convertAppleMusicToPlayRecord } from '@ewanc26/croft-click-core';
 
 export { parseAppleMusicCsvContent, convertAppleMusicToPlayRecord };
 

@@ -8,6 +8,13 @@
 	import { initOAuth } from '$lib/core/oauth.js';
 	import { modeNeeds } from '$lib/modes.js';
 	import { runImport, type PublishProgress } from '$lib/core/import.js';
+	import {
+		saveImportState,
+		loadImportState,
+		clearImportState,
+		saveResumeOffset,
+		loadResumeOffset,
+	} from '$lib/core/web-cache.js';
 	import type { ImportMode, LogEntry } from '$lib/types.js';
 
 	import ModeStep from '$lib/components/steps/ModeStep.svelte';
@@ -20,7 +27,6 @@
 
 	const KEY_MODE = 'malachite:mode';
 	const KEY_STEP = 'malachite:step';
-	const KEY_IMPORT_STATE = 'malachite:import-state';
 
 	// ─── wizard state ────────────────────────────────────────────────────────────
 	// Read synchronously from sessionStorage — safe because ssr = false.
@@ -58,9 +64,9 @@
 	let result = $state<{ success: number; errors: number; cancelled: boolean } | null>(null);
 	let importError = $state<string | null>(null);
 
-	// Import state persistence (for resume after tab close/crash)
-	type ImportState = { mode: ImportMode; totalRecords: number; recordsProcessed: number; timestamp: number };
-	let savedImportState = $state<ImportState | null>(null);
+	// ─── resume state ────────────────────────────────────────────────────────────
+	type SavedState = { mode: ImportMode; recordsProcessed: number; totalRecords: number; timestamp: number };
+	let savedImportState = $state<SavedState | null>(null);
 
 	// ─── derived ─────────────────────────────────────────────────────────────────
 
@@ -113,6 +119,11 @@
 		logs = [];
 		importError = null;
 		result = null;
+
+		// Consume resume offset (stored in sessionStorage by handleResume).
+		// Cleared automatically once read.
+		const startIndex = loadResumeOffset();
+
 		goTo(4);
 		try {
 			result = await runImport(
@@ -127,10 +138,25 @@
 					onLog: addLog,
 					onProgress: (p) => {
 						progress = p;
+						// Persist progress to sessionStorage for tab-close recovery.
+						if (mode) {
+							saveImportState({
+								mode: mode as string as ImportMode,
+								recordsProcessed: p.recordsProcessed,
+								totalRecords: p.totalRecords,
+								timestamp: Date.now(),
+							});
+						}
 					},
 					isCancelled: () => cancelled
-				}
+				},
+				startIndex,
 			);
+			// Import finished (or cancelled) — clear saved state so we don't
+			// prompt to resume next time.
+			clearImportState();
+			savedImportState = null;
+
 			const n = result.success.toLocaleString();
 			if (mode === 'deduplicate') {
 				if (result.cancelled) addLog('warn', `Stopped. ${n} duplicate(s) removed.`);
@@ -154,6 +180,25 @@
 		}
 	}
 
+	// ─── resume ──────────────────────────────────────────────────────────────────
+
+	/** User clicked "Resume" on the saved-state banner. */
+	function handleResume() {
+		const s = savedImportState;
+		if (!s) return;
+		saveResumeOffset(s.recordsProcessed);
+		mode = s.mode;
+		if (mode) sessionStorage.setItem(KEY_MODE, mode);
+		savedImportState = null; // hide banner
+		goTo(modeNeeds(mode).files ? 2 : 3);
+	}
+
+	/** User clicked "Start fresh" on the saved-state banner. */
+	function handleStartFresh() {
+		clearImportState();
+		savedImportState = null;
+	}
+
 	// ─── OAuth callback ────────────────────────────────────────────────────────
 
 	onMount(async () => {
@@ -169,6 +214,12 @@
 			}
 		} catch (err: any) {
 			console.error('OAuth init error:', err);
+		}
+
+		// Check for saved import progress (tab-close recovery).
+		const saved = loadImportState();
+		if (saved && !result && !isRunning) {
+			savedImportState = saved;
 		}
 	});
 
@@ -229,6 +280,29 @@
 			<button class="btn-secondary" onclick={handleReset}>Sign out</button>
 		{/if}
 	</header>
+
+	{#if savedImportState}
+		<div class="resume-banner" in:fly={{ y: -20, duration: 300, easing: cubicOut }}>
+			<div class="resume-banner-body">
+				<p class="resume-title">Previous import in progress</p>
+				<p class="resume-detail">
+					You had imported
+					<strong>{savedImportState.recordsProcessed.toLocaleString()}</strong>
+					of
+					<strong>{savedImportState.totalRecords.toLocaleString()}</strong>
+					records
+					({((savedImportState.recordsProcessed / savedImportState.totalRecords) * 100).toFixed(1)}%).
+				</p>
+				<p class="resume-detail">
+					To pick up where you left off, re-upload your export files and resume.
+				</p>
+				<div class="resume-actions">
+					<button class="btn-primary" onclick={handleResume}>Resume import</button>
+					<button class="btn-secondary" onclick={handleStartFresh}>Start fresh</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	<div class="step-viewport">
 		{#key step}
@@ -346,5 +420,38 @@
 	}
 	.sep {
 		margin: 0 0.4rem;
+	}
+
+	/* ─── Resume banner ─────────────────────────────────────────── */
+	.resume-banner {
+		background: var(--accent-glow, rgba(63, 185, 104, 0.08));
+		border: 1px solid rgba(63, 185, 104, 0.35);
+		border-radius: 8px;
+		margin-bottom: 1.5rem;
+		overflow: hidden;
+	}
+
+	.resume-banner-body {
+		padding: 1rem 1.25rem;
+	}
+
+	.resume-title {
+		font-weight: 600;
+		font-size: 0.95rem;
+		margin: 0 0 0.35rem;
+		color: var(--accent);
+	}
+
+	.resume-detail {
+		font-size: 0.825rem;
+		color: var(--muted);
+		margin: 0 0 0.25rem;
+		line-height: 1.5;
+	}
+
+	.resume-actions {
+		display: flex;
+		gap: 0.5rem;
+		margin-top: 0.75rem;
 	}
 </style>

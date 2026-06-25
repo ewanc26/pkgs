@@ -3,7 +3,7 @@
  * Integrates Malachite's RateLimiter with Jasper's publishing
  */
 import type { Agent } from "@atproto/api";
-import { RateLimiter, isRateLimitError } from "@ewanc26/malachite/core";
+import { RateLimiter, isRateLimitError } from "@ewanc26/croft-click-core";
 import {
   publishPhoto,
   createGallery,
