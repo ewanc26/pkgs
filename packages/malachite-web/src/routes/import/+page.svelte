@@ -20,6 +20,7 @@
 
 	const KEY_MODE = 'malachite:mode';
 	const KEY_STEP = 'malachite:step';
+	const KEY_IMPORT_STATE = 'malachite:import-state';
 
 	// ─── wizard state ────────────────────────────────────────────────────────────
 	// Read synchronously from sessionStorage — safe because ssr = false.
@@ -56,6 +57,10 @@
 	let progress = $state<PublishProgress | null>(null);
 	let result = $state<{ success: number; errors: number; cancelled: boolean } | null>(null);
 	let importError = $state<string | null>(null);
+
+	// Import state persistence (for resume after tab close/crash)
+	type ImportState = { mode: ImportMode; totalRecords: number; recordsProcessed: number; timestamp: number };
+	let savedImportState = $state<ImportState | null>(null);
 
 	// ─── derived ─────────────────────────────────────────────────────────────────
 

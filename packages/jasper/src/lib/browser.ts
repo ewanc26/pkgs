@@ -488,6 +488,8 @@ export async function runImport(
   existingState?: BrowserImportState,
   onStateUpdate?: (state: BrowserImportState) => void,
   target: Target = "grain",
+  reverseOrder: boolean = false,
+  totalLimit?: number,
 ): Promise<{
   success: number;
   errors: number;
@@ -590,6 +592,18 @@ export async function runImport(
         (p) => !processedSet.has(p.createdAt.toISOString()),
       );
       logger.info(`${postsToProcess.length} posts remaining to import`);
+    }
+
+    // Apply reverse order if requested (newest first instead of oldest first)
+    if (reverseOrder) {
+      postsToProcess = [...postsToProcess].reverse();
+      logger.info("Processing in reverse order (newest first)");
+    }
+
+    // Apply total limit if set
+    if (totalLimit && totalLimit > 0 && postsToProcess.length > totalLimit) {
+      postsToProcess = postsToProcess.slice(0, totalLimit);
+      logger.info(`Limited to ${totalLimit} total posts`);
     }
 
     let photosImported = 0;

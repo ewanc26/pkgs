@@ -48,6 +48,8 @@
 	let dryRun = $state(false);
 	let batchSize = $state(100);
 	let altText = $state('');
+	let reverseOrder = $state(false);
+	let totalLimit = $state<number | null>(null);
 	let target = $state<Target>('grain');
 
 	// Gallery state
@@ -182,7 +184,9 @@
 				(updatedState) => {
 					savedState = updatedState;
 				},
-				target
+				target,
+				reverseOrder,
+				totalLimit ?? undefined
 			);
 
 			result = {
@@ -552,6 +556,23 @@
 							<input id="batch-size" type="number" bind:value={batchSize} min="10" max="500" />
 							<span class="field-hint">Prevents hitting blob upload limits. Default: 100</span>
 						</div>
+
+						<div class="field">
+							<label class="field-label" for="total-limit">Total post limit (optional)</label>
+							<input id="total-limit" type="number" bind:value={totalLimit} min="1" placeholder="No limit" />
+							<span class="field-hint">Stop after this many posts. Leave empty for no limit.</span>
+						</div>
+
+						<div class="field">
+							<label class="field-label" for="alt-text">Alt text override (optional)</label>
+							<input id="alt-text" type="text" bind:value={altText} placeholder="Use captions as alt text" />
+							<span class="field-hint">Set the same alt text for all photos. Leave empty to use captions.</span>
+						</div>
+
+						<label class="checkbox-line">
+							<input type="checkbox" bind:checked={reverseOrder} />
+							<span class="field-hint">Reverse order (newest first)</span>
+						</label>
 
 						<label class="checkbox-line">
 							<input type="checkbox" bind:checked={dryRun} />

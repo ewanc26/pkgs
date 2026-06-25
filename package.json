@@ -23,7 +23,7 @@
     "py:install": "pip install -r packages/llm-analyser/requirements.txt"
   },
   "engines": {
-    "node": "26.3.0",
+    "node": "24.x",
     "pnpm": ">=9"
   },
   "devDependencies": {
