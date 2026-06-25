@@ -16,7 +16,7 @@ import type {
   ParsedMedia,
 } from "../core/types.js";
 import { browserLog as log } from "./browser-logger.js";
-import { fixFacebookEncoding } from "./parser.js";
+import { fixFacebookEncoding } from "./encoding.js";
 import { RateLimiter } from "@ewanc26/croft-click-core";
 import {
   publishPhoto,
