@@ -27,6 +27,15 @@ import type {
 	SifaPublication
 } from './types.js';
 
+/**
+ * Grace period (ms) to keep showing the `fm.teal.alpha.actor.status` "now
+ * playing" record after its `expiry` has passed, before falling back to the
+ * most recent `fm.teal.alpha.feed.play` record. This avoids flicker to a
+ * stale scrobble during brief gaps between tracks — the actor status is
+ * only treated as truly inactive once it's been expired for longer than this.
+ */
+const STATUS_GRACE_PERIOD_MS = 10 * 60 * 1000;
+
 export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise<ProfileData> {
 	const cacheKey = `profile:${did}`;
 	const cached = cache.get<ProfileData>(cacheKey);
@@ -175,8 +184,8 @@ export async function fetchMusicStatus(
 				const record = statusRecords[0];
 				const value = record.value as any;
 				if (value.expiry) {
-					const expiryTime = parseInt(value.expiry) * 1000;
-					if (Date.now() <= expiryTime) {
+					const expiryTime = new Date(value.expiry).getTime();
+					if (!Number.isNaN(expiryTime) && Date.now() <= expiryTime + STATUS_GRACE_PERIOD_MS) {
 						const trackName = value.item?.trackName || value.trackName;
 						const artists = value.item?.artists || value.artists || [];
 						const releaseName = value.item?.releaseName || value.releaseName;

@@ -149,9 +149,7 @@ pnpm start input.json -o output.md
 
 # Read from stdin
 cat input.json | pnpm start -
-
-# Dry run (print to stdout)
-pnpm start input.json --dry-run</code></pre>
+</code></pre>
 		</div>
 
 		<p>
