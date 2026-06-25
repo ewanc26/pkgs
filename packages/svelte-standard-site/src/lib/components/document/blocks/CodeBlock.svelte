@@ -23,13 +23,13 @@
 		}
 
 		try {
-			const { codeToHtml, bundledLanguagesInfo, bundledThemesInfo } = await import('shiki');
+			const { codeToHtml, bundledLanguages, bundledThemes } = await import('shiki');
 
-			const lang =
-				bundledLanguagesInfo.find((l: any) => l.id === block.language)?.id || 'plaintext';
-			const theme =
-				bundledThemesInfo.find((t: any) => t.id === block.syntaxHighlightingTheme)?.id ||
-				'github-light';
+			// shiki 4: bundledLanguages is string[], bundledThemes is Record<string, Theme>
+			const lang = bundledLanguages.includes(block.language ?? '') ? block.language! : 'plaintext';
+			const theme = block.syntaxHighlightingTheme && block.syntaxHighlightingTheme in bundledThemes
+				? block.syntaxHighlightingTheme
+				: 'github-light';
 
 			html = await codeToHtml(block.plaintext, { lang, theme });
 		} catch (error) {
