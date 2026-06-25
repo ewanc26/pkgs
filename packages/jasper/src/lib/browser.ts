@@ -20,10 +20,14 @@ import { fixFacebookEncoding } from "./encoding.js";
 import { RateLimiter } from "@ewanc26/croft-click-core";
 import {
   publishPhoto,
+  publishPhotos,
   createGallery,
   createGalleryItem,
+  createGalleryItems,
   getExistingGalleries,
   getExistingPhotos,
+  type PhotoInput,
+  type GalleryItemInput,
 } from "./publisher.js";
 import { getExistingSparkPosts, publishSparkPost } from "./spark-publisher.js";
 import {
@@ -319,6 +323,60 @@ export async function publishPhotoFromBlob(
   const uint8Array = new Uint8Array(arrayBuffer);
 
   return publishPhoto(agent, uint8Array, aspectRatio, createdAt, alt, dryRun);
+}
+
+/**
+ * Result from flushing a grain photo batch
+ */
+interface FlushGrainBatchResult {
+  /** Per-photo success status in the same order as the batch */
+  successes: boolean[];
+  /** URIs for successful photos (empty string for failures), same order as batch */
+  uris: string[];
+  /** Gallery item inputs derived from successful photos (position set by caller) */
+  galleryItemInputs: GalleryItemInput[];
+}
+
+/**
+ * Flush the accumulated Grain photo batch using applyWrites
+ *
+ * Publishes all pending photos, returning per-item results and
+ * gallery items that should be created for successful photos.
+ */
+async function flushGrainPhotoBatch(
+  agent: Agent,
+  photoBatch: PhotoInput[],
+  galleryUri: string | null,
+  dryRun: boolean,
+): Promise<FlushGrainBatchResult> {
+  if (photoBatch.length === 0) {
+    return { successes: [], uris: [], galleryItemInputs: [] };
+  }
+
+  const results = await publishPhotos(agent, photoBatch, dryRun);
+
+  const successes: boolean[] = [];
+  const uris: string[] = [];
+  const galleryItemInputs: GalleryItemInput[] = [];
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    const photo = photoBatch[i];
+
+    successes.push(result.success);
+    uris.push(result.uri ?? '');
+
+    if (result.success && galleryUri && result.uri) {
+      galleryItemInputs.push({
+        galleryUri,
+        photoUri: result.uri,
+        position: 0, // position assigned by caller
+        createdAt: photo.createdAt,
+      });
+    }
+  }
+
+  return { successes, uris, galleryItemInputs };
 }
 
 /**
@@ -669,6 +727,10 @@ export async function runImport(
     let batchCount = state?.dailyImported ?? 0;
     let dailyLimitReached = false;
 
+    // Grain batch accumulators (collect photos for batch applyWrites)
+    const grainPhotoBatch: PhotoInput[] = [];
+    const grainPhotoTimestamps: string[] = [];
+
     // Helper for alt text
     const getAltText = (caption?: string): string => {
       if (altOverride) return altOverride;
@@ -731,6 +793,52 @@ export async function runImport(
           `Skipping video post (Grain does not support videos): ${timestamp}`,
         );
         continue;
+      }
+
+      // Flush any pending Grain batch so batchCount is accurate for the daily limit check
+      if (target === "grain" && grainPhotoBatch.length > 0) {
+        const flushResult = await flushGrainPhotoBatch(
+          agent, grainPhotoBatch, galleryUri, dryRun,
+        );
+
+        // Assign gallery item positions
+        for (let gi = 0; gi < flushResult.galleryItemInputs.length; gi++) {
+          flushResult.galleryItemInputs[gi].position = galleryPosition;
+          galleryPosition++;
+        }
+
+        // Batch-create gallery items
+        if (flushResult.galleryItemInputs.length > 0) {
+          const itemResults = await createGalleryItems(
+            agent, flushResult.galleryItemInputs, dryRun,
+          );
+          for (let gi = 0; gi < itemResults.length; gi++) {
+            if (itemResults[gi].success) {
+              galleryItemsCreated++;
+            }
+          }
+        }
+
+        // Update counters and per-item progress
+        let importedCount = 0;
+        let failedCount = 0;
+        for (let gi = 0; gi < flushResult.successes.length && gi < grainPhotoTimestamps.length; gi++) {
+          const ts = grainPhotoTimestamps[gi];
+          if (flushResult.successes[gi]) {
+            importedCount++;
+            trackProgress(ts, "imported");
+          } else {
+            failedCount++;
+            trackProgress(ts, "failed");
+          }
+        }
+        photosImported += importedCount;
+        batchCount += importedCount;
+        errors += failedCount;
+
+        // Clear the batch arrays
+        grainPhotoBatch.length = 0;
+        grainPhotoTimestamps.length = 0;
       }
 
       // Check batch/daily limit
@@ -917,62 +1025,78 @@ export async function runImport(
             break; // Process all media for this post in one go
           }
         } else {
-          // Grain: one photo per record
+          // Grain: batch-collect photo for applyWrites
           if (media.type === "image" && media.data) {
             try {
-              // Get actual dimensions
               const dims = await getImageDimensionsFromBlob(media.data);
 
+              grainPhotoBatch.push({
+                imageData: new Uint8Array(await media.data.arrayBuffer()),
+                aspectRatio: dims,
+                createdAt: timestamp,
+                alt: getAltText(post.caption),
+              });
+              grainPhotoTimestamps.push(timestamp);
+
               logger.info(
-                `Publishing photo from ${post.createdAt.toLocaleDateString()}`,
+                `Queued photo from ${post.createdAt.toLocaleDateString()} (queued: ${grainPhotoBatch.length})`,
               );
-              const result = await publishPhotoFromBlob(
-                agent,
-                media.data,
-                dims,
-                timestamp,
-                getAltText(post.caption),
-                dryRun,
-              );
-
-              if (result.success) {
-                photosImported++;
-                batchCount++;
-                trackProgress(timestamp, "imported");
-
-                // Create gallery item if gallery selected
-                if (galleryUri && result.uri) {
-                  const itemResult = await createGalleryItem(
-                    agent,
-                    galleryUri,
-                    result.uri,
-                    galleryPosition,
-                    timestamp,
-                    dryRun,
-                  );
-
-                  if (itemResult.success) {
-                    galleryItemsCreated++;
-                    galleryPosition++;
-                  } else {
-                    logger.error(
-                      `Failed to create gallery item: ${itemResult.error}`,
-                    );
-                  }
-                }
-              } else {
-                errors++;
-                trackProgress(timestamp, "failed");
-                logger.error(`Failed to publish: ${result.error}`);
-              }
             } catch (error) {
               errors++;
               trackProgress(timestamp, "failed");
-              logger.error(`Error publishing photo: ${error}`);
+              logger.error(`Error processing image: ${error}`);
             }
           }
         }
       }
+    }
+
+    // Flush remaining Grain batch (if any)
+    if (target === "grain" && grainPhotoBatch.length > 0) {
+      const flushResult = await flushGrainPhotoBatch(
+        agent, grainPhotoBatch, galleryUri, dryRun,
+      );
+
+      // Assign gallery item positions using the accumulated timestamp order
+      for (let gi = 0; gi < flushResult.galleryItemInputs.length; gi++) {
+        flushResult.galleryItemInputs[gi].position = galleryPosition;
+        galleryPosition++;
+      }
+
+      // Batch-create gallery items for successful photos
+      let galleryItemSuccessCount = 0;
+      if (flushResult.galleryItemInputs.length > 0) {
+        const itemResults = await createGalleryItems(
+          agent, flushResult.galleryItemInputs, dryRun,
+        );
+        for (let gi = 0; gi < itemResults.length; gi++) {
+          if (itemResults[gi].success) {
+            galleryItemSuccessCount++;
+          }
+        }
+      }
+      galleryItemsCreated += galleryItemSuccessCount;
+
+      // Update counters and per-item progress using the per-item results
+      let importedCount = 0;
+      let failedCount = 0;
+      for (let gi = 0; gi < flushResult.successes.length && gi < grainPhotoTimestamps.length; gi++) {
+        const ts = grainPhotoTimestamps[gi];
+        if (flushResult.successes[gi]) {
+          importedCount++;
+          trackProgress(ts, "imported");
+        } else {
+          failedCount++;
+          trackProgress(ts, "failed");
+        }
+      }
+      photosImported += importedCount;
+      batchCount += importedCount;
+      errors += failedCount;
+
+      // Clear the batch arrays
+      grainPhotoBatch.length = 0;
+      grainPhotoTimestamps.length = 0;
     }
 
     // Final state save
