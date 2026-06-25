@@ -1,3 +1,11 @@
+/**
+ * Agent management for AT Protocol XRPC calls.
+ *
+ * Creates and caches ATP agents with fallback between public and PDS endpoints.
+ * All functions that previously read PUBLIC_ATPROTO_DID from the environment
+ * now accept `did: string` as their first argument.
+ */
+
 import { AtpAgent } from '@atproto/api';
 import type { ResolvedIdentity } from './types.js';
 import { cache } from './cache.js';

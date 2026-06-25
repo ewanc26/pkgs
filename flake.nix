@@ -1,3 +1,7 @@
+# Nix flake for Ewan's personal package monorepo
+# Provides buildable derivations for pds-landing and nix-config-tools,
+# plus dev-shell apps for each CLI tool.
+
 {
   description = "Ewan's personal package monorepo — TypeScript and Rust packages";
 

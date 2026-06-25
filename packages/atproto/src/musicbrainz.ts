@@ -1,3 +1,13 @@
+/**
+ * Music artwork resolution cascade.
+ *
+ * Given a track/release, tries Cover Art Archive (via MusicBrainz ID),
+ * iTunes, Last.fm, and Deezer in order. Each step is bounded by
+ * ARTWORK_TIMEOUT to prevent serverless function timeouts.
+ *
+ * Deezer is skipped in browser contexts due to CORS restrictions.
+ */
+
 import { cache } from './cache.js';
 
 /** Timeout for individual artwork API calls (ms). */

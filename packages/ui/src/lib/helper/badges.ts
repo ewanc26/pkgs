@@ -1,3 +1,10 @@
+/**
+ * Badge generation utilities for post metadata display.
+ *
+ * Maps publication source and type to visual badge configs
+ * used across feed card components.
+ */
+
 import type { BlogPost } from '@ewanc26/atproto';
 
 export interface PostBadge {

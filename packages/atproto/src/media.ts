@@ -1,3 +1,10 @@
+/**
+ * Media URL helpers for AT Protocol blobs and embeddings.
+ *
+ * Builds PDS blob URLs and extracts image/video URLs from
+ * post embed structures (images, video, recordWithMedia).
+ */
+
 export function buildPdsBlobUrl(pds: string, did: string, cid: string): string {
 	return `${pds.replace(/\/$/, '')}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`;
 }

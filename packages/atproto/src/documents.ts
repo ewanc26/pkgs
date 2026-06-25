@@ -1,3 +1,10 @@
+/**
+ * Fetch `site.standard.*` AT Protocol records — publications and documents.
+ *
+ * Resolves blob URLs for cover images and maps documents to their
+ * publications via the `site` DID reference.
+ */
+
 import { cache } from './cache.js';
 import { withFallback, resolveIdentity } from './agents.js';
 import { buildPdsBlobUrl } from './media.js';

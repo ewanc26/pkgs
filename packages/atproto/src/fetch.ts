@@ -1,3 +1,21 @@
+/**
+ * AT Protocol data-fetching layer.
+ *
+ * Each public function reads a specific record collection from the
+ * AT Protocol, with caching and automatic agent fallback. Functions
+ * accept `did: string` as their first argument — no environment vars.
+ *
+ * ─── Collection Reference ───────────────────────────
+ * - `fm.teal.alpha.actor.status`   — now-playing music
+ * - `fm.teal.alpha.feed.play`      — scrobble history
+ * - `social.kibun.status`          — mood/emoji status
+ * - `social.popfeed.feed.review`   — media reviews
+ * - `sh.tangled.repo`              — Tangled git repos
+ * - `blue.linkat.board`            — link-in-bio cards
+ * - `id.sifa.profile.*`            — professional profile
+ * - `uk.ewancroft.site.info`       — site metadata
+ */
+
 import { cache } from './cache.js';
 import { withFallback, resolveIdentity } from './agents.js';
 import { buildPdsBlobUrl } from './media.js';
@@ -35,6 +53,8 @@ import type {
  * only treated as truly inactive once it's been expired for longer than this.
  */
 const STATUS_GRACE_PERIOD_MS = 10 * 60 * 1000;
+
+// ─── Profile ─────────────────────────────────────────────────────────────
 
 export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise<ProfileData> {
 	const cacheKey = `profile:${did}`;
@@ -85,6 +105,8 @@ export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise
 	cache.set(cacheKey, data);
 	return data;
 }
+
+// ─── Site Info & Links ───────────────────────────────────────────────────
 
 export async function fetchSiteInfo(
 	did: string,
@@ -329,6 +351,8 @@ export async function fetchKibunStatus(
 		return null;
 	}
 }
+
+// ─── Media Reviews (Popfeed) ─────────────────────────────────────────────
 
 export async function fetchRecentPopfeedReviews(
 	did: string,
@@ -721,7 +745,7 @@ export async function fetchTangledRepos(
 	}
 }
 
-// Sifa Professional Profile fetch functions
+// ─── SIFA Professional Profile ─────────────────────────────────────────
 
 export async function fetchSifaProfile(
 	did: string,

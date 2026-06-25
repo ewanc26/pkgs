@@ -1,3 +1,8 @@
+/* ── Malachite Web Layout ──────────────────────────────────────────
+   Forest-green dark palette for the scrobble importer frontend.
+   Green on black, minimal — the tool does one thing.
+   ────────────────────────────────────────────────────────────────── */
+
 @import 'tailwindcss';
 
 :root {
