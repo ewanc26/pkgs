@@ -1,3 +1,8 @@
+/**
+ * Locale detection and localized date formatting.
+ * Defaults to en-GB when running server-side or when navigator is unavailable.
+ */
+
 export function getUserLocale(): string {
 	if (typeof navigator !== 'undefined') {
 		return navigator.language || 'en-GB';

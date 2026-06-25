@@ -1,3 +1,10 @@
+/**
+ * General-purpose validators and text utilities.
+ *
+ * AT Protocol identifier validation, HTML escaping, truncation,
+ * and common async patterns (debounce, throttle).
+ */
+
 export function isValidTid(tid: string): boolean {
 	const tidPattern = /^[a-zA-Z0-9]{12,16}$/;
 	return tidPattern.test(tid);

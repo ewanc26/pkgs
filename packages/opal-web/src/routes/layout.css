@@ -1,3 +1,8 @@
+/* ── Opal Web Layout ───────────────────────────────────────────────
+   Deep emerald-green palette for the Twitter-to-ATProto importer.
+   Shares structural DNA with malachite-web; colour is the differentiator.
+   ────────────────────────────────────────────────────────────────── */
+
 @import 'tailwindcss';
 
 :root {

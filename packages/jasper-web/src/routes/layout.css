@@ -1,3 +1,8 @@
+/* ── Jasper Web Layout ─────────────────────────────────────────────
+   Amber-accented dark theme for the Instagram-to-ATProto import tool.
+   Tailwind v4 theme tokens mapped to CSS custom properties.
+   ────────────────────────────────────────────────────────────────── */
+
 @import 'tailwindcss';
 
 :root {
