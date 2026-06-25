@@ -1,3 +1,10 @@
+/**
+ * Fetch engagement data (likes, reposts) from the Constellation link resolver.
+ *
+ * Constellation indexes cross-DID relationships, letting us find who
+ * liked or reposted a given record URI.
+ */
+
 import { cache } from './cache.js';
 
 export type EngagementType = 'app.bsky.feed.like' | 'app.bsky.feed.repost';

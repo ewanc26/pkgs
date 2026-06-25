@@ -1,3 +1,11 @@
+/**
+ * DID and PDS resolution for the Tourmaline API.
+ *
+ * Resolves handles and DIDs via Slingshot, fetches DID documents
+ * from plc.directory or did:web endpoints, and retrieves basic
+ * Bluesky profile info (display name, avatar) from the PDS.
+ */
+
 const SLINGSHOT_URL = "https://slingshot.microcosm.blue";
 
 interface DidDocument {

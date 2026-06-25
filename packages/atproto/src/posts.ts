@@ -1,3 +1,10 @@
+/**
+ * Fetch Bluesky posts from the AT Protocol.
+ *
+ * Handles post threads with embedded media, quotes, replies, and reposts.
+ * Recursion depth is bounded at 3 to prevent runaway API chains.
+ */
+
 import { cache } from './cache.js';
 import { withFallback } from './agents.js';
 import type { BlueskyPost, PostAuthor, ExternalLink } from './types.js';

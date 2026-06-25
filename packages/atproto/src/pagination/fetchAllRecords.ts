@@ -1,3 +1,10 @@
+/**
+ * Paginated AT Protocol record fetching.
+ *
+ * Handles cursor-based pagination for listRecords calls, collecting
+ * all pages into a single array. Defaults to 100 records per page.
+ */
+
 import { withFallback } from '../agents.js';
 
 export interface FetchRecordsConfig {

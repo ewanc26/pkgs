@@ -1,3 +1,8 @@
+/**
+ * URL helpers for domain extraction, AT Protocol URI conversion,
+ * and external-link detection.
+ */
+
 export function getDomain(url: string): string {
 	try {
 		const urlObj = new URL(url);

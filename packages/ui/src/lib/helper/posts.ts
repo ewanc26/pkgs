@@ -1,3 +1,10 @@
+/**
+ * Post filtering, grouping, and tag extraction utilities.
+ *
+ * Used by the blog listing pages to search, group by year/month,
+ * and extract tag clouds from post collections.
+ */
+
 import type { BlogPost } from '@ewanc26/atproto';
 import { getUserLocale } from '../utils/locale.js';
 

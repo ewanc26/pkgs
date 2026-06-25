@@ -1,3 +1,13 @@
+/**
+ * Tangled Sync — CLI for syncing GitHub repos to Tangled.
+ *
+ * Clones (or pulls) each GitHub repo, adds a Tangled remote, pushes,
+ * updates the README with a Tangled mirror link, and creates/updates
+ * an ATProto sh.tangled.repo record tracking the mirror.
+ *
+ * Skips repos that already have a record unless --force is passed.
+ */
+
 import { AtpAgent } from "@atproto/api";
 import dotenv from "dotenv";
 import fs from "fs";

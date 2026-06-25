@@ -1,5 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
 
+/* ── WAFRN Custom Theme ────────────────────────────────────────────
+   Catppuccin-terminal aesthetic for WAFRN (wafrn.net).
+   Dark green-black palette, monospace throughout, smooth transitions.
+   No AI-slop patterns — every colour and spacing choice is deliberate.
+
+   Colour reference:
+     --pds-crust     #0d1210  deepest background
+     --pds-mantle    #141c19  secondary surface
+     --pds-base      #1a2420  element background
+     --pds-surface-0 #243028  raised surfaces
+     --pds-surface-1 #2e3d34  borders, dividers
+     --pds-overlay-0 #4d6b58  muted decorative elements
+     --pds-text      #cdd6f4  primary text
+     --pds-subtext   #93b09a  secondary text
+     --pds-green     #a6e3a1  accent
+     --pds-red       #f38ba8  destructive
+     --pds-yellow    #f9e2af  hover, warning
+   ────────────────────────────────────────────────────────────────── */
+
 :root {
   --pds-crust:     #0d1210;
   --pds-mantle:    #141c19;
