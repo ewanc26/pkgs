@@ -2,8 +2,8 @@
  * Last.fm CSV — web layer.
  * Re-exports the shared core logic and adds a browser File API loader.
  */
-import type { LastFmCsvRecord } from '@ewanc26/malachite/core';
-import { parseLastFmCsvContent, convertToPlayRecord } from '@ewanc26/malachite/core';
+import type { LastFmCsvRecord } from '@ewanc26/croft-click-core';
+import { parseLastFmCsvContent, convertToPlayRecord } from '@ewanc26/croft-click-core';
 
 export { parseLastFmCsvContent, convertToPlayRecord };
 

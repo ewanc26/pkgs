@@ -2,8 +2,8 @@
  * YouTube Music JSON — web layer.
  * Re-exports the shared core logic and adds a browser File API loader.
  */
-import type { YouTubeMusicRecord } from '@ewanc26/malachite/core';
-import { parseYouTubeMusicJsonContent, convertYouTubeMusicToPlayRecord } from '@ewanc26/malachite/core';
+import type { YouTubeMusicRecord } from '@ewanc26/croft-click-core';
+import { parseYouTubeMusicJsonContent, convertYouTubeMusicToPlayRecord } from '@ewanc26/croft-click-core';
 
 export { parseYouTubeMusicJsonContent, convertYouTubeMusicToPlayRecord };
 

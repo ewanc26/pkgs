@@ -2,8 +2,8 @@
  * Spotify JSON — web layer.
  * Re-exports the shared core logic and adds a browser File API loader.
  */
-import type { SpotifyRecord } from '@ewanc26/malachite/core';
-import { parseSpotifyJsonContent, convertSpotifyToPlayRecord } from '@ewanc26/malachite/core';
+import type { SpotifyRecord } from '@ewanc26/croft-click-core';
+import { parseSpotifyJsonContent, convertSpotifyToPlayRecord } from '@ewanc26/croft-click-core';
 
 export { parseSpotifyJsonContent, convertSpotifyToPlayRecord };
 

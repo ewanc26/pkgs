@@ -65,6 +65,47 @@
       ? ((progress.recordsProcessed / progress.totalRecords) * 100).toFixed(1)
       : '0',
   );
+
+  // ─── Time estimation (multi-day imports) ─────────────────────────────────────
+  // Track wall-clock start time so we can compute observed throughput and
+  // estimate remaining wall time — mirrors the CLI's multi-day estimation.
+
+  let _startedAt = $state(0);
+
+  $effect(() => {
+    if (isRunning && !result && _startedAt === 0) {
+      _startedAt = Date.now();
+    }
+    if (!isRunning && _startedAt !== 0) {
+      _startedAt = 0;
+    }
+  });
+
+  interface TimeEstimate {
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  }
+
+  let timeEstimate = $derived.by((): TimeEstimate | null => {
+    if (!progress || progress.recordsProcessed === 0 || _startedAt === 0) return null;
+    const elapsedMs = Date.now() - _startedAt;
+    const elapsedSec = elapsedMs / 1000;
+    if (elapsedSec < 2) return null; // wait for a meaningful sample
+
+    const remaining = progress.totalRecords - progress.recordsProcessed;
+    const recsPerSec = progress.recordsProcessed / elapsedSec;
+    if (recsPerSec <= 0) return null;
+
+    const estSec = remaining / recsPerSec;
+    if (estSec < 60) return { days: 0, hours: 0, minutes: 0, seconds: Math.round(estSec) };
+
+    const days = Math.floor(estSec / 86400);
+    const h = Math.floor((estSec % 86400) / 3600);
+    const m = Math.ceil((estSec % 3600) / 60);
+    return { days, hours: h, minutes: m, seconds: 0 };
+  });
 </script>
 
 <section class="card-section run-section">
@@ -87,6 +128,20 @@
       {progress.recordsProcessed.toLocaleString()} / {progress.totalRecords.toLocaleString()} records
       &nbsp;·&nbsp; batch {progress.batchIndex} · {progress.currentBatchSize} per batch
     </p>
+    {#if timeEstimate && (timeEstimate.minutes > 0 || timeEstimate.hours > 0 || timeEstimate.days > 0 || timeEstimate.seconds > 5)}
+      <p class="estimate-text">
+        Est. remaining: ~
+        {#if timeEstimate.days > 0}
+          {timeEstimate.days}d {timeEstimate.hours}h {timeEstimate.minutes}m
+        {:else if timeEstimate.hours > 0}
+          {timeEstimate.hours}h {timeEstimate.minutes}m
+        {:else if timeEstimate.minutes > 0}
+          {timeEstimate.minutes}m {timeEstimate.seconds}s
+        {:else}
+          {timeEstimate.seconds}s
+        {/if}
+      </p>
+    {/if}
   {/if}
 
   <div class="log-terminal" bind:this={logEl}>
@@ -171,6 +226,13 @@
   .progress-text {
     font-size: 0.75rem;
     color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin: 0 0 0.75rem;
+  }
+
+  .estimate-text {
+    font-size: 0.75rem;
+    color: var(--warn);
     font-family: 'JetBrains Mono', monospace;
     margin: 0 0 0.75rem;
   }
