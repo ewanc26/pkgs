@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/opal",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Convert microblog posts from Twitter, Mastodon, Threads, and Nostr to AT Protocol Bluesky posts",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
