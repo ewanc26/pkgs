@@ -6,6 +6,25 @@ allowBuilds:
   esbuild: true
   sharp: true
 
+minimumReleaseAgeExclude:
+  - '@vercel/backends@0.8.18'
+  - '@vercel/build-utils@13.32.1'
+  - '@vercel/cervel@0.1.26'
+  - '@vercel/container@0.0.2'
+  - '@vercel/elysia@0.1.97'
+  - '@vercel/express@0.1.109'
+  - '@vercel/fastify@0.1.100'
+  - '@vercel/gatsby-plugin-vercel-builder@2.2.23'
+  - '@vercel/go@3.10.0'
+  - '@vercel/h3@0.1.106'
+  - '@vercel/hono@0.2.100'
+  - '@vercel/koa@0.1.80'
+  - '@vercel/nestjs@0.2.101'
+  - '@vercel/next@4.20.1'
+  - '@vercel/node@5.8.21'
+  - '@vercel/static-build@2.11.3'
+  - vercel@54.17.1
+
 onlyBuiltDependencies:
   - core-js
   - esbuild
