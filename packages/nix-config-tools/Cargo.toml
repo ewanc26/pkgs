@@ -2,7 +2,7 @@
 name = "nix-config-tools"
 version = "0.1.0"
 edition = "2021"
-authors = ["Ewan Carver"]
+authors = ["Ewan Croft"]
 license = "MIT"
 
 [dependencies]
