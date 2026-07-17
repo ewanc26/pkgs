@@ -15,6 +15,7 @@ export type { LinkItem } from './components/LinkList.svelte';
 
 // ─── Smart / data-fetching components ────────────────────────────────────────
 export { default as StatusGrid } from './components/StatusGrid.svelte';
+export { default as ResourceGrid } from './components/ResourceGrid.svelte';
 
 // ─── Compound / section components ───────────────────────────────────────────
 export { default as ContactSection } from './components/ContactSection.svelte';

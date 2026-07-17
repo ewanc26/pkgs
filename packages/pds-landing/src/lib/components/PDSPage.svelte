@@ -14,6 +14,7 @@
 	import SectionLabel from './SectionLabel.svelte';
 	import Divider from './Divider.svelte';
 	import StatusGrid from './StatusGrid.svelte';
+	import ResourceGrid from './ResourceGrid.svelte';
 	import LinkList from './LinkList.svelte';
 	import ContactSection from './ContactSection.svelte';
 	import PDSFooter from './PDSFooter.svelte';
@@ -40,6 +41,7 @@
 
 		// ── Sections ─────────────────────────────────────────────────────────
 		showStatus?: boolean;
+		showResources?: boolean;
 		showEndpoints?: boolean;
 		showLinks?: boolean;
 		showContact?: boolean;
@@ -70,6 +72,7 @@
 		tagline = 'Bluesky-compatible ATProto PDS · personal instance',
 		baseUrl = '',
 		showStatus = true,
+		showResources = true,
 		showEndpoints = true,
 		showLinks = true,
 		showContact = true,
@@ -124,6 +127,12 @@
 		{#if showStatus}
 			<SectionLabel label="status" />
 			<StatusGrid {baseUrl} />
+		{/if}
+
+		{#if showResources}
+			<Divider />
+			<SectionLabel label="resources" />
+			<ResourceGrid {baseUrl} />
 		{/if}
 
 		{#if showEndpoints}
