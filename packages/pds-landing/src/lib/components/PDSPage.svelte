@@ -65,7 +65,7 @@
 	let {
 		cardTitle = "ewan's pds",
 		promptUser = 'server',
-		promptHost = 'pds.ewancroft.uk',
+		promptHost = '',
 		promptPath = '~',
 		tagline = 'Bluesky-compatible ATProto PDS · personal instance',
 		baseUrl = '',
@@ -77,9 +77,15 @@
 		staticLinks = [{ href: 'https://witchsky.app', label: 'Witchsky Web Client' }],
 		blueskyHandle = 'ewancroft.uk',
 		blueskyClientUrl = 'https://witchsky.app',
-		showNixpkg = true,
+		showNixpkg = false,
 		showAtproto = true
 	}: Props = $props();
+
+	let resolvedHost = $state('');
+
+	onMount(() => {
+		resolvedHost = promptHost || window.location.hostname;
+	});
 
 	const ENDPOINT_LINKS: LinkItem[] = [
 		{ href: 'https://github.com/bluesky-social/atproto', label: 'atproto source code' },
@@ -112,7 +118,7 @@
 
 <div class="pds-page">
 	<TerminalCard title={cardTitle}>
-		<PromptLine user={promptUser} host={promptHost} path={promptPath} />
+		<PromptLine user={promptUser} host={resolvedHost} path={promptPath} />
 		<Tagline text={tagline} />
 
 		{#if showStatus}

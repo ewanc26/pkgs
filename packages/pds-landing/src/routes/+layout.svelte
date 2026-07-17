@@ -2,20 +2,28 @@
 	import './layout.css';
 
 	const { children } = $props();
+
+	let origin = $state('');
+
+	$effect(() => {
+		if (typeof window !== 'undefined') {
+			origin = window.location.origin;
+		}
+	});
 </script>
 
 <svelte:head>
-	<title>pds.ewancroft.uk — Ewan's ATProto PDS</title>
-	<meta name="description" content="Ewan's personal ATProto PDS — a self-hosted Bluesky-compatible server running at pds.ewancroft.uk." />
+	<title>{origin || 'pds'} — Ewan's ATProto PDS</title>
+	<meta name="description" content="Ewan's personal ATProto PDS — a self-hosted Bluesky-compatible server." />
 	<meta property="og:type" content="website" />
-	<meta property="og:url" content="https://pds.ewancroft.uk" />
-	<meta property="og:title" content="pds.ewancroft.uk — Ewan's ATProto PDS" />
-	<meta property="og:description" content="Ewan's personal ATProto PDS — a self-hosted Bluesky-compatible server running at pds.ewancroft.uk." />
-	<meta property="og:image" content="https://pds.ewancroft.uk/thumb.svg" />
+	<meta property="og:url" content={origin} />
+	<meta property="og:title" content="{origin || 'pds'} — Ewan's ATProto PDS" />
+	<meta property="og:description" content="Ewan's personal ATProto PDS — a self-hosted Bluesky-compatible server." />
+	<meta property="og:image" content="{origin}/thumb.svg" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://pds.ewancroft.uk/thumb.svg" />
-	<meta name="twitter:title" content="pds.ewancroft.uk — Ewan's ATProto PDS" />
-	<meta name="twitter:description" content="Ewan's personal ATProto PDS — a self-hosted Bluesky-compatible server running at pds.ewancroft.uk." />
+	<meta name="twitter:image" content="{origin}/thumb.svg" />
+	<meta name="twitter:title" content="{origin || 'pds'} — Ewan's ATProto PDS" />
+	<meta name="twitter:description" content="Ewan's personal ATProto PDS — a self-hosted Bluesky-compatible server." />
 	<link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png" />
 	<link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png" />
 	<link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png" />

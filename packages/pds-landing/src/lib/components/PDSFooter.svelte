@@ -22,6 +22,10 @@
 	{#if showAtproto}
 		<a href="https://atproto.com" target="_blank" rel="noopener">atproto.com</a>
 	{/if}
+	<p class="pds-trademark">
+		AT Protocol and atproto are registered trademarks of Bluesky PBC. This site uses the terms
+		only in reference to the technology and does not claim ownership.
+	</p>
 </footer>
 
 <style>
@@ -39,5 +43,11 @@
 
 	.pds-footer a:hover {
 		color: var(--pds-color-green);
+	}
+
+	.pds-trademark {
+		margin-top: 0.5rem;
+		font-size: 0.85em;
+		color: color-mix(in srgb, var(--pds-color-subtext-0) 50%, transparent);
 	}
 </style>
