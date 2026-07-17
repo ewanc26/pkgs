@@ -48,10 +48,20 @@ export const coreProjects: Project[] = [
 			'Convert your posts from Twitter, Mastodon, Threads, and Nostr to AT Protocol Bluesky posts. Original timestamps preserved.',
 		accent: '#a7f3d0',
 		logo: '/opal.svg'
-	},
+	}
 ];
 
 export const extraProjects: Project[] = [
+	{
+		name: 'Hasharium',
+		slug: 'hasharium',
+		url: 'https://hasharium.croft.click',
+		heading: 'DIDs → deterministic forms',
+		description:
+			'Observe and collect stable geometric specimens derived locally from decentralised identifiers.',
+		accent: '#d5673f',
+		logo: '/hasharium.svg'
+	},
 	{
 		name: 'Tourmaline',
 		slug: 'tourmaline',
