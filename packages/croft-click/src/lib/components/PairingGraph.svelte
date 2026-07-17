@@ -108,6 +108,17 @@
 			href: ps.malachite.url,
 			type: "project",
 		},
+		{
+			id: "hasharium",
+			cx: 215,
+			cy: 440,
+			r: 21,
+			accent: ps.hasharium.accent,
+			logo: ps.hasharium.logo,
+			label: "Hasharium",
+			href: ps.hasharium.url,
+			type: "project",
+		},
 
 		{
 			id: "bluesky",
@@ -210,6 +221,7 @@
 		{ a: "croft", b: "bismuth", variant: "hub" },
 		{ a: "croft", b: "devlog", variant: "hub" },
 		{ a: "croft", b: "malachite", variant: "hub" },
+		{ a: "croft", b: "hasharium", variant: "hub" },
 
 		{ a: "jasper", b: "grain", variant: "service" },
 		{ a: "jasper", b: "spark", variant: "service" },
