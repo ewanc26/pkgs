@@ -1,131 +1,27 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { RefreshCw, BarChart3 } from '@lucide/svelte';
-
-	// Resolve the operator's identity at runtime — no env var needed.
-	const OPERATOR = 'ewancroft.uk';
-
-	interface ToolRecord {
-		$type: string;
-		recordsImported?: number;
-		postsImported?: number;
-		documentsConverted?: number;
-		scrobblesAnalyzed?: number;
-		sharedToBluesky?: boolean;
-		mode?: string;
-	}
-
-	interface ToolkitRecord {
-		tool: ToolRecord;
-		createdAt: string;
-		context?: string;
-	}
-
-	interface ToolStats {
-		type: string;
-		slug: string;
-		name: string;
-		accent: string;
-		count: number;
-		total: number;
-		metricLabel: string;
-		// malachite-specific: breakdown of import modes
-		modes?: Record<string, number>;
-		// tourmaline-specific
-		sharedCount?: number;
-	}
-
-	const TOOL_META: Record<string, { slug: string; name: string; accent: string; metricLabel: string }> = {
-		'click.croft.tools.malachite': { slug: 'malachite', name: 'Malachite', accent: '#3fb968', metricLabel: 'records imported' },
-		'click.croft.tools.jasper':    { slug: 'jasper',    name: 'Jasper',    accent: '#fb923c', metricLabel: 'photos imported'   },
-		'click.croft.tools.bismuth':   { slug: 'bismuth',   name: 'Bismuth',   accent: '#c4b5fd', metricLabel: 'docs converted'    },
-		'click.croft.tools.opal':      { slug: 'opal',      name: 'Opal',      accent: '#a7f3d0', metricLabel: 'posts imported'    },
-		'click.croft.tools.tourmaline':{ slug: 'tourmaline',name: 'Tourmaline',accent: '#4ade80', metricLabel: 'scrobbles analysed'},
-	};
+	import type { ToolkitUsageSummary, ToolStats } from '$lib/toolkit-usage';
 
 	let loading = $state(true);
 	let error = $state('');
 	let totalRecords = $state(0);
+	let totalRepositories = $state(0);
+	let partial = $state(false);
 	let toolStats = $state<ToolStats[]>([]);
 
 	async function fetchStats() {
 		loading = true;
 		error = '';
 		try {
-			// Resolve handle → DID + PDS in one round-trip via slingshot.
-			const miniDoc = await fetch(
-				`https://slingshot.microcosm.blue/xrpc/com.bad-example.identity.resolveMiniDoc?identifier=${encodeURIComponent(OPERATOR)}`
-			).then((r) => {
-				if (!r.ok) throw new Error(`Identity resolution failed: ${r.status}`);
-				return r.json() as Promise<{ did?: string; pds?: string }>;
-			});
-
-			if (!miniDoc.did || !miniDoc.pds) throw new Error('Incomplete identity document from slingshot');
-
-			const { did, pds } = miniDoc;
-
-			// Paginate through all toolkit use records.
-			const records: ToolkitRecord[] = [];
-			let cursor: string | undefined;
-
-			do {
-				const params = new URLSearchParams({
-					repo: did,
-					collection: 'click.croft.toolkit.use',
-					limit: '100',
-				});
-				if (cursor) params.set('cursor', cursor);
-
-				const page = await fetch(`${pds}/xrpc/com.atproto.repo.listRecords?${params}`).then((r) => {
-					if (!r.ok) throw new Error(`PDS returned ${r.status}`);
-					return r.json() as Promise<{ records: Array<{ value: ToolkitRecord }>; cursor?: string }>;
-				});
-
-				records.push(...page.records.map((r) => r.value));
-				cursor = page.cursor;
-			} while (cursor);
-
-			totalRecords = records.length;
-
-			// Aggregate by $type.
-			const agg = new Map<string, { count: number; total: number; modes: Record<string, number>; shared: number }>();
-
-			for (const r of records) {
-				const type = r.tool.$type;
-				const slot = agg.get(type) ?? { count: 0, total: 0, modes: {}, shared: 0 };
-
-				slot.count++;
-				slot.total +=
-					r.tool.recordsImported ??
-					r.tool.postsImported ??
-					r.tool.documentsConverted ??
-					r.tool.scrobblesAnalyzed ??
-					0;
-
-				if (r.tool.mode) {
-					slot.modes[r.tool.mode] = (slot.modes[r.tool.mode] ?? 0) + 1;
-				}
-				if (r.tool.sharedToBluesky) slot.shared++;
-
-				agg.set(type, slot);
-			}
-
-			toolStats = [...agg.entries()]
-				.map(([type, s]) => {
-					const meta = TOOL_META[type];
-					return {
-						type,
-						slug: meta?.slug ?? 'unknown',
-						name: meta?.name ?? type.split('.').pop() ?? type,
-						accent: meta?.accent ?? '#6b7280',
-						count: s.count,
-						total: s.total,
-						metricLabel: meta?.metricLabel ?? 'uses',
-						modes: Object.keys(s.modes).length ? s.modes : undefined,
-						sharedCount: s.shared > 0 ? s.shared : undefined,
-					};
-				})
-				.sort((a, b) => b.count - a.count);
+			const response = await fetch('/api/toolkit-usage');
+			if (!response.ok)
+				throw new Error(`Usage API returned ${response.status}`);
+			const summary = (await response.json()) as ToolkitUsageSummary;
+			totalRecords = summary.totalRecords;
+			totalRepositories = summary.totalRepositories;
+			partial = summary.partial;
+			toolStats = summary.toolStats;
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {
@@ -142,7 +38,12 @@
 			<BarChart3 size={14} color="#4ade80" />
 			<span class="label">TOOLKIT USAGE</span>
 		</div>
-		<button class="refresh-btn" onclick={fetchStats} disabled={loading} title="Refresh">
+		<button
+			class="refresh-btn"
+			onclick={fetchStats}
+			disabled={loading}
+			title="Refresh"
+		>
 			<RefreshCw size={12} class={loading ? 'spin' : ''} />
 		</button>
 	</div>
@@ -166,7 +67,12 @@
 	{:else}
 		<div class="total-row">
 			<span class="total-count">{totalRecords.toLocaleString()}</span>
-			<span class="total-label">usage records</span>
+			<span class="total-label">
+				usage records across {totalRepositories.toLocaleString()}
+				{totalRepositories === 1 ? 'repository' : 'repositories'}
+				{#if partial}
+					· partial index{/if}
+			</span>
 		</div>
 
 		<div class="breakdown">
@@ -174,12 +80,19 @@
 				<div class="breakdown-item">
 					<div class="tool-info">
 						<div class="tool-logo-box" style="--tool-accent: {tool.accent}">
-							<img src="/{tool.slug}.svg" alt={tool.name} width="14" height="14" />
+							<img
+								src="/{tool.slug}.svg"
+								alt={tool.name}
+								width="14"
+								height="14"
+							/>
 						</div>
 						<div class="tool-detail">
 							<span class="tool-name">{tool.name}</span>
 							{#if tool.total > 0}
-								<span class="tool-metric">{tool.total.toLocaleString()} {tool.metricLabel}</span>
+								<span class="tool-metric"
+									>{tool.total.toLocaleString()} {tool.metricLabel}</span
+								>
 							{/if}
 							{#if tool.modes}
 								<div class="mode-row">
@@ -189,7 +102,9 @@
 								</div>
 							{/if}
 							{#if tool.sharedCount}
-								<span class="tool-metric">{tool.sharedCount} shared to Bluesky</span>
+								<span class="tool-metric"
+									>{tool.sharedCount} shared to Bluesky</span
+								>
 							{/if}
 						</div>
 					</div>
@@ -201,8 +116,6 @@
 			{/each}
 		</div>
 	{/if}
-
-
 </div>
 
 <style>
@@ -413,8 +326,12 @@
 	}
 
 	@keyframes loading-slide {
-		0%   { transform: translateX(-100%); }
-		100% { transform: translateX(333%); }
+		0% {
+			transform: translateX(-100%);
+		}
+		100% {
+			transform: translateX(333%);
+		}
 	}
 
 	.empty-state {
@@ -460,7 +377,11 @@
 	}
 
 	@keyframes spin {
-		from { transform: rotate(0deg); }
-		to   { transform: rotate(360deg); }
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 </style>
