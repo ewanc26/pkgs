@@ -6,7 +6,6 @@ croft.click is the central hub for a collection of browser-based tools that help
 
 ## Tools
 
-- Crypto Contact (crypto.croft.click): Store crypto contacts in your ATProto repository and publish Ethereum, Bitcoin, or Monero wallet addresses with cryptographic ownership proofs.
 - Hasharium (hasharium.croft.click): Generate stable geometric specimens from decentralised identifiers and curate a local study tray.
 - Jasper (jasper.croft.click): Import Instagram photos, stories, and videos to Grain or Spark on ATProto. Original timestamps preserved, duplicates skipped.
 - Malachite (malachite.croft.click): Import Last.fm and Spotify listening history to Teal (fm.teal.alpha lexicon). Smart deduplication and sync support.

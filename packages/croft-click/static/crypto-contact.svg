@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="30" fill="#17231d"/>
-  <circle cx="32" cy="32" r="29" fill="none" stroke="#d3ff5c" stroke-opacity=".24"/>
-  <text x="32" y="37" text-anchor="middle" fill="#d3ff5c" font-family="ui-monospace, monospace" font-size="17" font-weight="700">C/C</text>
-</svg>
