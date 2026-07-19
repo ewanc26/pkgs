@@ -53,6 +53,16 @@ export const coreProjects: Project[] = [
 
 export const extraProjects: Project[] = [
 	{
+		name: 'Crypto Contact',
+		slug: 'crypto-contact',
+		url: 'https://crypto.croft.click',
+		heading: 'Verified wallet address book',
+		description:
+			'Save crypto contacts in your ATProto repository and publish wallet addresses backed by Ethereum, Bitcoin, or Monero ownership proofs.',
+		accent: '#9fcf36',
+		logo: '/crypto-contact.svg'
+	},
+	{
 		name: 'Hasharium',
 		slug: 'hasharium',
 		url: 'https://hasharium.croft.click',
