@@ -109,6 +109,17 @@
 			type: "project",
 		},
 		{
+			id: "crypto-contact",
+			cx: 105,
+			cy: 270,
+			r: 21,
+			accent: ps["crypto-contact"].accent,
+			logo: ps["crypto-contact"].logo,
+			label: "Crypto Contact",
+			href: ps["crypto-contact"].url,
+			type: "project",
+		},
+		{
 			id: "hasharium",
 			cx: 215,
 			cy: 440,
@@ -222,6 +233,7 @@
 		{ a: "croft", b: "devlog", variant: "hub" },
 		{ a: "croft", b: "malachite", variant: "hub" },
 		{ a: "croft", b: "hasharium", variant: "hub" },
+		{ a: "croft", b: "crypto-contact", variant: "hub" },
 
 		{ a: "jasper", b: "grain", variant: "service" },
 		{ a: "jasper", b: "spark", variant: "service" },
