@@ -1,7 +1,4 @@
-<script lang="ts">
-	import RichText from '../RichText.svelte';
-	import UnorderedListBlock from './UnorderedListBlock.svelte';
-
+<script module lang="ts">
 	export interface ListItem {
 		content?: {
 			plaintext: string;
@@ -9,6 +6,11 @@
 		};
 		children?: ListItem[];
 	}
+</script>
+
+<script lang="ts">
+	import RichText from '../RichText.svelte';
+	import UnorderedListBlock from './UnorderedListBlock.svelte';
 
 	interface Props {
 		block: {

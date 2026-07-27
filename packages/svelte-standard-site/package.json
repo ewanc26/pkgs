@@ -123,6 +123,7 @@
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.2.1",
 		"@types/node": "^25.5.0",
+		"jsdom": "^30.0.0",
 		"prettier": "^3.7.4",
 		"prettier-plugin-svelte": "^3.5.1",
 		"prettier-plugin-tailwindcss": "^0.7.2",

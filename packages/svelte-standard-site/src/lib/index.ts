@@ -82,24 +82,25 @@ export type {
 	FootnoteFeature,
 	FacetFeature,
 	Facet,
-	// Block types
-	TextBlock,
-	HeaderBlock,
-	BlockquoteBlock,
-	ImageBlock,
-	CodeBlock,
-	MathBlock,
+	// Block types (aliased with a "Type" suffix — the bare names above are the
+	// Svelte components that render these blocks)
+	TextBlock as TextBlockType,
+	HeaderBlock as HeaderBlockType,
+	BlockquoteBlock as BlockquoteBlockType,
+	ImageBlock as ImageBlockType,
+	CodeBlock as CodeBlockType,
+	MathBlock as MathBlockType,
 	OrderedListItem,
-	OrderedListBlock,
+	OrderedListBlock as OrderedListBlockType,
 	UnorderedListItem,
-	UnorderedListBlock,
-	HorizontalRuleBlock,
-	IframeBlock,
-	WebsiteBlock,
-	ButtonBlock,
-	BskyPostBlock,
-	PollBlock,
-	PageBlock,
+	UnorderedListBlock as UnorderedListBlockType,
+	HorizontalRuleBlock as HorizontalRuleBlockType,
+	IframeBlock as IframeBlockType,
+	WebsiteBlock as WebsiteBlockType,
+	ButtonBlock as ButtonBlockType,
+	BskyPostBlock as BskyPostBlockType,
+	PollBlock as PollBlockType,
+	PageBlock as PageBlockType,
 	Block,
 	// Content types
 	Position,
@@ -134,6 +135,11 @@ export { resolveIdentity, buildPdsBlobUrl } from './utils/agents.js';
 
 export { cache } from './utils/cache.js';
 
+// Note: extendedThemeToCssVars/themeToCssVars are intentionally NOT re-exported
+// from theme.js — utils/theme-helpers.ts has the canonical implementations
+// (the ones components actually use); theme.js's versions map `theme.primary`
+// to the unused `--theme-primary` var instead of `--theme-accent`, which no
+// stylesheet or component reads.
 export {
 	rgbToCSS,
 	rgbaToCSS,
@@ -143,8 +149,6 @@ export {
 	getThemeVars,
 	isRGBA,
 	basicThemeToCssVars,
-	extendedThemeToCssVars,
-	themeToCssVars as anyThemeToCssVars,
 	getFontFamilyCSS,
 	getGoogleFontsUrl,
 	getAllThemeVars
@@ -188,7 +192,7 @@ export type { TransformOptions, TransformResult } from './utils/content.js';
 // Comments exports (Bluesky replies)
 export { fetchComments, fetchMentionComments, formatRelativeTime } from './utils/comments.js';
 
-export type { Comment, CommentAuthor, FetchCommentsOptions } from './utils/comments.js';
+export type { Comment as FetchedComment, CommentAuthor, FetchCommentsOptions } from './utils/comments.js';
 
 // Native comments exports
 export {

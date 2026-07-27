@@ -15,7 +15,7 @@
  * ```
  */
 
-import { AtpAgent } from '@atproto/api';
+import { AtpAgent, AppBskyFeedDefs } from '@atproto/api';
 
 export interface CommentAuthor {
 	did: string;
@@ -78,7 +78,7 @@ async function fetchThread(
 
 		const thread = response.data.thread;
 
-		if (thread.$type !== 'app.bsky.feed.defs#threadViewPost') {
+		if (!AppBskyFeedDefs.isThreadViewPost(thread)) {
 			return null;
 		}
 
@@ -105,7 +105,7 @@ async function fetchThread(
 		// Process replies if within depth limit
 		if (thread.replies && currentDepth < maxDepth) {
 			for (const reply of thread.replies) {
-				if (reply.$type === 'app.bsky.feed.defs#threadViewPost') {
+				if (AppBskyFeedDefs.isThreadViewPost(reply)) {
 					const replyComment = await fetchThread(
 						agent,
 						reply.post.uri,

@@ -63,8 +63,9 @@ export function convertSidenotes(markdown: string): string {
 		const cleanContent = content.trim();
 		const cleanLabel = label.trim();
 
-		// Convert to blockquote with label
-		return `\n> **${cleanLabel}:** ${cleanContent}\n`;
+		// Convert to blockquote with label. No extra newlines here — the
+		// surrounding markdown already provides the blank-line separation.
+		return `> **${cleanLabel}:** ${cleanContent}`;
 	});
 }
 
