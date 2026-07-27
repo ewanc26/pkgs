@@ -50,7 +50,8 @@
   },
   "dependencies": {
     "@ewanc26/noise-avatar": "workspace:*",
-    "@lucide/svelte": "^0.577.0"
+    "@lucide/svelte": "^0.577.0",
+    "hls.js": "^1.6.16"
   },
   "optionalDependencies": {
     "@ewanc26/atproto": ">=0.2.2"
