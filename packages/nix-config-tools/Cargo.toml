@@ -1,6 +1,6 @@
 [package]
 name = "nix-config-tools"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Ewan Croft"]
 license = "MIT"
@@ -8,7 +8,6 @@ license = "MIT"
 [dependencies]
 dialoguer = { version = "0.11", features = ["completion"] }
 console = { version = "0.15" }
-regex = { version = "1" }
 
 [lib]
 name = "tools_common"

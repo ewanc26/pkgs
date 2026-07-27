@@ -5,6 +5,9 @@ Thumbs.db
 # Build output
 dist
 .svelte-kit
+target
+__pycache__
+*.pyc
 
 # Env
 .env

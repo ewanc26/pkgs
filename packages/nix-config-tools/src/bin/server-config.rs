@@ -11,7 +11,6 @@
 ///   nix run .#server-config -- --show  # print current config and exit
 use console::Style;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
-use regex::Regex;
 use tools_common::*;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -160,17 +159,6 @@ fn resolve_u16(
 ) -> u16 {
     let s = resolve_str(opts, host, section, key, dotted_path, "");
     s.parse().unwrap_or(fallback)
-}
-
-fn resolve_bool(
-    opts: &str, host: &str,
-    dotted_path: &str,
-    fallback: bool,
-) -> bool {
-    if let Some(v) = host_get(host, dotted_path) {
-        return v.trim() == "true";
-    }
-    fallback
 }
 
 // ── config structs ────────────────────────────────────────────────────────────
