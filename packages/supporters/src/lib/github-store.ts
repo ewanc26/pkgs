@@ -44,6 +44,40 @@ export interface GitHubSponsorEvent {
 	date: Date;
 }
 
+const VALID_ACTIONS: GitHubSponsorshipAction[] = [
+	'created',
+	'cancelled',
+	'edited',
+	'tier_changed',
+	'pending_cancellation',
+	'pending_tier_change'
+];
+
+/**
+ * Validate a raw PDS record value before trusting it as a GitHubSponsorEventRecord.
+ * PDS records are untyped JSON blobs at the SDK level — a malformed or
+ * tampered record must not silently propagate undefined fields into the
+ * aggregated sponsor list.
+ */
+function parseGitHubSponsorEventRecord(value: unknown): GitHubSponsorEventRecord | null {
+	if (typeof value !== 'object' || value === null) return null;
+	const v = value as Record<string, unknown>;
+
+	if (typeof v.login !== 'string' || v.login.length === 0) return null;
+	if (typeof v.action !== 'string' || !VALID_ACTIONS.includes(v.action as GitHubSponsorshipAction)) return null;
+	if (typeof v.tierName !== 'string') return null;
+	if (typeof v.monthlyUsd !== 'number' || !Number.isFinite(v.monthlyUsd)) return null;
+	if ('name' in v && v.name !== undefined && typeof v.name !== 'string') return null;
+
+	return {
+		login: v.login,
+		name: typeof v.name === 'string' ? v.name : undefined,
+		action: v.action as GitHubSponsorshipAction,
+		tierName: v.tierName,
+		monthlyUsd: v.monthlyUsd
+	};
+}
+
 function requireEnv(key: string): string {
 	const val = process.env[key];
 	if (!val) throw new Error(`Missing required environment variable: ${key}`);
@@ -91,7 +125,8 @@ export async function fetchSponsorEvents(did: string): Promise<GitHubSponsorEven
 		});
 
 		for (const record of res.data.records) {
-			const value = record.value as GitHubSponsorEventRecord;
+			const value = parseGitHubSponsorEventRecord(record.value);
+			if (!value) continue;
 			const rkey = record.uri.split('/').pop() ?? '';
 			let date: Date;
 			try {
@@ -138,8 +173,10 @@ export async function readSponsors(): Promise<GitHubSponsor[]> {
 		});
 
 		for (const record of res.data.records) {
+			const value = parseGitHubSponsorEventRecord(record.value);
+			if (!value) continue;
 			const rkey = record.uri.split('/').pop() ?? '';
-			events.push({ rkey, record: record.value as unknown as GitHubSponsorEventRecord });
+			events.push({ rkey, record: value });
 		}
 
 		cursor = res.data.cursor;
