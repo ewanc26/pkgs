@@ -5,6 +5,9 @@ export default defineConfig({
 	plugins: [svelte()],
 	test: {
 		globals: true,
-		environment: 'jsdom'
+		environment: 'jsdom',
+		// Only run source tests — dist/ and .svelte-kit/ hold prebuilt copies
+		// of the same *.test.ts files and would otherwise run twice.
+		exclude: ['**/node_modules/**', '**/dist/**', '**/.svelte-kit/**']
 	}
 });

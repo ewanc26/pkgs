@@ -1,10 +1,4 @@
-<script lang="ts">
-	import RichText from '../RichText.svelte';
-	import OrderedListBlock from './OrderedListBlock.svelte';
-	import UnorderedListBlock from './UnorderedListBlock.svelte';
-	import HeaderBlock from './HeaderBlock.svelte';
-	import ImageBlock from './ImageBlock.svelte';
-
+<script module lang="ts">
 	interface OrderedListContent {
 		plaintext: string;
 		facets?: any[];
@@ -31,6 +25,14 @@
 			}>;
 		};
 	}
+</script>
+
+<script lang="ts">
+	import RichText from '../RichText.svelte';
+	import OrderedListBlock from './OrderedListBlock.svelte';
+	import UnorderedListBlock from './UnorderedListBlock.svelte';
+	import HeaderBlock from './HeaderBlock.svelte';
+	import ImageBlock from './ImageBlock.svelte';
 
 	interface Props {
 		block: {
