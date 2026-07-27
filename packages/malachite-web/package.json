@@ -34,7 +34,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@atproto/api": "^0.19.3",
+    "@atproto/api": "^0.19.16",
     "@atproto/common-web": "^0.4.12",
     "@atproto/oauth-client-browser": "^0.3.41",
     "@ewanc26/landing-ui": "workspace:*",
