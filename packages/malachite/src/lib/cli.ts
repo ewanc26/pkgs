@@ -78,8 +78,8 @@ ${'\x1b[1m'}MODE:${'\x1b[0m'}
                                  deduplicate     Remove duplicate records
 
 ${'\x1b[1m'}BATCH CONFIGURATION:${'\x1b[0m'}
-  -b, --batch-size <number>      Records per batch (default: 100)
-  -d, --batch-delay <ms>         Delay between batches in ms (default: 2000ms, min: 1000ms)
+  -b, --batch-size <number>      Starting records per batch (default: 100) — adjusts automatically once server capacity is learned
+  -d, --batch-delay <ms>         Starting delay between batches in ms (default: 2000ms, min: 1000ms) — adjusts automatically once server capacity is learned
 
 ${'\x1b[1m'}IMPORT OPTIONS:${'\x1b[0m'}
   -r, --reverse                  Process newest records first (default: oldest first)
@@ -617,7 +617,7 @@ export async function runCLI(): Promise<void> {
       log.section('Clear Cache');
       log.info('Authenticating to identify cache...');
       agent = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER) as AtpAgent;
-      const did = agent.session?.did;
+      const did = agent.did;
       if (!did) {
         throw new Error('Failed to get DID from session');
       }
@@ -922,7 +922,8 @@ export async function runCLI(): Promise<void> {
       cfg,
       dryRun,
       mode === 'sync' || mode === 'combined',
-      importState
+      importState,
+      args.aggressive
     );
 
     log.blank();
@@ -944,7 +945,7 @@ export async function runCLI(): Promise<void> {
 
       try {
         await agent.com.atproto.repo.createRecord({
-          repo: agent.session?.did ?? agent.did ?? '',
+          repo: agent.did ?? '',
           collection: 'click.croft.toolkit.use',
           record: {
             $type: 'click.croft.toolkit.use',

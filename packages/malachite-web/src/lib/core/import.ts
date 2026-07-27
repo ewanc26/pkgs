@@ -33,7 +33,16 @@ export interface ImportOptions {
   dryRun: boolean;
   reverseOrder: boolean;
   fresh: boolean;
+  /** Starting batch size before server capacity is learned. */
+  batchSize: number;
+  /** Starting delay (ms) between batches before server capacity is learned. */
+  batchDelay: number;
+  /** Use a smaller rate-limit safety margin for faster (riskier) throughput. */
+  aggressive: boolean;
 }
+
+const DEFAULT_HEADROOM = 0.15;
+const AGGRESSIVE_HEADROOM = 0.08;
 
 export interface ImportResult {
   success: number;
@@ -54,7 +63,7 @@ export async function runImport(
   spotifyFiles: File[],
   appleFiles: File[],
   youtubeFiles: File[],
-  { dryRun, reverseOrder, fresh }: ImportOptions,
+  { dryRun, reverseOrder, fresh, batchSize, batchDelay, aggressive }: ImportOptions,
   { onLog, onProgress, isCancelled }: ImportCallbacks,
   /** Number of records to skip when resuming a previous import. */
   startIndex = 0,
@@ -162,11 +171,11 @@ export async function runImport(
     // ── Sync check (CAR primary; applyWrites fallback) ───────────────────────
     onLog('section', '── Sync Check ───────────────────────────────────────');
     onLog('info', 'Fetching existing records via CAR export…');
-    let existing: Map<string, ExistingRecord>;
+    let existing: Map<string, ExistingRecord> = new Map();
     let carSyncOk = true;
 
     // Check web cache (sessionStorage with 24h TTL) before fetching.
-    const did = agent.did ?? (agent as any)?.sessionManager?.did;
+    const did = agent.did;
     let fromCache = false;
     if (!fresh && did) {
       const cached = loadRecordsCache(did);
@@ -232,12 +241,16 @@ export async function runImport(
       onProgress,
       onLog: (level, msg) => onLog(level as LogEntry['level'], msg),
       isCancelled,
+    }, 'publish', {
+      initialBatchSize: batchSize,
+      initialDelayMs: batchDelay,
+      headroom: aggressive ? AGGRESSIVE_HEADROOM : DEFAULT_HEADROOM,
     });
     
     if (!dryRun && !res.cancelled && res.successCount > 0) {
       try {
         await agent.com.atproto.repo.createRecord({
-          repo: agent.session?.did ?? agent.did ?? '',
+          repo: agent.did ?? '',
           collection: 'click.croft.toolkit.use',
           record: {
             $type: 'click.croft.toolkit.use',

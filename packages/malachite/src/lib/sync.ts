@@ -29,7 +29,7 @@ export async function fetchExistingRecords(
 ): Promise<Map<string, ExistingRecord>> {
   log.section('Checking Existing Records');
   const { RECORD_TYPE } = config;
-  const did = agent.session?.did;
+  const did = agent.did;
 
   if (!did) {
     throw new Error('No authenticated session found');
@@ -89,7 +89,7 @@ export async function fetchAllRecords(
   config: Config
 ): Promise<ExistingRecord[]> {
   const { RECORD_TYPE } = config;
-  const did = agent.session?.did;
+  const did = agent.did;
 
   if (!did) {
     throw new Error('No authenticated session found');
@@ -309,7 +309,7 @@ export async function removeDuplicates(
     for (const record of group.records.slice(1)) {
       try {
         await agent.com.atproto.repo.deleteRecord({
-          repo: agent.session?.did || '',
+          repo: agent.did || '',
           collection: record.value.$type,
           rkey: record.uri.split('/').pop()!,
         });
