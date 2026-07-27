@@ -27,6 +27,7 @@
 
 	// ── OAuth state ───────────────────────────────────────────────────────────
 	let agent = $state<Agent | null>(null);
+	let sessionHandle = $state("");
 	let authHandle = $state("");
 	let authLoading = $state(true);
 	let authError = $state("");
@@ -34,6 +35,15 @@
 	onMount(async () => {
 		try {
 			agent = await initOAuth();
+			if (agent?.did) {
+				try {
+					const { data } = await agent.getProfile({ actor: agent.did });
+					sessionHandle = data.handle;
+				} catch (e) {
+					console.warn("[bismuth] Failed to resolve handle:", e);
+					sessionHandle = agent.did;
+				}
+			}
 		} catch (e: any) {
 			console.warn("[bismuth] OAuth init failed:", e);
 		} finally {
@@ -67,7 +77,7 @@
 		if (!agent) return;
 		try {
 			await agent.com.atproto.repo.createRecord({
-				repo: agent.session?.did ?? agent.did ?? '',
+				repo: agent.did ?? '',
 				collection: 'click.croft.toolkit.use',
 				record: {
 					$type: 'click.croft.toolkit.use',
@@ -352,7 +362,7 @@
 				</div>
 			{:else if agent}
 				<div class="auth-user">
-					<span class="user-handle">{agent.session?.handle}</span>
+					<span class="user-handle">{sessionHandle}</span>
 					<button class="btn-ghost-icon" onclick={doLogout} title="Sign out">
 						<LogOut size={14} />
 					</button>

@@ -3,7 +3,7 @@
  * Adds terminal prompts and credential persistence on top of the core login.
  */
 
-import type { Agent } from '@atproto/api';
+import type { AtpAgent } from '@atproto/api';
 import { login as coreLogin, resolveIdentity } from '@ewanc26/croft-click-core';
 import { prompt } from '../utils/input.js';
 import * as ui from '../utils/ui.js';
@@ -19,7 +19,7 @@ export async function login(
   identifier: string | undefined,
   password: string | undefined,
   resolverOrPds?: string
-): Promise<Agent> {
+): Promise<AtpAgent> {
   ui.header('ATProto Login');
 
   if (!identifier) {
@@ -46,8 +46,8 @@ export async function login(
     const agent = await coreLogin(identifier!, password!, pdsOverride);
 
     ui.succeedSpinner('Logged in successfully!');
-    ui.keyValue('DID', (agent as any).session?.did || (agent as any).did || 'unknown');
-    ui.keyValue('Handle', (agent as any).session?.handle || 'unknown');
+    ui.keyValue('DID', agent.did ?? 'unknown');
+    ui.keyValue('Handle', agent.session?.handle ?? 'unknown');
 
     try {
       saveCredentials(identifier!, password!);

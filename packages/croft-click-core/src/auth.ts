@@ -3,7 +3,7 @@
  * No CLI prompts; credentials come from the caller.
  */
 
-import { Agent, AtpAgent } from '@atproto/api';
+import { AtpAgent } from '@atproto/api';
 import { SLINGSHOT_RESOLVER } from './config.js';
 
 export interface ResolvedIdentity {
@@ -86,7 +86,7 @@ export async function login(
   identifier: string,
   password: string,
   pdsOverride?: string
-): Promise<Agent> {
+): Promise<AtpAgent> {
   if (pdsOverride) {
     const agent = new AtpAgent({ service: pdsOverride });
     await agent.login({ identifier, password });
