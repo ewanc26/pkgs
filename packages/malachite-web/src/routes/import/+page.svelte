@@ -14,6 +14,7 @@
 		clearImportState,
 		saveResumeOffset,
 		loadResumeOffset,
+		type SavedImportState,
 	} from '$lib/core/web-cache.js';
 	import type { ImportMode, LogEntry } from '$lib/types.js';
 
@@ -65,8 +66,7 @@
 	let importError = $state<string | null>(null);
 
 	// ─── resume state ────────────────────────────────────────────────────────────
-	type SavedState = { mode: ImportMode; recordsProcessed: number; totalRecords: number; timestamp: number };
-	let savedImportState = $state<SavedState | null>(null);
+	let savedImportState = $state<SavedImportState | null>(null);
 
 	// ─── derived ─────────────────────────────────────────────────────────────────
 
@@ -141,7 +141,7 @@
 						// Persist progress to sessionStorage for tab-close recovery.
 						if (mode) {
 							saveImportState({
-								mode: mode as string as ImportMode,
+								mode,
 								recordsProcessed: p.recordsProcessed,
 								totalRecords: p.totalRecords,
 								timestamp: Date.now(),

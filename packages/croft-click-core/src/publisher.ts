@@ -35,6 +35,18 @@ export interface PublisherCallbacks {
   isCancelled: () => boolean;
 }
 
+export interface PublishOptions {
+  /** Starting batch size before server capacity is learned. Default: 50. */
+  initialBatchSize?: number;
+  /** Starting delay (ms) between batches before capacity is learned. Default: 500. */
+  initialDelayMs?: number;
+  /**
+   * Fraction of the learned quota to hold in reserve (lower = faster, closer
+   * to the actual rate limit). Default: 0.15.
+   */
+  headroom?: number;
+}
+
 function cancellableSleep(ms: number, isCancelled: () => boolean): Promise<void> {
   return new Promise((resolve) => {
     const end = Date.now() + ms;
@@ -64,7 +76,8 @@ export async function publishRecords(
   records: PlayRecord[],
   dryRun: boolean,
   callbacks: PublisherCallbacks,
-  context = 'publish'
+  context = 'publish',
+  options: PublishOptions = {}
 ): Promise<{ successCount: number; errorCount: number; cancelled: boolean }> {
   const { onProgress, onLog, isCancelled } = callbacks;
   const total = records.length;
@@ -78,11 +91,15 @@ export async function publishRecords(
     return { successCount: total, errorCount: 0, cancelled: false };
   }
 
+  const initialBatchSize = Math.max(1, Math.min(options.initialBatchSize ?? 50, MAX_PDS_BATCH_SIZE));
+  const initialDelayMs = Math.max(0, options.initialDelayMs ?? 500);
+  const headroom = options.headroom ?? 0.15;
+
   // Abort controller so in-flight fetches are cancelled immediately on stop.
   const ac = new AbortController();
   const cancelPoll = setInterval(() => { if (isCancelled()) ac.abort(); }, 50);
 
-  const rl = new RateLimiter({ headroom: 0.15 });
+  const rl = new RateLimiter({ headroom });
   const calculator = new DynamicBatchCalculator();
   const pacer = new ProactiveRatePacer();
 
@@ -100,14 +117,16 @@ export async function publishRecords(
       actualRemaining,
       MAX_PDS_BATCH_SIZE
     );
-    currentDelay = 500;
+    currentDelay = initialDelayMs;
     onLog('info', `Using saved server info: ${serverCapacity.limit} pts/${serverCapacity.windowSeconds}s`);
     onLog('info', `Starting with optimal batch: ${currentBatchSize} records`);
   } else {
-    // Smart probe -- 50 records (150 points) is safe for all standard rate limits
-    currentBatchSize = 50;
-    currentDelay = 500;
-    onLog('info', `Probing server capacity with ${currentBatchSize} records (150 points)`);
+    // Smart probe -- defaults to 50 records (150 points), safe for all standard
+    // rate limits. A caller-supplied initial batch size/delay is honored as the
+    // starting point until real server capacity is learned from response headers.
+    currentBatchSize = initialBatchSize;
+    currentDelay = initialDelayMs;
+    onLog('info', `Probing server capacity with ${currentBatchSize} records (${currentBatchSize * POINTS_PER_RECORD} points)`);
   }
 
   let successCount = 0;

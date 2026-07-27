@@ -86,7 +86,7 @@
         <div class="option-info">
           <span class="option-name">Batch size</span>
           <input type="number" bind:value={batchSize} min="10" max="500" class="num-input" />
-          <span class="option-desc">Records per batch</span>
+          <span class="option-desc">Starting records per batch — adjusts automatically once server capacity is learned</span>
         </div>
       </div>
 
@@ -94,7 +94,7 @@
         <div class="option-info">
           <span class="option-name">Batch delay (ms)</span>
           <input type="number" bind:value={batchDelay} min="1000" class="num-input" />
-          <span class="option-desc">Delay between batches</span>
+          <span class="option-desc">Starting delay between batches — adjusts automatically once server capacity is learned</span>
         </div>
       </div>
 

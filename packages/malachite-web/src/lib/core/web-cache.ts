@@ -7,13 +7,19 @@
  * the import flow — everything falls back to re-fetching gracefully.
  */
 
+import type { ImportMode } from '$lib/types.js';
+
 // ─── Import state (sessionStorage) ─────────────────────────────────────────
 
 const KEY_IMPORT_STATE = 'malachite:import-state';
 const KEY_RESUME      = 'malachite:resume';
 
+const VALID_MODES: ImportMode[] = [
+  'lastfm', 'spotify', 'apple', 'youtube', 'combined', 'sync', 'deduplicate',
+];
+
 export interface SavedImportState {
-  mode: string;
+  mode: ImportMode;
   recordsProcessed: number;
   totalRecords: number;
   timestamp: number;
@@ -31,7 +37,11 @@ export function loadImportState(): SavedImportState | null {
   try {
     const raw = sessionStorage.getItem(KEY_IMPORT_STATE);
     if (!raw) return null;
-    return JSON.parse(raw) as SavedImportState;
+    const parsed = JSON.parse(raw) as Partial<SavedImportState>;
+    // Defend against stale/corrupted entries from a previous app version —
+    // an unrecognized mode string must not flow into ImportMode-typed state.
+    if (!VALID_MODES.includes(parsed.mode as ImportMode)) return null;
+    return parsed as SavedImportState;
   } catch {
     return null;
   }

@@ -40,12 +40,16 @@ import {
 export async function publishRecordsWithApplyWrites(
   agent: AtpAgent | null,
   records: PlayRecord[],
-  _initialBatchSize: number, // Ignored - kept for backwards compatibility
-  _batchDelay: number, // Ignored - kept for backwards compatibility
+  /** Starting batch size before server capacity is learned. */
+  initialBatchSize: number,
+  /** Starting delay (ms) between batches before server capacity is learned. */
+  initialBatchDelay: number,
   config: Config,
   dryRun = false,
   syncMode = false,
-  importState: ImportState | null = null
+  importState: ImportState | null = null,
+  /** Use a smaller rate-limit safety margin for faster (riskier) throughput. */
+  aggressive = false
 ): Promise<PublishResult> {
   const { RECORD_TYPE } = config;
   const totalRecords = records.length;
@@ -59,7 +63,7 @@ export async function publishRecordsWithApplyWrites(
   }
 
   // Initialize systems
-  const rl = new RateLimiter({ headroom: 0.15 });
+  const rl = new RateLimiter({ headroom: aggressive ? 0.08 : 0.15 });
   const calculator = new DynamicBatchCalculator(); // For performance metrics
   const pacer = new ProactiveRatePacer(); // NEW: Proactive pacing
   
@@ -86,8 +90,8 @@ export async function publishRecordsWithApplyWrites(
     );
     
     // Initial delay will be calculated after first batch
-    currentDelay = 500;
-    
+    currentDelay = initialBatchDelay;
+
     const quotaPercent = ((actualRemaining / serverCapacity.limit) * 100).toFixed(1);
     log.info(`ℹ️  Using saved server info: ${serverCapacity.limit} points/${serverCapacity.windowSeconds}s`);
     log.info(`ℹ️  Current quota: ${actualRemaining}/${serverCapacity.limit} (${quotaPercent}%)`);
@@ -102,12 +106,12 @@ export async function publishRecordsWithApplyWrites(
     );
     log.info(`⏱️  Estimated time: ~${formatDuration(eta * 1000)} at sustainable rate`);
   } else {
-    // OPTIMIZED: Smart probe - 50 records (150 points) is safe for all standard rate limits
-    // Previous: 10 records was too conservative, causing slow first imports
-    // Minimum server: 1000 points/hour → 150 points is only 15% → Very safe
-    currentBatchSize = 50;
-    currentDelay = 500;
-    log.info(`🔍 Smart probe: ${currentBatchSize} records (150 points)`);
+    // Smart probe - a caller-supplied initial batch size/delay is honored as
+    // the starting point; 50 records (150 points) is safe for all standard
+    // rate limits if the caller didn't request otherwise.
+    currentBatchSize = Math.max(1, Math.min(initialBatchSize || 50, MAX_PDS_BATCH_SIZE));
+    currentDelay = Math.max(0, initialBatchDelay || 500);
+    log.info(`🔍 Smart probe: ${currentBatchSize} records (${currentBatchSize * POINTS_PER_RECORD} points)`);
     log.info(`ℹ️  Safe for all standard rate limits (min 1000 points/hour)`);
     log.info(`ℹ️  Will optimize after learning server capacity`);
   }
@@ -196,7 +200,7 @@ export async function publishRecordsWithApplyWrites(
       const response = await retryWithBackoff(
         async () => {
           return await agent.com.atproto.repo.applyWrites({
-            repo: agent.session?.did || '',
+            repo: agent.did || '',
             writes: writes as any,
           });
         },
