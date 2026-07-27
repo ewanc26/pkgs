@@ -112,7 +112,7 @@ async function fetchJson<T>(fetcher: typeof fetch, url: URL): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-async function listRepositories(
+export async function listRepositories(
   fetcher: typeof fetch,
 ): Promise<{ dids: string[]; partial: boolean }> {
   let lastError: unknown;
@@ -132,11 +132,12 @@ async function listRepositories(
         url.searchParams.set("limit", "500");
         if (cursor) url.searchParams.set("cursor", cursor);
         const page = await fetchJson<CollectionDirectoryPage>(fetcher, url);
-        for (const repo of page.repos ?? []) {
+        const pageRepos = page.repos ?? [];
+        for (const [index, repo] of pageRepos.entries()) {
           if (isDid(repo.did) && !dids.includes(repo.did)) dids.push(repo.did);
           if (dids.length >= MAX_REPOSITORIES) {
-            partial =
-              Boolean(page.cursor) || (page.repos?.length ?? 0) > dids.length;
+            const unprocessedInPage = pageRepos.length - (index + 1);
+            partial = Boolean(page.cursor) || unprocessedInPage > 0;
             return { dids, partial };
           }
         }
