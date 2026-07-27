@@ -37,6 +37,7 @@ def process_file(file_path_str: str, model_name: str) -> Dict:
         if not content['paragraphs']:
             essay_text = f"No readable content found in {file_path.name}"
         else:
+            tables_section = f"**Tables/Structured Data:**\n{content['tables']}" if content['tables'] else ""
             prompt = f"""
 Please write a comprehensive analytical essay about the document "{file_path.name}" with the following structure, formatted in Markdown:
 
@@ -66,7 +67,7 @@ Summarise the document's significance and final thoughts.
 **Document Content Preview:**
 {content['paragraphs'][:500]}...
 
-{f"**Tables/Structured Data:**\n{content['tables']}" if content['tables'] else ""}
+{tables_section}
             """
             response = client.generate(model=model_name, prompt=prompt)
             essay_text = response['response']
