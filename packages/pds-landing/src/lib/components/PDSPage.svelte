@@ -15,6 +15,7 @@
 	import Divider from './Divider.svelte';
 	import StatusGrid from './StatusGrid.svelte';
 	import ResourceGrid from './ResourceGrid.svelte';
+	import JetstreamFeed from './JetstreamFeed.svelte';
 	import LinkList from './LinkList.svelte';
 	import ContactSection from './ContactSection.svelte';
 	import PDSFooter from './PDSFooter.svelte';
@@ -42,10 +43,15 @@
 		// ── Sections ─────────────────────────────────────────────────────────
 		showStatus?: boolean;
 		showResources?: boolean;
+		showJetstream?: boolean;
 		showEndpoints?: boolean;
 		showLinks?: boolean;
 		showContact?: boolean;
 		showFooter?: boolean;
+
+		// ── Jetstream section ───────────────────────────────────────────────
+		/** Jetstream WebSocket subscribe URL. Defaults to the public Bluesky east endpoint. */
+		jetstreamUrl?: string;
 
 		// ── Links section ────────────────────────────────────────────────────
 		/**
@@ -71,8 +77,10 @@
 		promptPath = '~',
 		tagline = 'Bluesky-compatible ATProto PDS · personal instance',
 		baseUrl = '',
+		jetstreamUrl = 'wss://jetstream2.us-east.bsky.network/subscribe',
 		showStatus = true,
 		showResources = true,
+		showJetstream = true,
 		showEndpoints = true,
 		showLinks = true,
 		showContact = true,
@@ -133,6 +141,12 @@
 			<Divider />
 			<SectionLabel label="resources" />
 			<ResourceGrid {baseUrl} />
+		{/if}
+
+		{#if showJetstream}
+			<Divider />
+			<SectionLabel label="activity" />
+			<JetstreamFeed {baseUrl} {jetstreamUrl} />
 		{/if}
 
 		{#if showEndpoints}
