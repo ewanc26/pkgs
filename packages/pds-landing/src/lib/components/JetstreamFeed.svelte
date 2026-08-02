@@ -59,6 +59,7 @@
 	let entries: FeedEntry[] = $state([]);
 	let connectionState: 'connecting' | 'connected' | 'disconnected' = $state('disconnected');
 	let accountCount = $state(0);
+	let refreshing = $state(false);
 
 	let ws: WebSocket | null = null;
 	let reconnectDelay = 1000;
@@ -246,6 +247,21 @@
 		reconnectDelay = Math.min(reconnectDelay * 2, 30000);
 	}
 
+	async function refresh() {
+		refreshing = true;
+		entries = [];
+		if (ws) {
+			ws.close();
+			ws = null;
+		}
+		if (reconnectTimer) clearTimeout(reconnectTimer);
+		const dids = await fetchAccountDids();
+		if (dids.length > 0) {
+			connect(dids);
+		}
+		refreshing = false;
+	}
+
 	// ── Lifecycle ─────────────────────────────────────────────────────────────
 
 	onMount(async () => {
@@ -269,8 +285,11 @@
 			{connectionState}
 		</span>
 		{#if connectionState === 'connected' && entries.length === 0}
-			<span class="pds-jetstream-hint">listening{#if accountCount > 0} to {accountCount} account{accountCount > 1 ? 's' : ''}{/if}</span>
+			<span class="pds-jetstream-hint">listening{' '}{#if accountCount > 0} to {accountCount} account{accountCount > 1 ? 's' : ''}{/if}</span>
 		{/if}
+		<button class="pds-jetstream-refresh" onclick={refresh} disabled={refreshing || connectionState === 'connecting'}>
+			{refreshing ? 'refreshing…' : 'refresh'}
+		</button>
 	</div>
 
 	{#if entries.length > 0}
@@ -344,6 +363,28 @@
 		color: var(--pds-color-subtext-0);
 		opacity: 0.6;
 		font-size: 0.85em;
+	}
+
+	.pds-jetstream-refresh {
+		font-size: 0.72em;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		padding: 0.1rem 0.5rem;
+		border-radius: 0.25rem;
+		border: 1px solid;
+		color: var(--pds-color-green);
+		border-color: color-mix(in srgb, var(--pds-color-green) 40%, transparent);
+		background-color: color-mix(in srgb, var(--pds-color-green) 8%, transparent);
+		cursor: pointer;
+	}
+
+	.pds-jetstream-refresh:hover:not(:disabled) {
+		background-color: color-mix(in srgb, var(--pds-color-green) 15%, transparent);
+	}
+
+	.pds-jetstream-refresh:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
 	}
 
 	.pds-jetstream-feed {
