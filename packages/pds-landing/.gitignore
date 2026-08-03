@@ -1,13 +1,15 @@
 node_modules
+.pnpm-store/
+.ci-tools/
 
 # Output
+dist
 .output
 .vercel
 .netlify
 .wrangler
 /.svelte-kit
 /build
-/dist
 
 # OS
 .DS_Store

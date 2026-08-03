@@ -93,9 +93,7 @@
 			</div>
 			{#each accountDetails as account (account.did)}
 				<div class="pds-account-row">
-					<span class="pds-account-did" title={account.did}>
-						{account.did.length > 30 ? account.did.slice(0, 15) + '…' + account.did.slice(-14) : account.did}
-					</span>
+					<span class="pds-account-did" title={account.did}>{account.did}</span>
 					<span>{account.records.toLocaleString()}</span>
 					<span>{account.blobs.toLocaleString()}</span>
 					<span>{account.blobBytesHuman}</span>

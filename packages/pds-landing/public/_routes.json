@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": [
+    "/",
+    "/assets/*",
+    "/favicon.ico",
+    "/manifest.json",
+    "/apple-icon-*.png",
+    "/android-icon-192x192.png",
+    "/ms-icon-*.png",
+    "/browserconfig.xml",
+    "/thumb.svg"
+  ]
+}

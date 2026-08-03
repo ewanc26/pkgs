@@ -1,0 +1,20 @@
+{
+  "client_id": "https://pds.croft.click/oauth-client-metadata.json",
+  "client_name": "Ewan's ATProto PDS",
+  "client_uri": "https://pds.croft.click",
+  "logo_uri": "https://pds.croft.click/favicon.ico",
+  "redirect_uris": [
+    "https://pds.croft.click/"
+  ],
+  "scope": "atproto repo:*?action=create repo:*?action=update repo:*?action=delete blob:*/*",
+  "grant_types": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "token_endpoint_auth_method": "none",
+  "application_type": "web",
+  "dpop_bound_access_tokens": true
+}
