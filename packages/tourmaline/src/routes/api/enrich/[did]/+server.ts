@@ -8,6 +8,11 @@ interface EnrichRequestBody {
   enrichment?: Record<string, ArtistInfo>;
 }
 
+/** Upper bounds so a caller cannot use this route as an unbounded API proxy. */
+const MAX_QUEUE = 5000;
+const MAX_ENRICHMENT = 20000;
+const MAX_ARTIST_NAME = 256;
+
 export const POST: RequestHandler = async ({ request }) => {
   let body: EnrichRequestBody;
   try {
@@ -19,6 +24,31 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!body.queue || !Array.isArray(body.queue)) {
     return json({ error: "Missing queue array." }, { status: 400 });
   }
+
+  if (body.queue.length > MAX_QUEUE) {
+    return json(
+      { error: `queue must contain at most ${MAX_QUEUE} artists.` },
+      { status: 400 },
+    );
+  }
+
+  if (
+    body.enrichment !== undefined &&
+    (typeof body.enrichment !== "object" ||
+      body.enrichment === null ||
+      Array.isArray(body.enrichment) ||
+      Object.keys(body.enrichment).length > MAX_ENRICHMENT)
+  ) {
+    return json({ error: "Invalid enrichment map." }, { status: 400 });
+  }
+
+  // Queue entries reach third-party APIs — only non-empty, bounded strings.
+  body.queue = body.queue.filter(
+    (name): name is string =>
+      typeof name === "string" &&
+      name.trim().length > 0 &&
+      name.length <= MAX_ARTIST_NAME,
+  );
 
   // Nothing left to enrich
   if (body.queue.length === 0) {
@@ -63,7 +93,9 @@ export const POST: RequestHandler = async ({ request }) => {
       remaining: result.remaining,
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Enrichment failed";
-    return json({ error: message }, { status: 500 });
+    // Upstream failures may carry API detail (including the Last.fm key in a
+    // request URL); log server-side and return a generic message.
+    console.error("[tourmaline] enrichment failed:", e);
+    return json({ error: "Enrichment failed." }, { status: 502 });
   }
 };

@@ -1,18 +1,33 @@
 import { json } from "@sveltejs/kit";
 import { fetchScrobbleBatch } from "$lib/server/scrobbles";
+import { isValidDid, safeCursor, safeEndpoint } from "$lib/server/validate";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = async ({ params, url }) => {
   const did = decodeURIComponent(params.did);
-  const pdsUrl = url.searchParams.get("pdsUrl");
-  const cursor = url.searchParams.get("cursor");
 
+  if (!isValidDid(did)) {
+    return json({ error: "Invalid DID." }, { status: 400 });
+  }
+
+  // `pdsUrl` is caller-supplied: without this check the endpoint would fetch
+  // any URL on the server's behalf (SSRF into the deployment's network).
+  const pdsUrl = safeEndpoint(url.searchParams.get("pdsUrl"));
   if (!pdsUrl) {
-    return json({ error: "Missing pdsUrl query param." }, { status: 400 });
+    return json(
+      { error: "Missing or invalid pdsUrl query param." },
+      { status: 400 },
+    );
+  }
+
+  const rawCursor = url.searchParams.get("cursor");
+  const cursor = safeCursor(rawCursor);
+  if (rawCursor && !cursor) {
+    return json({ error: "Invalid cursor." }, { status: 400 });
   }
 
   try {
-    const result = await fetchScrobbleBatch(pdsUrl, did, cursor || null);
+    const result = await fetchScrobbleBatch(pdsUrl, did, cursor);
 
     return json({
       scrobbles: result.scrobbles,
@@ -20,8 +35,19 @@ export const GET: RequestHandler = async ({ params, url }) => {
       done: result.done,
     });
   } catch (e) {
-    const message =
-      e instanceof Error ? e.message : "Failed to fetch scrobbles";
-    return json({ error: message }, { status: 500 });
+    // Rate-limit messages are actionable for the user; everything else may
+    // carry upstream detail, so it is logged server-side and generalised here.
+    const message = e instanceof Error ? e.message : "";
+    if (message.startsWith("Rate limit exceeded")) {
+      return json(
+        { error: "Rate limit exceeded. Try again in a minute." },
+        { status: 429 },
+      );
+    }
+    console.error("[tourmaline] scrobble fetch failed:", e);
+    return json(
+      { error: "Failed to fetch scrobbles from the PDS." },
+      { status: 502 },
+    );
   }
 };
