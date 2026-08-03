@@ -359,7 +359,7 @@ importers:
     dependencies:
       '@atproto/api':
         specifier: ^0.19.3
-        version: 0.19.8
+        version: 0.19.16
       '@atproto/common-web':
         specifier: ^0.4.12
         version: 0.4.20
