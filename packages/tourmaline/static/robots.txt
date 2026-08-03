@@ -1,3 +1,4 @@
-# allow crawling everything by default
+# allow crawling everything except the API and the OAuth callback route
 User-agent: *
-Disallow:
+Disallow: /api/
+Disallow: /share

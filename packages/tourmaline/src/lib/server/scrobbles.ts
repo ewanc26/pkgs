@@ -36,25 +36,38 @@ function parsePlayedTime(val: unknown): string {
   return "";
 }
 
+/** Record fields are untrusted: coerce rather than cast. */
+function str(v: unknown, max = 512): string | undefined {
+  return typeof v === "string" && v.length > 0 ? v.slice(0, max) : undefined;
+}
+
+function num(v: unknown): number | undefined {
+  return typeof v === "number" && isFinite(v) && v >= 0 ? v : undefined;
+}
+
 function parseScrobble(v: Record<string, unknown>): TealScrobble {
+  const rawArtists = Array.isArray(v.artists) ? v.artists : [];
+
   return {
-    trackName: v.trackName as string,
-    artists:
-      (v.artists as Array<Record<string, unknown>>)?.map((a) => ({
-        name: (a.artistName ?? a.name) as string,
-        mbId: (a.artistMbId ?? a.mbId) as string | undefined,
-      })) ?? [],
-    releaseName: v.releaseName as string | undefined,
-    trackMbId: v.trackMbId as string | undefined,
-    recordingMbId: v.recordingMbId as string | undefined,
-    releaseMbId: v.releaseMbId as string | undefined,
-    duration: v.duration as number | undefined,
-    originUrl: v.originUrl as string | undefined,
+    trackName: str(v.trackName) ?? "",
+    artists: rawArtists
+      .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
+      .map((a) => ({
+        name: str(a.artistName) ?? str(a.name) ?? "",
+        mbId: str(a.artistMbId, 64) ?? str(a.mbId, 64),
+      }))
+      .filter((a) => a.name.length > 0),
+    releaseName: str(v.releaseName),
+    trackMbId: str(v.trackMbId, 64),
+    recordingMbId: str(v.recordingMbId, 64),
+    releaseMbId: str(v.releaseMbId, 64),
+    duration: num(v.duration),
+    originUrl: str(v.originUrl, 2048),
     playedTime: parsePlayedTime(v.playedTime),
-    submissionClientAgent: v.submissionClientAgent as string | undefined,
-    musicServiceBaseDomain: v.musicServiceBaseDomain as string | undefined,
-    trackDiscriminant: v.trackDiscriminant as string | undefined,
-    releaseDiscriminant: v.releaseDiscriminant as string | undefined,
+    submissionClientAgent: str(v.submissionClientAgent, 256),
+    musicServiceBaseDomain: str(v.musicServiceBaseDomain, 253),
+    trackDiscriminant: str(v.trackDiscriminant),
+    releaseDiscriminant: str(v.releaseDiscriminant),
   };
 }
 
@@ -98,24 +111,30 @@ export async function fetchScrobbleBatch(
       const body = await res.text();
       if (isRateLimitError(res.status, body)) {
         pdsRateLimiter.handleRateLimitHit(res.headers);
-        throw new Error(
-          `Rate limit exceeded. Try again in a minute. (PDS: ${pdsUrl})`,
-        );
+        throw new Error("Rate limit exceeded. Try again in a minute.");
       }
-      throw new Error(`listRecords failed: ${res.status} ${body}`);
+      // The upstream body is logged but never propagated to the browser.
+      console.error(
+        `[tourmaline] listRecords ${res.status} from ${pdsUrl}: ${body.slice(0, 500)}`,
+      );
+      throw new Error(`listRecords failed: ${res.status}`);
     }
 
     // Update rate limiter stats
     pdsRateLimiter.updateFromHeaders(res.headers);
 
-    const data: ListRecordsResponse = await res.json();
+    const data = (await res.json()) as Partial<ListRecordsResponse>;
 
-    for (const record of data.records) {
-      batch.push(parseScrobble(record.value));
+    // Remote responses are untrusted: a PDS may omit or mistype `records`.
+    const records = Array.isArray(data.records) ? data.records : [];
+    for (const record of records) {
+      if (record && typeof record.value === "object" && record.value !== null) {
+        batch.push(parseScrobble(record.value));
+      }
     }
 
-    currentCursor = data.cursor ?? null;
-    if (!currentCursor || data.records.length === 0) {
+    currentCursor = typeof data.cursor === "string" ? data.cursor : null;
+    if (!currentCursor || records.length === 0) {
       return { scrobbles: batch, cursor: null, done: true };
     }
   }

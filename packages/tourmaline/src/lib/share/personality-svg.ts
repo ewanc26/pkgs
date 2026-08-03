@@ -76,14 +76,37 @@ const FONT_FACE_CSS = `
 }
 `.trim();
 
-export function renderPersonalitySvg(card: PersonalityCardData): string {
-  const genres = (card.genres ?? []).slice(0, 5);
-  const maxGenreWeight = genres[0]?.weight ?? 1;
+/**
+ * Look a colour up by an untrusted key.
+ *
+ * Plain bracket access would walk the prototype chain, so a genre or mood
+ * literally named `constructor` would yield a function that then lands
+ * unescaped inside a `fill="…"` attribute of the `{@html}`-injected SVG.
+ */
+function colourFor(map: Record<string, string>, key: unknown): string {
+  return typeof key === "string" && Object.hasOwn(map, key) ? map[key] : ACCENT;
+}
 
-  const moods = Object.entries(card.mood ?? {})
+export function renderPersonalitySvg(card: PersonalityCardData): string {
+  // `card` is rehydrated from sessionStorage, so every collection on it has to
+  // be re-checked before it is iterated.
+  const genres = (Array.isArray(card.genres) ? card.genres : [])
+    .filter((g) => g && typeof g === "object")
+    .slice(0, 5);
+  const maxGenreWeight = Number(genres[0]?.weight) || 1;
+
+  const mood =
+    card.mood && typeof card.mood === "object" && !Array.isArray(card.mood)
+      ? card.mood
+      : {};
+  const moods = Object.entries(mood)
+    .filter(([, v]) => typeof v === "number" && isFinite(v) && v > 0)
     .sort(([, a], [, b]) => b - a)
-    .slice(0, 4)
-    .filter(([, v]) => v > 0);
+    .slice(0, 4);
+
+  const traits = Array.isArray(card.traits)
+    ? card.traits.filter((t) => t && typeof t === "object")
+    : [];
 
   // ── Layout calculations ──────────────────────────────────────────────
   let y = 0;
@@ -144,7 +167,11 @@ export function renderPersonalitySvg(card: PersonalityCardData): string {
   y += 20;
 
   // Trait cards
-  for (let i = 0; i < card.traits.length; i++) {
+  for (
+    let i = 0;
+    i < (Array.isArray(card.traits) ? card.traits.length : 0);
+    i++
+  ) {
     y += 46; // card height + gap
   }
 
@@ -161,8 +188,12 @@ export function renderPersonalitySvg(card: PersonalityCardData): string {
   const genreSvg = genres
     .map((g, i) => {
       const barY = genreStartY + i * 18;
-      const barWidth = Math.max(4, (g.weight / maxGenreWeight) * 420);
-      const color = GENRE_COLORS[g.name] ?? ACCENT;
+      const weight = Number(g.weight) || 0;
+      const barWidth = Math.min(
+        420,
+        Math.max(4, (weight / maxGenreWeight) * 420),
+      );
+      const color = colourFor(GENRE_COLORS, g.name);
       return `
 <g transform="translate(${PAD}, ${barY})">
 	<text x="0" y="12" font-family="Inter, sans-serif" font-size="11" fill="${MUTED}">${esc(g.name)}</text>
@@ -177,25 +208,25 @@ export function renderPersonalitySvg(card: PersonalityCardData): string {
   const moodSvg = moods
     .map(([mood, score], i) => {
       const x = PAD + i * (pillWidth + 8);
-      const color = MOOD_COLORS[mood] ?? ACCENT;
+      const color = colourFor(MOOD_COLORS, mood);
       return `
 <g transform="translate(${x}, ${moodY})">
 	<rect width="${pillWidth}" height="22" rx="11" fill="${SURFACE}" stroke="${BORDER}" stroke-width="1" />
 	<circle cx="14" cy="11" r="4" fill="${color}" />
 	<text x="24" y="15" font-family="Inter, sans-serif" font-size="11" fill="${MUTED}">${esc(mood)}</text>
-	<text x="${pillWidth - 10}" y="15" font-family="'JetBrains Mono', monospace" font-size="10" fill="${DIM}" text-anchor="end">${score}</text>
+	<text x="${pillWidth - 10}" y="15" font-family="'JetBrains Mono', monospace" font-size="10" fill="${DIM}" text-anchor="end">${esc(score)}</text>
 </g>`;
     })
     .join("");
 
   // ── Build trait cards ──────────────────────────────────────────────────
-  const traitSvg = card.traits
+  const traitSvg = traits
     .map((t, i) => {
       const ty = traitSectionLabelY + 8 + i * 46;
       return `
 <g transform="translate(${PAD}, ${ty})">
 	<rect width="${WIDTH - PAD * 2}" height="38" rx="6" fill="${SURFACE}" stroke="${BORDER}" stroke-width="1" />
-	<text x="12" y="14" font-family="'JetBrains Mono', monospace" font-size="9" fill="${DIM}" letter-spacing="0.08em">${esc(t.label.toUpperCase())}</text>
+	<text x="12" y="14" font-family="'JetBrains Mono', monospace" font-size="9" fill="${DIM}" letter-spacing="0.08em">${esc(String(t.label ?? "").toUpperCase())}</text>
 	<text x="12" y="30" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="${TEXT}">${esc(t.value)}</text>
 	<text x="${WIDTH - PAD * 2 - 12}" y="24" font-family="Inter, sans-serif" font-size="9" fill="${MUTED}" text-anchor="end">${esc(t.detail)}</text>
 </g>`;
@@ -228,9 +259,9 @@ export function renderPersonalitySvg(card: PersonalityCardData): string {
 
 	<!-- Stat badges -->
 	<rect x="${PAD}" y="${statY - 10}" width="100" height="20" rx="4" fill="${SURFACE}" stroke="${BORDER}" stroke-width="1" />
-	<text x="${PAD + 8}" y="${statY + 2}" font-family="'JetBrains Mono', monospace" font-size="10" fill="${DIM}">DIV ${card.diversityScore ?? "-"}</text>
+	<text x="${PAD + 8}" y="${statY + 2}" font-family="'JetBrains Mono', monospace" font-size="10" fill="${DIM}">DIV ${esc(card.diversityScore ?? "-")}</text>
 	<rect x="${PAD + 112}" y="${statY - 10}" width="100" height="20" rx="4" fill="${SURFACE}" stroke="${BORDER}" stroke-width="1" />
-	<text x="${PAD + 120}" y="${statY + 2}" font-family="'JetBrains Mono', monospace" font-size="10" fill="${DIM}">OBS ${card.obscurityIndex ?? "-"}</text>
+	<text x="${PAD + 120}" y="${statY + 2}" font-family="'JetBrains Mono', monospace" font-size="10" fill="${DIM}">OBS ${esc(card.obscurityIndex ?? "-")}</text>
 
 	<!-- Divider 1 -->
 	<line x1="${PAD}" y1="${divider1Y}" x2="${WIDTH - PAD}" y2="${divider1Y}" stroke="${BORDER}" stroke-width="1" />
@@ -263,8 +294,15 @@ export function renderPersonalitySvg(card: PersonalityCardData): string {
 </svg>`;
 }
 
-function esc(s: string): string {
-  return s
+/**
+ * Escape a value for SVG text content.
+ *
+ * The rendered string is injected with `{@html}` on /share, and the card data
+ * is rehydrated from sessionStorage (i.e. it is not guaranteed to match
+ * `PersonalityCardData`), so non-strings must be coerced rather than assumed.
+ */
+function esc(s: unknown): string {
+  return String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

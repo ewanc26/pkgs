@@ -6,6 +6,8 @@
  * Bluesky profile info (display name, avatar) from the PDS.
  */
 
+import { isValidDid, isValidIdentifier, safeEndpoint } from "./validate";
+
 const SLINGSHOT_URL = "https://slingshot.microcosm.blue";
 
 interface DidDocument {
@@ -25,20 +27,33 @@ export interface ProfileRecord {
   avatar?: string;
 }
 
-/** Extract the CID from an avatar/banner blob reference. */
+/** CIDv1 base32 / CIDv0 base58btc — anything else must not reach a URL. */
+const CID_RE = /^(b[a-z2-7]{20,120}|Qm[1-9A-HJ-NP-Za-km-z]{44})$/;
+
+/**
+ * Extract the CID from an avatar/banner blob reference.
+ * Blob refs are untrusted record content, so the value is only returned when
+ * it is a syntactically valid CID — otherwise it could be used to escape the
+ * CDN path it gets interpolated into.
+ */
 function extractBlobCid(blob: unknown): string | null {
   if (!blob) return null;
-  if (typeof blob === "string") return blob;
-  const obj = blob as Record<string, unknown>;
-  if (
-    obj.ref &&
-    typeof obj.ref === "object" &&
-    (obj.ref as Record<string, unknown>).$link
-  ) {
-    return (obj.ref as Record<string, unknown>).$link as string;
+
+  let candidate: unknown = null;
+  if (typeof blob === "string") {
+    candidate = blob;
+  } else if (typeof blob === "object") {
+    const obj = blob as Record<string, unknown>;
+    const ref = obj.ref as Record<string, unknown> | undefined;
+    if (ref && typeof ref === "object" && typeof ref.$link === "string") {
+      candidate = ref.$link;
+    } else if (typeof obj.cid === "string") {
+      candidate = obj.cid;
+    }
   }
-  if (obj.cid) return obj.cid as string;
-  return null;
+
+  if (typeof candidate !== "string" || !CID_RE.test(candidate)) return null;
+  return candidate;
 }
 
 export async function fetchBlueskyProfile(
@@ -50,18 +65,21 @@ export async function fetchBlueskyProfile(
     const res = await fetch(url);
     if (!res.ok) return {};
     const data = (await res.json()) as {
-      value?: { displayName?: string; avatar?: unknown };
+      value?: { displayName?: unknown; avatar?: unknown };
     };
 
     const avatarCid = extractBlobCid(data.value?.avatar);
     const avatar = avatarCid
-      ? `https://cdn.bsky.app/img/avatar/plain/${did}/${avatarCid}@jpeg`
+      ? `https://cdn.bsky.app/img/avatar/plain/${encodeURIComponent(did)}/${avatarCid}@jpeg`
       : undefined;
 
-    return {
-      displayName: data.value?.displayName,
-      avatar,
-    };
+    const rawName = data.value?.displayName;
+    const displayName =
+      typeof rawName === "string" && rawName.trim()
+        ? rawName.slice(0, 128)
+        : undefined;
+
+    return { displayName, avatar };
   } catch {
     return {};
   }
@@ -73,6 +91,10 @@ export async function resolveIdentifier(
   let did: string;
   let handle: string | undefined;
 
+  if (!isValidIdentifier(identifier)) {
+    throw new Error("Not a valid DID or handle.");
+  }
+
   if (identifier.startsWith("did:")) {
     did = identifier;
   } else {
@@ -83,7 +105,11 @@ export async function resolveIdentifier(
       throw new Error(
         `Failed to resolve handle "${identifier}": ${res.status}`,
       );
-    const data = (await res.json()) as { did: string };
+    const data = (await res.json()) as { did?: unknown };
+    // The resolver response is remote input — never trust it as a DID.
+    if (typeof data.did !== "string" || !isValidDid(data.did)) {
+      throw new Error(`Handle "${identifier}" did not resolve to a valid DID.`);
+    }
     did = data.did;
     handle = identifier;
   }
@@ -97,13 +123,12 @@ export async function resolveIdentifier(
   }
 
   const pdsService = doc.service?.find((s) => s.id === "#atproto_pds");
-  let pdsUrl = pdsService?.serviceEndpoint;
 
-  if (!pdsUrl) throw new Error("No PDS endpoint found in DID document");
-
-  // Strip trailing slash
-  if (pdsUrl.endsWith("/")) {
-    pdsUrl = pdsUrl.slice(0, -1);
+  // The serviceEndpoint comes from a remote DID document: it must be a public
+  // https origin before the server will ever fetch it.
+  const pdsUrl = safeEndpoint(pdsService?.serviceEndpoint);
+  if (!pdsUrl) {
+    throw new Error("No usable https PDS endpoint found in DID document");
   }
 
   return { did, pdsUrl, handle };
@@ -115,14 +140,28 @@ async function resolveDidDocument(did: string): Promise<DidDocument> {
 
   try {
     if (did.startsWith("did:plc:")) {
-      const res = await fetch(`https://plc.directory/${did}`, { signal: controller.signal });
+      const res = await fetch(`https://plc.directory/${did}`, {
+        signal: controller.signal,
+      });
       if (!res.ok) throw new Error(`Failed to resolve DID: ${res.status}`);
       return await res.json();
     }
 
     if (did.startsWith("did:web:")) {
-      const domain = did.replace("did:web:", "");
-      const res = await fetch(`https://${domain}/.well-known/did.json`, { signal: controller.signal });
+      // did:web:example.com          -> https://example.com/.well-known/did.json
+      // did:web:example.com:a:b      -> https://example.com/a/b/did.json
+      const [host, ...segments] = did.slice("did:web:".length).split(":");
+      const path = segments.length
+        ? `/${segments.map(decodeURIComponent).map(encodeURIComponent).join("/")}/did.json`
+        : "/.well-known/did.json";
+
+      // Guard against did:web values pointing at loopback/private hosts.
+      const origin = safeEndpoint(`https://${decodeURIComponent(host)}`);
+      if (!origin) throw new Error(`Unsupported did:web host in ${did}`);
+
+      const res = await fetch(`${origin}${path}`, {
+        signal: controller.signal,
+      });
       if (!res.ok) throw new Error(`Failed to resolve DID: ${res.status}`);
       return await res.json();
     }
