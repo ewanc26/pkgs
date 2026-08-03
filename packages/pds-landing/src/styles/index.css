@@ -1,0 +1,67 @@
+@import 'tailwindcss';
+
+/* ─── pds-tokens.css ─────────────────────────────────────────────────────────
+ *
+ * Design tokens for the PDS landing terminal aesthetic.
+ * A dark, Catppuccin-inspired forest-green palette.
+ *
+ * Usage:
+ *   import 'pds-tokens.css' (inlined here as src/styles/index.css)
+ *
+ * Then reference tokens as CSS custom properties, e.g.:
+ *   background-color: var(--pds-color-crust);
+ *   font-family: var(--pds-font-mono);
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Typography */
+  --pds-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+
+  /* Surfaces — darkest to lightest */
+  --pds-color-crust: #0d1210;
+  --pds-color-mantle: #141c19;
+  --pds-color-base: #1a2420;
+  --pds-color-surface-0: #243028;
+  --pds-color-surface-1: #2e3d34;
+  --pds-color-overlay-0: #4d6b58;
+
+  /* Text */
+  --pds-color-text: #cdd6f4;
+  --pds-color-subtext-0: #93b09a;
+
+  /* Accents */
+  --pds-color-green: #a6e3a1;
+  --pds-color-red: #f38ba8;
+  --pds-color-yellow: #f9e2af;
+
+  /* Utility */
+  --pds-color-shadow: #000000;
+}
+
+/* ─── Global resets & base ───────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  min-height: 100dvh;
+  background-color: var(--pds-color-crust);
+  color: var(--pds-color-text);
+  font-family: var(--pds-font-mono);
+  font-size: clamp(13px, 3.5vw, 15px);
+  line-height: 1.6;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(1.5rem, 6vw, 4rem) clamp(1rem, 4vw, 1.5rem) clamp(1.5rem, 6vw, 3rem);
+  gap: 2rem;
+}
