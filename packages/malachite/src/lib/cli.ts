@@ -140,6 +140,10 @@ ${'\x1b[1m'}NOTES:${'\x1b[0m'}
 ${'\x1b[1m'}MORE INFO:${'\x1b[0m'}
   Repository: https://github.com/ewanc26/pkgs/tree/main/packages/malachite
   Issues: https://github.com/ewanc26/pkgs/tree/main/packages/malachite/issues
+
+${'\x1b[1m'}SUPPORT:${'\x1b[0m'}
+  Ko-fi: https://ko-fi.com/ewancroft
+  GitHub Sponsors: https://github.com/sponsors/ewanc26
 `);
 }
 
@@ -975,7 +979,7 @@ export async function runCLI(): Promise<void> {
     }
     process.exit(1);
   } finally {
-    console.log('\x1b[2mEnjoying Malachite? Support development: https://ko-fi.com/ewancroft\x1b[0m\n');
+    console.log('\x1b[2mEnjoying Malachite? Support development: Ko-fi https://ko-fi.com/ewancroft · GitHub Sponsors https://github.com/sponsors/ewanc26\x1b[0m\n');
     log.closeLogFile();
   }
 }
