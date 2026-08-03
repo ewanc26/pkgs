@@ -26,14 +26,25 @@
 	let mode = $state<Mode>("convert");
 
 	// ── OAuth state ───────────────────────────────────────────────────────────
+	const HANDLE_KEY = "bismuth:signed-in-handle";
+
 	let agent = $state<Agent | null>(null);
 	let authHandle = $state("");
 	let authLoading = $state(true);
 	let authError = $state("");
+	/**
+	 * The OAuth Agent only exposes a DID, so the handle typed at sign-in is
+	 * stashed across the authorisation redirect purely for display.
+	 */
+	let signedInHandle = $state("");
+	let signedInAs = $derived(signedInHandle || agent?.did || "signed in");
 
 	onMount(async () => {
 		try {
 			agent = await initOAuth();
+			if (agent) {
+				signedInHandle = sessionStorage.getItem(HANDLE_KEY) ?? "";
+			}
 		} catch (e: any) {
 			console.warn("[bismuth] OAuth init failed:", e);
 		} finally {
@@ -45,6 +56,11 @@
 		if (!authHandle.trim()) return;
 		authError = "";
 		try {
+			try {
+				sessionStorage.setItem(HANDLE_KEY, authHandle.trim());
+			} catch {
+				// sessionStorage unavailable — the DID is shown instead.
+			}
 			await signInWithOAuth(authHandle.trim());
 		} catch (e: any) {
 			authError = e.message || "Sign-in failed";
@@ -67,7 +83,7 @@
 		if (!agent) return;
 		try {
 			await agent.com.atproto.repo.createRecord({
-				repo: agent.session?.did ?? agent.did ?? '',
+				repo: agent.assertDid,
 				collection: 'click.croft.toolkit.use',
 				record: {
 					$type: 'click.croft.toolkit.use',
@@ -352,7 +368,7 @@
 				</div>
 			{:else if agent}
 				<div class="auth-user">
-					<span class="user-handle">{agent.session?.handle}</span>
+					<span class="user-handle" title={agent.did}>{signedInAs}</span>
 					<button class="btn-ghost-icon" onclick={doLogout} title="Sign out">
 						<LogOut size={14} />
 					</button>
