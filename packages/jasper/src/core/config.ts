@@ -2,9 +2,18 @@
  * Jasper configuration constants
  */
 
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import type { Config, Target, TargetConfig } from "./types.js";
 
-export const VERSION = "0.5.1";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(
+  readFileSync(path.join(__dirname, "../../package.json"), "utf-8"),
+) as { version: string };
+
+// CLI version string, read directly from package.json so it can never drift.
+export const VERSION = pkg.version;
 
 export const config: Config = {
   /** Grain lexicon NSID for photos */
