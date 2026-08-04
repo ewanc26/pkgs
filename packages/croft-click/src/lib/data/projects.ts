@@ -23,9 +23,9 @@ export const coreProjects: Project[] = [
 		name: 'Malachite',
 		slug: 'malachite',
 		url: 'https://malachite.croft.click',
-		heading: 'Last.fm, Spotify, Apple & YT Music scrobbles → Teal',
+		heading: 'Last.fm, Spotify, Apple, YT Music & ListenBrainz scrobbles → Teal',
 		description:
-			'Import your listening history from Last.fm, Spotify, Apple Music, and YouTube Music. Smart deduplication and sync support.',
+			'Import your listening history from Last.fm, Spotify, Apple Music, YouTube Music, and ListenBrainz. Smart deduplication and sync support.',
 		accent: '#3fb968',
 		logo: '/malachite.svg'
 	},
