@@ -162,7 +162,7 @@ export async function runImport(
     // ── Sync check (CAR primary; applyWrites fallback) ───────────────────────
     onLog('section', '── Sync Check ───────────────────────────────────────');
     onLog('info', 'Fetching existing records via CAR export…');
-    let existing: Map<string, ExistingRecord>;
+    let existing: Map<string, ExistingRecord> = new Map();
     let carSyncOk = true;
 
     // Check web cache (sessionStorage with 24h TTL) before fetching.
@@ -237,7 +237,7 @@ export async function runImport(
     if (!dryRun && !res.cancelled && res.successCount > 0) {
       try {
         await agent.com.atproto.repo.createRecord({
-          repo: agent.session?.did ?? agent.did ?? '',
+          repo: agent.did ?? '',
           collection: 'click.croft.toolkit.use',
           record: {
             $type: 'click.croft.toolkit.use',

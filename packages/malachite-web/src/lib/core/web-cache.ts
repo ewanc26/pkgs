@@ -7,13 +7,15 @@
  * the import flow — everything falls back to re-fetching gracefully.
  */
 
+import type { ImportMode } from '$lib/types.js';
+
 // ─── Import state (sessionStorage) ─────────────────────────────────────────
 
 const KEY_IMPORT_STATE = 'malachite:import-state';
 const KEY_RESUME      = 'malachite:resume';
 
 export interface SavedImportState {
-  mode: string;
+  mode: ImportMode;
   recordsProcessed: number;
   totalRecords: number;
   timestamp: number;
