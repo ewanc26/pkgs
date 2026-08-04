@@ -694,3 +694,276 @@
 		</div>
 	{/if}
 </main>
+
+<style>
+	main {
+		max-width: 680px;
+		margin: 0 auto;
+		padding: 3rem 1.5rem 5rem;
+	}
+
+	/* ── header ─────────────────────────────────────────────────────────────── */
+	.header-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 1rem;
+	}
+	.header-row .back-btn {
+		margin-bottom: 0;
+	}
+
+	.auth-box {
+		display: flex;
+		align-items: center;
+	}
+	.auth-loading {
+		display: flex;
+		align-items: center;
+		color: var(--muted);
+	}
+	.auth-user {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.user-handle {
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 0.75rem;
+		color: var(--muted);
+		max-width: 12rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.btn-ghost-icon {
+		background: none;
+		border: none;
+		color: var(--muted);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		padding: 0.25rem;
+		transition: color 0.15s;
+	}
+	.btn-ghost-icon:hover {
+		color: var(--text);
+	}
+	.auth-login {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	.auth-input {
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 0.4rem 0.6rem;
+		color: var(--text);
+		font-size: 0.8rem;
+		font-family: 'JetBrains Mono', monospace;
+		width: 11rem;
+		transition: border-color 0.15s;
+	}
+	.auth-input:focus {
+		outline: none;
+		border-color: var(--accent);
+	}
+	.btn-auth {
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 0.4rem;
+		color: var(--muted);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition:
+			border-color 0.15s,
+			color 0.15s;
+	}
+	.btn-auth:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.auth-alert {
+		margin-bottom: 1rem;
+	}
+
+	/* ── mode tabs ──────────────────────────────────────────────────────────── */
+	.mode-tabs {
+		display: flex;
+		gap: 0.25rem;
+		border-bottom: 1px solid var(--border);
+		margin-bottom: 1.5rem;
+	}
+	.mode-tab {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		background: none;
+		border: none;
+		border-bottom: 2px solid transparent;
+		color: var(--muted);
+		font-size: 0.85rem;
+		font-family: 'JetBrains Mono', monospace;
+		padding: 0.6rem 0.25rem;
+		margin-bottom: -1px;
+		cursor: pointer;
+		transition:
+			color 0.15s,
+			border-color 0.15s;
+	}
+	.mode-tab:hover {
+		color: var(--text);
+	}
+	.mode-tab.active {
+		color: var(--accent);
+		border-bottom-color: var(--accent);
+	}
+
+	/* ── drop zone ─────────────────────────────────────────────────────────── */
+	.drop-zone {
+		position: relative;
+	}
+	.drop-zone.dragging :global(textarea) {
+		border-color: var(--accent);
+	}
+
+	.drop-overlay {
+		position: absolute;
+		inset: 0;
+		background: rgba(196, 181, 253, 0.08);
+		border: 2px dashed var(--accent);
+		border-radius: 6px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		color: var(--accent);
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 0.85rem;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.15s;
+	}
+
+	.drop-overlay.visible {
+		opacity: 1;
+	}
+
+	.upload-row {
+		display: flex;
+		gap: 0.75rem;
+		margin-top: 0.5rem;
+	}
+
+	.upload-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 0.8rem;
+		color: var(--muted);
+		cursor: pointer;
+		font-family: 'JetBrains Mono', monospace;
+		transition: color 0.15s;
+	}
+
+	.upload-btn:hover {
+		color: var(--text);
+	}
+
+	/* ── misc form bits ────────────────────────────────────────────────────── */
+	.ghost-hint {
+		background: none;
+		border: none;
+		color: var(--muted);
+		font-size: 0.8rem;
+		cursor: pointer;
+		padding: 0;
+		text-align: left;
+		font-family: 'JetBrains Mono', monospace;
+	}
+	.ghost-hint:hover {
+		color: var(--text);
+	}
+	.advanced {
+		margin-top: 0.25rem;
+	}
+
+	/* ── output ─────────────────────────────────────────────────────────────── */
+	.output-section {
+		margin-top: 1.5rem;
+	}
+
+	.output-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 0.5rem;
+	}
+
+	.type-badge {
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 0.7rem;
+		color: var(--accent);
+		background: var(--accent-glow);
+		border: 1px solid rgba(196, 181, 253, 0.3);
+		border-radius: 4px;
+		padding: 2px 8px;
+	}
+
+	.output-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.btn-icon {
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 0.4rem;
+		color: var(--muted);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition:
+			border-color 0.15s,
+			color 0.15s;
+	}
+
+	.btn-icon:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.copied-label {
+		font-size: 0.7rem;
+		color: var(--accent);
+		font-family: 'JetBrains Mono', monospace;
+		padding: 0 0.2rem;
+	}
+
+	/* ── fetch results ──────────────────────────────────────────────────────── */
+	.results-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+	.result-item {
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 0.5rem 0.75rem;
+		font-size: 0.825rem;
+		color: var(--text);
+	}
+
+	:global(.spin) {
+		animation: spin 0.6s linear infinite;
+	}
+</style>
