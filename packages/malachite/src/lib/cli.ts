@@ -20,7 +20,6 @@ import { publishRecordsWithApplyWrites } from './publisher.js';
 import { prompt, confirm, promptWithValidation, validateFilePath } from '../utils/input.js';
 import { sortRecords } from '../utils/helpers.js';
 import config, { VERSION } from '../config.js';
-import { calculateOptimalBatchSize } from '../utils/helpers.js';
 import { fetchExistingRecords, filterNewRecords, displaySyncStats, removeDuplicates, deduplicateInputRecords } from './sync.js';
 import { Logger, LogLevel, setGlobalLogger, log } from '../utils/logger.js';
 import { registerKillswitch } from '../utils/killswitch.js';
@@ -78,14 +77,14 @@ ${'\x1b[1m'}MODE:${'\x1b[0m'}
                                  deduplicate     Remove duplicate records
 
 ${'\x1b[1m'}BATCH CONFIGURATION:${'\x1b[0m'}
-  -b, --batch-size <number>      Records per batch (default: 100)
-  -d, --batch-delay <ms>         Delay between batches in ms (default: 2000ms, min: 1000ms)
+  -b, --batch-size <number>      ${'\x1b[2m'}Deprecated, no effect — batching is automatic and adapts to live rate limits${'\x1b[0m'}
+  -d, --batch-delay <ms>         ${'\x1b[2m'}Deprecated, no effect — pacing is automatic and adapts to live rate limits${'\x1b[0m'}
 
 ${'\x1b[1m'}IMPORT OPTIONS:${'\x1b[0m'}
   -r, --reverse                  Process newest records first (default: oldest first)
   -y, --yes                      Skip confirmation prompts
   --dry-run                      Preview without importing
-  --aggressive                   Faster imports (8,500/day vs 7,500/day default)
+  --aggressive                   ${'\x1b[2m'}Deprecated, no effect — rate limiting is automatic${'\x1b[0m'}
   --fresh                        Start fresh (ignore cache & previous import state)
   --clear-cache                  Clear cached records for current user
   --clear-all-caches             Clear all cached records
@@ -98,43 +97,42 @@ ${'\x1b[1m'}OUTPUT:${'\x1b[0m'}
   --help                         Show this help message
 
 ${'\x1b[1m'}EXAMPLES:${'\x1b[0m'}
-  ${'\\x1b[2m'}# Sign in with OAuth (recommended)${'\\x1b[0m'}
+  ${'\x1b[2m'}# Sign in with OAuth (recommended)${'\x1b[0m'}
   malachite --oauth-login
 
-  ${'\\x1b[2m'}# Import Last.fm export (uses stored OAuth session automatically)${'\\x1b[0m'}
+  ${'\x1b[2m'}# Import Last.fm export (uses stored OAuth session automatically)${'\x1b[0m'}
   pnpm start -i lastfm-export.csv
 
-  ${'\\x1b[2m'}# Import with app-password${'\\x1b[0m'}
+  ${'\x1b[2m'}# Import with app-password${'\x1b[0m'}
   pnpm start -i lastfm-export.csv -h user.bsky.social -p app-password
 
-  ${'\\x1b[2m'}# Import Spotify export${'\\x1b[0m'}
+  ${'\x1b[2m'}# Import Spotify export${'\x1b[0m'}
   pnpm start -i spotify-export/ -m spotify
 
-  ${'\\x1b[2m'}# Combined import (merge both sources)${'\\x1b[0m'}
+  ${'\x1b[2m'}# Combined import (merge both sources)${'\x1b[0m'}
   pnpm start -i lastfm.csv --spotify-input spotify/ -m combined
 
-  ${'\\x1b[2m'}# Sync mode (only import new records)${'\\x1b[0m'}
+  ${'\x1b[2m'}# Sync mode (only import new records)${'\x1b[0m'}
   pnpm start -i lastfm.csv -m sync
 
-  ${'\\x1b[2m'}# Dry run with verbose logging${'\\x1b[0m'}
+  ${'\x1b[2m'}# Dry run with verbose logging${'\x1b[0m'}
   pnpm start -i lastfm.csv --dry-run -v
 
-  ${'\\x1b[2m'}# Remove duplicate records${'\\x1b[0m'}
+  ${'\x1b[2m'}# Remove duplicate records${'\x1b[0m'}
   pnpm start -m deduplicate
 
-  ${'\\x1b[2m'}# List stored OAuth sessions${'\\x1b[0m'}
+  ${'\x1b[2m'}# List stored OAuth sessions${'\x1b[0m'}
   malachite --list-sessions
 
-  ${'\\x1b[2m'}# Sign out${'\\x1b[0m'}
+  ${'\x1b[2m'}# Sign out${'\x1b[0m'}
   malachite --logout
 
-  ${'\\x1b[2m'}# Clear all caches${'\\x1b[0m'}
+  ${'\x1b[2m'}# Clear all caches${'\x1b[0m'}
   pnpm start --clear-all-caches
 
 ${'\x1b[1m'}NOTES:${'\x1b[0m'}
   • OAuth sessions are stored at ~/.malachite/oauth.json and refresh automatically
-  • Rate limits: Max 10,000 records/day to avoid PDS rate limiting
-  • Import will auto-pause between days for large datasets
+  • Batch size and pacing adapt automatically to the PDS's live rate limits
   • Press Ctrl+C during import to stop gracefully after current batch
 
 ${'\x1b[1m'}MORE INFO:${'\x1b[0m'}
@@ -819,56 +817,17 @@ export async function runCLI(): Promise<void> {
       records = sortRecords(records, args.reverse ?? false);
     }
 
-    log.section('Batch Configuration');
-    let batchDelay = cfg.DEFAULT_BATCH_DELAY;
-    if (args['batch-delay']) {
-      const delay = parseInt(args['batch-delay'], 10);
-      if (isNaN(delay)) {
-        throw new Error(`Invalid batch delay: ${args['batch-delay']}`);
-      }
-      batchDelay = Math.max(delay, cfg.MIN_BATCH_DELAY);
-      if (delay < cfg.MIN_BATCH_DELAY) {
-        log.warn(`Batch delay increased to minimum: ${cfg.MIN_BATCH_DELAY}ms`);
-      }
+    if (args['batch-size'] || args['batch-delay'] || args.aggressive) {
+      log.warn('--batch-size, --batch-delay, and --aggressive are deprecated and have no effect.');
+      log.warn('Batching and pacing now adapt automatically to the PDS\'s live rate limits.');
     }
-
-    let batchSize: number;
-    if (args['batch-size']) {
-      batchSize = parseInt(args['batch-size'], 10);
-      if (isNaN(batchSize) || batchSize <= 0) {
-        throw new Error(`Invalid batch size: ${args['batch-size']}`);
-      }
-      log.info(`Using manual batch size: ${batchSize} records`);
-    } else {
-      batchSize = calculateOptimalBatchSize(totalRecords, batchDelay, cfg);
-      
-      // In dev mode, use smaller batches for easier debugging
-      if (isDev && batchSize > 20) {
-        batchSize = Math.min(20, batchSize);
-        log.info(`Using dev batch size: ${batchSize} records (capped for debugging)`);
-      } else {
-        log.info(`Using auto-calculated batch size: ${batchSize} records`);
-      }
-    }
-
-    log.info(`Batch delay: ${batchDelay}ms`);
-
-    const safetyMargin = args.aggressive ? cfg.AGGRESSIVE_SAFETY_MARGIN : cfg.SAFETY_MARGIN;
-    if (args.aggressive) {
-      log.warn('⚡ Aggressive mode enabled: Using 85% of daily limit (8,500 records/day)');
-    }
+    // Passed through to publishRecordsWithApplyWrites for its (ignored) legacy
+    // signature — actual batch size and delay are calculated live per-batch.
+    const batchSize = 0;
+    const batchDelay = 0;
 
     log.section('Import Configuration');
     log.info(`Total records: ${totalRecords.toLocaleString()}`);
-    log.info(`Batch size: ${batchSize} records`);
-    log.info(`Batch delay: ${batchDelay}ms`);
-
-    const recordsPerDay = cfg.RECORDS_PER_DAY_LIMIT * safetyMargin;
-    const estimatedDays = Math.ceil(totalRecords / recordsPerDay);
-    if (estimatedDays > 1) {
-      log.info(`Duration: ${estimatedDays} days (${recordsPerDay.toLocaleString()} records/day limit)`);
-      log.warn('Large import will span multiple days with automatic pauses');
-    }
     log.blank();
 
     let importState: ImportState | null = null;
