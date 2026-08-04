@@ -14,6 +14,7 @@ import { parseLastFmFile, convertToPlayRecord } from './csv.js';
 import { parseSpotifyFiles, convertSpotifyToPlayRecord } from './spotify.js';
 import { parseAppleMusicFile, convertAppleMusicToPlayRecord } from './apple-music.js';
 import { parseYouTubeMusicFiles, convertYouTubeMusicToPlayRecord } from './youtube-music.js';
+import { parseListenBrainzFile, convertListenBrainzToPlayRecord } from './listenbrainz.js';
 import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '@ewanc26/croft-click-core';
 import {
   fetchExistingRecords,
@@ -54,6 +55,7 @@ export async function runImport(
   spotifyFiles: File[],
   appleFiles: File[],
   youtubeFiles: File[],
+  listenbrainzFiles: File[],
   { dryRun, reverseOrder, fresh }: ImportOptions,
   { onLog, onProgress, isCancelled }: ImportCallbacks,
   /** Number of records to skip when resuming a previous import. */
@@ -106,35 +108,45 @@ export async function runImport(
     let records: PlayRecord[] = [];
 
     if (mode === 'combined') {
-      let combinedRecords: PlayRecord[] = [];
-      
+      let lastfmRecords: PlayRecord[] = [];
+      let spotifyRecords: PlayRecord[] = [];
+      let appleRecords: PlayRecord[] = [];
+      let youtubeRecords: PlayRecord[] = [];
+      let listenbrainzRecords: PlayRecord[] = [];
+
       if (lastfmFiles.length > 0) {
         const lfRaw = await parseLastFmFile(lastfmFiles[0]);
         onLog('info', `Last.fm: ${lfRaw.length.toLocaleString()} scrobbles`);
-        combinedRecords = combinedRecords.concat(lfRaw.map(r => convertToPlayRecord(r, CLIENT_AGENT)));
+        lastfmRecords = lfRaw.map(r => convertToPlayRecord(r, CLIENT_AGENT));
       }
-      
+
       if (spotifyFiles.length > 0) {
         const spRaw = await parseSpotifyFiles(spotifyFiles);
         onLog('info', `Spotify: ${spRaw.length.toLocaleString()} tracks`);
-        combinedRecords = combinedRecords.concat(spRaw.map(r => convertSpotifyToPlayRecord(r, CLIENT_AGENT)));
+        spotifyRecords = spRaw.map(r => convertSpotifyToPlayRecord(r, CLIENT_AGENT));
       }
 
       if (appleFiles.length > 0) {
         const amRaw = await parseAppleMusicFile(appleFiles[0]);
         onLog('info', `Apple Music: ${amRaw.length.toLocaleString()} plays`);
-        combinedRecords = combinedRecords.concat(amRaw.map(r => convertAppleMusicToPlayRecord(r, CLIENT_AGENT)));
+        appleRecords = amRaw.map(r => convertAppleMusicToPlayRecord(r, CLIENT_AGENT));
       }
 
       if (youtubeFiles.length > 0) {
         const ytRaw = await parseYouTubeMusicFiles(youtubeFiles);
         onLog('info', `YouTube Music: ${ytRaw.length.toLocaleString()} plays`);
-        combinedRecords = combinedRecords.concat(ytRaw.map(r => convertYouTubeMusicToPlayRecord(r, CLIENT_AGENT)));
+        youtubeRecords = ytRaw.map(r => convertYouTubeMusicToPlayRecord(r, CLIENT_AGENT));
       }
 
-      const { unique, duplicates: inputDups } = deduplicateInputRecords(combinedRecords);
-      records = unique;
-      onLog('success', `Merged: ${records.length.toLocaleString()} unique records (${inputDups} duplicates removed)`);
+      if (listenbrainzFiles.length > 0) {
+        const lbRaw = await parseListenBrainzFile(listenbrainzFiles[0]);
+        onLog('info', `ListenBrainz: ${lbRaw.length.toLocaleString()} listens`);
+        listenbrainzRecords = lbRaw.map(r => convertListenBrainzToPlayRecord(r, CLIENT_AGENT));
+      }
+
+      const { merged, stats } = mergePlayRecords(lastfmRecords, spotifyRecords, appleRecords, youtubeRecords, listenbrainzRecords);
+      records = merged;
+      onLog('success', `Merged: ${records.length.toLocaleString()} unique records (${stats.duplicatesRemoved} duplicates removed)`);
     } else if (mode === 'spotify') {
       const spRaw = await parseSpotifyFiles(spotifyFiles);
       records = spRaw.map((r) => convertSpotifyToPlayRecord(r, CLIENT_AGENT));
@@ -147,6 +159,10 @@ export async function runImport(
       const ytRaw = await parseYouTubeMusicFiles(youtubeFiles);
       records = ytRaw.map((r) => convertYouTubeMusicToPlayRecord(r, CLIENT_AGENT));
       onLog('success', `Loaded ${records.length.toLocaleString()} YouTube Music records`);
+    } else if (mode === 'listenbrainz') {
+      const lbRaw = await parseListenBrainzFile(listenbrainzFiles[0]);
+      records = lbRaw.map((r) => convertListenBrainzToPlayRecord(r, CLIENT_AGENT));
+      onLog('success', `Loaded ${records.length.toLocaleString()} ListenBrainz records`);
     } else {
       const lfRaw = await parseLastFmFile(lastfmFiles[0]);
       records = lfRaw.map((r) => convertToPlayRecord(r, CLIENT_AGENT));

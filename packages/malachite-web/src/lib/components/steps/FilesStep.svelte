@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { ArrowLeft, ArrowRight, CheckCircle2, Music2, Disc3, Apple, Youtube } from '@lucide/svelte';
+  import { ArrowLeft, ArrowRight, CheckCircle2, Music2, Disc3, Apple, Youtube, Waves } from '@lucide/svelte';
 
   let {
     lastfmFiles  = $bindable<File[]>([]),
     spotifyFiles = $bindable<File[]>([]),
     appleFiles   = $bindable<File[]>([]),
     youtubeFiles = $bindable<File[]>([]),
+    listenbrainzFiles = $bindable<File[]>([]),
     needs,
     oncontinue,
     onback,
@@ -14,7 +15,8 @@
     spotifyFiles: File[];
     appleFiles:   File[];
     youtubeFiles: File[];
-    needs: { lastfm: boolean; spotify: boolean; apple: boolean; youtube: boolean; files: boolean };
+    listenbrainzFiles: File[];
+    needs: { lastfm: boolean; spotify: boolean; apple: boolean; youtube: boolean; listenbrainz: boolean; files: boolean };
     oncontinue: () => void;
     onback: () => void;
   } = $props();
@@ -23,8 +25,9 @@
   let spDragging = $state(false);
   let amDragging = $state(false);
   let ytDragging = $state(false);
+  let lbDragging = $state(false);
 
-  function handleDrop(e: DragEvent, type: 'lf' | 'sp' | 'am' | 'yt') {
+  function handleDrop(e: DragEvent, type: 'lf' | 'sp' | 'am' | 'yt' | 'lb') {
     e.preventDefault();
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (type === 'lf') {
@@ -39,6 +42,9 @@
     } else if (type === 'yt') {
       ytDragging   = false;
       youtubeFiles = files.filter((f) => f.name.endsWith('.json'));
+    } else if (type === 'lb') {
+      lbDragging   = false;
+      listenbrainzFiles = files.filter((f) => f.name.endsWith('.json'));
     }
   }
 
@@ -47,7 +53,8 @@
     (!needs.spotify || spotifyFiles.length > 0) &&
     (!needs.apple || appleFiles.length > 0) &&
     (!needs.youtube || youtubeFiles.length > 0) &&
-    (lastfmFiles.length > 0 || spotifyFiles.length > 0 || appleFiles.length > 0 || youtubeFiles.length > 0)
+    (!needs.listenbrainz || listenbrainzFiles.length > 0) &&
+    (lastfmFiles.length > 0 || spotifyFiles.length > 0 || appleFiles.length > 0 || youtubeFiles.length > 0 || listenbrainzFiles.length > 0)
   );
 </script>
 
@@ -203,6 +210,39 @@
         {/if}
       </div>
     {/if}
+
+    {#if needs.listenbrainz}
+      <div
+        class="drop-zone"
+        class:dragging={lbDragging}
+        class:filled={listenbrainzFiles.length > 0}
+        role="button"
+        tabindex="0"
+        aria-label="Upload ListenBrainz JSON file"
+        ondragover={(e) => { e.preventDefault(); lbDragging = true; }}
+        ondragleave={() => (lbDragging = false)}
+        ondrop={(e) => handleDrop(e, 'lb')}
+        onclick={() => document.getElementById('lbInput')?.click()}
+        onkeydown={(e) => e.key === 'Enter' && document.getElementById('lbInput')?.click()}
+      >
+        <input
+          id="lbInput"
+          type="file"
+          accept=".json"
+          hidden
+          onchange={(e) => { listenbrainzFiles = Array.from((e.target as HTMLInputElement).files ?? []); }}
+        />
+        {#if listenbrainzFiles.length > 0}
+          <span class="drop-icon drop-done"><CheckCircle2 size={28} /></span>
+          <span class="drop-filename">{listenbrainzFiles[0].name}</span>
+          <span class="drop-meta">{(listenbrainzFiles[0].size / 1024).toFixed(0)} KB · JSON</span>
+        {:else}
+          <span class="drop-icon"><Waves size={28} /></span>
+          <span class="drop-title">ListenBrainz JSON</span>
+          <span class="drop-hint">Drag & drop or click to select</span>
+        {/if}
+      </div>
+    {/if}
   </div>
 
   <div class="how-to">
@@ -244,6 +284,16 @@
           Go to <a href="https://takeout.google.com/" target="_blank" rel="noopener">takeout.google.com</a>, 
           deselect all and select only "YouTube and YouTube Music", choose "JSON" format, and upload the 
           <code>YouTube and YouTube Music/history/watch-history.json</code> file.
+        </p>
+      </details>
+    {/if}
+    {#if needs.listenbrainz}
+      <details>
+        <summary>How to export from ListenBrainz</summary>
+        <p>
+          Go to your <a href="https://listenbrainz.org/settings/export/" target="_blank" rel="noopener">
+            ListenBrainz export settings
+          </a> and use "Download Listens" to get your listen history as JSON.
         </p>
       </details>
     {/if}
