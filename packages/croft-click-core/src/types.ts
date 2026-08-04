@@ -38,7 +38,7 @@ export interface PublishResult {
   cancelled: boolean;
 }
 
-export type ImportMode = 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'combined' | 'sync' | 'deduplicate';
+export type ImportMode = 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'listenbrainz' | 'combined' | 'sync' | 'deduplicate';
 
 export interface SpotifyRecord {
   ts: string;
