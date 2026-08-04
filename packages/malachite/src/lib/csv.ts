@@ -5,7 +5,8 @@
 
 import * as fs from 'fs';
 import type { LastFmCsvRecord, PlayRecord } from '../types.js';
-import { parseLastFmCsvContent, convertToPlayRecord as coreConvert, VERSION } from '@ewanc26/croft-click-core';
+import { parseLastFmCsvContent, convertToPlayRecord as coreConvert } from '@ewanc26/croft-click-core';
+import { VERSION } from '../config.js';
 
 export { parseLastFmCsvContent };
 export type { LastFmCsvRecord };
