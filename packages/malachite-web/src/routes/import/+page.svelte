@@ -44,6 +44,7 @@
 	let spotifyFiles = $state<File[]>([]);
 	let appleFiles = $state<File[]>([]);
 	let youtubeFiles = $state<File[]>([]);
+	let listenbrainzFiles = $state<File[]>([]);
 
 	let dryRun = $state(false);
 	let reverseOrder = $state(false);
@@ -130,6 +131,7 @@
 				spotifyFiles,
 				appleFiles,
 				youtubeFiles,
+				listenbrainzFiles,
 				{ dryRun, reverseOrder, fresh },
 				{
 					onLog: addLog,
@@ -228,6 +230,7 @@
 		spotifyFiles = [];
 		appleFiles = [];
 		youtubeFiles = [];
+		listenbrainzFiles = [];
 		dryRun = false;
 		reverseOrder = false;
 		fresh = false;
@@ -318,6 +321,7 @@
 						bind:spotifyFiles
 						bind:appleFiles
 						bind:youtubeFiles
+						bind:listenbrainzFiles
 						{needs}
 						oncontinue={() => goTo(3)}
 						onback={handleBack}
