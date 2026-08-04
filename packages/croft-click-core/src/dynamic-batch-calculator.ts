@@ -74,11 +74,11 @@ export interface BatchCalculation {
  *      delay = avg_duration * 0.5 (conservative)
  *    Minimum: 100ms
  *
- * 3. ADAPTIVE SCALING:
- *    - 5+ consecutive successes -> *1.25 scale up
+ * 3. ADAPTIVE SCALING (checked in this order — earlier rules win):
  *    - 2+ consecutive failures -> *0.67 scale down
  *    - Network 50%+ slower -> *0.8 scale down
  *    - Network 30%+ faster -> *1.15 scale up
+ *    - 5+ consecutive successes -> *1.25 scale up
  */
 export class DynamicBatchCalculator {
   /** Cost per record in AT Protocol rate limiting (constant) */
@@ -268,30 +268,19 @@ export class DynamicBatchCalculator {
   /**
    * Calculate adaptive scaling factor based on performance patterns.
    *
-   * RULES:
-   * 1. Scale up *1.25 after 5 consecutive successes
-   * 2. Scale down *0.67 after 2 consecutive failures
-   * 3. Scale down *0.8 if recent batches are 50%+ slower
-   * 4. Scale up *1.15 if recent batches are 30%+ faster
+   * RULES (checked in this order — earlier rules win):
+   * 1. Scale down *0.67 after 2 consecutive failures
+   * 2. Scale down *0.8 if recent batches are 50%+ slower
+   * 3. Scale up *1.15 if recent batches are 30%+ faster
+   * 4. Scale up *1.25 after 5 consecutive successes
    * 5. Return 1.0 (no change) for stable performance
    *
    * @returns Scale factor (0.67-1.25) and human-readable reason
    */
   calculateAdaptiveScale(): { scale: number; reason: string } {
-    // No adjustment needed if no history
-    if (this.metrics.recentBatchDurations.length < 3) {
-      return { scale: 1.0, reason: 'Insufficient history for adaptation' };
-    }
-
-    // Scale up on consistent success
-    if (this.metrics.consecutiveSuccesses >= 5) {
-      return {
-        scale: 1.25,
-        reason: `Performance excellent (${this.metrics.consecutiveSuccesses} successes)`
-      };
-    }
-
-    // Scale down on failures
+    // Consecutive failures are an urgent signal and matter regardless of how
+    // much duration history has accumulated — check this before the history
+    // gate below.
     if (this.metrics.consecutiveFailures >= 2) {
       return {
         scale: 0.67,
@@ -299,7 +288,16 @@ export class DynamicBatchCalculator {
       };
     }
 
-    // Check if recent batches are getting slower
+    // No adjustment needed if no history
+    if (this.metrics.recentBatchDurations.length < 3) {
+      return { scale: 1.0, reason: 'Insufficient history for adaptation' };
+    }
+
+    // Check if recent batches are getting slower or faster. This runs before
+    // the flat "5 successes" bonus below because a batch sequence can be
+    // all-successful while still measurably slowing down — that degrading
+    // trend is exactly the early-warning signal this calculator exists to
+    // catch, and it must not be masked by a naive success streak.
     if (this.metrics.recentBatchDurations.length >= 5) {
       const recentAvg = this.metrics.recentBatchDurations.slice(-3).reduce((a, b) => a + b) / 3;
       const olderAvg = this.metrics.recentBatchDurations.slice(0, 3).reduce((a, b) => a + b) / 3;
@@ -317,6 +315,14 @@ export class DynamicBatchCalculator {
           reason: 'Network performance improving'
         };
       }
+    }
+
+    // Scale up on consistent success once we know performance isn't degrading
+    if (this.metrics.consecutiveSuccesses >= 5) {
+      return {
+        scale: 1.25,
+        reason: `Performance excellent (${this.metrics.consecutiveSuccesses} successes)`
+      };
     }
 
     return { scale: 1.0, reason: 'Performance stable' };
