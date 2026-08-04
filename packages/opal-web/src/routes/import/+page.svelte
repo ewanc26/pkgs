@@ -26,6 +26,7 @@
 	let handle = $state('');
 	let convertResult = $state<ConvertResult | null>(null);
 	let selectedPosts = $state<Set<number>>(new Set());
+	let dryRun = $state(false);
 
 	let isRunning = $state(false);
 	let cancelled = false;
@@ -129,7 +130,7 @@
 			const result = await runImport(
 				agent,
 				postsToImport,
-				false,
+				dryRun,
 				{
 					onLog: addLog,
 					onProgress: (p) => { progress = p; },
@@ -139,7 +140,9 @@
 
 			const n = result.success.toLocaleString();
 			if (result.cancelled) addLog('warn', `Stopped. ${n} post(s) published.`);
-			else {
+			else if (dryRun) {
+				addLog('success', `Dry run complete — ${n} post(s) would be published.`);
+			} else {
 				addLog('success', `Import complete! ${n} post(s) published.`);
 				if (result.errors > 0) addLog('warn', `${result.errors} post(s) failed.`);
 			}
@@ -173,6 +176,7 @@
 		handle = '';
 		convertResult = null;
 		selectedPosts = new Set();
+		dryRun = false;
 		logs = [];
 		progress = null;
 		importError = null;
@@ -324,6 +328,10 @@
 								{/if}
 							</div>
 						{/if}
+						<div class="toggle-row">
+							<input type="checkbox" id="dry-run" bind:checked={dryRun} />
+							<label for="dry-run">Dry run (preview without posting)</label>
+						</div>
 						<div class="step-actions">
 							<button class="btn-secondary inline-flex items-center gap-1" onclick={handleBack}><ArrowLeft size={13} /> Back</button>
 							<div class="step-actions-right">
@@ -331,7 +339,7 @@
 									Download JSON
 								</button>
 								<button class="btn-primary" onclick={handleStartImport}>
-									Import {selectedPosts.size} posts
+									{dryRun ? 'Preview' : 'Import'} {selectedPosts.size} posts
 								</button>
 							</div>
 						</div>
@@ -339,7 +347,7 @@
 				{:else if step === 4}
 					<!-- Running -->
 					<section class="step">
-						<h2>{isRunning ? 'Importing…' : 'Done'}</h2>
+						<h2>{isRunning ? (dryRun ? 'Previewing…' : 'Importing…') : 'Done'}</h2>
 						{#if progress}
 							<div class="progress-bar">
 								<div
