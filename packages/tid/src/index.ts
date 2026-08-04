@@ -117,6 +117,10 @@ let clockId = (() => {
   return buf[0] % 32;
 })();
 let generatedCount = 0;
+// When true, generateNextTID() uses deterministicUs instead of Date.now().
+// Set by seedTidClock(), cleared by resetTidClock().
+let deterministic = false;
+let deterministicUs = 0;
 
 function nextUs(targetUs: number): number {
   const us = targetUs <= lastUs ? lastUs + 1 : targetUs;
@@ -154,7 +158,7 @@ export function generateTID(source: string | Date): string {
  * const tid = generateNextTID();
  */
 export function generateNextTID(): string {
-  return makeTid(nextUs(Date.now() * 1000));
+  return makeTid(nextUs(deterministic ? deterministicUs : Date.now() * 1000));
 }
 
 // ─── Comparison ──────────────────────────────────────────────────────────────
@@ -218,13 +222,19 @@ export function getTidClockState(): TidClockState {
 export function resetTidClock(): void {
   lastUs = 0;
   generatedCount = 0;
+  deterministic = false;
 }
 
 /**
  * Seed the clock with a fixed starting timestamp and clock identifier,
- * making all subsequent TID generation deterministic.
+ * making all subsequent `generateNextTID()` calls deterministic — they stop
+ * consulting `Date.now()` entirely and instead tick forward one microsecond
+ * per call starting from `startUs`, until the next `resetTidClock()` or
+ * `seedTidClock()` call. (`generateTID(source)` is unaffected since it
+ * already takes an explicit timestamp and never reads the wall clock.)
  *
- * - `startUs` becomes the floor for the next generated timestamp (µs).
+ * - `startUs` is the exact timestamp (µs) the next `generateNextTID()` call
+ *   will encode; each call after that increments by 1.
  * - `newClockId` overrides the random clock identifier (0–31, default 0).
  * - `generatedCount` is reset to 0.
  *
@@ -238,7 +248,9 @@ export function resetTidClock(): void {
  * // tid1 === tid2
  */
 export function seedTidClock(startUs = 0, newClockId = 0): void {
-  lastUs = startUs;
+  lastUs = startUs - 1;
   clockId = newClockId % 32;
   generatedCount = 0;
+  deterministic = true;
+  deterministicUs = startUs;
 }
