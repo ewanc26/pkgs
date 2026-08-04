@@ -14,7 +14,7 @@ export { convertNostr } from './nostr.js';
 
 // Publishing
 export { publishRecords } from './publisher.js';
-export { RateLimiter } from './rate-limiter.js';
+export { RateLimiter } from '@ewanc26/croft-click-core';
 
 // Utilities
 export {
@@ -61,4 +61,4 @@ export type {
 
 export type {
   RateLimitHeaders,
-} from './rate-limit-headers.js';
+} from '@ewanc26/croft-click-core';
