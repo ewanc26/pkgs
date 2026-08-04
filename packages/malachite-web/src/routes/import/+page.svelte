@@ -48,9 +48,6 @@
 	let dryRun = $state(false);
 	let reverseOrder = $state(false);
 	let fresh = $state(false);
-	let batchSize = $state(100);
-	let batchDelay = $state(2000);
-	let aggressive = $state(false);
 
 	let isRunning = $state(false);
 	// Plain variable (not $state) — only ever read inside the isCancelled() closure.
@@ -133,7 +130,7 @@
 				spotifyFiles,
 				appleFiles,
 				youtubeFiles,
-				{ dryRun, reverseOrder, fresh, batchSize, batchDelay, aggressive },
+				{ dryRun, reverseOrder, fresh },
 				{
 					onLog: addLog,
 					onProgress: (p) => {
@@ -141,7 +138,7 @@
 						// Persist progress to sessionStorage for tab-close recovery.
 						if (mode) {
 							saveImportState({
-								mode: mode as string as ImportMode,
+								mode,
 								recordsProcessed: p.recordsProcessed,
 								totalRecords: p.totalRecords,
 								timestamp: Date.now(),
@@ -331,9 +328,6 @@
 						bind:dryRun
 						bind:reverseOrder
 						bind:fresh
-						bind:batchSize
-						bind:batchDelay
-						bind:aggressive
 						onstartimport={handleStartImport}
 						onback={handleBack}
 					/>
