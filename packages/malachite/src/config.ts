@@ -1,4 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import type { Config } from './types.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(path.join(__dirname, '../package.json'), 'utf-8')) as { version: string };
 
 // ⚠️ IMPORTANT: Rate Limit Warning
 // Bluesky's AppView has rate limits on PDS instances:
@@ -16,9 +22,8 @@ import type { Config } from './types.js';
 // Record type
 export const RECORD_TYPE = 'fm.teal.alpha.feed.play';
 
-// Single source of truth for the CLI version string.
-// Keep in sync with package.json `version`.
-export const VERSION = '0.10.0';
+// CLI version string, read directly from package.json so it can never drift.
+export const VERSION = pkg.version;
 
 // Points charged per record write in ATProto applyWrites.
 export const POINTS_PER_RECORD = 3;
