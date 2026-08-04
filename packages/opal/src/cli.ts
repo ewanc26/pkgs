@@ -75,13 +75,13 @@ Examples:
 
 async function login(handle: string, password: string) {
   // Dynamic import so @atproto/api is only loaded when publishing
-  const { Agent } = await import('@atproto/api');
-  const agent = new Agent({ service: 'https://bsky.social' });
+  const { AtpAgent } = await import('@atproto/api');
+  const agent = new AtpAgent({ service: 'https://bsky.social' });
 
   console.log(`Logging in as ${handle}…`);
   await agent.login({ identifier: handle, password });
 
-  const did = agent.session?.did ?? 'unknown';
+  const did = agent.did ?? 'unknown';
   console.log(`  DID: ${did}`);
   return agent;
 }
