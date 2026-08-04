@@ -47,6 +47,7 @@ export interface CommandLineArgs {
   'spotify-input'?: string;
   'apple-input'?: string;
   'youtube-input'?: string;
+  'listenbrainz-input'?: string;
   
   // Mode
   mode?: string;
