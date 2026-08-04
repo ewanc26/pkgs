@@ -71,8 +71,12 @@ describe('DynamicBatchCalculator', () => {
 
     it('should handle high capacity servers', () => {
       const calc = new DynamicBatchCalculator();
-      const result = calc.calculateInitialBatchFromServer(10000, 3600);
-      
+      // 10000/3600 still floors to a batchSize of 1 after the conservative
+      // halving — needs meaningfully higher capacity to clear that floor
+      // and actually exercise the "high capacity" path distinctly from
+      // "conservative initial batch" above.
+      const result = calc.calculateInitialBatchFromServer(50000, 3600);
+
       assert(result.batchSize > 1);
       assert(result.batchSize <= 200);
     });
@@ -152,12 +156,15 @@ describe('DynamicBatchCalculator', () => {
 
     it('should return 1.0 scale for stable performance', () => {
       const calc = new DynamicBatchCalculator();
-      
-      // Consistent performance
-      for (let i = 0; i < 5; i++) {
+
+      // Exactly 4 consistent successes: enough to clear the "insufficient
+      // history" gate (needs 3+) but deliberately short of the 5-success
+      // "excellent" bonus, and short of the 5-batch window the degrading/
+      // improving trend check needs — isolates the plain "stable" branch.
+      for (let i = 0; i < 4; i++) {
         calc.recordSuccess(100, 1000);
       }
-      
+
       const scale = calc.calculateAdaptiveScale();
       assert.strictEqual(scale.scale, 1.0);
       assert.match(scale.reason, /stable/);
