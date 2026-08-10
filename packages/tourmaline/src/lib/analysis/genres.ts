@@ -148,13 +148,15 @@ export function buildGenreProfile(
   artistInfos: Map<string, ArtistInfo>,
 ): GenreEntry[] {
   const genreWeights = new Map<Category, number>();
-  console.log(`[tourmaline] building genre profile, artistCounts: ${data.artistPlayCounts.size}, artistInfos: ${artistInfos.size}`);
+  console.log(
+    `[tourmaline] building genre profile, artistCounts: ${data.artistPlayCounts.size}, artistInfos: ${artistInfos.size}`,
+  );
 
   for (const [name, count] of data.artistPlayCounts) {
     const info = artistInfos.get(name);
     if (!info) {
-        console.log(`[tourmaline] artist not in info: ${name}`);
-        continue;
+      console.log(`[tourmaline] artist not in info: ${name}`);
+      continue;
     }
 
     const allRaw = [...info.genres, ...info.tags];

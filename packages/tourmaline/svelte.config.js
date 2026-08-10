@@ -9,7 +9,7 @@ const config = {
       filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
   },
   kit: {
-    adapter: adapter({ runtime: 'nodejs22.x' }),
+    adapter: adapter({ runtime: "nodejs22.x" }),
   },
 };
 
