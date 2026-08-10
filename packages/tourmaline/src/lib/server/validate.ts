@@ -97,10 +97,3 @@ export function safeEndpoint(raw: string | null | undefined): string | null {
   const normalised = url.toString();
   return normalised.endsWith("/") ? normalised.slice(0, -1) : normalised;
 }
-
-/** Pagination cursors are opaque, but they are still remote input. */
-export function safeCursor(cursor: string | null | undefined): string | null {
-  if (!cursor) return null;
-  if (cursor.length > 512) return null;
-  return /^[\w.:~+/=-]+$/.test(cursor) ? cursor : null;
-}

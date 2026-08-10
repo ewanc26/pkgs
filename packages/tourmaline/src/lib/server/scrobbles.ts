@@ -1,15 +1,6 @@
 import { TEAL_LEXICON } from "@ewanc26/utils";
+import { fetchRepoViaCAR } from "@ewanc26/croft-click-core";
 import type { TealScrobble } from "$lib/types";
-import { pdsRateLimiter, isRateLimitError } from "./rate-limit";
-
-interface ListRecordsResponse {
-  records: Array<{
-    uri: string;
-    cid: string;
-    value: Record<string, unknown>;
-  }>;
-  cursor?: string;
-}
 
 /**
  * Safely parse a playedTime value from an ATProto record.
@@ -78,66 +69,29 @@ export interface ScrobbleBatchResult {
 }
 
 /**
- * Fetch a batch of scrobbles from the PDS.
- * Each call fetches up to `maxPages` pages (default 25, ~2500 scrobbles)
- * to stay well under the Vercel Hobby 10s timeout.
+ * Fetch a user's entire `fm.teal.alpha.feed.play` collection via the CAR
+ * export (`com.atproto.sync.getRepo`) and parse the records locally.
+ *
+ * Replaces the previous listRecords pagination, which needed up to 25
+ * AppView-ratelimited requests per 2,500 records and looped until done. The
+ * sync namespace has its own far more generous envelope, so one request
+ * downloads the whole repo and the records are extracted with Malachite's CAR
+ * MST walker. The response is intentionally one-shot: `cursor` is always null
+ * and `done` always true, so the client loop exits after a single call.
  */
 export async function fetchScrobbleBatch(
   pdsUrl: string,
   did: string,
-  cursor: string | null,
-  maxPages = 25,
 ): Promise<ScrobbleBatchResult> {
-  const limit = 100;
-  let currentCursor = cursor;
-  const batch: TealScrobble[] = [];
+  const records = await fetchRepoViaCAR(pdsUrl, did, TEAL_LEXICON);
 
-  for (let page = 0; page < maxPages; page++) {
-    const params = new URLSearchParams({
-      repo: did,
-      collection: TEAL_LEXICON,
-      limit: String(limit),
-    });
-    if (currentCursor) params.set("cursor", currentCursor);
-
-    const url = `${pdsUrl}/xrpc/com.atproto.repo.listRecords?${params}`;
-
-    // Wait for rate limit permit
-    await pdsRateLimiter.waitForPermit(1);
-
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      const body = await res.text();
-      if (isRateLimitError(res.status, body)) {
-        pdsRateLimiter.handleRateLimitHit(res.headers);
-        throw new Error("Rate limit exceeded. Try again in a minute.");
-      }
-      // The upstream body is logged but never propagated to the browser.
-      console.error(
-        `[tourmaline] listRecords ${res.status} from ${pdsUrl}: ${body.slice(0, 500)}`,
-      );
-      throw new Error(`listRecords failed: ${res.status}`);
-    }
-
-    // Update rate limiter stats
-    pdsRateLimiter.updateFromHeaders(res.headers);
-
-    const data = (await res.json()) as Partial<ListRecordsResponse>;
-
-    // Remote responses are untrusted: a PDS may omit or mistype `records`.
-    const records = Array.isArray(data.records) ? data.records : [];
-    for (const record of records) {
-      if (record && typeof record.value === "object" && record.value !== null) {
-        batch.push(parseScrobble(record.value));
-      }
-    }
-
-    currentCursor = typeof data.cursor === "string" ? data.cursor : null;
-    if (!currentCursor || records.length === 0) {
-      return { scrobbles: batch, cursor: null, done: true };
+  const scrobbles: TealScrobble[] = [];
+  for (const record of records) {
+    const value = record.value;
+    if (value && typeof value === "object") {
+      scrobbles.push(parseScrobble(value as Record<string, unknown>));
     }
   }
 
-  return { scrobbles: batch, cursor: currentCursor, done: false };
+  return { scrobbles, cursor: null, done: true };
 }
