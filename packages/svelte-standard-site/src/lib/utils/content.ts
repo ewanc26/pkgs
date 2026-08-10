@@ -64,7 +64,7 @@ export function convertSidenotes(markdown: string): string {
 		const cleanLabel = label.trim();
 
 		// Convert to blockquote with label
-		return `\n> **${cleanLabel}:** ${cleanContent}\n`;
+		return `> **${cleanLabel}:** ${cleanContent}`;
 	});
 }
 

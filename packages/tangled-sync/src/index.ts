@@ -113,7 +113,7 @@ function generateTid(): string {
 }
 
 // Tangled repo schema typing (matches sh.tangled.repo lexicon)
-interface TangledRepoRecord {
+type TangledRepoRecord = {
   $type: "sh.tangled.repo";
   name: string;          // required
   knot: string;          // required
@@ -154,10 +154,13 @@ async function ensureTangledRecord(
     for (const record of res.data.records) {
       const value = record.value as TangledRepoRecord;
       if (value.name === repoName && record.rkey) {
-        tid = record.rkey;
-        recordCache[repoName] = tid;
-        console.log(`[FOUND] Existing record for ${repoName} (TID: ${tid})`);
-        return { tid, existed: true };
+        const existingTid = record.rkey as string;
+        tid = existingTid;
+        recordCache[repoName] = existingTid;
+        console.log(
+          `[FOUND] Existing record for ${repoName} (TID: ${existingTid})`,
+        );
+        return { tid: existingTid, existed: true };
       }
     }
 
