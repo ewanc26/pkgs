@@ -318,7 +318,8 @@ export class Aggregator {
       Math.floor((today.getTime() - firstDate.getTime()) / 86_400_000),
     );
     const daysScrobbled = this.dailyCounts.size;
-    const daysScrobbledPercentage = (daysScrobbled / daysSinceFirstScrobble) * 100;
+    const daysScrobbledPercentage =
+      (daysScrobbled / daysSinceFirstScrobble) * 100;
 
     const oneHitWondersCount = [...this.artistCounts.values()].filter(
       (c) => c === 1,
@@ -336,8 +337,9 @@ export class Aggregator {
     }
     const sortedYears = [...yearCounts.entries()].sort((a, b) => b[1] - a[1]);
     const mostPopularYear = sortedYears[0] ?? { year: "N/A", count: 0 };
-    const mostPopularMonth = [...this.monthlyCounts.entries()]
-      .sort((a, b) => b[1] - a[1])[0] ?? { month: "N/A", count: 0 };
+    const mostPopularMonth = [...this.monthlyCounts.entries()].sort(
+      (a, b) => b[1] - a[1],
+    )[0] ?? { month: "N/A", count: 0 };
 
     const scrobbleStreaks = calcScrobbleStreaks(this.dailyCounts);
     const longestScrobbleStreak = scrobbleStreaks[0] ?? null;
@@ -398,22 +400,28 @@ export class Aggregator {
       daysScrobbledPercentage,
       firstScrobble: this.firstScrobble
         ? {
-            date: new Date(this.firstScrobble.playedTime).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            }),
+            date: new Date(this.firstScrobble.playedTime).toLocaleDateString(
+              undefined,
+              {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              },
+            ),
             track: this.firstScrobble.trackName,
             artist: this.firstScrobble.artists[0]?.name ?? "Unknown",
           }
         : null,
       lastScrobble: this.lastScrobble
         ? {
-            date: new Date(this.lastScrobble.playedTime).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            }),
+            date: new Date(this.lastScrobble.playedTime).toLocaleDateString(
+              undefined,
+              {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              },
+            ),
             track: this.lastScrobble.trackName,
             artist: this.lastScrobble.artists[0]?.name ?? "Unknown",
           }
@@ -421,7 +429,10 @@ export class Aggregator {
       oneHitWondersCount,
       oneHitWondersPercentage,
       mostPopularYear: { year: mostPopularYear[0], count: mostPopularYear[1] },
-      mostPopularMonth: { month: mostPopularMonth[0], count: mostPopularMonth[1] },
+      mostPopularMonth: {
+        month: mostPopularMonth[0],
+        count: mostPopularMonth[1],
+      },
       scrobbleStreaks,
       longestScrobbleStreak,
       longestArtistStreak,

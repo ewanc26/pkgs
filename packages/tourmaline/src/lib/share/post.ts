@@ -87,13 +87,15 @@ export async function sharePersonality(
   // 6. Log toolkit usage — best-effort, don't let it fail the share
   try {
     await agent.com.atproto.repo.createRecord({
-      repo: agent.sessionManager.did ?? agent.did ?? '',
-      collection: 'click.croft.toolkit.use',
+      repo: agent.sessionManager.did ?? agent.did ?? "",
+      collection: "click.croft.toolkit.use",
       record: {
-        $type: 'click.croft.toolkit.use',
+        $type: "click.croft.toolkit.use",
         tool: {
-          $type: 'click.croft.tools.tourmaline',
-          ...(card.totalScrobbles != null ? { scrobblesAnalyzed: card.totalScrobbles } : {}),
+          $type: "click.croft.tools.tourmaline",
+          ...(card.totalScrobbles != null
+            ? { scrobblesAnalyzed: card.totalScrobbles }
+            : {}),
           sharedToBluesky: true,
         },
         createdAt: new Date().toISOString(),

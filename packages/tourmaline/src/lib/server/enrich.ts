@@ -16,7 +16,10 @@ const serverCache = new Map<string, { info: ArtistInfo; exp: number }>();
 function getServerCache(name: string): ArtistInfo | null {
   const entry = serverCache.get(name);
   if (!entry) return null;
-  if (Date.now() > entry.exp) { serverCache.delete(name); return null; }
+  if (Date.now() > entry.exp) {
+    serverCache.delete(name);
+    return null;
+  }
   return entry.info;
 }
 
@@ -232,7 +235,9 @@ export async function enrichArtistBatch(
   const toProcess = artists.slice(0, batchSize);
   const enriched: Array<{ name: string; info: ArtistInfo }> = [];
 
-  console.log(`[tourmaline] enrichArtistBatch: processing ${toProcess.length} artists from a queue of ${artists.length}`);
+  console.log(
+    `[tourmaline] enrichArtistBatch: processing ${toProcess.length} artists from a queue of ${artists.length}`,
+  );
 
   for (const name of toProcess) {
     // Skip if already enriched in this request or server cache
@@ -263,10 +268,15 @@ export async function enrichArtistBatch(
           };
         }
       } else {
-        console.log(`[tourmaline] enrichArtistBatch: no MBID found for ${name}`);
+        console.log(
+          `[tourmaline] enrichArtistBatch: no MBID found for ${name}`,
+        );
       }
     } catch (e) {
-      console.log(`[tourmaline] enrichArtistBatch: MB search error for ${name}:`, e);
+      console.log(
+        `[tourmaline] enrichArtistBatch: MB search error for ${name}:`,
+        e,
+      );
       // MusicBrainz failure is non-critical
     }
 
@@ -284,10 +294,15 @@ export async function enrichArtistBatch(
             imageUrl: lfmInfo.imageUrl ?? info.imageUrl,
           };
         } else {
-          console.log(`[tourmaline] enrichArtistBatch: no Last.fm info for ${name}`);
+          console.log(
+            `[tourmaline] enrichArtistBatch: no Last.fm info for ${name}`,
+          );
         }
       } catch (e) {
-        console.log(`[tourmaline] enrichArtistBatch: Last.fm error for ${name}:`, e);
+        console.log(
+          `[tourmaline] enrichArtistBatch: Last.fm error for ${name}:`,
+          e,
+        );
         // Last.fm failure is non-critical
       }
     }
@@ -297,9 +312,15 @@ export async function enrichArtistBatch(
       try {
         const dzImage = await dzGetArtistImage(name);
         if (dzImage) info.imageUrl = dzImage;
-        else console.log(`[tourmaline] enrichArtistBatch: no Deezer image for ${name}`);
+        else
+          console.log(
+            `[tourmaline] enrichArtistBatch: no Deezer image for ${name}`,
+          );
       } catch (e) {
-        console.log(`[tourmaline] enrichArtistBatch: Deezer error for ${name}:`, e);
+        console.log(
+          `[tourmaline] enrichArtistBatch: Deezer error for ${name}:`,
+          e,
+        );
         // Deezer failure is non-critical
       }
     }

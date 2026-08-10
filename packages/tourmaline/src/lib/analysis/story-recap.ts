@@ -35,7 +35,7 @@ export function buildStoryRecap(
   phases: ListeningPhase[],
   range: string,
 ): StoryRecap {
-  const label = range === 'all' ? 'all-time' : range.replace('d', '-day');
+  const label = range === "all" ? "all-time" : range.replace("d", "-day");
   const cards: StoryRecapCard[] = [];
 
   // Intro
