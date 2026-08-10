@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
+import { CARFetchUnauthorizedError } from "@ewanc26/croft-click-core";
 import { fetchScrobbleBatch } from "$lib/server/scrobbles";
-import { isValidDid, safeCursor, safeEndpoint } from "$lib/server/validate";
+import { isValidDid, safeEndpoint } from "$lib/server/validate";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = async ({ params, url }) => {
@@ -20,14 +21,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
     );
   }
 
-  const rawCursor = url.searchParams.get("cursor");
-  const cursor = safeCursor(rawCursor);
-  if (rawCursor && !cursor) {
-    return json({ error: "Invalid cursor." }, { status: 400 });
-  }
-
   try {
-    const result = await fetchScrobbleBatch(pdsUrl, did, cursor);
+    const result = await fetchScrobbleBatch(pdsUrl, did);
 
     return json({
       scrobbles: result.scrobbles,
@@ -37,11 +32,16 @@ export const GET: RequestHandler = async ({ params, url }) => {
   } catch (e) {
     // Rate-limit messages are actionable for the user; everything else may
     // carry upstream detail, so it is logged server-side and generalised here.
-    const message = e instanceof Error ? e.message : "";
-    if (message.startsWith("Rate limit exceeded")) {
+    if (e instanceof Error && e.message.startsWith("CAR fetch failed: 429")) {
       return json(
         { error: "Rate limit exceeded. Try again in a minute." },
         { status: 429 },
+      );
+    }
+    if (e instanceof CARFetchUnauthorizedError) {
+      return json(
+        { error: "This PDS requires authentication to read this repository." },
+        { status: 403 },
       );
     }
     console.error("[tourmaline] scrobble fetch failed:", e);
