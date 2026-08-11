@@ -1,6 +1,6 @@
 /**
  * File-backed OAuth state and session stores for the Jasper CLI.
- * State is persisted at ~/.jasper/oauth.json, chmod 600.
+ * State is persisted at ~/.ewanc26/jasper/oauth.json, chmod 600.
  */
 
 import fs from "node:fs/promises";

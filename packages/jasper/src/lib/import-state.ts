@@ -1,20 +1,19 @@
 /**
  * Import state persistence for resumable imports
- * Stores progress in ~/.jasper/imports/ for large exports
+ * Stores progress in ~/.ewanc26/jasper/imports/ for large exports
  */
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import os from "os";
 import type { ImportState, Target } from "../core/types.js";
 import { IMPORT_STATE_DIR } from "../core/config.js";
-import { log } from "../utils/logger.js";
+import { getJasperDir, log } from "../utils/logger.js";
 
 /**
  * Get the import state directory path
  */
 function getImportStateDir(): string {
-  return path.join(os.homedir(), IMPORT_STATE_DIR);
+  return path.join(getJasperDir(), IMPORT_STATE_DIR);
 }
 
 /**

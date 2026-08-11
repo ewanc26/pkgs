@@ -131,6 +131,7 @@ export const MEDIA_DIRECTORIES = ["media/posts", "media/other"];
 export const DEFAULT_DAILY_LIMIT = 100;
 
 /**
- * Import state directory for resumable imports
+ * Import state directory for resumable imports, relative to the Jasper
+ * state directory (see getJasperDir() in utils/logger.ts).
  */
-export const IMPORT_STATE_DIR = ".jasper/imports";
+export const IMPORT_STATE_DIR = "imports";
