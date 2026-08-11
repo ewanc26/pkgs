@@ -5,7 +5,7 @@
 import chalk from "chalk";
 import fs from "fs";
 import path from "path";
-import os from "os";
+import { getToolStateDir } from "@ewanc26/croft-click-core/paths";
 
 export enum LogLevel {
   DEBUG = 0,
@@ -16,10 +16,11 @@ export enum LogLevel {
 }
 
 /**
- * Get the Jasper data directory
+ * Get the Jasper data directory.
+ * Lives under the shared ~/.ewanc26 root alongside every other pkgs tool's state.
  */
 export function getJasperDir(): string {
-  return path.join(os.homedir(), ".jasper");
+  return getToolStateDir("jasper");
 }
 
 /**

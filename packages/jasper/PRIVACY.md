@@ -41,25 +41,29 @@ Your Instagram export files are never modified. They remain exactly as downloade
 
 ## Data Storage
 
-Jasper stores the following on your local machine:
+Jasper stores the following on your local machine, alongside the other pkgs
+tools' state under the shared `~/.ewanc26` directory:
 
-| Location                   | Content              | Purpose                    |
-| -------------------------- | -------------------- | -------------------------- |
-| `~/.jasper/oauth.json`     | OAuth session tokens | Persistent login           |
-| `~/.jasper/oauth-state/`   | OAuth state cache    | Authentication flow        |
-| `~/.jasper/oauth-session/` | OAuth session data   | Authentication flow        |
-| `~/.jasper/logs/`          | Debug log files      | Troubleshooting (optional) |
+| Location                          | Content              | Purpose                    |
+| ---------------------------------- | -------------------- | -------------------------- |
+| `~/.ewanc26/jasper/oauth.json`     | OAuth session tokens | Persistent login           |
+| `~/.ewanc26/jasper/oauth-state/`   | OAuth state cache    | Authentication flow        |
+| `~/.ewanc26/jasper/oauth-session/` | OAuth session data   | Authentication flow        |
+| `~/.ewanc26/jasper/logs/`          | Debug log files      | Troubleshooting (optional) |
+
+An existing legacy `~/.jasper/` directory from older versions is migrated
+into `~/.ewanc26/jasper/` automatically the next time Jasper runs.
 
 ### File Permissions
 
-Files in `~/.jasper/` are created with user-only permissions (mode `0600` for files, `0700` for directories) where supported.
+Files in `~/.ewanc26/jasper/` are created with user-only permissions (mode `0600` for files, `0700` for directories) where supported.
 
 ### Deleting Stored Data
 
 To remove all stored data:
 
 ```bash
-rm -rf ~/.jasper
+rm -rf ~/.ewanc26/jasper
 ```
 
 Or use the CLI:
