@@ -38,7 +38,7 @@ export class Logger {
    */
   enableFileLogging(logDir?: string): void {
     try {
-      // Default to ~/.malachite/logs if no directory specified
+      // Default to ~/.ewanc26/malachite/logs if no directory specified
       const defaultLogDir = getMalachiteLogsDir();
       const logsPath = logDir ? path.resolve(process.cwd(), logDir) : defaultLogDir;
       if (!fs.existsSync(logsPath)) {

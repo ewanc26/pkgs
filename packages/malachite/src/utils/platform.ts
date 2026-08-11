@@ -1,5 +1,6 @@
 import os from 'node:os';
 import path from 'node:path';
+import { getToolStateDir } from '@ewanc26/croft-click-core/paths';
 import { log } from './logger.js';
 
 /**
@@ -21,11 +22,11 @@ export function getPlatform(): Platform {
 
 /**
  * Get the malachite state directory path.
- * Always uses ~/.malachite regardless of OS platform for consistency.
+ * Lives under the shared ~/.ewanc26 root (regardless of OS platform, for
+ * consistency) alongside every other pkgs tool's state.
  */
 export function getMalachiteStateDir(): string {
-  const home = os.homedir();
-  const stateDir = path.join(home, '.malachite');
+  const stateDir = getToolStateDir('malachite');
   log.debug(`[platform.ts] getMalachiteStateDir(): ${stateDir}`);
   return stateDir;
 }

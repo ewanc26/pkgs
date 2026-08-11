@@ -15,13 +15,23 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Get state directory (matching platform.ts logic)
+// Get state directory (matching packages/croft-click-core/src/paths.ts logic)
 function getMalachiteStateDir() {
-  if (process.env.MALACHITE_STATE_DIR) {
-    return process.env.MALACHITE_STATE_DIR;
-  }
   const home = process.env.HOME || process.env.USERPROFILE || '';
-  return path.join(home, '.malachite');
+  const root = process.env.EWANC26_STATE_DIR || path.join(home, '.ewanc26');
+  const target = path.join(root, 'malachite');
+
+  // The CLI migrates legacy ~/.malachite (and the transitional ~/.pkgs/malachite)
+  // into ~/.ewanc26/malachite on first run after the update; fall back to those
+  // paths here so the monitor still works if it's run before that migration
+  // has happened.
+  const legacyCandidates = [path.join(home, '.malachite'), path.join(home, '.pkgs', 'malachite')];
+  if (!fs.existsSync(target)) {
+    const legacy = legacyCandidates.find((p) => fs.existsSync(p));
+    if (legacy) return legacy;
+  }
+
+  return target;
 }
 
 const stateDir = path.join(getMalachiteStateDir(), 'state');
