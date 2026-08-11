@@ -1,6 +1,6 @@
 /**
  * File-backed OAuth state and session stores for the malachite CLI.
- * State is persisted at ~/.malachite/oauth.json, chmod 600.
+ * State is persisted at ~/.ewanc26/malachite/oauth.json, chmod 600.
  */
 
 import fs from 'node:fs/promises';

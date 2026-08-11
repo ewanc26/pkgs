@@ -23,7 +23,7 @@
  *   2. Return 0 quota (forces conservative probe)
  *   3. Receive first response headers
  *   4. Learn: "5000 points/3600s window"
- *   5. Save state to ~/.malachite/state/rate-limit.json
+ *   5. Save state to ~/.ewanc26/malachite/state/rate-limit.json
  *   6. Provide full quota for subsequent requests
  * 
  * Subsequent Runs:
@@ -172,7 +172,7 @@ export class RateLimiter {
    * 
    * INITIALIZATION STEPS:
    * 1. Set headroom threshold (default 15%)
-   * 2. Determine state file path (~/.malachite/state/rate-limit.json)
+   * 2. Determine state file path (~/.ewanc26/malachite/state/rate-limit.json)
    * 3. Ensure state directory exists
    * 4. Check for existing state (from previous runs)
    * 5. REBUILD CACHE: Validate and refresh state based on elapsed time

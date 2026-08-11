@@ -134,7 +134,7 @@ ${'\x1b[1m'}EXAMPLES:${'\x1b[0m'}
   pnpm start --clear-all-caches
 
 ${'\x1b[1m'}NOTES:${'\x1b[0m'}
-  • OAuth sessions are stored at ~/.malachite/oauth.json and refresh automatically
+  • OAuth sessions are stored at ~/.ewanc26/malachite/oauth.json and refresh automatically
   • Batch size and pacing adapt automatically to the PDS's live rate limits
   • Press Ctrl+C during import to stop gracefully after current batch
 
