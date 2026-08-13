@@ -146,7 +146,7 @@
 	{:else if done}
 		<div class="mt-6 rounded border border-[var(--accent)]/30 bg-[var(--accent)]/10 p-4">
 			<p class="text-sm font-medium text-[var(--accent)]">Posted!</p>
-			<p class="mt-2 text-sm text-[var(--text-muted)]">Your personality profile is now on Bluesky.</p>
+			<p class="mt-2 text-sm text-[var(--text-muted)]">Your card is now on Bluesky.</p>
 			<a
 				href={postUrl()}
 				target="_blank"
@@ -179,7 +179,7 @@
 		{:else}
 			<!-- Not authenticated: sign in -->
 			<div class="mt-6 rounded border border-[var(--border)] bg-[var(--surface)] p-4">
-				<p class="text-sm text-[var(--text-muted)]">Sign in to post your personality profile.</p>
+				<p class="text-sm text-[var(--text-muted)]">Sign in to post this card.</p>
 
 				<label class="mt-3 block">
 					<span class="text-xs text-[var(--text-dim)]">Handle</span>

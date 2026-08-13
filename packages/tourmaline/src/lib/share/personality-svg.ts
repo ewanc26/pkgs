@@ -7,7 +7,20 @@
  */
 
 import type { PersonalityTrait } from "$lib/analysis/personality";
-import { INTER_WOFF2, JETBRAINS_MONO_WOFF2 } from "./fonts/embedded-fonts";
+import {
+  BG,
+  SURFACE,
+  BORDER,
+  ACCENT,
+  TEXT,
+  MUTED,
+  DIM,
+  GENRE_COLORS,
+  MOOD_COLORS,
+  FONT_FACE_CSS,
+  colourFor,
+  esc,
+} from "./theme";
 
 export interface PersonalityCardData {
   archetype: string;
@@ -19,72 +32,6 @@ export interface PersonalityCardData {
   obscurityIndex?: number;
   displayName?: string;
   totalScrobbles?: number;
-}
-
-const BG = "#0a0f0a";
-const SURFACE = "#0f170f";
-const BORDER = "#1a2b1a";
-const ACCENT = "#4ade80";
-const TEXT = "#e5e7eb";
-const MUTED = "#9ca3af";
-const DIM = "#6b7280";
-
-const GENRE_COLORS: Record<string, string> = {
-  Metal: "#ef4444",
-  Rock: "#f97316",
-  Pop: "#eab308",
-  Electronic: "#22d3ee",
-  "Hip Hop": "#a855f7",
-  Jazz: "#f59e0b",
-  Classical: "#d4d4d8",
-  Folk: "#a3e635",
-  Country: "#fb923c",
-  "R&B": "#ec4899",
-  Blues: "#3b82f6",
-  Reggae: "#10b981",
-  Latin: "#f43f5e",
-  World: "#14b8a6",
-  Soundtrack: "#8b5cf6",
-  "New Age": "#67e8f9",
-  Punk: "#dc2626",
-  "Singer-Songwriter": "#fbbf24",
-};
-
-const MOOD_COLORS: Record<string, string> = {
-  Energetic: "#f97316",
-  Melancholic: "#6366f1",
-  Chill: "#22d3ee",
-  Happy: "#facc15",
-  Aggressive: "#ef4444",
-  Atmospheric: "#8b5cf6",
-  Nostalgic: "#f59e0b",
-  Dark: "#6b7280",
-};
-
-const FONT_FACE_CSS = `
-@font-face {
-	font-family: 'Inter';
-	src: url(data:font/woff2;base64,${INTER_WOFF2}) format('woff2');
-	font-weight: 100 900;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'JetBrains Mono';
-	src: url(data:font/woff2;base64,${JETBRAINS_MONO_WOFF2}) format('woff2');
-	font-weight: 400;
-	font-style: normal;
-}
-`.trim();
-
-/**
- * Look a colour up by an untrusted key.
- *
- * Plain bracket access would walk the prototype chain, so a genre or mood
- * literally named `constructor` would yield a function that then lands
- * unescaped inside a `fill="…"` attribute of the `{@html}`-injected SVG.
- */
-function colourFor(map: Record<string, string>, key: unknown): string {
-  return typeof key === "string" && Object.hasOwn(map, key) ? map[key] : ACCENT;
 }
 
 export function renderPersonalitySvg(card: PersonalityCardData): string {
@@ -292,20 +239,4 @@ export function renderPersonalitySvg(card: PersonalityCardData): string {
 	<text x="${PAD}" y="${footerY}" font-family="'JetBrains Mono', monospace" font-size="11" fill="${DIM}">tourmaline</text>
 	<text x="${WIDTH - PAD}" y="${footerY}" font-family="Inter, sans-serif" font-size="11" fill="${DIM}" text-anchor="end">croft.click</text>
 </svg>`;
-}
-
-/**
- * Escape a value for SVG text content.
- *
- * The rendered string is injected with `{@html}` on /share, and the card data
- * is rehydrated from sessionStorage (i.e. it is not guaranteed to match
- * `PersonalityCardData`), so non-strings must be coerced rather than assumed.
- */
-function esc(s: unknown): string {
-  return String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
 }
