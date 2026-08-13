@@ -24,6 +24,7 @@
 	import ServiceOrigins from './ServiceOrigins.svelte';
 	import MinutesListened from './MinutesListened.svelte';
 	import MusicEvolution from './MusicEvolution.svelte';
+	import CumulativeItemsChart from './CumulativeItemsChart.svelte';
 	import RemarkableDays from './RemarkableDays.svelte';
 	import Discovery from './Discovery.svelte';
 	import Milestones from './Milestones.svelte';
@@ -418,6 +419,19 @@
 			{#if profile.monthlyGenres.length >= 3}
 				<div class="mb-6 sm:mb-8">
 					<MusicEvolution monthlyGenres={profile.monthlyGenres} />
+				</div>
+			{/if}
+
+			{#if profile.monthlyArtistPlays.length >= 3 && profile.topArtists.length > 0}
+				<div class="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
+					<h2 class="mb-1 text-base font-semibold sm:text-lg">Cumulative Top Artists</h2>
+					<p class="mb-3 text-xs text-[var(--text-dim)]">
+						Running scrobble totals for your top 10 artists, month over month
+					</p>
+					<CumulativeItemsChart
+						monthlyArtistPlays={profile.monthlyArtistPlays}
+						topArtists={profile.topArtists}
+					/>
 				</div>
 			{/if}
 
