@@ -38,6 +38,7 @@ import { topGaps } from "$lib/analysis/gaps";
 import { topByAvgDate } from "$lib/analysis/average-listen-date";
 import { buildRankHistory, biggestMovers } from "$lib/analysis/rank-history";
 import { mostNewArtistsMonth, mostListenedNewArtistInMonth } from "$lib/analysis/new-artists";
+import { buildEveryYearArtists } from "$lib/analysis/every-year";
 
 export type RangeKey = "all" | "7d" | "30d" | "90d" | "365d";
 export const RANGES: RangeKey[] = ["all", "7d", "30d", "90d", "365d"];
@@ -166,6 +167,14 @@ export function computeProfile(
   const mostNewArtistsInAMonth = mostNewArtistsMonth(data.artistFirstListen);
   const mostListenedNewArtist = mostListenedNewArtistInMonth(data.artistFirstListen, data.monthlyArtistPlays);
 
+  const everyYear = buildEveryYearArtists(data.monthlyArtistPlays);
+  const toRanked = (names: string[]) =>
+    names
+      .map((name) => ({ name, count: data.artistPlayCounts.get(name) ?? 0 }))
+      .sort((a, b) => b.count - a.count);
+  const everyYearArtists = toRanked(everyYear.everyYear);
+  const everyCompletedYearArtists = toRanked(everyYear.everyCompletedYear);
+
   const profile: ListenerProfile = {
     did,
     handle,
@@ -220,6 +229,8 @@ export function computeProfile(
     biggestFallers,
     mostNewArtistsInAMonth,
     mostListenedNewArtist,
+    everyYearArtists,
+    everyCompletedYearArtists,
     scrobbleMilestones: data.scrobbleMilestones,
     artistMilestones: data.artistMilestones,
     trackMilestones: data.trackMilestones,
