@@ -34,6 +34,7 @@ import { filterScrobbles, presetRange } from "$lib/analysis/date-range";
 import { topZScorePerMonth } from "$lib/analysis/zscore";
 import { buildRecommendations } from "$lib/analysis/recommendations";
 import { buildAnniversaries } from "$lib/analysis/anniversaries";
+import { topGaps } from "$lib/analysis/gaps";
 
 export type RangeKey = "all" | "7d" | "30d" | "90d" | "365d";
 export const RANGES: RangeKey[] = ["all", "7d", "30d", "90d", "365d"];
@@ -123,6 +124,19 @@ export function computeProfile(
     .sort((a, b) => b.weeksActive - a.weeksActive)
     .slice(0, 10);
 
+  const topArtistGaps = topGaps(data.artistTimestamps, data.artistPlayCounts, 5, 10).map((g) => ({
+    name: g.key,
+    gapDays: g.gapDays,
+    count: g.count,
+  }));
+
+  const topTrackGaps = topGaps(data.trackTimestamps, data.trackPlayCounts, 5, 10).map((g) => {
+    const sepIdx = g.key.indexOf("|||");
+    const name = sepIdx >= 0 ? g.key.slice(0, sepIdx) : g.key;
+    const artist = sepIdx >= 0 ? g.key.slice(sepIdx + 3).split(",")[0] : "";
+    return { name, artist, gapDays: g.gapDays, count: g.count };
+  });
+
   const profile: ListenerProfile = {
     did,
     handle,
@@ -167,6 +181,8 @@ export function computeProfile(
       .sort((a, b) => a.week.localeCompare(b.week)),
     topArtistAvgDeltas,
     topArtistsByWeeksActive,
+    topArtistGaps,
+    topTrackGaps,
     scrobbleMilestones: data.scrobbleMilestones,
     artistMilestones: data.artistMilestones,
     trackMilestones: data.trackMilestones,
