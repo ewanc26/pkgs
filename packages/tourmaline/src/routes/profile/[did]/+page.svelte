@@ -36,6 +36,7 @@
 	import ListeningCadence from './ListeningCadence.svelte';
 	import BiggestGaps from './BiggestGaps.svelte';
 	import CatalogueDepth from './CatalogueDepth.svelte';
+	import TopPeriods from './TopPeriods.svelte';
 	import DateRangePicker from './DateRangePicker.svelte';
 	import ListeningPhases from './ListeningPhases.svelte';
 	import StoryRecap from './StoryRecap.svelte';
@@ -502,6 +503,8 @@
 					<ListeningSessions stats={sessionStats} />
 				</div>
 			{/if}
+
+			<TopPeriods dailyScrobbles={profile.dailyScrobbles} weeklyScrobbles={profile.weeklyScrobbles} />
 
 		<!-- ── Catalogue tab ─────────────────────────────── -->
 		{:else if activeTab === 'catalogue'}
