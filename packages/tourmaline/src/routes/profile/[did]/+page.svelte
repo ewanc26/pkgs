@@ -322,7 +322,7 @@
 			{#key dateRange}
 				{#if storyRecap_}
 					<div class="mb-6 sm:mb-8">
-						<StoryRecap recap={storyRecap_} />
+						<StoryRecap recap={storyRecap_} displayName={bskyDisplayName ?? handle ?? did} />
 					</div>
 				{/if}
 			{/key}

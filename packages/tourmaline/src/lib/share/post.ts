@@ -14,6 +14,8 @@ import type { ReceiptCardData } from "./receipt-svg";
 import { renderReceiptSvg } from "./receipt-svg";
 import type { FestivalCardData } from "./festival-svg";
 import { renderFestivalSvg } from "./festival-svg";
+import type { StoryCardData } from "./story-svg";
+import { renderStorySvg } from "./story-svg";
 import { svgToPng } from "./svg-to-png";
 
 export interface ShareResult {
@@ -174,6 +176,25 @@ export async function shareFestival(agent: Agent, card: FestivalCardData): Promi
     svg,
     alt,
     postText: `My listening lineup (${card.rangeLabel ?? "all time"}) 🎪\n\nvia tourmaline by @ewancroft.uk`,
+    toolkitExtra: {},
+  });
+}
+
+export async function shareStory(agent: Agent, card: StoryCardData): Promise<ShareResult> {
+  const svg = renderStorySvg(card);
+
+  const alt = [
+    `${card.label} recap card ${card.cardIndex}/${card.cardTotal} for ${card.displayName ?? "this listener"}: ${card.heading}.`,
+    card.body,
+    card.stat ? `${card.statLabel ?? "Stat"}: ${card.stat}.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return postCardImage(agent, {
+    svg,
+    alt,
+    postText: `${card.heading}\n\nfrom my ${card.label} recap on tourmaline by @ewancroft.uk`,
     toolkitExtra: {},
   });
 }

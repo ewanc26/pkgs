@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+	import { ChevronLeft, ChevronRight, Share2 } from '@lucide/svelte';
 	import type { StoryRecap } from '$lib/analysis/story-recap';
+	import { writeShareEnvelope } from '$lib/share/registry';
 
-	let { recap }: { recap: StoryRecap } = $props();
+	let { recap, displayName }: { recap: StoryRecap; displayName?: string } = $props();
 
 	let current = $state(0);
 	let revealed = $state(false);
@@ -25,6 +26,20 @@
 
 	function goTo(index: number) {
 		current = index;
+	}
+
+	function share() {
+		writeShareEnvelope('story', {
+			displayName,
+			label: recap.label,
+			heading: card.heading,
+			body: card.body,
+			stat: card.stat,
+			statLabel: card.statLabel,
+			cardIndex: current + 1,
+			cardTotal: total
+		});
+		window.location.href = '/share';
 	}
 
 	function resetAutoAdvance() {
@@ -120,20 +135,32 @@
 		{/if}
 	</div>
 
-	<!-- Dots -->
-	{#if total > 1}
-		<div class="flex items-center justify-center gap-1.5 border-t border-[var(--border)] px-4 py-3">
-			{#each recap.cards as _, i (i)}
-				<button
-					class="h-1.5 rounded-full transition-all {i === current
-						? 'w-4 bg-[var(--accent)]'
-						: 'w-1.5 bg-[var(--text-dim)] hover:bg-[var(--text-muted)]'}"
-					onclick={() => { goTo(i); resetAutoAdvance(); }}
-					aria-label="Go to card {i + 1}"
-				></button>
-			{/each}
-		</div>
-	{/if}
+	<!-- Dots + share -->
+	<div class="flex items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3">
+		{#if total > 1}
+			<div class="flex flex-1 items-center justify-center gap-1.5">
+				{#each recap.cards as _, i (i)}
+					<button
+						class="h-1.5 rounded-full transition-all {i === current
+							? 'w-4 bg-[var(--accent)]'
+							: 'w-1.5 bg-[var(--text-dim)] hover:bg-[var(--text-muted)]'}"
+						onclick={() => { goTo(i); resetAutoAdvance(); }}
+						aria-label="Go to card {i + 1}"
+					></button>
+				{/each}
+			</div>
+		{:else}
+			<div class="flex-1"></div>
+		{/if}
+		<button
+			onclick={share}
+			class="flex shrink-0 items-center gap-1.5 rounded border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+			aria-label="Share this card"
+		>
+			<Share2 size={12} />
+			Share
+		</button>
+	</div>
 </div>
 
 <style>
