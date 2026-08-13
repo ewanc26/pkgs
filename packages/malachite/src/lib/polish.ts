@@ -114,6 +114,22 @@ export async function migrateLegacyRecords(
     log.section('Backfilling Production Records');
   }
 
+  // cli-progress renders nothing meaningful when stdout isn't a TTY (CI,
+  // piped/redirected output, --non-interactive runs) — fall back to explicit,
+  // throttled log lines so progress is actually visible in that context.
+  const isTTY = Boolean(process.stdout.isTTY);
+  let lastLogAt = 0;
+  const logProgressLine = (phase: 'backfill' | 'delete', done: number, total: number) => {
+    if (isTTY || total === 0) return;
+    const now = Date.now();
+    if (done < total && now - lastLogAt < 5000) return; // throttle to ~5s; always emit the final line
+    lastLogAt = now;
+    const pct = ((done / total) * 100).toFixed(1);
+    const elapsed = ((now - start) / 1000).toFixed(0);
+    const label = phase === 'backfill' ? 'Backfilling' : 'Removing legacy';
+    log.info(`${label}: ${done.toLocaleString()}/${total.toLocaleString()} (${pct}%) — ${elapsed}s elapsed`);
+  };
+
   const result = await coreMigrate(agent, plan, {
     dryRun,
     onProgress: (phase, done, total) => {
@@ -126,6 +142,7 @@ export async function migrateLegacyRecords(
         }
         bars.delete.update(done, {});
       }
+      logProgressLine(phase, done, total);
     },
   });
 

@@ -223,7 +223,7 @@ export async function migrateLegacyRecords(
         try {
           const respHeaders = (response as any)?.headers as Record<string, string> | undefined;
           if (respHeaders && Object.keys(respHeaders).length > 0) {
-            rl.updateFromHeaders(normalizeHeaders(respHeaders));
+            rl.updateFromHeaders(normalizeHeaders(respHeaders), batch.length);
           }
         } catch {
           // ignore header parse errors
@@ -260,9 +260,15 @@ export async function migrateLegacyRecords(
 
       if (i + MAX_WRITES_PER_BATCH < plan.toBackfill.length) {
         const cap = rl.getServerCapacity();
-        if (cap) {
+        if (cap && rl.hasObservedPointsPerRecord()) {
           const actualQuota = rl.getActualRemaining();
-          const pacing = pacer.calculateDelay(batch.length, cap.limit, cap.windowSeconds, actualQuota);
+          const pacing = pacer.calculateDelay(
+            batch.length,
+            cap.limit,
+            cap.windowSeconds,
+            actualQuota,
+            rl.getPointsPerRecord(POINTS_PER_RECORD)
+          );
           await sleep(pacing.delayMs, signal);
         }
       }
@@ -322,7 +328,7 @@ export async function migrateLegacyRecords(
         try {
           const respHeaders = (response as any)?.headers as Record<string, string> | undefined;
           if (respHeaders && Object.keys(respHeaders).length > 0) {
-            rl.updateFromHeaders(normalizeHeaders(respHeaders));
+            rl.updateFromHeaders(normalizeHeaders(respHeaders), batch.length);
           }
         } catch {
           // ignore header parse errors
@@ -355,9 +361,15 @@ export async function migrateLegacyRecords(
 
       if (i + MAX_WRITES_PER_BATCH < toDelete.length) {
         const cap = rl.getServerCapacity();
-        if (cap) {
+        if (cap && rl.hasObservedPointsPerRecord()) {
           const actualQuota = rl.getActualRemaining();
-          const pacing = pacer.calculateDelay(batch.length, cap.limit, cap.windowSeconds, actualQuota);
+          const pacing = pacer.calculateDelay(
+            batch.length,
+            cap.limit,
+            cap.windowSeconds,
+            actualQuota,
+            rl.getPointsPerRecord(POINTS_PER_RECORD)
+          );
           await sleep(pacing.delayMs, signal);
         }
       }

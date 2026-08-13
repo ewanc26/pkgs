@@ -16,11 +16,32 @@ export class RateLimiter {
   private state: State | null = null;
   private readonly headroom: number;
 
+  /**
+   * Empirically observed points consumed per record, derived from successive
+   * quota readings rather than assumed. The server reports whichever bucket
+   * is currently tightest (e.g. a broad per-IP request cap vs. a write-specific
+   * points budget) under the same generic header names, with no way to tell
+   * which one it is from the headers alone. A hardcoded "points per record"
+   * constant is only correct when the reported bucket happens to be the
+   * write-specific one; against a request-counted bucket it wildly
+   * overestimates cost per record. Tracking the observed delta instead
+   * self-corrects regardless of which bucket is being reported.
+   */
+  private observedPointsPerRecord: number | null = null;
+  private lastRemaining: number | null = null;
+  private lastResetAt: number | null = null;
+
   constructor(opts?: { headroom?: number }) {
     this.headroom = opts?.headroom ?? 0.15;
   }
 
-  updateFromHeaders(headers: Record<string, string>): void {
+  /**
+   * @param batchSize Number of records the just-completed request covered.
+   *   Pass this to let the limiter learn the real points-per-record cost of
+   *   whichever bucket the server is reporting; omit for reads/other calls
+   *   that shouldn't feed the estimate.
+   */
+  updateFromHeaders(headers: Record<string, string>, batchSize?: number): void {
     const h = normalizeHeaders(headers);
     const get = (k: string) => h[k] ?? h[`x-${k}`] ?? '';
 
@@ -36,12 +57,56 @@ export class RateLimiter {
     if (m) windowSeconds = parseInt(m[1], 10);
 
     const now = Math.floor(Date.now() / 1000);
-    this.state = {
-      limit,
-      remaining,
-      resetAt: isNaN(reset) ? now + windowSeconds : reset,
-      windowSeconds,
-    };
+    const resetAt = isNaN(reset) ? now + windowSeconds : reset;
+
+    // Only learn from this reading if it's a same-window continuation of the
+    // previous one — a window reset (or first-ever reading) makes the delta
+    // meaningless, and a jump to a differently-shaped bucket (different
+    // limit/window) resets our sample rather than corrupting the average.
+    if (
+      batchSize &&
+      batchSize > 0 &&
+      this.state &&
+      this.state.limit === limit &&
+      this.state.windowSeconds === windowSeconds &&
+      this.lastRemaining !== null &&
+      this.lastResetAt === resetAt
+    ) {
+      const consumed = this.lastRemaining - remaining;
+      if (consumed > 0) {
+        const observed = consumed / batchSize;
+        this.observedPointsPerRecord =
+          this.observedPointsPerRecord === null
+            ? observed
+            : this.observedPointsPerRecord * 0.5 + observed * 0.5;
+      }
+    }
+
+    this.lastRemaining = remaining;
+    this.lastResetAt = resetAt;
+    this.state = { limit, remaining, resetAt, windowSeconds };
+  }
+
+  /**
+   * Points-per-record cost to use for pacing math: the empirically observed
+   * value once we have one, otherwise the caller's assumed default.
+   */
+  getPointsPerRecord(fallback: number): number {
+    return this.observedPointsPerRecord ?? fallback;
+  }
+
+  /**
+   * Whether an empirical points-per-record estimate exists yet. Before the
+   * first same-window reading pair, any capacity/window the server reports
+   * could belong to a bucket with completely different per-request cost
+   * semantics than the caller's assumed default — proactively pacing against
+   * it is as likely to be needlessly conservative as it is accurate. Callers
+   * should skip proactive delay until this is true and rely on the reactive
+   * 429 path (`handleRateLimitHit` + `waitForPermit`) in the meantime, which
+   * is safe regardless of which bucket is actually being reported.
+   */
+  hasObservedPointsPerRecord(): boolean {
+    return this.observedPointsPerRecord !== null;
   }
 
   getActualRemaining(): number {
