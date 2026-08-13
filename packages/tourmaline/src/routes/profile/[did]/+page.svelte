@@ -35,6 +35,7 @@
 	import WeeksActive from './WeeksActive.svelte';
 	import ListeningCadence from './ListeningCadence.svelte';
 	import BiggestGaps from './BiggestGaps.svelte';
+	import CatalogueDepth from './CatalogueDepth.svelte';
 	import DateRangePicker from './DateRangePicker.svelte';
 	import ListeningPhases from './ListeningPhases.svelte';
 	import StoryRecap from './StoryRecap.svelte';
@@ -535,6 +536,7 @@
 			<WeeksActive artists={profile.topArtistsByWeeksActive} />
 			<ListeningCadence artists={profile.topArtistAvgDeltas} />
 			<BiggestGaps artistGaps={profile.topArtistGaps} trackGaps={profile.topTrackGaps} />
+			<CatalogueDepth artists={profile.topArtistsByTrackCount} />
 
 			<!-- Top tracks + albums side by side -->
 			<div class="mb-6 grid gap-4 sm:mb-8 sm:gap-8 lg:grid-cols-2">

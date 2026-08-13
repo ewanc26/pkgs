@@ -6,6 +6,7 @@
     import WeeksActive from './WeeksActive.svelte';
     import ListeningCadence from './ListeningCadence.svelte';
     import BiggestGaps from './BiggestGaps.svelte';
+    import CatalogueDepth from './CatalogueDepth.svelte';
     import type { ListenerProfile } from '$lib/types';
     import type { OnThisDayEntry } from '$lib/analysis/on-this-day';
 
@@ -84,6 +85,7 @@
 <WeeksActive artists={profile.topArtistsByWeeksActive} />
 <ListeningCadence artists={profile.topArtistAvgDeltas} />
 <BiggestGaps artistGaps={profile.topArtistGaps} trackGaps={profile.topTrackGaps} />
+<CatalogueDepth artists={profile.topArtistsByTrackCount} />
 
 {#if profile.discoveredArtists.length > 0 || profile.discoveredTracks.length > 0 || profile.discoveredAlbums.length > 0}
     <div class="mb-6 sm:mb-8">

@@ -34,6 +34,8 @@ export interface AggregatedData {
   trackTimestamps: Map<string, number[]>;
   /** artist → count of distinct ISO weeks played in. */
   artistWeeksActive: Map<string, number>;
+  /** artist → count of distinct tracks played. */
+  artistTrackCounts: Map<string, number>;
   // ── Derived stats computed in snapshot() ──────────────────────────────
   eddingtonNumber: number;
   /** How many more days at eddingtonNumber+1 scrobbles are needed to advance. */
@@ -438,6 +440,9 @@ export class Aggregator {
       trackTimestamps: this.trackTimestamps,
       artistWeeksActive: new Map(
         [...this.artistWeeks.entries()].map(([name, weeks]) => [name, weeks.size]),
+      ),
+      artistTrackCounts: new Map(
+        [...this.artistTracks.entries()].map(([name, tracks]) => [name, tracks.size]),
       ),
       eddingtonNumber,
       daysToNextEddington: daysToNextEddingtonNumber,
