@@ -48,8 +48,8 @@ export function convertYouTubeMusicToPlayRecord(r: YouTubeMusicRecord, clientAge
     artists,
     playedTime: r.time,
     submissionClientAgent: clientAgent,
-    musicServiceBaseDomain: 'music.youtube.com',
-    originUrl: r.titleUrl || '',
+    musicServiceUri: 'https://music.youtube.com/',
+    ...(r.titleUrl ? { originUri: r.titleUrl } : {}),
   };
 
   return record;

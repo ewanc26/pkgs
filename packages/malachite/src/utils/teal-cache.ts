@@ -5,7 +5,7 @@ import { getMalachiteCacheDir } from './platform.js';
 /**
  * Cache configuration
  */
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const CACHE_TTL_HOURS = 24; // Cache validity period
 
 /**

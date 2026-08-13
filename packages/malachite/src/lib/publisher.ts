@@ -440,8 +440,8 @@ function handleDryRun(
       log.raw(`   Album: ${record.releaseName}`);
     }
     log.raw(`   Played: ${formatDate(record.playedTime, true)}`);
-    log.raw(`   Source: ${record.musicServiceBaseDomain}`);
-    log.raw(`   URL: ${record.originUrl}`);
+    log.raw(`   Source: ${record.musicServiceUri}`);
+    log.raw(`   URL: ${record.originUri ?? '(none)'}`);
     
     const mbids: string[] = [];
     if (record.artists[0]?.artistMbId) mbids.push(`Artist: ${record.artists[0].artistMbId}`);

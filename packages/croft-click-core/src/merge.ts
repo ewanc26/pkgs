@@ -58,13 +58,12 @@ function betterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayRecord {
 
 /** Recover which source a merged record came from, for re-comparison during dedup. */
 function sourceOf(r: PlayRecord): Source {
-  switch (r.musicServiceBaseDomain) {
-    case 'last.fm': return 'lastfm';
-    case 'music.apple.com': return 'apple';
-    case 'music.youtube.com': return 'youtube';
-    case 'listenbrainz.org': return 'listenbrainz';
-    default: return 'spotify';
-  }
+  const service = r.musicServiceUri.toLowerCase();
+  if (service.includes('last.fm')) return 'lastfm';
+  if (service.includes('music.apple.com')) return 'apple';
+  if (service.includes('music.youtube.com')) return 'youtube';
+  if (service.includes('listenbrainz.org')) return 'listenbrainz';
+  return 'spotify';
 }
 
 // ─── public API ───────────────────────────────────────────────────────────────

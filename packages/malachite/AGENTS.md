@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Purpose
-`@ewanc26/malachite` is a CLI tool and library for importing listening history from Last.fm (CSV), Spotify (JSON), and YouTube Music (Google Takeout) into AT Protocol as `fm.teal.alpha.feed.play` records. It handles OAuth authentication, deduplication via CAR-based record fetching, and rate limiting.
+`@ewanc26/malachite` is a CLI tool and library for importing listening history from Last.fm (CSV), Spotify (JSON), and YouTube Music (Google Takeout) into AT Protocol as `fm.teal.feed.play` records. It handles OAuth authentication, deduplication via CAR-based record fetching, and rate limiting.
 
 ## Architectural Concepts
 - **Dual Interface**: Ships both a CLI (`bin: malachite`) and a library entry point (`./core`) for use by other packages (e.g. `malachite-web`, `jasper`).

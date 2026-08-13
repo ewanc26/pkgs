@@ -143,8 +143,7 @@ export function convertToPlayRecord(csv: LastFmCsvRecord, clientAgent: string): 
     artists,
     playedTime,
     submissionClientAgent: clientAgent,
-    musicServiceBaseDomain: 'last.fm',
-    originUrl: '',
+    musicServiceUri: 'https://www.last.fm/',
   };
 
   if (csv.album?.trim()) record.releaseName = csv.album;
@@ -155,7 +154,7 @@ export function convertToPlayRecord(csv: LastFmCsvRecord, clientAgent: string): 
 
   const aEnc = encodeURIComponent(csv.artist);
   const tEnc = encodeURIComponent(csv.track);
-  record.originUrl = `https://www.last.fm/music/${aEnc}/_/${tEnc}`;
+  record.originUri = `https://www.last.fm/music/${aEnc}/_/${tEnc}`;
 
   return record;
 }

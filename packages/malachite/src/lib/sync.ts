@@ -5,6 +5,7 @@ import { formatDate, formatDateRange } from '../utils/helpers.js';
 import * as ui from '../utils/ui.js';
 import { log } from '../utils/logger.js';
 import { isCacheValid, loadCache, saveCache, getCacheInfo } from '../utils/teal-cache.js';
+import { RECORD_TYPES } from '../config.js';
 
 interface ExistingRecord {
   uri: string;
@@ -17,18 +18,33 @@ interface DuplicateGroup {
   records: ExistingRecord[];
 }
 
+async function fetchPlayRecords(
+  pdsUrl: string,
+  did: string,
+  token: string | undefined,
+) {
+  const collections = await Promise.all(
+    RECORD_TYPES.map((collection) => fetchRepoViaCAR(pdsUrl, did, collection, undefined, token)),
+  );
+  return collections.flat();
+}
+
+function collectionFromUri(uri: string): string {
+  return uri.split('/').slice(3, -1).join('/');
+}
+
 /**
- * Fetch all existing play records from Teal via a single CAR export.
- * Uses com.atproto.sync.getRepo (sync namespace) — separate, generous
- * rate-limit envelope; burns zero AppView write-quota points.
+ * Fetch all existing play records from Teal via CAR exports for both
+ * production and legacy collections. Uses com.atproto.sync.getRepo (sync
+ * namespace) — separate, generous rate-limit envelope; burns zero AppView
+ * write-quota points.
  */
 export async function fetchExistingRecords(
   agent: AtpAgent,
-  config: Config,
+  _config: Config,
   forceRefresh: boolean = false
 ): Promise<Map<string, ExistingRecord>> {
   log.section('Checking Existing Records');
-  const { RECORD_TYPE } = config;
   const did = agent.session?.did;
 
   if (!did) {
@@ -61,7 +77,7 @@ export async function fetchExistingRecords(
   const pdsUrl = getPdsUrlFromAgent(agent);
   const token = await getAgentToken(agent);
   const carStart = Date.now();
-  const carRecords = await fetchRepoViaCAR(pdsUrl, did, RECORD_TYPE, undefined, token);
+  const carRecords = await fetchPlayRecords(pdsUrl, did, token);
   const carElapsed = ((Date.now() - carStart) / 1000).toFixed(1);
 
   const existingRecords = new Map<string, ExistingRecord>();
@@ -81,14 +97,13 @@ export async function fetchExistingRecords(
 }
 
 /**
- * Fetch ALL existing play records as an array (including duplicates) via CAR export.
+ * Fetch ALL existing play records as an array (including duplicates) via CAR exports.
  * Used by the deduplicate flow.
  */
 export async function fetchAllRecords(
   agent: AtpAgent,
-  config: Config
+  _config: Config
 ): Promise<ExistingRecord[]> {
-  const { RECORD_TYPE } = config;
   const did = agent.session?.did;
 
   if (!did) {
@@ -99,7 +114,7 @@ export async function fetchAllRecords(
 
   const pdsUrl = getPdsUrlFromAgent(agent);
   const token = await getAgentToken(agent);
-  const carRecords = await fetchRepoViaCAR(pdsUrl, did, RECORD_TYPE, undefined, token);
+  const carRecords = await fetchPlayRecords(pdsUrl, did, token);
   const allRecords: ExistingRecord[] = carRecords.map((rec) => ({
     uri: rec.uri,
     cid: rec.cid,
@@ -310,7 +325,7 @@ export async function removeDuplicates(
       try {
         await agent.com.atproto.repo.deleteRecord({
           repo: agent.session?.did || '',
-          collection: record.value.$type,
+          collection: collectionFromUri(record.uri),
           rkey: record.uri.split('/').pop()!,
         });
         recordsRemoved++;
