@@ -1,7 +1,7 @@
 import type { ListeningPhase } from "$lib/analysis/phases";
 import type { Recommendation } from "$lib/analysis/recommendations";
 import type { AnniversaryGroups } from "$lib/analysis/anniversaries";
-import type { RankMover } from "$lib/analysis/rank-history";
+import type { RankMover, RankSnapshot } from "$lib/analysis/rank-history";
 import type { NewArtistMonthStat, MostListenedNewArtist } from "$lib/analysis/new-artists";
 
 export interface TealScrobble {
@@ -173,6 +173,10 @@ export interface ListenerProfile {
   tracksWithoutAlbumPercentage: number;
   scrobblesWithoutAlbumCount: number;
   scrobblesWithoutAlbumPercentage: number;
+  /** YYYY-MM -> (artist name -> play count that month), as entries for serialisability. For cumulative/race-style charts. */
+  monthlyArtistPlays: Array<[string, Array<[string, number]>]>;
+  /** Full per-artist rank-by-month history (not just the top movers) — for a per-artist rank-over-time chart. */
+  artistRankHistory: Array<[string, RankSnapshot[]]>;
 }
 
 export interface UnusualMonth {
