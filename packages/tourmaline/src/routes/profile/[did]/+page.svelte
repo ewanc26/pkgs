@@ -53,6 +53,7 @@
 	import PunchcardHeatmap from './PunchcardHeatmap.svelte';
 	import Dataset from './Dataset.svelte';
 	import EddingtonChart from './EddingtonChart.svelte';
+	import RaceChart from './RaceChart.svelte';
 	import Recommendations from './Recommendations.svelte';
 	import TrackPreview from '$lib/components/TrackPreview.svelte';
 	import ListeningContext from './ListeningContext.svelte';
@@ -536,6 +537,11 @@
 				topArtistsByWeeksActive={profile.topArtistsByWeeksActive}
 				monthlyArtistPlays={profile.monthlyArtistPlays}
 			/>
+
+			<!-- Top artists race -->
+			<div class="mb-6 sm:mb-8">
+				<RaceChart monthlyArtistPlays={profile.monthlyArtistPlays} />
+			</div>
 
 			<!-- Top artists -->
 			<div class="mb-6 overflow-hidden rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">

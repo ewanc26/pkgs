@@ -248,9 +248,9 @@ export function computeProfile(
     tracksWithoutAlbumPercentage: data.tracksWithoutAlbumPercentage,
     scrobblesWithoutAlbumCount: data.scrobblesWithoutAlbumCount,
     scrobblesWithoutAlbumPercentage: data.scrobblesWithoutAlbumPercentage,
-    monthlyArtistPlays: [...data.monthlyArtistPlays.entries()].map(
-      ([month, artists]) => [month, [...artists.entries()]] as [string, Array<[string, number]>],
-    ),
+    monthlyArtistPlays: [...data.monthlyArtistPlays.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, artists]) => [month, [...artists.entries()]] as [string, Array<[string, number]>]),
     artistRankHistory: [...rankHistory.entries()],
   };
 
