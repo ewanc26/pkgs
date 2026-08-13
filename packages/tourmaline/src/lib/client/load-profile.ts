@@ -172,6 +172,12 @@ export function computeProfile(
     longestNotListenedGap: data.longestNotListenedGap,
     recommendations: buildRecommendations(data.topArtists, data.allArtists, artistInfos),
     anniversaries: buildAnniversaries(data),
+    daysScrobbled: data.daysScrobbled,
+    daysScrobbledPercentage: data.daysScrobbledPercentage,
+    oneHitWondersCount: data.oneHitWondersCount,
+    oneHitWondersPercentage: data.oneHitWondersPercentage,
+    mostPopularYear: data.mostPopularYear,
+    mostPopularMonth: data.mostPopularMonth,
   };
 
   const sessions = deriveSessions(filtered);

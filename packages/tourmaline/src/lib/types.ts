@@ -141,6 +141,12 @@ export interface ListenerProfile {
   longestNotListenedGap: Gap | null;
   recommendations: Recommendation[];
   anniversaries: AnniversaryGroups;
+  daysScrobbled: number;
+  daysScrobbledPercentage: number;
+  oneHitWondersCount: number;
+  oneHitWondersPercentage: number;
+  mostPopularYear: { year: string; count: number };
+  mostPopularMonth: { month: string; count: number };
 }
 
 export interface UnusualMonth {
