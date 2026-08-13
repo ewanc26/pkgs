@@ -1,5 +1,6 @@
 import type { ListeningPhase } from "$lib/analysis/phases";
 import type { Recommendation } from "$lib/analysis/recommendations";
+import type { TagsProfile } from "$lib/analysis/tags-breakdown";
 
 export interface TealScrobble {
   trackName: string;
@@ -141,6 +142,8 @@ export interface ListenerProfile {
   albumMilestones: Milestone[];
   longestNotListenedGap: Gap | null;
   recommendations: Recommendation[];
+  /** Raw genre/tag strings (not normalised into top-level categories, unlike `genres`) ranked by scrobble count and by distinct-artist count. */
+  tagsBreakdown: TagsProfile;
 }
 
 export interface UnusualMonth {

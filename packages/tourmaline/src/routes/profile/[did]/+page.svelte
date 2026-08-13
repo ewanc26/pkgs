@@ -13,6 +13,7 @@
 		type ProfileResults
 	} from '$lib/client/load-profile';
 	import GenreChart from './GenreChart.svelte';
+	import TagsChart from './TagsChart.svelte';
 	import TimelineHeatmap from './TimelineHeatmap.svelte';
 	import TimelineChart from '$lib/components/TimelineChart.svelte';
 	import TopArtistsChart from '$lib/components/TopArtistsChart.svelte';
@@ -396,6 +397,8 @@
 					</div>
 				{/if}
 			</div>
+
+			<TagsChart tags={profile.tagsBreakdown} />
 
 			{#if profile.era.length > 0}
 				<div class="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
