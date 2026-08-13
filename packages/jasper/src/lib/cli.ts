@@ -3,7 +3,7 @@
  */
 import { parseArgs } from "node:util";
 import chalk from "chalk";
-import { VERSION } from "../core/config.js";
+import { VERSION } from "../core/version.js";
 import type { CommandLineArgs, ImportOptions } from "../core/types.js";
 import { LogLevel } from "../utils/logger.js";
 
