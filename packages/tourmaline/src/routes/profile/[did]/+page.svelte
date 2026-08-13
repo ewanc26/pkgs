@@ -481,6 +481,8 @@
 					<EddingtonChart
 						dailyScrobbles={profile.dailyScrobbles}
 						eddingtonNumber={profile.eddingtonNumber}
+						daysToNextEddington={profile.daysToNextEddington}
+						artistCutoverPoint={profile.artistCutoverPoint}
 					/>
 				</div>
 			{/if}
