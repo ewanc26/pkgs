@@ -13,7 +13,8 @@
 
 <div class="pds-prompt-line">
 	<span class="pds-user-marker">{user}@{host}</span><span class="pds-prompt-path">:{path}</span
-	><span class="pds-prompt-char" aria-hidden="true"> $</span>
+	><span class="pds-prompt-char" aria-hidden="true"> $</span
+	><span class="pds-prompt-cursor" aria-hidden="true"></span>
 </div>
 
 <style>
@@ -44,5 +45,26 @@
 		font-weight: 700;
 		font-size: clamp(0.95em, 4vw, 1.15em);
 		user-select: none;
+	}
+
+	.pds-prompt-cursor {
+		display: inline-block;
+		width: 0.55em;
+		height: 1em;
+		margin-left: 0.35em;
+		background: var(--pds-color-green);
+		animation: pds-cursor-blink 1.1s step-end infinite;
+		user-select: none;
+	}
+
+	@keyframes pds-cursor-blink {
+		0%,
+		49% {
+			opacity: 1;
+		}
+		50%,
+		100% {
+			opacity: 0;
+		}
 	}
 </style>

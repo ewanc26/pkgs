@@ -59,9 +59,26 @@ body {
 }
 
 body {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: clamp(1.5rem, 6vw, 4rem) clamp(1rem, 4vw, 1.5rem) clamp(1.5rem, 6vw, 3rem);
   gap: 2rem;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 0%, color-mix(in srgb, var(--pds-color-green) 8%, transparent), transparent 70%),
+    radial-gradient(ellipse 50% 35% at 100% 100%, color-mix(in srgb, var(--pds-color-green) 4%, transparent), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }

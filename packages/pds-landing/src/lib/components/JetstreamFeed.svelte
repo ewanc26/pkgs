@@ -844,6 +844,7 @@
 
 	.pds-jetstream-status.connected .pds-jetstream-dot {
 		animation: pds-jetstream-blink 2s ease-in-out infinite;
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--pds-color-green) 25%, transparent);
 	}
 
 	.pds-jetstream-status.disconnected {
