@@ -30,6 +30,8 @@ export interface AggregatedData {
   weeklyScrobbles: Map<string, number>;
   /** Sorted per-artist timestamp arrays (ms since epoch) for delta analysis */
   artistTimestamps: Map<string, number[]>;
+  /** Sorted per-track (trackKey) timestamp arrays (ms since epoch) for gap analysis */
+  trackTimestamps: Map<string, number[]>;
   /** artist → count of distinct ISO weeks played in. */
   artistWeeksActive: Map<string, number>;
   // ── Derived stats computed in snapshot() ──────────────────────────────
@@ -136,6 +138,7 @@ export class Aggregator {
   // ── New tracking fields ─────────────────────────────────────────────────────
   private weeklyCounts = new Map<string, number>();
   private artistTimestamps = new Map<string, number[]>();
+  private trackTimestamps = new Map<string, number[]>();
   private artistStreak = new ItemStreakStack();
   private trackStreak = new ItemStreakStack();
 
@@ -204,6 +207,11 @@ export class Aggregator {
       else this.artistTracks.set(artistName, new Set([scrobble.trackName]));
 
       const trackKey = TRACK_KEY(scrobble);
+
+      const trackTs = this.trackTimestamps.get(trackKey);
+      if (trackTs) trackTs.push(date.getTime());
+      else this.trackTimestamps.set(trackKey, [date.getTime()]);
+
       const existing = this.trackCounts.get(trackKey);
       if (existing) {
         existing.count++;
@@ -427,6 +435,7 @@ export class Aggregator {
       monthlyArtistPlays: this.monthlyArtistCounts,
       weeklyScrobbles: new Map(this.weeklyCounts),
       artistTimestamps: this.artistTimestamps,
+      trackTimestamps: this.trackTimestamps,
       artistWeeksActive: new Map(
         [...this.artistWeeks.entries()].map(([name, weeks]) => [name, weeks.size]),
       ),
