@@ -33,6 +33,7 @@ import { buildPersonality } from "$lib/analysis/personality";
 import { filterScrobbles, presetRange } from "$lib/analysis/date-range";
 import { topZScorePerMonth } from "$lib/analysis/zscore";
 import { buildRecommendations } from "$lib/analysis/recommendations";
+import { buildAnniversaries } from "$lib/analysis/anniversaries";
 
 export type RangeKey = "all" | "7d" | "30d" | "90d" | "365d";
 export const RANGES: RangeKey[] = ["all", "7d", "30d", "90d", "365d"];
@@ -159,6 +160,7 @@ export function computeProfile(
     albumMilestones: data.albumMilestones,
     longestNotListenedGap: data.longestNotListenedGap,
     recommendations: buildRecommendations(data.topArtists, data.allArtists, artistInfos),
+    anniversaries: buildAnniversaries(data),
   };
 
   const sessions = deriveSessions(filtered);
