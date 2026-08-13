@@ -40,6 +40,7 @@
 	import EddingtonChart from './EddingtonChart.svelte';
 	import Recommendations from './Recommendations.svelte';
 	import TrackPreview from '$lib/components/TrackPreview.svelte';
+	import ListeningContext from './ListeningContext.svelte';
 
 	function noiseAvatar(canvas: HTMLCanvasElement, seed: string) {
 		renderNoiseAvatar(canvas, seed, { displaySize: 32, gridSize: 5 });
@@ -313,6 +314,10 @@
 					<PersonalityCard profile={profile} displayName={bskyDisplayName ?? handle ?? did} {personality} />
 				</div>
 			{/if}
+
+			<div class="mb-8">
+				<ListeningContext {profile} />
+			</div>
 
 			<div class="mt-8">
 				<YearlyWrapped profile={profile} displayName={bskyDisplayName ?? handle ?? did} />
