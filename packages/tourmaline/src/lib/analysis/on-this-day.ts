@@ -1,4 +1,5 @@
 import type { TealScrobble } from "$lib/types";
+import { localDateKey } from "./date-range";
 
 export interface OnThisDayEntry {
   year: number;
@@ -31,7 +32,10 @@ export function buildOnThisDay(scrobbles: TealScrobble[]): OnThisDayEntry[] {
     const year = date.getFullYear();
     if (year >= currentYear) continue; // Skip current year
 
-    const mmdd = scrobble.playedTime.substring(5, 10);
+    // Local calendar day, not a slice of the raw UTC timestamp — "today"
+    // above is the viewer's local date, so comparing against it needs the
+    // same basis or scrobbles near midnight match the wrong day.
+    const mmdd = localDateKey(scrobble.playedTime).substring(5, 10);
     if (mmdd !== todayMMDD) continue;
 
     let entry = byYear.get(year);
