@@ -108,10 +108,11 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0.6rem 1.5rem;
-		background: color-mix(in srgb, var(--bg) 90%, transparent);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
+		background: color-mix(in srgb, var(--bg) 82%, transparent);
+		backdrop-filter: blur(10px) saturate(140%);
+		-webkit-backdrop-filter: blur(10px) saturate(140%);
 		border-bottom: 1px solid var(--border);
+		box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.4);
 	}
 	.brand {
 		display: flex;
