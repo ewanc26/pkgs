@@ -137,6 +137,15 @@ export function computeProfile(
     return { name, artist, gapDays: g.gapDays, count: g.count };
   });
 
+  const topArtistsByTrackCount = [...data.artistTrackCounts.entries()]
+    .map(([name, trackCount]) => ({
+      name,
+      trackCount,
+      count: data.artistPlayCounts.get(name) ?? 0,
+    }))
+    .sort((a, b) => b.trackCount - a.trackCount)
+    .slice(0, 10);
+
   const profile: ListenerProfile = {
     did,
     handle,
@@ -183,6 +192,7 @@ export function computeProfile(
     topArtistsByWeeksActive,
     topArtistGaps,
     topTrackGaps,
+    topArtistsByTrackCount,
     scrobbleMilestones: data.scrobbleMilestones,
     artistMilestones: data.artistMilestones,
     trackMilestones: data.trackMilestones,
