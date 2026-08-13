@@ -154,6 +154,10 @@ export interface ListenerProfile {
   oneHitWondersPercentage: number;
   mostPopularYear: { year: string; count: number };
   mostPopularMonth: { month: string; count: number };
+  tracksWithoutAlbumCount: number;
+  tracksWithoutAlbumPercentage: number;
+  scrobblesWithoutAlbumCount: number;
+  scrobblesWithoutAlbumPercentage: number;
 }
 
 export interface UnusualMonth {

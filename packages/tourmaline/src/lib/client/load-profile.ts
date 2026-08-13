@@ -206,6 +206,10 @@ export function computeProfile(
     oneHitWondersPercentage: data.oneHitWondersPercentage,
     mostPopularYear: data.mostPopularYear,
     mostPopularMonth: data.mostPopularMonth,
+    tracksWithoutAlbumCount: data.tracksWithoutAlbumCount,
+    tracksWithoutAlbumPercentage: data.tracksWithoutAlbumPercentage,
+    scrobblesWithoutAlbumCount: data.scrobblesWithoutAlbumCount,
+    scrobblesWithoutAlbumPercentage: data.scrobblesWithoutAlbumPercentage,
   };
 
   const sessions = deriveSessions(filtered);
