@@ -10,7 +10,7 @@ import {
 import type { Config } from '../types.js';
 
 const mockConfig: Config = {
-  RECORD_TYPE: 'fm.teal.alpha.feed.play',
+  RECORD_TYPE: 'fm.teal.feed.play',
   MIN_RECORDS_FOR_SCALING: 20,
   BASE_BATCH_SIZE: 200,
   MAX_BATCH_SIZE: 200,
@@ -101,7 +101,7 @@ describe('YouTube Music Record Conversion', () => {
     assert.strictEqual(playRecord.trackName, 'Test Track');
     assert.strictEqual(playRecord.artists[0].artistName, 'Test Artist');
     assert.strictEqual(playRecord.playedTime, '2021-06-15T20:00:00Z');
-    assert.strictEqual(playRecord.musicServiceBaseDomain, 'music.youtube.com');
-    assert.strictEqual(playRecord.originUrl, 'https://music.youtube.com/watch?v=123');
+    assert.strictEqual(playRecord.musicServiceUri, 'https://music.youtube.com/');
+    assert.strictEqual(playRecord.originUri, 'https://music.youtube.com/watch?v=123');
   });
 });

@@ -6,7 +6,7 @@
 
 import type { Agent } from '@atproto/api';
 import type { PlayRecord } from './types.js';
-import { RECORD_TYPE } from './config.js';
+import { RECORD_TYPES } from './config.js';
 import { fetchRepoViaCAR, getPdsUrlFromAgent, getAgentToken, CARFetchUnauthorizedError } from './car-fetch.js';
 
 export interface ExistingRecord {
@@ -27,6 +27,22 @@ export function recordKey(r: PlayRecord): string {
 
 /** In-session memory cache — avoids re-fetching within the same process/page. */
 const sessionCache = new Map<string, Map<string, ExistingRecord>>();
+
+async function fetchPlayRecords(
+  pdsUrl: string,
+  did: string,
+  signal: AbortSignal | undefined,
+  token: string | undefined,
+) {
+  const collections = await Promise.all(
+    RECORD_TYPES.map((collection) => fetchRepoViaCAR(pdsUrl, did, collection, signal, token)),
+  );
+  return collections.flat();
+}
+
+function collectionFromUri(uri: string): string {
+  return uri.split('/').slice(3, -1).join('/');
+}
 
 /** Extract DID from any agent shape (credential session or OAuth session manager). */
 function getDid(agent: Agent): string | undefined {
@@ -50,9 +66,9 @@ export async function fetchExistingRecords(
 
   const pdsUrl = getPdsUrlFromAgent(agent);
   let token = await getAgentToken(agent);
-  let carRecords;
+  let carRecords: Awaited<ReturnType<typeof fetchPlayRecords>>;
   try {
-    carRecords = await fetchRepoViaCAR(pdsUrl, did, RECORD_TYPE, signal, token);
+    carRecords = await fetchPlayRecords(pdsUrl, did, signal, token);
   } catch (err) {
     if (err instanceof CARFetchUnauthorizedError) {
       // The token we sent was invalid or expired.  Try to silently refresh the
@@ -66,7 +82,7 @@ export async function fetchExistingRecords(
           await sm.refreshSession();
           const freshToken = await getAgentToken(agent);
           if (freshToken && freshToken !== token) {
-            carRecords = await fetchRepoViaCAR(pdsUrl, did, RECORD_TYPE, signal, freshToken);
+            carRecords = await fetchPlayRecords(pdsUrl, did, signal, freshToken);
             token = freshToken;
             retried = true;
           }
@@ -114,9 +130,9 @@ export async function fetchAllRecordsForDedup(
 
   const pdsUrl = getPdsUrlFromAgent(agent);
   let token = await getAgentToken(agent);
-  let carRecords;
+  let carRecords: Awaited<ReturnType<typeof fetchPlayRecords>>;
   try {
-    carRecords = await fetchRepoViaCAR(pdsUrl, did, RECORD_TYPE, signal, token);
+    carRecords = await fetchPlayRecords(pdsUrl, did, signal, token);
   } catch (err) {
     if (err instanceof CARFetchUnauthorizedError) {
       const sm = (agent as any)?.sessionManager;
@@ -126,7 +142,7 @@ export async function fetchAllRecordsForDedup(
           await sm.refreshSession();
           const freshToken = await getAgentToken(agent);
           if (freshToken && freshToken !== token) {
-            carRecords = await fetchRepoViaCAR(pdsUrl, did, RECORD_TYPE, signal, freshToken);
+            carRecords = await fetchPlayRecords(pdsUrl, did, signal, freshToken);
             token = freshToken;
             retried = true;
           }
@@ -179,7 +195,7 @@ export async function removeDuplicateRecords(
       signal?.throwIfAborted();
       try {
         await agent.com.atproto.repo.deleteRecord(
-          { repo: getDid(agent) ?? '', collection: RECORD_TYPE, rkey: rec.uri.split('/').pop()! },
+          { repo: getDid(agent) ?? '', collection: collectionFromUri(rec.uri), rkey: rec.uri.split('/').pop()! },
           { signal }
         );
         removed++;

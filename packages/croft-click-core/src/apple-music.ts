@@ -53,8 +53,7 @@ export function convertAppleMusicToPlayRecord(r: AppleMusicRecord, clientAgent: 
     artists,
     playedTime,
     submissionClientAgent: clientAgent,
-    musicServiceBaseDomain: 'music.apple.com',
-    originUrl: '',
+    musicServiceUri: 'https://music.apple.com/',
   };
 
   return record;

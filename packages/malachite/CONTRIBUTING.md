@@ -29,7 +29,7 @@ packages/
 │   │   ├── lib/            # CLI wrappers around core (Node.js-specific)
 │   │   ├── tests/          # Node.js test runner tests
 │   │   └── utils/          # Legacy CLI utilities (gradually migrating to core/)
-│   └── lexicons/           # fm.teal.alpha lexicon definitions
+│   └── lexicons/           # fm.teal lexicon definitions
 ├── malachite-web/          # SvelteKit web app
 │   └── src/lib/core/       # Re-exports of malachite/src/core/ via the $core alias
 └── tid/                    # @ewanc26/tid — standalone npm package (sibling)

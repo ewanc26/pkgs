@@ -82,7 +82,7 @@ export function saveRecordsCache(
 ): void {
   try {
     const cache: RecordsCacheEntry = {
-      v: 1,
+      v: 2,
       did,
       ts: Date.now(),
       entries: Array.from(recordsMap.entries()),
@@ -104,7 +104,7 @@ export function loadRecordsCache(
     const raw = sessionStorage.getItem(recordsCacheKey(did));
     if (!raw) return null;
     const cache: RecordsCacheEntry = JSON.parse(raw);
-    if (cache.v !== 1 || cache.did !== did || Date.now() - cache.ts > RECORDS_CACHE_TTL) {
+    if (cache.v !== 2 || cache.did !== did || Date.now() - cache.ts > RECORDS_CACHE_TTL) {
       sessionStorage.removeItem(recordsCacheKey(did));
       return null;
     }
