@@ -40,7 +40,7 @@ export function buildDiscoveredTracks(
         name,
         artist,
         firstListen,
-        count: data.trackPlayCounts.get(name) ?? 0,
+        count: data.trackPlayCounts.get(key) ?? 0,
       };
     })
     .sort((a, b) => b.firstListen.localeCompare(a.firstListen))
