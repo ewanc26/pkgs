@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { renderNoiseAvatar } from '@ewanc26/noise-avatar';
-	import { Loader2, Cpu, Sparkles, Music2, Users, LayoutGrid, Gem, Receipt } from '@lucide/svelte';
+	import { Loader2, Cpu, Sparkles, Music2, Users, LayoutGrid, Gem, Receipt, Ticket } from '@lucide/svelte';
 	import type { DateRangePreset } from '$lib/analysis/date-range';
 	import { PRESET_LABELS } from '$lib/analysis/date-range';
 	import { writeShareEnvelope } from '$lib/share/registry';
@@ -62,6 +62,17 @@
 			tracks: profile.topTracks.slice(0, 10).map((t) => ({ name: t.name, artist: t.artist, count: t.count })),
 			totalScrobbles: profile.totalScrobbles,
 			totalMinutes: profile.totalMinutes
+		});
+		const params = new URLSearchParams({ handle: handle ?? '', did });
+		window.location.href = `/share?${params}`;
+	}
+
+	function shareFestival() {
+		if (!profile) return;
+		writeShareEnvelope('festival', {
+			displayName: bskyDisplayName ?? handle ?? did,
+			rangeLabel: PRESET_LABELS[dateRange],
+			artists: profile.topArtists.slice(0, 22).map((a) => ({ name: a.name, count: a.count }))
 		});
 		const params = new URLSearchParams({ handle: handle ?? '', did });
 		window.location.href = `/share?${params}`;
@@ -479,7 +490,16 @@
 		{:else if activeTab === 'catalogue'}
 			<!-- Top artists -->
 			<div class="mb-6 overflow-hidden rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
-				<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Top Artists</h2>
+				<div class="mb-3 flex items-center justify-between sm:mb-4">
+					<h2 class="text-base font-semibold sm:text-lg">Top Artists</h2>
+					<button
+						onclick={shareFestival}
+						class="flex items-center gap-1.5 rounded border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+					>
+						<Ticket size={12} />
+						Lineup
+					</button>
+				</div>
 				<ol class="space-y-2">
 					{#each profile.topArtists.slice(0, 25) as artist, i (artist.name)}
 						<li class="flex items-center gap-2 overflow-hidden sm:gap-3">

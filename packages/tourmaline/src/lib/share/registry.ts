@@ -12,9 +12,11 @@ import type { PersonalityCardData } from "./personality-svg";
 import { renderPersonalitySvg } from "./personality-svg";
 import type { ReceiptCardData } from "./receipt-svg";
 import { renderReceiptSvg } from "./receipt-svg";
-import { sharePersonality, shareReceipt, type ShareResult } from "./post";
+import type { FestivalCardData } from "./festival-svg";
+import { renderFestivalSvg } from "./festival-svg";
+import { sharePersonality, shareReceipt, shareFestival, type ShareResult } from "./post";
 
-export type ShareCardType = "personality" | "receipt";
+export type ShareCardType = "personality" | "receipt" | "festival";
 
 /** sessionStorage envelope written by a card's "Share" button, read by /share. */
 export interface ShareEnvelope {
@@ -31,6 +33,7 @@ interface CardHandler<T> {
 const handlers: Record<ShareCardType, CardHandler<any>> = {
   personality: { render: renderPersonalitySvg, share: sharePersonality },
   receipt: { render: renderReceiptSvg, share: shareReceipt },
+  festival: { render: renderFestivalSvg, share: shareFestival },
 };
 
 export function renderCard(envelope: ShareEnvelope): string {
@@ -46,4 +49,4 @@ export function writeShareEnvelope(type: ShareCardType, data: unknown): void {
   sessionStorage.setItem("tourmaline:share", JSON.stringify({ type, data }));
 }
 
-export type { PersonalityCardData, ReceiptCardData };
+export type { PersonalityCardData, ReceiptCardData, FestivalCardData };
