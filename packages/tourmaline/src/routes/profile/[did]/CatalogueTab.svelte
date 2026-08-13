@@ -4,6 +4,7 @@
     import OnThisDay from './OnThisDay.svelte';
     import Anniversaries from './Anniversaries.svelte';
     import WeeksActive from './WeeksActive.svelte';
+    import ListeningCadence from './ListeningCadence.svelte';
     import type { ListenerProfile } from '$lib/types';
     import type { OnThisDayEntry } from '$lib/analysis/on-this-day';
 
@@ -80,6 +81,7 @@
 </div>
 
 <WeeksActive artists={profile.topArtistsByWeeksActive} />
+<ListeningCadence artists={profile.topArtistAvgDeltas} />
 
 {#if profile.discoveredArtists.length > 0 || profile.discoveredTracks.length > 0 || profile.discoveredAlbums.length > 0}
     <div class="mb-6 sm:mb-8">
