@@ -444,6 +444,16 @@
 
 		<!-- ── Habits tab ────────────────────────────────── -->
 		{:else if activeTab === 'habits'}
+			<div class="mb-6 sm:mb-8">
+				<ListeningStats
+					dailyScrobbles={profile.dailyScrobbles}
+					totalScrobbles={profile.totalScrobbles}
+					longestGap={profile.longestNotListenedGap}
+					range={dateRange}
+					statsData={profile}
+				/>
+			</div>
+
 			{#if profile.scrobblesByHour.some((n) => n > 0)}
 				<div class="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
 					<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Listening Clock</h2>

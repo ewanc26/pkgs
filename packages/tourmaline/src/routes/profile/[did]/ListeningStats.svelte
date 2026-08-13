@@ -2,6 +2,14 @@
 	import { Flame, TrendingUp, Calendar, Hash, Clock, User, Zap, Star } from '@lucide/svelte';
 	import type { DailyScrobble, Gap } from '$lib/types';
 
+	interface StatsData {
+		daysScrobbled: number;
+		daysScrobbledPercentage: number;
+		oneHitWondersCount: number;
+		oneHitWondersPercentage: number;
+		mostPopularMonth: { month: string; count: number };
+	}
+
 	let {
 		dailyScrobbles = [],
 		totalScrobbles = 0,
@@ -13,7 +21,7 @@
 		totalScrobbles: number;
 		longestGap: Gap | null;
 		range?: string;
-		statsData?: any;
+		statsData?: StatsData | null;
 	} = $props();
 
 	const stats = $derived.by(() => {
