@@ -47,15 +47,29 @@ export function presetRange(preset: DateRangePreset): DateRange {
 }
 
 /**
+ * Local calendar-day key (YYYY-MM-DD) for a scrobble timestamp.
+ *
+ * range.start/end above are built from local Y/M/D, and aggregator.ts's
+ * dailyScrobbles keys are explicitly "Local YYYY-MM-DD" — slicing the raw
+ * UTC playedTime string instead (as this used to do) compares apples to
+ * oranges for any non-UTC listener, most visibly right around midnight.
+ */
+function localDateKey(playedTime: string): string {
+  const d = new Date(playedTime);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
  * Filter scrobbles to those within a date range (inclusive).
- * Compares against the date portion of playedTime.
+ * Compares against the local calendar day of playedTime.
  */
 export function filterScrobbles(
   scrobbles: TealScrobble[],
   range: DateRange,
 ): TealScrobble[] {
   return scrobbles.filter((s) => {
-    const date = s.playedTime.substring(0, 10);
+    const date = localDateKey(s.playedTime);
     return date >= range.start && date <= range.end;
   });
 }
@@ -71,7 +85,9 @@ export function hasScrobblesInRange(
   if (preset === "all") return scrobbles.length > 0;
   const range = presetRange(preset);
   return scrobbles.some((s) => {
-    const date = s.playedTime.substring(0, 10);
+    const date = localDateKey(s.playedTime);
     return date >= range.start && date <= range.end;
   });
 }
+
+export { localDateKey };
