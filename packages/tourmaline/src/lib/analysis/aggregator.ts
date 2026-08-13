@@ -30,6 +30,8 @@ export interface AggregatedData {
   weeklyScrobbles: Map<string, number>;
   /** Sorted per-artist timestamp arrays (ms since epoch) for delta analysis */
   artistTimestamps: Map<string, number[]>;
+  /** artist → count of distinct ISO weeks played in. */
+  artistWeeksActive: Map<string, number>;
   // ── Derived stats computed in snapshot() ──────────────────────────────
   eddingtonNumber: number;
   daysSinceFirstScrobble: number;
@@ -123,6 +125,8 @@ export class Aggregator {
   private albumFirstListen = new Map<string, string>(); // albumKey → earliest YYYY-MM-DD
   /** artist → distinct track names played, for the "one-hit wonder" definition (one song, any number of plays). */
   private artistTracks = new Map<string, Set<string>>();
+  /** artist → distinct ISO week keys played in, for the "weeks active" ranking. */
+  private artistWeeks = new Map<string, Set<string>>();
   private minutesCount = 0;
   private total = 0;
   // ── New tracking fields ─────────────────────────────────────────────────────
@@ -254,6 +258,13 @@ export class Aggregator {
 
       const weekKey = isoWeekKey(date);
       this.weeklyCounts.set(weekKey, (this.weeklyCounts.get(weekKey) ?? 0) + 1);
+
+      // Distinct weeks each artist appeared in — "weeks active" ranks
+      // artists you return to over a long span, separately from raw play
+      // count, which conflates that with a short, heavy binge.
+      const weeksForArtist = this.artistWeeks.get(artistName);
+      if (weeksForArtist) weeksForArtist.add(weekKey);
+      else this.artistWeeks.set(artistName, new Set([weekKey]));
 
       // Monthly artist plays
       let monthArtists = this.monthlyArtistCounts.get(monthKey);
@@ -408,6 +419,9 @@ export class Aggregator {
       monthlyArtistPlays: this.monthlyArtistCounts,
       weeklyScrobbles: new Map(this.weeklyCounts),
       artistTimestamps: this.artistTimestamps,
+      artistWeeksActive: new Map(
+        [...this.artistWeeks.entries()].map(([name, weeks]) => [name, weeks.size]),
+      ),
       eddingtonNumber,
       daysSinceFirstScrobble,
       daysScrobbled,

@@ -113,6 +113,16 @@ export function computeProfile(
     .sort((a, b) => a.avgDaysBetween - b.avgDaysBetween)
     .slice(0, 20);
 
+  const topArtistsByWeeksActive = [...data.artistWeeksActive.entries()]
+    .filter(([, weeksActive]) => weeksActive >= 2)
+    .map(([name, weeksActive]) => ({
+      name,
+      weeksActive,
+      count: data.artistPlayCounts.get(name) ?? 0,
+    }))
+    .sort((a, b) => b.weeksActive - a.weeksActive)
+    .slice(0, 10);
+
   const profile: ListenerProfile = {
     did,
     handle,
@@ -154,6 +164,7 @@ export function computeProfile(
       .map(([week, count]) => ({ week, count }))
       .sort((a, b) => a.week.localeCompare(b.week)),
     topArtistAvgDeltas,
+    topArtistsByWeeksActive,
     scrobbleMilestones: data.scrobbleMilestones,
     artistMilestones: data.artistMilestones,
     trackMilestones: data.trackMilestones,

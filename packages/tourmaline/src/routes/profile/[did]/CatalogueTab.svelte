@@ -3,6 +3,7 @@
     import Discovery from './Discovery.svelte';
     import OnThisDay from './OnThisDay.svelte';
     import Anniversaries from './Anniversaries.svelte';
+    import WeeksActive from './WeeksActive.svelte';
     import type { ListenerProfile } from '$lib/types';
     import type { OnThisDayEntry } from '$lib/analysis/on-this-day';
 
@@ -77,6 +78,8 @@
         </ol>
     </div>
 </div>
+
+<WeeksActive artists={profile.topArtistsByWeeksActive} />
 
 {#if profile.discoveredArtists.length > 0 || profile.discoveredTracks.length > 0 || profile.discoveredAlbums.length > 0}
     <div class="mb-6 sm:mb-8">
