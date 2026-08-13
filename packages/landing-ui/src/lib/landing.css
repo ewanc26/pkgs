@@ -65,6 +65,9 @@ body {
 a {
 	color: var(--accent);
 	text-decoration: none;
+	text-underline-offset: 3px;
+	text-decoration-thickness: 1px;
+	transition: color 0.15s ease;
 }
 a:hover {
 	text-decoration: underline;
@@ -87,7 +90,10 @@ a:hover {
 	border: 1px solid var(--border);
 	border-radius: 12px;
 	padding: 2rem;
-	animation: fadeUp 0.2s ease;
+	animation: fadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+	box-shadow:
+		0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+		0 20px 40px -24px rgba(0, 0, 0, 0.55);
 }
 @keyframes fadeUp {
 	from {
@@ -140,8 +146,9 @@ a:hover {
 	font-weight: 600;
 	cursor: pointer;
 	transition:
-		background 0.15s,
-		transform 0.1s,
+		background 0.2s ease,
+		transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+		box-shadow 0.2s ease,
 		opacity 0.15s;
 	display: flex;
 	align-items: center;
@@ -152,6 +159,10 @@ a:hover {
 }
 .btn-primary:hover:not(:disabled) {
 	transform: translateY(-1px);
+	box-shadow: 0 8px 24px -8px var(--accent-glow);
+}
+.btn-primary:active:not(:disabled) {
+	transform: translateY(0);
 }
 .btn-primary:disabled {
 	opacity: 0.45;
@@ -167,14 +178,16 @@ a:hover {
 	font-size: 0.875rem;
 	cursor: pointer;
 	transition:
-		border-color 0.15s,
-		color 0.15s;
+		border-color 0.2s ease,
+		color 0.2s ease,
+		transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 	width: 100%;
 	margin-top: 0.75rem;
 }
 .btn-secondary:hover {
 	border-color: var(--accent);
 	color: var(--accent);
+	transform: translateY(-1px);
 }
 
 .btn-ghost {
@@ -189,13 +202,15 @@ a:hover {
 	border: 1px solid var(--border);
 	text-decoration: none;
 	transition:
-		border-color 0.15s,
-		color 0.15s;
+		border-color 0.2s ease,
+		color 0.2s ease,
+		transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .btn-ghost:hover {
 	border-color: var(--accent);
 	color: var(--text);
 	text-decoration: none;
+	transform: translateY(-1px);
 }
 
 .btn-cancel {

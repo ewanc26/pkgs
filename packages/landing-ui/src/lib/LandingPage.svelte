@@ -178,8 +178,22 @@ interface Feature {
 
 	/* ── Hero ─────────────────────────────────────────────────────────────────── */
 	.hero {
+		position: relative;
 		text-align: center;
 		padding: 3rem 0 3.5rem;
+	}
+
+	.hero::before {
+		content: '';
+		position: absolute;
+		top: -3rem;
+		left: 50%;
+		width: min(720px, 130%);
+		height: 420px;
+		transform: translateX(-50%);
+		background: radial-gradient(ellipse 50% 50% at 50% 0%, var(--accent-glow), transparent 70%);
+		pointer-events: none;
+		z-index: -1;
 	}
 
 	.logo-wrap {
@@ -187,6 +201,7 @@ interface Feature {
 		justify-content: center;
 		color: var(--accent);
 		margin-bottom: 0.75rem;
+		filter: drop-shadow(0 0 24px var(--accent-glow));
 	}
 
 	.wordmark {
@@ -246,13 +261,19 @@ interface Feature {
 		margin-top: 0;
 		text-decoration: none;
 		transition:
-			background 0.15s,
-			transform 0.1s;
+			background 0.2s ease,
+			transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+			box-shadow 0.2s ease;
 	}
 
 	.btn-primary:hover {
 		transform: translateY(-1px);
+		box-shadow: 0 8px 24px -8px var(--accent-glow);
 		text-decoration: none;
+	}
+
+	.btn-primary:active {
+		transform: translateY(0);
 	}
 
 	/* ── Features ─────────────────────────────────────────────────────── */
@@ -271,6 +292,14 @@ interface Feature {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+			0 16px 32px -24px rgba(0, 0, 0, 0.5);
+		transition: border-color 0.2s ease;
+	}
+
+	.feature-card:hover {
+		border-color: var(--border-subtle, var(--border));
 	}
 
 	.feature-icon {
@@ -351,6 +380,7 @@ interface Feature {
 		color: var(--accent);
 		flex-shrink: 0;
 		margin-top: 1px;
+		box-shadow: 0 0 0 4px var(--accent-glow);
 	}
 
 	.steps-list strong {
@@ -370,12 +400,29 @@ interface Feature {
 
 	/* ── CTA ──────────────────────────────────────────────────────────────────── */
 	.cta {
+		position: relative;
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: 12px;
 		padding: 2.5rem;
 		text-align: center;
 		margin-bottom: 3rem;
+		overflow: hidden;
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+			0 24px 48px -32px rgba(0, 0, 0, 0.55);
+	}
+
+	.cta::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(ellipse 60% 80% at 50% -10%, var(--accent-glow), transparent 65%);
+		pointer-events: none;
+	}
+
+	.cta > * {
+		position: relative;
 	}
 
 	.cta h2 {
@@ -408,14 +455,21 @@ interface Feature {
 		border-radius: 10px;
 		padding: 1rem 1.25rem;
 		text-decoration: none;
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+			0 16px 32px -24px rgba(0, 0, 0, 0.5);
 		transition:
-			border-color 0.15s,
-			transform 0.1s;
+			border-color 0.2s ease,
+			transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+			box-shadow 0.2s ease;
 	}
 
 	.sibling-card:hover {
 		border-color: var(--accent);
-		transform: translateY(-1px);
+		transform: translateY(-2px);
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+			0 20px 36px -20px var(--accent-glow);
 	}
 
 	.sibling-card strong {
