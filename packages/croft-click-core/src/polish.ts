@@ -11,6 +11,9 @@ import type { Agent } from '@atproto/api';
 import { RECORD_TYPE, LEGACY_RECORD_TYPE } from './config.js';
 import { fetchRepoViaCAR, getPdsUrlFromAgent, getAgentToken } from './car-fetch.js';
 import { retryWithBackoff } from './retry-helper.js';
+import { RateLimiter } from './rate-limiter.js';
+import { ProactiveRatePacer } from './proactive-rate-pacer.js';
+import { isRateLimitError, normalizeHeaders } from './rate-limit-headers.js';
 
 export interface PolishRecord {
   rkey: string;
@@ -44,6 +47,9 @@ export interface PolishMigrateOptions {
   signal?: AbortSignal;
 }
 
+const POINTS_PER_RECORD = 3;
+const MAX_WRITES_PER_BATCH = 200;
+
 /** Extract DID from any agent shape (credential session or OAuth session manager). */
 function getDid(agent: Agent): string | undefined {
   return agent.did ?? (agent as any).sessionManager?.did;
@@ -62,6 +68,23 @@ function asPolishRecord(rec: { rkey: string; uri: string; cid: string; value: un
   };
 }
 
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason ?? new Error('Aborted'));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
 
 /**
  * Build a migration plan from raw CAR record lists. Pure and unit-testable.
@@ -118,11 +141,13 @@ export async function analyzeLegacyRecords(agent: Agent, signal?: AbortSignal): 
  * Execute a migration plan: backfill missing legacy records into the
  * production collection (preserving rkeys), then delete the legacy copies.
  *
+ * Uses proactive rate limiting to avoid 429s: batches are paced based on
+ * server capacity learned from response headers, and 429 responses trigger
+ * a quota drain + wait via the RateLimiter.
+ *
  * Backfill failures are reported and their legacy copies are retained so no
  * data is ever lost — re-running polish will finish the job.
  */
-const MAX_WRITES_PER_BATCH = 200;
-
 export async function migrateLegacyRecords(
   agent: Agent,
   plan: PolishPlan,
@@ -143,6 +168,9 @@ export async function migrateLegacyRecords(
     };
   }
 
+  const rl = new RateLimiter({ headroom: 0.15 });
+  const pacer = new ProactiveRatePacer();
+
   let backfilled = 0;
   let failed = 0;
   const backfilledRkeys = new Set<string>();
@@ -151,6 +179,9 @@ export async function migrateLegacyRecords(
     for (let i = 0; i < plan.toBackfill.length; i += MAX_WRITES_PER_BATCH) {
       signal?.throwIfAborted();
       const batch = plan.toBackfill.slice(i, i + MAX_WRITES_PER_BATCH);
+      const batchPoints = batch.length * POINTS_PER_RECORD;
+
+      await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false);
 
       const writes = batch.map((record) => ({
         $type: 'com.atproto.repo.applyWrites#create' as const,
@@ -189,6 +220,15 @@ export async function migrateLegacyRecords(
           }
         );
 
+        try {
+          const respHeaders = (response as any)?.headers as Record<string, string> | undefined;
+          if (respHeaders && Object.keys(respHeaders).length > 0) {
+            rl.updateFromHeaders(normalizeHeaders(respHeaders));
+          }
+        } catch {
+          // ignore header parse errors
+        }
+
         const results = (response.data.results ?? []) as any[];
         for (let j = 0; j < batch.length; j++) {
           const result = results[j];
@@ -202,9 +242,28 @@ export async function migrateLegacyRecords(
         }
       } catch (err: unknown) {
         if (signal?.aborted) throw err;
+
+        const rateLimitError = isRateLimitError(err);
+        if (rateLimitError) {
+          const errHeaders = (err as any)?.headers as Record<string, string> | undefined;
+          rl.handleRateLimitHit(errHeaders ? normalizeHeaders(errHeaders) : undefined);
+          await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false);
+          i -= MAX_WRITES_PER_BATCH;
+          continue;
+        }
+
         for (let j = 0; j < batch.length; j++) {
           failed++;
           onProgress?.('backfill', backfilled + failed, plan.toBackfill.length);
+        }
+      }
+
+      if (i + MAX_WRITES_PER_BATCH < plan.toBackfill.length) {
+        const cap = rl.getServerCapacity();
+        if (cap) {
+          const actualQuota = rl.getActualRemaining();
+          const pacing = pacer.calculateDelay(batch.length, cap.limit, cap.windowSeconds, actualQuota);
+          await sleep(pacing.delayMs, signal);
         }
       }
     }
@@ -220,6 +279,9 @@ export async function migrateLegacyRecords(
     for (let i = 0; i < toDelete.length; i += MAX_WRITES_PER_BATCH) {
       signal?.throwIfAborted();
       const batch = toDelete.slice(i, i + MAX_WRITES_PER_BATCH);
+      const batchPoints = batch.length * POINTS_PER_RECORD;
+
+      await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false);
 
       const writes = batch.map((record) => ({
         $type: 'com.atproto.repo.applyWrites#delete' as const,
@@ -257,6 +319,15 @@ export async function migrateLegacyRecords(
           }
         );
 
+        try {
+          const respHeaders = (response as any)?.headers as Record<string, string> | undefined;
+          if (respHeaders && Object.keys(respHeaders).length > 0) {
+            rl.updateFromHeaders(normalizeHeaders(respHeaders));
+          }
+        } catch {
+          // ignore header parse errors
+        }
+
         const results = (response.data.results ?? []) as any[];
         for (let j = 0; j < batch.length; j++) {
           const result = results[j];
@@ -267,8 +338,27 @@ export async function migrateLegacyRecords(
         }
       } catch (err: unknown) {
         if (signal?.aborted) throw err;
+
+        const rateLimitError = isRateLimitError(err);
+        if (rateLimitError) {
+          const errHeaders = (err as any)?.headers as Record<string, string> | undefined;
+          rl.handleRateLimitHit(errHeaders ? normalizeHeaders(errHeaders) : undefined);
+          await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false);
+          i -= MAX_WRITES_PER_BATCH;
+          continue;
+        }
+
         for (let j = 0; j < batch.length; j++) {
           onProgress?.('delete', deleted, toDelete.length);
+        }
+      }
+
+      if (i + MAX_WRITES_PER_BATCH < toDelete.length) {
+        const cap = rl.getServerCapacity();
+        if (cap) {
+          const actualQuota = rl.getActualRemaining();
+          const pacing = pacer.calculateDelay(batch.length, cap.limit, cap.windowSeconds, actualQuota);
+          await sleep(pacing.delayMs, signal);
         }
       }
     }
