@@ -41,6 +41,7 @@
 	import Recommendations from './Recommendations.svelte';
 	import TrackPreview from '$lib/components/TrackPreview.svelte';
 	import ListeningContext from './ListeningContext.svelte';
+	import { checkInAndComputeDelta, type VisitDelta } from '$lib/client/visit-history';
 
 	function noiseAvatar(canvas: HTMLCanvasElement, seed: string) {
 		renderNoiseAvatar(canvas, seed, { displaySize: 32, gridSize: 5 });
@@ -88,6 +89,9 @@
 	let elapsed = $state(0);
 	let enrichElapsed = $state(0);
 
+	// Since-last-visit delta (localStorage only, no server tracking)
+	let visitDelta = $state<VisitDelta | null>(null);
+
 	// Profile data
 	let results = $state<ProfileResults>(emptyResults());
 
@@ -127,6 +131,12 @@
 				},
 				onResults: (r) => { results = r; }
 			});
+
+			const allTimeProfile = results.all?.profile;
+			if (allTimeProfile && allTimeProfile.totalScrobbles > 0) {
+				visitDelta = checkInAndComputeDelta(did, allTimeProfile);
+			}
+
 			console.log(`[tourmaline] complete in ${((performance.now() - t0) / 1000).toFixed(1)}s`);
 		} catch (e) {
 			phase = 'error';
@@ -168,6 +178,26 @@
 			</a>
 		{/if}
 	</header>
+
+	<!-- ── Since your last visit ─────────────────────────────────────────────── -->
+	{#if visitDelta}
+		<div class="mb-6 rounded border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-3.5 sm:mb-8 sm:p-4">
+			<p class="text-sm text-[var(--text)]">
+				Welcome back — {visitDelta.daysSinceLastVisit === 1 ? 'a day' : `${visitDelta.daysSinceLastVisit} days`} since your last visit.
+			</p>
+			<p class="mt-1 text-xs text-[var(--text-muted)]">
+				{#if visitDelta.newScrobbles > 0}
+					+{visitDelta.newScrobbles.toLocaleString()} scrobble{visitDelta.newScrobbles === 1 ? '' : 's'}
+				{/if}
+				{#if visitDelta.newArtists.length > 0}
+					{visitDelta.newScrobbles > 0 ? '· ' : ''}{visitDelta.newArtists.length} new artist{visitDelta.newArtists.length === 1 ? '' : 's'}: {visitDelta.newArtists.slice(0, 5).join(', ')}{visitDelta.newArtists.length > 5 ? `, +${visitDelta.newArtists.length - 5} more` : ''}
+				{/if}
+				{#if visitDelta.newScrobbles === 0 && visitDelta.newArtists.length === 0}
+					No new scrobbles since then.
+				{/if}
+			</p>
+		</div>
+	{/if}
 
 	<!-- ── Loading state (before any profile exists yet) ────────────────────── -->
 	{#if phase === 'fetching' || phase === 'idle'}
