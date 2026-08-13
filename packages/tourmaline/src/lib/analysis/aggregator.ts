@@ -63,8 +63,8 @@ const ALBUM_KEY = (s: TealScrobble) =>
 /**
  * Normalise a scrobble's duration field to seconds.
  *
- * The fm.teal.alpha.feed.play lexicon defines `duration` as seconds,
- * but some scrobbling clients store milliseconds instead. A value
+ * Teal play lexicons define `duration` as seconds, but some scrobbling
+ * clients store milliseconds instead. A value
  * above 10 000 (≈ 2.7 hours) is almost certainly in milliseconds —
  * even the longest classical pieces rarely exceed 3 600 seconds.
  *
