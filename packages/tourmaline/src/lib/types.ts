@@ -2,6 +2,7 @@ import type { ListeningPhase } from "$lib/analysis/phases";
 import type { Recommendation } from "$lib/analysis/recommendations";
 import type { AnniversaryGroups } from "$lib/analysis/anniversaries";
 import type { RankMover } from "$lib/analysis/rank-history";
+import type { NewArtistMonthStat, MostListenedNewArtist } from "$lib/analysis/new-artists";
 
 export interface TealScrobble {
   trackName: string;
@@ -145,6 +146,8 @@ export interface ListenerProfile {
   /** Artists whose rank (by cumulative play count) moved most between the two most recent months. */
   biggestClimbers: RankMover[];
   biggestFallers: RankMover[];
+  mostNewArtistsInAMonth: NewArtistMonthStat | null;
+  mostListenedNewArtist: MostListenedNewArtist | null;
   /** Per-month most statistically unusual artist (highest z-score). */
   unusualMonths: UnusualMonth[];
   // ── Ported from lastfm-stats-web ─────────────────────────────────────
