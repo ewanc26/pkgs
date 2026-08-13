@@ -3,6 +3,8 @@ import type { Recommendation } from "$lib/analysis/recommendations";
 import type { AnniversaryGroups } from "$lib/analysis/anniversaries";
 import type { RankMover, RankSnapshot } from "$lib/analysis/rank-history";
 import type { NewArtistMonthStat, MostListenedNewArtist } from "$lib/analysis/new-artists";
+import type { TagsProfile } from "$lib/analysis/tags-breakdown";
+import type { RegionProfile } from "$lib/analysis/region-breakdown";
 
 export interface TealScrobble {
   trackName: string;
@@ -30,6 +32,10 @@ export interface ArtistInfo {
   playCount?: number;
   imageUrl?: string;
   startYear?: number;
+  /** MusicBrainz area (country/region of origin), e.g. "United States". */
+  area?: string;
+  /** ISO 3166-1 alpha-2 code for `area`, e.g. "US". */
+  areaCode?: string;
 }
 
 export interface GenreEntry {
@@ -177,6 +183,10 @@ export interface ListenerProfile {
   monthlyArtistPlays: Array<[string, Array<[string, number]>]>;
   /** Full per-artist rank-by-month history (not just the top movers) — for a per-artist rank-over-time chart. */
   artistRankHistory: Array<[string, RankSnapshot[]]>;
+  /** Raw genre/tag strings (not normalised into top-level categories, unlike `genres`) ranked by scrobble count and by distinct-artist count. */
+  tagsBreakdown: TagsProfile;
+  /** Artists' MusicBrainz area (country/region of origin) ranked by scrobble count and by distinct-artist count. Only covers enriched artists with a resolved area. */
+  regionBreakdown: RegionProfile;
 }
 
 export interface UnusualMonth {
