@@ -11,6 +11,7 @@ export interface AggregatedData {
   topTracks: Array<{ name: string; artist: string; count: number }>;
   topAlbums: Array<{ name: string; artist: string; count: number }>;
   artistPlayCounts: Map<string, number>;
+  /** trackKey ("name|||artist1,artist2") → play count — same key as trackFirstListen. */
   trackPlayCounts: Map<string, number>;
   albumPlayCounts: Map<string, { name: string; artist: string; count: number }>;
   scrobblesByHour: number[];
@@ -380,7 +381,7 @@ export class Aggregator {
       topAlbums,
       artistPlayCounts: this.artistCounts,
       trackPlayCounts: new Map(
-        [...this.trackCounts.values()].map((t) => [t.name, t.count]),
+        [...this.trackCounts.entries()].map(([key, t]) => [key, t.count]),
       ),
       albumPlayCounts: this.albumCounts,
       scrobblesByHour: [...this.byHour],
