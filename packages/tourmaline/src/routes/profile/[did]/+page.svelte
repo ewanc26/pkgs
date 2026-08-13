@@ -140,7 +140,7 @@
 </svelte:head>
 
 <div class="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-8">
-	<header class="mb-6 sm:mb-8">
+	<header class="mb-6 flex items-start justify-between gap-3 sm:mb-8">
 		<div class="flex items-center gap-3 sm:gap-4">
 			{#if bskyAvatar}
 				<img src={bskyAvatar} alt="" class="h-10 w-10 shrink-0 rounded-full border border-[var(--border)] sm:h-12 sm:w-12" />
@@ -157,6 +157,14 @@
 				{/if}
 			</div>
 		</div>
+		{#if did}
+			<a
+				href="/compare?with={encodeURIComponent(handle ?? did)}"
+				class="shrink-0 rounded border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+			>
+				Compare with…
+			</a>
+		{/if}
 	</header>
 
 	<!-- ── Loading state (before any profile exists yet) ────────────────────── -->
