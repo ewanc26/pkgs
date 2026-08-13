@@ -34,6 +34,7 @@ import { filterScrobbles, presetRange } from "$lib/analysis/date-range";
 import { topZScorePerMonth } from "$lib/analysis/zscore";
 import { buildRecommendations } from "$lib/analysis/recommendations";
 import { buildTagsProfile } from "$lib/analysis/tags-breakdown";
+import { buildRegionProfile } from "$lib/analysis/region-breakdown";
 
 export type RangeKey = "all" | "7d" | "30d" | "90d" | "365d";
 export const RANGES: RangeKey[] = ["all", "7d", "30d", "90d", "365d"];
@@ -114,6 +115,7 @@ export function computeProfile(
     .slice(0, 20);
 
   const tagsBreakdown = buildTagsProfile(data, artistInfos);
+  const regionBreakdown = buildRegionProfile(data, artistInfos);
 
   const profile: ListenerProfile = {
     did,
@@ -163,6 +165,7 @@ export function computeProfile(
     longestNotListenedGap: data.longestNotListenedGap,
     recommendations: buildRecommendations(data.topArtists, data.allArtists, artistInfos),
     tagsBreakdown,
+    regionBreakdown,
   };
 
   const sessions = deriveSessions(filtered);

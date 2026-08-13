@@ -1,6 +1,7 @@
 import type { ListeningPhase } from "$lib/analysis/phases";
 import type { Recommendation } from "$lib/analysis/recommendations";
 import type { TagsProfile } from "$lib/analysis/tags-breakdown";
+import type { RegionProfile } from "$lib/analysis/region-breakdown";
 
 export interface TealScrobble {
   trackName: string;
@@ -144,6 +145,8 @@ export interface ListenerProfile {
   recommendations: Recommendation[];
   /** Raw genre/tag strings (not normalised into top-level categories, unlike `genres`) ranked by scrobble count and by distinct-artist count. */
   tagsBreakdown: TagsProfile;
+  /** Artists' MusicBrainz area (country/region of origin) ranked by scrobble count and by distinct-artist count. Only covers enriched artists with a resolved area. */
+  regionBreakdown: RegionProfile;
 }
 
 export interface UnusualMonth {
