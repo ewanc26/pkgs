@@ -42,6 +42,8 @@ export interface AggregatedData {
   daysToNextEddington: number;
   /** Eddington number applied to per-artist play counts: largest N such that N artists each have >= N scrobbles. */
   artistCutoverPoint: number;
+  /** The single biggest "one artist on one day" binge across the whole history. */
+  bestArtistDay: { date: string; artist: string; count: number } | null;
   daysSinceFirstScrobble: number;
   daysScrobbled: number;
   daysScrobbledPercentage: number;
@@ -132,6 +134,8 @@ export class Aggregator {
     () => new Array(24).fill(0) as number[],
   );
   private dailyCounts = new Map<string, number>();
+  /** dayKey → (artist → count that day), for the "biggest single-artist day" stat. Not exposed directly — only the single best pair is. */
+  private dailyArtistCounts = new Map<string, Map<string, number>>();
   private monthlyCounts = new Map<string, number>();
   private monthlyArtistCounts = new Map<string, Map<string, number>>();
   private firstListenMap = new Map<string, string>(); // artist → earliest YYYY-MM-DD
@@ -276,6 +280,13 @@ export class Aggregator {
       const dateKey = `${Y}-${M}-${D}`; // Local YYYY-MM-DD
       this.dailyCounts.set(dateKey, (this.dailyCounts.get(dateKey) ?? 0) + 1);
 
+      let dayArtists = this.dailyArtistCounts.get(dateKey);
+      if (!dayArtists) {
+        dayArtists = new Map<string, number>();
+        this.dailyArtistCounts.set(dateKey, dayArtists);
+      }
+      dayArtists.set(artistName, (dayArtists.get(artistName) ?? 0) + 1);
+
       const monthKey = `${Y}-${M}`; // Local YYYY-MM
       this.monthlyCounts.set(
         monthKey,
@@ -354,6 +365,15 @@ export class Aggregator {
     // Same algorithm applied to per-artist play counts instead of daily
     // counts: largest N such that N artists each have >= N scrobbles.
     const artistCutoverPoint = calcEddington(this.artistCounts);
+
+    let bestArtistDay: { date: string; artist: string; count: number } | null = null;
+    for (const [date, artists] of this.dailyArtistCounts) {
+      for (const [artist, count] of artists) {
+        if (!bestArtistDay || count > bestArtistDay.count) {
+          bestArtistDay = { date, artist, count };
+        }
+      }
+    }
 
     // ── New stats ──────────────────────────────────────────────────────────
     const sortedDates = [...this.dailyCounts.keys()].sort();
@@ -469,6 +489,7 @@ export class Aggregator {
       eddingtonNumber,
       daysToNextEddington: daysToNextEddingtonNumber,
       artistCutoverPoint,
+      bestArtistDay,
       daysSinceFirstScrobble,
       daysScrobbled,
       daysScrobbledPercentage,

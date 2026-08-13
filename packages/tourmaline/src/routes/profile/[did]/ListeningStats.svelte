@@ -16,6 +16,7 @@
 		discoveredArtists: DiscoveredArtist[];
 		mostNewArtistsInAMonth: NewArtistMonthStat | null;
 		mostListenedNewArtist: MostListenedNewArtist | null;
+		bestArtistDay: { date: string; artist: string; count: number } | null;
 	}
 
 	function formatMonth(monthStr: string): string {
@@ -271,6 +272,17 @@
 				</div>
 				<p class="mt-1 truncate text-lg font-bold sm:text-xl">{statsData.mostListenedNewArtist.name}</p>
 				<p class="text-xs text-[var(--text-dim)]">{statsData.mostListenedNewArtist.plays.toLocaleString()} plays in {formatMonth(statsData.mostListenedNewArtist.month)}</p>
+			</div>
+		{/if}
+
+		{#if statsData.bestArtistDay}
+			<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
+				<div class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+					<Flame size={12} class="text-orange-400" />
+					Biggest single-artist day
+				</div>
+				<p class="mt-1 truncate text-lg font-bold sm:text-xl">{statsData.bestArtistDay.artist}</p>
+				<p class="text-xs text-[var(--text-dim)]">{statsData.bestArtistDay.count.toLocaleString()} plays — {formatDate(statsData.bestArtistDay.date)}</p>
 			</div>
 		{/if}
 	</div>
