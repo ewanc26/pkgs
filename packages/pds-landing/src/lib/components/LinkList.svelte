@@ -42,19 +42,34 @@
 		margin: 0;
 	}
 
+	.pds-link-list li {
+		display: flex;
+		align-items: baseline;
+		gap: 0.3em;
+	}
+
 	.pds-link-list li::before {
-		content: '› ';
+		content: '›';
 		color: var(--pds-color-green);
+		transition: transform 0.15s ease;
+	}
+
+	.pds-link-list li:has(a:hover)::before {
+		transform: translateX(0.15em);
 	}
 
 	.pds-link-list a {
 		text-decoration: none;
+		text-underline-offset: 3px;
 		color: var(--pds-color-green);
 		opacity: 0.85;
-		transition: opacity 0.15s;
+		transition:
+			opacity 0.15s,
+			color 0.15s;
 	}
 
 	.pds-link-list a:hover {
 		opacity: 1;
+		text-decoration: underline;
 	}
 </style>

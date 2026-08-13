@@ -33,7 +33,8 @@
 		border: 1px solid var(--pds-color-surface-1);
 		box-shadow:
 			0 0 0 1px color-mix(in srgb, var(--pds-color-green) 6%, transparent),
-			0 8px 32px color-mix(in srgb, var(--pds-color-shadow) 50%, transparent);
+			0 1px 0 0 color-mix(in srgb, var(--pds-color-green) 8%, transparent) inset,
+			0 24px 48px -20px color-mix(in srgb, var(--pds-color-shadow) 60%, transparent);
 	}
 
 	.pds-card-titlebar {
