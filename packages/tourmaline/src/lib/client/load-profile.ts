@@ -159,6 +159,9 @@ export function computeProfile(
     albumMilestones: data.albumMilestones,
     longestNotListenedGap: data.longestNotListenedGap,
     recommendations: buildRecommendations(data.topArtists, data.allArtists, artistInfos),
+    monthlyArtistPlays: [...data.monthlyArtistPlays.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, plays]) => [month, [...plays.entries()]]),
   };
 
   const sessions = deriveSessions(filtered);

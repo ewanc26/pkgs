@@ -137,6 +137,12 @@ export interface ListenerProfile {
   albumMilestones: Milestone[];
   longestNotListenedGap: Gap | null;
   recommendations: Recommendation[];
+  /**
+   * Chronologically ordered per-month artist play counts, serialized as
+   * tuples (Maps don't survive structured cloning the way we need for
+   * $state). Used by the bar-chart-race visualization.
+   */
+  monthlyArtistPlays: Array<[month: string, plays: Array<[artist: string, count: number]>]>;
 }
 
 export interface UnusualMonth {
