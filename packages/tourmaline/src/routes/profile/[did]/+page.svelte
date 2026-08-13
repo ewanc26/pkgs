@@ -37,6 +37,7 @@
 	import BiggestGaps from './BiggestGaps.svelte';
 	import CatalogueDepth from './CatalogueDepth.svelte';
 	import TopPeriods from './TopPeriods.svelte';
+	import LetterChart from './LetterChart.svelte';
 	import DateRangePicker from './DateRangePicker.svelte';
 	import ListeningPhases from './ListeningPhases.svelte';
 	import StoryRecap from './StoryRecap.svelte';
@@ -540,6 +541,13 @@
 			<ListeningCadence artists={profile.topArtistAvgDeltas} />
 			<BiggestGaps artistGaps={profile.topArtistGaps} trackGaps={profile.topTrackGaps} />
 			<CatalogueDepth artists={profile.topArtistsByTrackCount} />
+
+			{#if profile.allArtists.length > 0}
+				<div class="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
+					<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Artists by Starting Letter</h2>
+					<LetterChart names={profile.allArtists} />
+				</div>
+			{/if}
 
 			<!-- Top tracks + albums side by side -->
 			<div class="mb-6 grid gap-4 sm:mb-8 sm:gap-8 lg:grid-cols-2">
