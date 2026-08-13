@@ -5,6 +5,7 @@ Thumbs.db
 # Build output
 dist
 .svelte-kit
+target
 
 # Env
 .env
