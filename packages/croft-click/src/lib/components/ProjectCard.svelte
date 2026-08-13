@@ -23,14 +23,21 @@
 		border: 1px solid var(--border);
 		border-radius: 12px;
 		overflow: hidden;
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+			0 16px 32px -24px rgba(0, 0, 0, 0.5);
 		transition:
-			border-color 0.2s,
-			transform 0.15s;
+			border-color 0.2s ease,
+			transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+			box-shadow 0.2s ease;
 	}
 
 	.project-card:hover {
-		transform: translateY(-2px);
+		transform: translateY(-3px);
 		border-color: var(--accent);
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+			0 20px 36px -16px color-mix(in srgb, var(--accent) 22%, transparent);
 	}
 
 	/* ── preview (logo + name, links to project) ──────────────────────────── */

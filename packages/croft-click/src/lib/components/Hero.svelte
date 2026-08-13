@@ -6,8 +6,22 @@
 
 <style>
 	.hero {
+		position: relative;
 		text-align: center;
 		margin-bottom: 3rem;
+	}
+
+	.hero::before {
+		content: '';
+		position: absolute;
+		top: -4rem;
+		left: 50%;
+		width: min(760px, 140%);
+		height: 380px;
+		transform: translateX(-50%);
+		background: radial-gradient(ellipse 50% 50% at 50% 0%, var(--accent-glow), transparent 70%);
+		pointer-events: none;
+		z-index: -1;
 	}
 
 	.eyebrow {

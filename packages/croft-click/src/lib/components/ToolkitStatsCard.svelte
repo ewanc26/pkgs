@@ -127,7 +127,9 @@
 		border-radius: 12px;
 		padding: 1.25rem 1.5rem;
 		margin: 0 auto 3rem;
-		box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.5);
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+			0 20px 40px -20px rgba(0, 0, 0, 0.55);
 	}
 
 	.card-header {
