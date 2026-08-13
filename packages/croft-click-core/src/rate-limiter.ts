@@ -71,7 +71,7 @@ export class RateLimiter {
     if (this.state) {
       this.state.remaining = 0;
     } else {
-      this.state = { limit: 5000, remaining: 0, resetAt: now + 60, windowSeconds: 3600 };
+      this.state = { limit: 5000, remaining: 0, resetAt: now + 3600, windowSeconds: 3600 };
     }
   }
 

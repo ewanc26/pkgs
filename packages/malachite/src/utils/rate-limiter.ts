@@ -714,7 +714,7 @@ export class RateLimiter {
       this.writeState({
         limit: 5000,
         remaining: 0,
-        resetAt: now + 60,
+        resetAt: now + 3600,
         windowSeconds: 3600,
         updatedAt: now,
         headroomThreshold: this.headroomThreshold,
