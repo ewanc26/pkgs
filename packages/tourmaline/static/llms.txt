@@ -2,7 +2,7 @@
 
 > Analyse Teal.fm scrobble history and discover your listener personality.
 
-Tourmaline is a free, open-source scrobble analyser for Teal.fm (fm.teal.alpha.feed.play records on ATProto). It fetches scrobbles from a user's PDS, computes a listening profile, enriches artist data via MusicBrainz and Last.fm, and assigns a listener personality archetype. No sign-in is required to view a profile; OAuth is only used to share the personality card to Bluesky.
+Tourmaline is a free, open-source scrobble analyser for Teal.fm (fm.teal.feed.play and legacy fm.teal.alpha.feed.play records on ATProto). It fetches scrobbles from a user's PDS, computes a listening profile, enriches artist data via MusicBrainz and Last.fm, and assigns a listener personality archetype. No sign-in is required to view a profile; OAuth is only used to share the personality card to Bluesky.
 
 ## What's analysed
 
@@ -25,7 +25,7 @@ Tourmaline is a free, open-source scrobble analyser for Teal.fm (fm.teal.alpha.f
 ## How it works
 
 1. Handle or DID is resolved to a PDS URL via Slingshot.
-2. fm.teal.alpha.feed.play records are fetched page-by-page from the PDS.
+2. fm.teal.feed.play and legacy fm.teal.alpha.feed.play records are fetched and merged from the PDS via CAR export.
 3. Scrobbles are aggregated server-side into top artists/tracks/albums, genre profiles, mood mapping, era preference, diversity, and obscurity.
 4. Top artists are enriched with genre data (MusicBrainz), listener counts and images (Last.fm), and image fallback (Deezer).
 

@@ -8,7 +8,7 @@ AT Protocol scrobble analyser. Ingests Teal.fm scrobbles from any handle or DID,
 
 1. Enter a handle (e.g. `ewancroft.uk`) or DID (`did:plc:...` or `did:web:...`)
 2. Resolves identity via [Slingshot](https://slingshot.microcosm.blue) (handles → DIDs), then fetches the DID document for the PDS URL
-3. Fetches `fm.teal.alpha.feed.play` records from the user's PDS
+3. Fetches and merges `fm.teal.feed.play` and legacy `fm.teal.alpha.feed.play` records from the user's PDS via CAR export
 4. Aggregates play counts, timelines, and listening patterns
 5. Enriches artist data with MusicBrainz (genres), Last.fm (tags, similar artists), and Deezer (art, genres)
 6. Builds a listener profile: genre map, mood profile, diversity score, obscurity index, era preference, timeline heatmap

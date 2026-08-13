@@ -46,7 +46,7 @@
 				personally identifiable data beyond your handle is sent.
 			</li>
 			<li>
-				<strong>Your PDS</strong> — reads <code>fm.teal.alpha.feed.play</code> records from
+				<strong>Your PDS</strong> — reads <code>fm.teal.feed.play</code> and legacy <code>fm.teal.alpha.feed.play</code> records from
 				your Personal Data Server. Reading is unauthenticated. If you choose to share your
 				personality profile to Bluesky, Tourmaline will use OAuth to publish the post and will
 				also create a usage record in your repository via the
@@ -91,7 +91,7 @@
 				<div>
 					<strong>Fetch scrobbles</strong>
 					<p>
-						<code>fm.teal.alpha.feed.play</code> records are fetched page by page from your
+						<code>fm.teal.feed.play</code> and legacy <code>fm.teal.alpha.feed.play</code> records are fetched from your
 						PDS. Fetched in batches to stay within serverless function time limits.
 					</p>
 				</div>
@@ -137,7 +137,7 @@
 
 		<p class="flex items-center gap-1.5 text-sm text-[var(--text-muted)]">
 			<X size={16} />
-			<span><strong class="text-[var(--text)]">Not analysed:</strong> Private/hidden scrobbles. Only <code>fm.teal.alpha.feed.play</code> records visible on your PDS are read.</span>
+			<span><strong class="text-[var(--text)]">Not analysed:</strong> Private/hidden scrobbles. Only <code>fm.teal.feed.play</code> and legacy <code>fm.teal.alpha.feed.play</code> records visible on your PDS are read.</span>
 		</p>
 	</section>
 
