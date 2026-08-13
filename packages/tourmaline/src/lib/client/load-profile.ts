@@ -32,6 +32,7 @@ import { buildStoryRecap } from "$lib/analysis/story-recap";
 import { buildPersonality } from "$lib/analysis/personality";
 import { filterScrobbles, presetRange } from "$lib/analysis/date-range";
 import { topZScorePerMonth } from "$lib/analysis/zscore";
+import { buildRecommendations } from "$lib/analysis/recommendations";
 
 export type RangeKey = "all" | "7d" | "30d" | "90d" | "365d";
 export const RANGES: RangeKey[] = ["all", "7d", "30d", "90d", "365d"];
@@ -157,6 +158,7 @@ export function computeProfile(
     trackMilestones: data.trackMilestones,
     albumMilestones: data.albumMilestones,
     longestNotListenedGap: data.longestNotListenedGap,
+    recommendations: buildRecommendations(data.topArtists, data.allArtists, artistInfos),
   };
 
   const sessions = deriveSessions(filtered);

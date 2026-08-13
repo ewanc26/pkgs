@@ -1,4 +1,5 @@
 import type { ListeningPhase } from "$lib/analysis/phases";
+import type { Recommendation } from "$lib/analysis/recommendations";
 
 export interface TealScrobble {
   trackName: string;
@@ -135,6 +136,7 @@ export interface ListenerProfile {
   trackMilestones: Milestone[];
   albumMilestones: Milestone[];
   longestNotListenedGap: Gap | null;
+  recommendations: Recommendation[];
 }
 
 export interface UnusualMonth {
