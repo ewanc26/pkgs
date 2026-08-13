@@ -1,9 +1,8 @@
-import { TEAL_LEXICON } from "@ewanc26/utils";
+import { TEAL_LEXICON, TEAL_LEGACY_LEXICON } from "@ewanc26/utils";
 import { fetchRepoViaCAR } from "@ewanc26/croft-click-core";
 import type { TealScrobble } from "$lib/types";
 
-const STABLE_TEAL_LEXICON = "fm.teal.feed.play";
-const TEAL_LEXICONS = [TEAL_LEXICON, STABLE_TEAL_LEXICON] as const;
+const TEAL_LEXICONS = [TEAL_LEGACY_LEXICON, TEAL_LEXICON] as const;
 
 /**
  * Safely parse a playedTime value from an ATProto record.
@@ -55,7 +54,7 @@ function deduplicationKey(record: { rkey: string; value: unknown }): string {
     record.value && typeof record.value === "object"
       ? {
           ...(record.value as Record<string, unknown>),
-          $type: STABLE_TEAL_LEXICON,
+          $type: TEAL_LEXICON,
         }
       : record.value;
 
@@ -122,7 +121,7 @@ export async function fetchScrobbleBatch(
   for (const record of records) {
     const key = deduplicationKey(record);
     const previous = uniqueRecords.get(key);
-    if (!previous || record.uri.includes(`/${STABLE_TEAL_LEXICON}/`)) {
+    if (!previous || record.uri.includes(`/${TEAL_LEXICON}/`)) {
       uniqueRecords.set(key, record);
     }
   }

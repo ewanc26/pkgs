@@ -211,7 +211,7 @@
 			</li>
 			<li>
 				<a href="https://teal.fm" target="_blank" rel="noopener">Teal</a>
-				— the <code>fm.teal.alpha</code> lexicon this tool reads from
+				— the <code>fm.teal.feed.play</code> lexicon this tool reads from
 			</li>
 			<li>
 				<a href="https://musicbrainz.org" target="_blank" rel="noopener">MusicBrainz</a>

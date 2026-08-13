@@ -52,7 +52,7 @@
 					<div class="mb-4 flex items-center gap-2">
 						<Music class="h-4 w-4 text-primary-600 dark:text-primary-400" aria-hidden="true" />
 						<span class="text-xs font-semibold tracking-wide text-ink-800 uppercase dark:text-ink-100">
-							{s.$type === 'fm.teal.alpha.actor.status' ? 'Now Listening' : 'Last Played'}
+							{s.$type.endsWith('actor.status') ? 'Now Listening' : 'Last Played'}
 						</span>
 					</div>
 					<div class="flex items-start gap-3">
