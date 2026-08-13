@@ -51,6 +51,7 @@
 	import HabitsTab from './HabitsTab.svelte';
 	import CatalogueTab from './CatalogueTab.svelte';
 	import PunchcardHeatmap from './PunchcardHeatmap.svelte';
+	import Dataset from './Dataset.svelte';
 	import EddingtonChart from './EddingtonChart.svelte';
 	import Recommendations from './Recommendations.svelte';
 	import TrackPreview from '$lib/components/TrackPreview.svelte';
@@ -527,6 +528,15 @@
 
 		<!-- ── Catalogue tab ─────────────────────────────── -->
 		{:else if activeTab === 'catalogue'}
+			<Dataset
+				topArtists={profile.topArtists}
+				topTracks={profile.topTracks}
+				topAlbums={profile.topAlbums}
+				artistRankHistory={profile.artistRankHistory}
+				topArtistsByWeeksActive={profile.topArtistsByWeeksActive}
+				monthlyArtistPlays={profile.monthlyArtistPlays}
+			/>
+
 			<!-- Top artists -->
 			<div class="mb-6 overflow-hidden rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:mb-8 sm:p-4">
 				<div class="mb-3 flex items-center justify-between sm:mb-4">
