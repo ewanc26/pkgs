@@ -39,6 +39,7 @@
 	import TopPeriods from './TopPeriods.svelte';
 	import LetterChart from './LetterChart.svelte';
 	import GoldenOldies from './GoldenOldies.svelte';
+	import RankMovers from './RankMovers.svelte';
 	import DateRangePicker from './DateRangePicker.svelte';
 	import ListeningPhases from './ListeningPhases.svelte';
 	import StoryRecap from './StoryRecap.svelte';
@@ -551,6 +552,7 @@
 			{/if}
 
 			<GoldenOldies goldenOldies={profile.goldenOldieArtists} latestDiscoveries={profile.latestDiscoveryArtists} />
+			<RankMovers climbers={profile.biggestClimbers} fallers={profile.biggestFallers} />
 
 			<!-- Top tracks + albums side by side -->
 			<div class="mb-6 grid gap-4 sm:mb-8 sm:gap-8 lg:grid-cols-2">
