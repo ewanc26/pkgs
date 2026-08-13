@@ -39,6 +39,7 @@
 	import PunchcardHeatmap from './PunchcardHeatmap.svelte';
 	import EddingtonChart from './EddingtonChart.svelte';
 	import Recommendations from './Recommendations.svelte';
+	import TrackPreview from '$lib/components/TrackPreview.svelte';
 
 	function noiseAvatar(canvas: HTMLCanvasElement, seed: string) {
 		renderNoiseAvatar(canvas, seed, { displaySize: 32, gridSize: 5 });
@@ -453,6 +454,7 @@
 						{#each profile.topTracks.slice(0, 25) as track, i (i)}
 							<li class="flex items-center gap-2 overflow-hidden sm:gap-3">
 								<span class="w-5 shrink-0 text-right text-xs text-[var(--text-muted)] sm:w-6 sm:text-sm">{i + 1}</span>
+								<TrackPreview track={track.name} artist={track.artist} />
 								<span class="min-w-0 shrink truncate">
 									<span class="font-medium">{track.name}</span>
 									<span class="text-xs text-[var(--text-muted)] sm:text-sm"> — {track.artist}</span>

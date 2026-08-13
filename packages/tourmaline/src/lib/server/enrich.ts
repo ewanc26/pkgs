@@ -214,6 +214,56 @@ async function dzGetArtistImage(name: string): Promise<string | null> {
   return artist?.picture_medium ?? null;
 }
 
+interface DeezerTrack {
+  id: number;
+  title: string;
+  preview?: string;
+  artist?: { name: string };
+}
+
+interface DeezerTrackSearchResult {
+  data: DeezerTrack[];
+  total: number;
+}
+
+// Separate small cache — track previews are looked up individually (on
+// demand, per play button) rather than as part of the batch artist
+// enrichment flow, so they get their own namespace and shorter TTL (preview
+// URLs are Deezer CDN links that can rotate).
+const PREVIEW_CACHE_TTL = 24 * 60 * 60 * 1000;
+const previewCache = new Map<string, { url: string | null; exp: number }>();
+
+/**
+ * Look up a 30-second preview clip for a track via Deezer's public search
+ * API (no auth, same as the existing artist-image lookup). Returns null if
+ * no match is found or Deezer has no preview for it.
+ */
+export async function dzSearchTrackPreview(
+  track: string,
+  artist: string,
+): Promise<string | null> {
+  const key = `${track.toLowerCase()}|||${artist.toLowerCase()}`;
+  const cached = previewCache.get(key);
+  if (cached && Date.now() < cached.exp) return cached.url;
+
+  const query = `track:"${track}" artist:"${artist}"`;
+  const url = `${DZ_BASE}/search/track?q=${encodeURIComponent(query)}&limit=1`;
+
+  let previewUrl: string | null = null;
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const data: DeezerTrackSearchResult = await res.json();
+      previewUrl = data.data?.[0]?.preview ?? null;
+    }
+  } catch (err) {
+    console.warn(`[tourmaline] dzSearchTrackPreview: error for ${track} — ${artist}:`, err);
+  }
+
+  previewCache.set(key, { url: previewUrl, exp: Date.now() + PREVIEW_CACHE_TTL });
+  return previewUrl;
+}
+
 // ── Public API ────────────────────────────────────────────────────────
 
 export interface EnrichBatchResult {
