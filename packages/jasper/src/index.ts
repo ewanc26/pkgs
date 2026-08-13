@@ -13,7 +13,7 @@ import {
 import chalk from "chalk";
 import { log, setGlobalLogger, Logger } from "./utils/logger.js";
 import * as ui from "./utils/ui.js";
-import { prompt, confirm, select } from "./utils/input.js";
+import { prompt, confirm, select, isNonInteractive } from "./utils/input.js";
 import {
   isZipFile,
   parseExport,
@@ -153,6 +153,9 @@ async function runImport(options: {
   password?: string;
   dailyLimit?: number;
   resume?: boolean;
+  gallery?: string;
+  galleryTitle?: string;
+  galleryDescription?: string;
 }): Promise<void> {
   const targetConfig = TARGET_CONFIGS[options.target];
   ui.header(
@@ -360,56 +363,104 @@ async function runImport(options: {
       ui.succeedSpinner(`Found ${existingGalleries.length} galleries`);
       log.blank();
 
-      const galleryOptions = [
-        "Create new gallery",
-        ...existingGalleries.map(
-          (g) => `${g.title} (${new Date(g.createdAt).toLocaleDateString()})`,
-        ),
-      ];
-
-      const choice = await select(
-        "Select gallery for import:",
-        galleryOptions,
-        0,
-      );
-
-      if (choice === 0) {
-        // Create new gallery
-        const defaultTitle = `Instagram Import — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
-        log.info(`Default title: ${defaultTitle}`);
-        const titleInput = await prompt(
-          `Gallery title (press Enter for default): `,
-        );
-        const title = titleInput || defaultTitle;
-        const addDescription = await confirm("Add description?", false);
-        const description = addDescription
-          ? await prompt("Description: ")
-          : undefined;
-
+      if (options.gallery) {
+        // --gallery <atUri>: use directly, no prompt/select required
+        const match = existingGalleries.find((g) => g.uri === options.gallery);
+        if (!match) {
+          log.error(`Gallery not found: ${options.gallery}`);
+          log.error(
+            existingGalleries.length > 0
+              ? `Existing galleries: ${existingGalleries.map((g) => g.uri).join(", ")}`
+              : "You have no existing galleries — omit --gallery to create one.",
+          );
+          process.exit(1);
+        }
+        galleryUri = match!.uri;
+        galleryTitle = match!.title;
+        log.info(`Using gallery: ${galleryTitle}`);
+        log.blank();
+      } else if (isNonInteractive()) {
+        if (!options.galleryTitle) {
+          log.error(
+            "Non-interactive mode: no gallery specified for this Grain import.",
+          );
+          log.error(
+            "Pass --gallery <atUri> to use an existing gallery, or --gallery-title <text> " +
+              "[--gallery-description <text>] to create a new one.",
+          );
+          log.error(
+            existingGalleries.length > 0
+              ? `Existing galleries: ${existingGalleries.map((g) => g.uri).join(", ")}`
+              : "You have no existing galleries.",
+          );
+          process.exit(1);
+        }
         log.progress("Creating gallery...");
         const result = await publisher.createGallery(
-          title || defaultTitle,
-          description,
+          options.galleryTitle,
+          options.galleryDescription,
         );
         if (result.success && result.uri) {
           galleryUri = result.uri;
-          galleryTitle = title || defaultTitle;
+          galleryTitle = options.galleryTitle;
           ui.succeedSpinner(`Created gallery: ${galleryTitle}`);
         } else {
           log.error(`Failed to create gallery: ${result.error}`);
           process.exit(1);
         }
+        log.blank();
       } else {
-        // Use existing gallery
-        galleryUri = existingGalleries[choice - 1]?.uri;
-        galleryTitle = existingGalleries[choice - 1]?.title;
-        if (!galleryUri) {
-          log.error("Invalid gallery selection");
-          process.exit(1);
+        const galleryOptions = [
+          "Create new gallery",
+          ...existingGalleries.map(
+            (g) => `${g.title} (${new Date(g.createdAt).toLocaleDateString()})`,
+          ),
+        ];
+
+        const choice = await select(
+          "Select gallery for import:",
+          galleryOptions,
+          0,
+        );
+
+        if (choice === 0) {
+          // Create new gallery
+          const defaultTitle = `Instagram Import — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+          log.info(`Default title: ${defaultTitle}`);
+          const titleInput = await prompt(
+            `Gallery title (press Enter for default): `,
+          );
+          const title = titleInput || defaultTitle;
+          const addDescription = await confirm("Add description?", false);
+          const description = addDescription
+            ? await prompt("Description: ")
+            : undefined;
+
+          log.progress("Creating gallery...");
+          const result = await publisher.createGallery(
+            title || defaultTitle,
+            description,
+          );
+          if (result.success && result.uri) {
+            galleryUri = result.uri;
+            galleryTitle = title || defaultTitle;
+            ui.succeedSpinner(`Created gallery: ${galleryTitle}`);
+          } else {
+            log.error(`Failed to create gallery: ${result.error}`);
+            process.exit(1);
+          }
+        } else {
+          // Use existing gallery
+          galleryUri = existingGalleries[choice - 1]?.uri;
+          galleryTitle = existingGalleries[choice - 1]?.title;
+          if (!galleryUri) {
+            log.error("Invalid gallery selection");
+            process.exit(1);
+          }
+          log.info(`Using gallery: ${galleryTitle}`);
         }
-        log.info(`Using gallery: ${galleryTitle}`);
+        log.blank();
       }
-      log.blank();
     }
   }
 
@@ -918,11 +969,27 @@ export async function main(): Promise<void> {
     }
     log.blank();
 
-    const choice = await prompt("Which import to resume? (number): ");
-    const index = parseInt(choice, 10) - 1;
-    if (index < 0 || index >= states.length) {
-      log.error("Invalid selection");
+    let index: number;
+    if (args.session !== undefined) {
+      index = args.session - 1;
+      if (index < 0 || index >= states.length) {
+        log.error(
+          `Invalid --session ${args.session}. There are ${states.length} pending session(s) (1-${states.length}).`,
+        );
+        process.exit(1);
+      }
+    } else if (isNonInteractive()) {
+      log.error(
+        `Multiple pending import sessions found (${states.length}). --session <n> is required to pick one in non-interactive mode (see the list above).`,
+      );
       process.exit(1);
+    } else {
+      const choice = await prompt("Which import to resume? (number): ");
+      index = parseInt(choice, 10) - 1;
+      if (index < 0 || index >= states.length) {
+        log.error("Invalid selection");
+        process.exit(1);
+      }
     }
 
     await runImport({
@@ -959,6 +1026,18 @@ export async function main(): Promise<void> {
       target: options.target || "grain",
     });
     return;
+  }
+
+  // No input provided
+  if (isNonInteractive()) {
+    log.error(
+      "No arguments provided and running non-interactively (CI, no TTY, or --non-interactive).",
+    );
+    log.error(
+      "Provide -i/--input <path>, or one of --oauth-login / --list-sessions / --resume.",
+    );
+    log.error("Run `jasper --help` for full usage.");
+    process.exit(1);
   }
 
   // No input provided — run interactive mode

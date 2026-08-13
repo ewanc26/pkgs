@@ -18,6 +18,7 @@ interface CliArgs extends Partial<ConvertOptions> {
   help?: boolean;
   handle?: string;
   password?: string;
+  nonInteractive?: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -33,6 +34,10 @@ function parseArgs(argv: string[]): CliArgs {
     }
     if (arg === '--publish') {
       opts.publish = true;
+      continue;
+    }
+    if (arg === '--non-interactive') {
+      opts.nonInteractive = true; // accepted for wrapper-script consistency; opal has no prompts
       continue;
     }
     if (arg.startsWith('--') && i + 1 < argv.length) {
@@ -64,6 +69,7 @@ Options:
   --handle <handle>     AT Protocol handle or DID (required for --publish)
   --password <password> App password (required for --publish)
   --dry-run             Show what would be published without publishing
+  --non-interactive     No-op — accepted for consistency with other pkgs CLIs
   -h, --help            Show this help message
 
 Examples:

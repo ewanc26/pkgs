@@ -16,11 +16,32 @@ function createReadlineInterface(): readline.Interface {
 }
 
 /**
+ * True when jasper should never block on stdin: explicit --non-interactive,
+ * a CI environment, or stdin isn't a TTY (piped/redirected/no terminal).
+ */
+export function isNonInteractive(): boolean {
+  return (
+    process.argv.includes("--non-interactive") ||
+    Boolean(process.env.CI) ||
+    !process.stdin.isTTY
+  );
+}
+
+/**
  * Prompt user for input
  * @param message The prompt message
  * @param hidden Whether to hide the input (for passwords)
  */
 export async function prompt(message: string, hidden = false): Promise<string> {
+  if (isNonInteractive()) {
+    console.error(
+      `jasper: refusing to prompt in non-interactive mode: "${message.trim()}"`,
+    );
+    console.error(
+      "Pass the required flag(s) explicitly, or run jasper --help for usage.",
+    );
+    process.exit(1);
+  }
   return new Promise((resolve) => {
     const rl = createReadlineInterface();
 

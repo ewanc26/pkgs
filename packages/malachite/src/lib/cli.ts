@@ -18,7 +18,7 @@ import { parseYouTubeMusicJson, convertYouTubeMusicToPlayRecord } from '../lib/y
 import { parseListenBrainzJson, convertListenBrainzToPlayRecord } from '../lib/listenbrainz.js';
 import { parseCombinedExports } from '../lib/merge.js';
 import { publishRecordsWithApplyWrites } from './publisher.js';
-import { prompt, confirm, promptWithValidation, validateFilePath } from '../utils/input.js';
+import { prompt, confirm, promptWithValidation, validateFilePath, isNonInteractive } from '../utils/input.js';
 import { sortRecords } from '../utils/helpers.js';
 import config, { VERSION, RECORD_TYPE, LEGACY_RECORD_TYPE } from '../config.js';
 import { fetchExistingRecords, filterNewRecords, displaySyncStats, removeDuplicates, deduplicateInputRecords } from './sync.js';
@@ -102,6 +102,7 @@ ${'\x1b[1m'}OUTPUT:${'\x1b[0m'}
   -v, --verbose                  Enable verbose logging (debug level)
   -q, --quiet                    Suppress non-essential output
   --dev                          Development mode (verbose + file logging + smaller batches)
+  --non-interactive              Fail fast instead of prompting (auto-detected in CI / no TTY)
   --help                         Show this help message
 
 ${'\x1b[1m'}EXAMPLES:${'\x1b[0m'}
@@ -184,6 +185,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
     verbose: { type: 'boolean', short: 'v', default: false },
     quiet: { type: 'boolean', short: 'q', default: false },
     dev: { type: 'boolean', default: false },
+    'non-interactive': { type: 'boolean', default: false },
     file: { type: 'string', short: 'f' },
     'spotify-file': { type: 'string' },
     identifier: { type: 'string' },
@@ -222,6 +224,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
       verbose: values.verbose,
       quiet: values.quiet,
       dev: values.dev,
+      'non-interactive': values['non-interactive'],
     };
 
     if (values.mode) {
@@ -544,7 +547,7 @@ export async function runCLI(): Promise<void> {
     
     // Check if running with no arguments (interactive mode)
     // Modifier flags like --dry-run, --verbose, --yes, etc. don't count as "real" arguments
-    const modifierFlags = ['dry-run', 'verbose', 'quiet', 'yes', 'reverse', 'aggressive', 'fresh', 'dev'];
+    const modifierFlags = ['dry-run', 'verbose', 'quiet', 'yes', 'reverse', 'aggressive', 'fresh', 'dev', 'non-interactive'];
     const hasSubstantiveArgs = Object.keys(args).some(key => {
       const value = args[key as keyof CommandLineArgs];
       // Skip undefined, false values, and default mode
@@ -559,6 +562,12 @@ export async function runCLI(): Promise<void> {
     });
     
     if (!hasSubstantiveArgs) {
+      if (isNonInteractive()) {
+        console.error('malachite: no arguments provided and running non-interactively (CI, no TTY, or --non-interactive).');
+        console.error('Provide -m/--mode and -i/--input (or --spotify-input etc.), or --oauth-login / --list-sessions.');
+        console.error('Run malachite --help for full usage.');
+        process.exit(1);
+      }
       // No substantive arguments provided - run interactive mode
       args = await runInteractiveMode();
     }
@@ -717,6 +726,9 @@ export async function runCLI(): Promise<void> {
         log.warn(`This will permanently delete ${result.totalDuplicates} duplicate records from Teal.`);
         log.info('The first occurrence of each duplicate will be kept.');
         log.blank();
+        if (isNonInteractive()) {
+          throw new Error('Deduplicate mode requires confirmation. Pass -y/--yes to proceed, or run interactively.');
+        }
         const answer = await prompt('Are you sure you want to continue? (y/N) ');
         if (answer.toLowerCase() !== 'y') {
           log.info('Duplicate removal cancelled by user.');
@@ -779,6 +791,9 @@ export async function runCLI(): Promise<void> {
         log.warn(`This will backfill ${plan.toBackfill.length.toLocaleString()} record(s) into ${RECORD_TYPE}`);
         log.warn(`and permanently delete ${plan.legacyTotal.toLocaleString()} legacy ${LEGACY_RECORD_TYPE} record(s).`);
         log.blank();
+        if (isNonInteractive()) {
+          throw new Error('Polish mode requires confirmation. Pass -y/--yes to proceed, or run interactively.');
+        }
         const answer = await prompt('Are you sure you want to continue? (y/N) ');
         if (answer.toLowerCase() !== 'y') {
           log.info('Migration cancelled by user.');
@@ -966,6 +981,9 @@ export async function runCLI(): Promise<void> {
         if (importState && !importState.completed) {
           displayResumeInfo(importState);
           if (!args.yes) {
+            if (isNonInteractive()) {
+              throw new Error('Resuming a previous import requires confirmation. Pass -y/--yes to auto-resume, or --fresh to start over.');
+            }
             const answer = await prompt('Resume from previous import? (Y/n) ');
             if (answer.toLowerCase() === 'n') {
               importState = null;
@@ -993,6 +1011,9 @@ export async function runCLI(): Promise<void> {
       const modeLabel = mode === 'combined' ? 'merged' : mode === 'sync' ? 'new' : '';
       const skippedInfo = mode === 'sync' ? ` (${rawRecordCount - totalRecords} skipped)` : '';
       log.raw(`Ready to publish ${totalRecords.toLocaleString()} ${modeLabel} records${skippedInfo}`);
+      if (isNonInteractive()) {
+        throw new Error('Publishing requires confirmation. Pass -y/--yes to proceed, or run interactively.');
+      }
       const answer = await prompt('Continue? (y/N) ');
       if (answer.toLowerCase() !== 'y') {
         log.info('Cancelled by user.');

@@ -68,6 +68,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       output: { type: 'string', short: 'o' },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', default: false },
+      'non-interactive': { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: true,
@@ -92,6 +93,12 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       die(`Cannot read file "${filePath}": ${String(err)}`)
     }) as string
   } else {
+    if (process.stdin.isTTY) {
+      die(
+        'No input file given and stdin is an interactive terminal — refusing to wait for input.\n' +
+        'Pass a file path (bismuth doc.json) or pipe JSON via stdin (cat doc.json | bismuth).',
+      )
+    }
     raw = await readStdin()
   }
 
@@ -163,6 +170,7 @@ async function fetchCommand(argv: string[]): Promise<void> {
       'no-frontmatter': { type: 'boolean', default: false },
       pds: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
+      'non-interactive': { type: 'boolean', default: false },
     },
     allowPositionals: false,
     strict: true,
@@ -265,7 +273,9 @@ Commands:
   fetch              Fetch all documents in a publication.
 
 Arguments:
-  file               JSON file to read. Reads stdin if omitted.
+  file               JSON file to read. Reads stdin if omitted (errors
+                     immediately, instead of hanging, if stdin is an
+                     interactive terminal with nothing piped to it).
 
 Options:
   -f, --frontmatter     Emit YAML front matter from document metadata.
@@ -274,6 +284,8 @@ Options:
   -o, --output FILE     Write output to FILE instead of stdout.
   -h, --help            Show this help text and exit.
       --version          Print version and exit.
+      --non-interactive  Accepted for consistency with other pkgs CLIs;
+                          bismuth never prompts, so this is a no-op.
 
 Examples:
   # Convert a Standard.site document, with front matter
@@ -310,6 +322,8 @@ Options:
       --no-frontmatter      Omit YAML front matter from output files.
       --pds URL             Override the auto-resolved PDS endpoint.
   -h, --help                Show this help text and exit.
+      --non-interactive     Accepted for consistency with other pkgs CLIs;
+                             fetch never prompts, so this is a no-op.
 
 Examples:
   # Fetch all documents from a publication

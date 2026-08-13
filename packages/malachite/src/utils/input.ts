@@ -4,6 +4,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
+ * True when malachite should never block on stdin: explicit --non-interactive,
+ * a CI environment, or stdin isn't a TTY (piped/redirected/no terminal).
+ */
+export function isNonInteractive(): boolean {
+  return (
+    process.argv.includes('--non-interactive') ||
+    Boolean(process.env.CI) ||
+    !process.stdin.isTTY
+  );
+}
+
+/**
  * Validate if a file or directory exists
  */
 export function fileExists(filepath: string): boolean {
@@ -155,6 +167,11 @@ export async function confirm(question: string, defaultYes = false): Promise<boo
  * Read user input from command line with proper password masking
  */
 export function prompt(question: string, hideInput = false): Promise<string> {
+  if (isNonInteractive()) {
+    console.error(`malachite: refusing to prompt in non-interactive mode: "${question.trim()}"`);
+    console.error('Pass the required flag(s) explicitly, or run malachite --help for usage.');
+    process.exit(1);
+  }
   return new Promise((resolve) => {
     if (hideInput) {
       // For password input, use raw mode
