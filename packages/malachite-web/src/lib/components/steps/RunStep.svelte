@@ -37,10 +37,12 @@
   };
 
   const isDedup = $derived(mode === 'deduplicate');
+  const isPolish = $derived(mode === 'polish');
 
   // Human-readable verb for the current mode.
   const verb = $derived(
     mode === 'deduplicate' ? 'Deduplicating'
+    : mode === 'polish'    ? 'Polishing'
     : mode === 'sync'      ? 'Syncing'
     : 'Importing'
   );
@@ -170,6 +172,8 @@
         <p class="result-detail">
           {#if isDedup}
             {result.success.toLocaleString()} duplicate(s) removed before stopping.
+          {:else if isPolish}
+            {result.success.toLocaleString()} legacy scrobble(s) migrated before stopping.
           {:else}
             {result.success.toLocaleString()} record(s) published before stopping.
           {/if}
@@ -181,6 +185,11 @@
             {result.success.toLocaleString()} duplicate(s) would be removed.
           {:else if isDedup}
             {result.success.toLocaleString()} duplicate(s) removed.
+          {:else if isPolish && dryRun}
+            {result.success.toLocaleString()} legacy scrobble(s) would be migrated.
+          {:else if isPolish}
+            {result.success.toLocaleString()} legacy scrobble(s) migrated.
+            {#if result.errors > 0}&nbsp;{result.errors} failed.{/if}
           {:else if dryRun}
             {result.success.toLocaleString()} record(s) would be imported.
           {:else}

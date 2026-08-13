@@ -91,7 +91,7 @@
 	}
 
 	function handleBack() {
-		if (step === 3 && mode === 'deduplicate') {
+		if (step === 3 && (mode === 'deduplicate' || mode === 'polish')) {
 			goTo(1);
 			return;
 		}
@@ -157,7 +157,15 @@
 			savedImportState = null;
 
 			const n = result.success.toLocaleString();
-			if (mode === 'deduplicate') {
+			if (mode === 'polish') {
+				if (result.cancelled) addLog('warn', `Stopped. ${n} legacy scrobble(s) migrated.`);
+				else if (dryRun)
+					addLog('success', `Dry run complete — ${n} legacy scrobble(s) would be migrated.`);
+				else {
+					addLog('success', `Polish complete! ${n} legacy scrobble(s) migrated.`);
+					if (result.errors > 0) addLog('warn', `${result.errors} record(s) failed.`);
+				}
+			} else if (mode === 'deduplicate') {
 				if (result.cancelled) addLog('warn', `Stopped. ${n} duplicate(s) removed.`);
 				else if (dryRun)
 					addLog('success', `Dry run complete — ${n} duplicate(s) would be removed.`);

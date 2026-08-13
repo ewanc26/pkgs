@@ -12,7 +12,7 @@
         },
         "mode": {
           "type": "string",
-          "description": "The import mode used (e.g. 'lastfm', 'spotify', 'combined', 'deduplicate')."
+          "description": "The import mode used (e.g. 'lastfm', 'spotify', 'combined', 'sync', 'deduplicate', 'polish')."
         }
       }
     }

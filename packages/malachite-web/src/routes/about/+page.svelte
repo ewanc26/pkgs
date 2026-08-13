@@ -119,6 +119,9 @@ pnpm start -i lastfm.csv -m sync -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx -y
 # Remove duplicates from your Teal feed
 pnpm start -m deduplicate -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx
 
+# Migrate legacy fm.teal.alpha scrobbles into fm.teal.feed.play
+pnpm start -m polish -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx
+
 # Preview without publishing
 pnpm start -i lastfm.csv --dry-run</code></pre>
     </div>
@@ -131,7 +134,7 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
       <div class="flag-row"><code>-i &lt;path&gt;</code><span>Input file or directory</span></div>
       <div class="flag-row"><code>-h &lt;handle&gt;</code><span>ATProto handle or DID</span></div>
       <div class="flag-row"><code>-p &lt;password&gt;</code><span>App password (not your main password)</span></div>
-      <div class="flag-row"><code>-m &lt;mode&gt;</code><span><code>lastfm</code> · <code>spotify</code> · <code>combined</code> · <code>sync</code> · <code>deduplicate</code></span></div>
+      <div class="flag-row"><code>-m &lt;mode&gt;</code><span><code>lastfm</code> · <code>spotify</code> · <code>combined</code> · <code>sync</code> · <code>deduplicate</code> · <code>polish</code></span></div>
       <div class="flag-row"><code>-y</code><span>Skip confirmation prompts</span></div>
       <div class="flag-row"><code>--dry-run</code><span>Preview without writing records</span></div>
       <div class="flag-row"><code>-v</code><span>Verbose / debug output</span></div>

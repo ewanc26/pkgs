@@ -21,13 +21,20 @@
 
 <section class="card-section">
   <button class="back-btn inline-flex items-center gap-1" onclick={onback}><ArrowLeft size={13} /> Back</button>
-  <h2 class="section-title">{mode === 'deduplicate' ? 'Deduplication options' : 'Import options'}</h2>
+  <h2 class="section-title">{mode === 'deduplicate' ? 'Deduplication options' : mode === 'polish' ? 'Polish options' : 'Import options'}</h2>
+
+  {#if mode === 'polish'}
+    <div class="alert alert-info polish-note">
+      Polish migrates legacy <code>fm.teal.alpha.feed.play</code> scrobbles into the production
+      <code>fm.teal.feed.play</code> collection, then removes the legacy copies. No files needed.
+    </div>
+  {/if}
 
   <div class="options">
     <div class="option-row">
       <div class="option-info">
         <span class="option-name">Dry run</span>
-        <span class="option-desc">{mode === 'deduplicate' ? 'Preview duplicates that would be removed without making changes' : 'Preview what would be imported without making changes'}</span>
+        <span class="option-desc">{mode === 'deduplicate' ? 'Preview duplicates that would be removed without making changes' : mode === 'polish' ? 'Preview the migration without making changes' : 'Preview what would be imported without making changes'}</span>
       </div>
       <button
         class="toggle"
@@ -41,7 +48,7 @@
       </button>
     </div>
 
-    {#if mode !== 'deduplicate'}
+    {#if mode !== 'deduplicate' && mode !== 'polish'}
       <div class="option-row">
         <div class="option-info">
           <span class="option-name">Reverse order</span>
@@ -86,6 +93,8 @@
   <button class="btn-primary inline-flex items-center gap-1" onclick={onstartimport}>
     {#if mode === 'deduplicate'}
       {dryRun ? 'Preview duplicates' : 'Start deduplication'}
+    {:else if mode === 'polish'}
+      {dryRun ? 'Preview polish' : 'Start polish'}
     {:else}
       {dryRun ? 'Preview import' : 'Start import'}
     {/if}
@@ -141,4 +150,11 @@
   }
 
   .toggle.on .toggle-thumb { transform: translateX(18px); background: #000; }
+
+  .polish-note { margin-bottom: 0.5rem; }
+  .polish-note code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78em;
+    color: var(--accent);
+  }
 </style>
