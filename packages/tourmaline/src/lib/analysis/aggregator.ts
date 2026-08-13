@@ -337,10 +337,13 @@ export class Aggregator {
       yearCounts.set(year, (yearCounts.get(year) ?? 0) + count);
     }
     const sortedYears = [...yearCounts.entries()].sort((a, b) => b[1] - a[1]);
-    const mostPopularYear = sortedYears[0] ?? { year: "N/A", count: 0 };
+    // Fallback must match the [key, count] tuple shape below — an object
+    // literal here would silently index to `undefined` via [0]/[1] on
+    // empty data (e.g. a date-range filter with zero matching scrobbles).
+    const mostPopularYear = sortedYears[0] ?? ["N/A", 0];
     const mostPopularMonth = [...this.monthlyCounts.entries()].sort(
       (a, b) => b[1] - a[1],
-    )[0] ?? { month: "N/A", count: 0 };
+    )[0] ?? ["N/A", 0];
 
     const scrobbleStreaks = calcScrobbleStreaks(this.dailyCounts);
     const longestScrobbleStreak = scrobbleStreaks[0] ?? null;
