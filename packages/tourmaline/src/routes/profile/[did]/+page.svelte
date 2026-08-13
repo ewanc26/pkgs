@@ -38,6 +38,7 @@
 	import CatalogueTab from './CatalogueTab.svelte';
 	import PunchcardHeatmap from './PunchcardHeatmap.svelte';
 	import EddingtonChart from './EddingtonChart.svelte';
+	import Recommendations from './Recommendations.svelte';
 
 	function noiseAvatar(canvas: HTMLCanvasElement, seed: string) {
 		renderNoiseAvatar(canvas, seed, { displaySize: 32, gridSize: 5 });
@@ -158,8 +159,8 @@
 		</div>
 	</header>
 
-	<!-- ── Loading state ──────────────────────────────────────────────────── -->
-	{#if phase !== 'complete' && phase !== 'error'}
+	<!-- ── Loading state (before any profile exists yet) ────────────────────── -->
+	{#if phase === 'fetching' || phase === 'idle'}
 		<div class="mb-8 grid gap-4">
 			<!-- Fetching/Processing Card -->
 			<div class="overflow-hidden rounded border border-[var(--border)] bg-[var(--surface)]">
@@ -167,26 +168,28 @@
 					<div class="flex items-center gap-3">
 						<Loader2 size={16} class="shrink-0 animate-spin text-[var(--accent)]" />
 						<div class="min-w-0">
-							<p class="text-sm font-medium text-[var(--text)]">
-                                {phase === 'fetching' ? 'Fetching scrobbles' : phase === 'computing' ? 'Computing profile' : 'Enriching artist data…'}
-                            </p>
-							<p class="mt-0.5 text-xs text-[var(--text-dim)]">
-								{phase === 'fetching' ? `${loaded.toLocaleString()} loaded` : 'This may take a moment…'}
-							</p>
+							<p class="text-sm font-medium text-[var(--text)]">Fetching scrobbles</p>
+							<p class="mt-0.5 text-xs text-[var(--text-dim)]">{loaded.toLocaleString()} loaded</p>
 						</div>
 					</div>
 					<div class="mt-3.5 h-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
-					 {#if phase === 'enriching' && enrichProgress.total > 0}
-					<div
-					 class="h-full rounded-full bg-[var(--accent-dim)] transition-[width] duration-300"
-					 style="width: {(enrichProgress.current / enrichProgress.total) * 100}%"
-					 ></div>
-					 {:else}
-					 <div class="h-full w-1/3 animate-indeterminate rounded-full bg-[var(--accent-dim)]"></div>
-					 {/if}
-					 </div>
+						<div class="h-full w-1/3 animate-indeterminate rounded-full bg-[var(--accent-dim)]"></div>
 					</div>
+				</div>
 			</div>
+		</div>
+	{/if}
+
+	<!-- ── Background-fill banner: profile is already shown below (with skeleton
+	     placeholders growing into real data), this just surfaces progress ──── -->
+	{#if (phase === 'computing' || phase === 'enriching') && profile}
+		<div class="mb-6 flex items-center gap-2.5 rounded border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 sm:mb-8">
+			<Loader2 size={13} class="shrink-0 animate-spin text-[var(--accent)]" />
+			<p class="text-xs text-[var(--text-muted)]">
+				{phase === 'computing'
+					? 'Computing profile…'
+					: `Enriching artist data — ${enrichProgress.current.toLocaleString()}/${enrichProgress.total.toLocaleString()}. Genres, mood, and recommendations will keep filling in.`}
+			</p>
 		</div>
 	{/if}
 
@@ -207,7 +210,7 @@
 	{/if}
 
 	<!-- ── Profile content ────────────────────────────────────────────────── -->
-	{#if phase === 'complete' && profile && profile.totalScrobbles > 0}
+	{#if phase !== 'fetching' && phase !== 'idle' && phase !== 'error' && profile && profile.totalScrobbles > 0}
 		<!-- Stats row (always visible) -->
 		<div class="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:grid-cols-4 sm:gap-4">
 			<div class="flex flex-col gap-1 rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
@@ -359,6 +362,13 @@
 					/>
 				</div>
 			{/if}
+
+			<div class="mb-6 sm:mb-8">
+				<Recommendations
+					recommendations={profile.recommendations}
+					loading={phase === 'computing' || phase === 'enriching'}
+				/>
+			</div>
 
 		<!-- ── Habits tab ────────────────────────────────── -->
 		{:else if activeTab === 'habits'}

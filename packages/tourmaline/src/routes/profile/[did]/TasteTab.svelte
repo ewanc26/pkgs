@@ -6,9 +6,10 @@
     import ListeningPhases from './ListeningPhases.svelte';
     import RemarkableDays from './RemarkableDays.svelte';
     import Milestones from './Milestones.svelte';
+    import Recommendations from './Recommendations.svelte';
     import type { ListenerProfile } from '$lib/types';
 
-    let { profile }: { profile: ListenerProfile } = $props();
+    let { profile, loading = false }: { profile: ListenerProfile; loading?: boolean } = $props();
 </script>
 
 <div class="mb-6 grid gap-4 sm:mb-8 sm:gap-8 lg:grid-cols-2">
@@ -62,3 +63,7 @@
         />
     </div>
 {/if}
+
+<div class="mb-6 sm:mb-8">
+    <Recommendations recommendations={profile.recommendations} {loading} />
+</div>
