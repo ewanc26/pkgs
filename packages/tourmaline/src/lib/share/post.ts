@@ -1,6 +1,10 @@
 /**
- * Creates a Bluesky post with the personality card image attached.
+ * Creates a Bluesky post with a share card image attached.
  * Uses RichText for proper @mention resolution.
+ *
+ * `postCardImage` is the generic render→upload→post→log pipeline shared by
+ * every card type; each card type's own module (e.g. personality below)
+ * only needs to build the SVG, alt text, and post copy.
  */
 
 import { Agent, RichText } from "@atproto/api";
@@ -13,16 +17,23 @@ export interface ShareResult {
   cid: string;
 }
 
-export async function sharePersonality(
+export interface PostCardImageOptions {
+  svg: string;
+  alt: string;
+  postText: string;
+  /** Extra fields merged into the click.croft.tools.tourmaline toolkit-use record. */
+  toolkitExtra?: Record<string, unknown>;
+}
+
+export async function postCardImage(
   agent: Agent,
-  card: PersonalityCardData,
+  opts: PostCardImageOptions,
 ): Promise<ShareResult> {
   // 1. Render SVG → PNG
-  const svg = renderPersonalitySvg(card);
-  const pngBytes = await svgToPng(svg);
+  const pngBytes = await svgToPng(opts.svg);
 
   // Parse SVG dimensions for aspect ratio
-  const viewBoxMatch = svg.match(/viewBox="0 0 (\d+) (\d+)"/);
+  const viewBoxMatch = opts.svg.match(/viewBox="0 0 (\d+) (\d+)"/);
   const svgW = viewBoxMatch ? parseInt(viewBoxMatch[1], 10) : 600;
   const svgH = viewBoxMatch ? parseInt(viewBoxMatch[2], 10) : 620;
 
@@ -31,7 +42,58 @@ export async function sharePersonality(
     encoding: "image/png",
   });
 
-  // 3. Build alt text describing the card content
+  // 3. Build rich text with @mention
+  const rt = new RichText({ text: opts.postText });
+  await rt.detectFacets(agent);
+
+  // 4. Create the post
+  const result = await agent.post({
+    text: rt.text,
+    facets: rt.facets,
+    embed: {
+      $type: "app.bsky.embed.images",
+      images: [
+        {
+          alt: opts.alt,
+          image: blobData.blob,
+          aspectRatio: {
+            width: svgW,
+            height: svgH,
+          },
+        },
+      ],
+    },
+    createdAt: new Date().toISOString(),
+  });
+
+  // 5. Log toolkit usage — best-effort, don't let it fail the share
+  try {
+    await agent.com.atproto.repo.createRecord({
+      repo: agent.sessionManager.did ?? agent.did ?? "",
+      collection: "click.croft.toolkit.use",
+      record: {
+        $type: "click.croft.toolkit.use",
+        tool: {
+          $type: "click.croft.tools.tourmaline",
+          ...opts.toolkitExtra,
+          sharedToBluesky: true,
+        },
+        createdAt: new Date().toISOString(),
+      },
+    });
+  } catch {
+    // non-fatal
+  }
+
+  return { uri: result.uri, cid: result.cid };
+}
+
+export async function sharePersonality(
+  agent: Agent,
+  card: PersonalityCardData,
+): Promise<ShareResult> {
+  const svg = renderPersonalitySvg(card);
+
   const genres = (card.genres ?? [])
     .slice(0, 5)
     .map((g) => g.name)
@@ -58,52 +120,11 @@ export async function sharePersonality(
     .filter(Boolean)
     .join(" ");
 
-  // 4. Build rich text with @mention
-  const rt = new RichText({
-    text: `I'm a ${card.archetype}!\n\nfound out by using tourmaline by @ewancroft.uk`,
+  return postCardImage(agent, {
+    svg,
+    alt,
+    postText: `I'm a ${card.archetype}!\n\nfound out by using tourmaline by @ewancroft.uk`,
+    toolkitExtra:
+      card.totalScrobbles != null ? { scrobblesAnalyzed: card.totalScrobbles } : {},
   });
-  await rt.detectFacets(agent);
-
-  // 5. Create the post
-  const result = await agent.post({
-    text: rt.text,
-    facets: rt.facets,
-    embed: {
-      $type: "app.bsky.embed.images",
-      images: [
-        {
-          alt,
-          image: blobData.blob,
-          aspectRatio: {
-            width: svgW,
-            height: svgH,
-          },
-        },
-      ],
-    },
-    createdAt: new Date().toISOString(),
-  });
-
-  // 6. Log toolkit usage — best-effort, don't let it fail the share
-  try {
-    await agent.com.atproto.repo.createRecord({
-      repo: agent.sessionManager.did ?? agent.did ?? "",
-      collection: "click.croft.toolkit.use",
-      record: {
-        $type: "click.croft.toolkit.use",
-        tool: {
-          $type: "click.croft.tools.tourmaline",
-          ...(card.totalScrobbles != null
-            ? { scrobblesAnalyzed: card.totalScrobbles }
-            : {}),
-          sharedToBluesky: true,
-        },
-        createdAt: new Date().toISOString(),
-      },
-    });
-  } catch {
-    // non-fatal
-  }
-
-  return { uri: result.uri, cid: result.cid };
 }

@@ -2,10 +2,9 @@
 	import { Share2 } from '@lucide/svelte';
 	import type { ListenerProfile } from '$lib/types';
 	import type { PersonalityProfile } from '$lib/analysis/personality';
+	import { writeShareEnvelope } from '$lib/share/registry';
 
 	let { profile, displayName, personality }: { profile: ListenerProfile; displayName: string; personality: PersonalityProfile } = $props();
-
-	const STORAGE_KEY = 'tourmaline:share';
 
 	/** Genre bar colour per category (consistent across renders). */
 	const GENRE_COLORS: Record<string, string> = {
@@ -54,20 +53,17 @@
 	);
 
 	function share() {
-		sessionStorage.setItem(
-			STORAGE_KEY,
-			JSON.stringify({
-				archetype: personality.archetype,
-				archetypeBlurb: personality.archetypeBlurb,
-				traits: personality.traits,
-				genres: topGenres.map((g) => ({ name: g.name, weight: g.weight })),
-				mood: Object.fromEntries(topMoods),
-				diversityScore: profile.diversityScore,
-				obscurityIndex: profile.obscurityIndex,
-				displayName,
-				totalScrobbles: profile.totalScrobbles
-			})
-		);
+		writeShareEnvelope('personality', {
+			archetype: personality.archetype,
+			archetypeBlurb: personality.archetypeBlurb,
+			traits: personality.traits,
+			genres: topGenres.map((g) => ({ name: g.name, weight: g.weight })),
+			mood: Object.fromEntries(topMoods),
+			diversityScore: profile.diversityScore,
+			obscurityIndex: profile.obscurityIndex,
+			displayName,
+			totalScrobbles: profile.totalScrobbles
+		});
 		const params = new URLSearchParams({ handle: profile.handle ?? '', did: profile.did });
 		window.location.href = `/share?${params}`;
 	}
