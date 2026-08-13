@@ -23,7 +23,10 @@ export function calculateObscurity(
   let totalWeight = 0;
   let totalObscurityWeight = 0;
 
-  for (const { name, count } of data.topArtists) {
+  // Full artist history, not just the top 50 — artistInfos already covers
+  // every artist by the time this runs, and genres.ts uses the same full
+  // set to capture the long tail rather than an arbitrary truncation.
+  for (const [name, count] of data.artistPlayCounts) {
     const info = artistInfos.get(name);
     if (!info?.listenerCount) continue;
 
