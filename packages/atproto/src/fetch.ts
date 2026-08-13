@@ -6,8 +6,8 @@
  * accept `did: string` as their first argument — no environment vars.
  *
  * ─── Collection Reference ───────────────────────────
- * - `fm.teal.alpha.actor.status`   — now-playing music
- * - `fm.teal.alpha.feed.play`      — scrobble history
+ * - `fm.teal.actor.status`         — now-playing music
+ * - `fm.teal.feed.play`            — scrobble history
  * - `social.kibun.status`          — mood/emoji status
  * - `social.popfeed.feed.review`   — media reviews
  * - `sh.tangled.repo`              — Tangled git repos
@@ -46,13 +46,46 @@ import type {
 } from './types.js';
 
 /**
- * Grace period (ms) to keep showing the `fm.teal.alpha.actor.status` "now
+ * Grace period (ms) to keep showing the `fm.teal.actor.status` "now
  * playing" record after its `expiry` has passed, before falling back to the
- * most recent `fm.teal.alpha.feed.play` record. This avoids flicker to a
+ * most recent `fm.teal.feed.play` record. This avoids flicker to a
  * stale scrobble during brief gaps between tracks — the actor status is
  * only treated as truly inactive once it's been expired for longer than this.
  */
 const STATUS_GRACE_PERIOD_MS = 10 * 60 * 1000;
+
+// Teal music collections. Production namespaces are preferred; the legacy
+// alpha namespaces are read as a fallback while clients backfill production
+// records during the migration.
+const TEAL_STATUS_COLLECTIONS = [
+	'fm.teal.actor.status',
+	'fm.teal.alpha.actor.status',
+] as const;
+const TEAL_PLAY_COLLECTIONS = [
+	'fm.teal.feed.play',
+	'fm.teal.alpha.feed.play',
+] as const;
+
+async function listLatestRecord(
+	did: string,
+	collection: string,
+	fetchFn?: typeof fetch
+): Promise<{ uri: string; value: any } | null> {
+	const records = await withFallback(
+		did,
+		async (agent) => {
+			const response = await agent.com.atproto.repo.listRecords({
+				repo: did,
+				collection,
+				limit: 1
+			});
+			return response.data.records;
+		},
+		true,
+		fetchFn
+	);
+	return records?.[0] ?? null;
+}
 
 // ─── Profile ─────────────────────────────────────────────────────────────
 
@@ -186,90 +219,61 @@ export async function fetchMusicStatus(
 	if (cached) return cached;
 
 	try {
-		// Try actor status first
-		try {
-			const statusRecords = await withFallback(
-				did,
-				async (agent) => {
-					const response = await agent.com.atproto.repo.listRecords({
-						repo: did,
-						collection: 'fm.teal.alpha.actor.status',
-						limit: 1
-					});
-					return response.data.records;
-				},
-				true,
-				fetchFn
-			);
+		// Try actor status first, preferring the production collection
+		for (const collection of TEAL_STATUS_COLLECTIONS) {
+			const record = await listLatestRecord(did, collection, fetchFn);
+			if (!record) continue;
+			const value = record.value as any;
+			if (!value.expiry) continue;
+			const expiryTime = new Date(value.expiry).getTime();
+			if (Number.isNaN(expiryTime) || Date.now() > expiryTime + STATUS_GRACE_PERIOD_MS) continue;
 
-			if (statusRecords?.length) {
-				const record = statusRecords[0];
-				const value = record.value as any;
-				if (value.expiry) {
-					const expiryTime = new Date(value.expiry).getTime();
-					if (!Number.isNaN(expiryTime) && Date.now() <= expiryTime + STATUS_GRACE_PERIOD_MS) {
-						const trackName = value.item?.trackName || value.trackName;
-						const artists = value.item?.artists || value.artists || [];
-						const releaseName = value.item?.releaseName || value.releaseName;
-						const artistName = artists[0]?.artistName;
-						const releaseMbId = value.item?.releaseMbId || value.releaseMbId;
+			const trackName = value.item?.trackName || value.trackName;
+			const artists = value.item?.artists || value.artists || [];
+			const releaseName = value.item?.releaseName || value.releaseName;
+			const artistName = artists[0]?.artistName;
+			const releaseMbId = value.item?.releaseMbId || value.releaseMbId;
 
-						let artworkUrl: string | undefined;
-						if (releaseName && artistName) {
-							artworkUrl = (await findArtwork(releaseName, artistName, releaseName, releaseMbId, fetchFn)) || undefined;
-						}
-						if (!artworkUrl && trackName && artistName) {
-							artworkUrl = (await findArtwork(trackName, artistName, releaseName, releaseMbId, fetchFn)) || undefined;
-						}
-						if (!artworkUrl) {
-							const artwork = value.item?.artwork || value.artwork;
-							if (artwork?.ref?.$link) {
-								const identity = await resolveIdentity(did, fetchFn);
-								artworkUrl = buildPdsBlobUrl(identity.pds, did, artwork.ref.$link);
-							}
-						}
-
-						const data: MusicStatusData = {
-							trackName,
-							artists,
-							releaseName,
-							playedTime: value.item?.playedTime || value.playedTime,
-							originUrl: value.item?.originUrl || value.originUrl,
-							recordingMbId: value.item?.recordingMbId || value.recordingMbId,
-							releaseMbId,
-							isrc: value.isrc,
-							duration: value.duration,
-							musicServiceBaseDomain: value.item?.musicServiceBaseDomain || value.musicServiceBaseDomain,
-							submissionClientAgent: value.item?.submissionClientAgent || value.submissionClientAgent,
-							$type: 'fm.teal.alpha.actor.status',
-							expiry: value.expiry,
-							artwork: value.item?.artwork || value.artwork,
-							artworkUrl
-						};
-						cache.set(cacheKey, data);
-						return data;
-					}
+			let artworkUrl: string | undefined;
+			if (releaseName && artistName) {
+				artworkUrl = (await findArtwork(releaseName, artistName, releaseName, releaseMbId, fetchFn)) || undefined;
+			}
+			if (!artworkUrl && trackName && artistName) {
+				artworkUrl = (await findArtwork(trackName, artistName, releaseName, releaseMbId, fetchFn)) || undefined;
+			}
+			if (!artworkUrl) {
+				const artwork = value.item?.artwork || value.artwork;
+				if (artwork?.ref?.$link) {
+					const identity = await resolveIdentity(did, fetchFn);
+					artworkUrl = buildPdsBlobUrl(identity.pds, did, artwork.ref.$link);
 				}
 			}
-		} catch { /* fall through to feed play */ }
 
-		// Fall back to feed play
-		const playRecords = await withFallback(
-			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
-					repo: did,
-					collection: 'fm.teal.alpha.feed.play',
-					limit: 1
-				});
-				return response.data.records;
-			},
-			true,
-			fetchFn
-		);
+			const data: MusicStatusData = {
+				trackName,
+				artists,
+				releaseName,
+				playedTime: value.item?.playedTime || value.playedTime,
+				originUrl: value.item?.originUrl || value.originUrl,
+				recordingMbId: value.item?.recordingMbId || value.recordingMbId,
+				releaseMbId,
+				isrc: value.isrc,
+				duration: value.duration,
+				musicServiceBaseDomain: value.item?.musicServiceBaseDomain || value.musicServiceBaseDomain,
+				submissionClientAgent: value.item?.submissionClientAgent || value.submissionClientAgent,
+				$type: collection,
+				expiry: value.expiry,
+				artwork: value.item?.artwork || value.artwork,
+				artworkUrl
+			};
+			cache.set(cacheKey, data);
+			return data;
+		}
 
-		if (playRecords?.length) {
-			const record = playRecords[0];
+		// Fall back to feed play, preferring the production collection
+		for (const collection of TEAL_PLAY_COLLECTIONS) {
+			const record = await listLatestRecord(did, collection, fetchFn);
+			if (!record) continue;
 			const value = record.value as any;
 			const artists = value.artists || [];
 			const artistName = artists[0]?.artistName;
@@ -298,7 +302,7 @@ export async function fetchMusicStatus(
 				duration: value.duration,
 				musicServiceBaseDomain: value.musicServiceBaseDomain,
 				submissionClientAgent: value.submissionClientAgent,
-				$type: 'fm.teal.alpha.feed.play',
+				$type: collection,
 				artwork: value.artwork,
 				artworkUrl
 			};

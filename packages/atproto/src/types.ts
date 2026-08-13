@@ -192,7 +192,11 @@ export interface MusicStatusData {
 	duration?: number;
 	musicServiceBaseDomain?: string;
 	submissionClientAgent?: string;
-	$type: 'fm.teal.alpha.actor.status' | 'fm.teal.alpha.feed.play';
+	$type:
+		| 'fm.teal.actor.status'
+		| 'fm.teal.feed.play'
+		| 'fm.teal.alpha.actor.status'
+		| 'fm.teal.alpha.feed.play';
 	expiry?: string;
 	artwork?: { ref?: { $link: string }; mimeType?: string; size?: number };
 	artworkUrl?: string;
