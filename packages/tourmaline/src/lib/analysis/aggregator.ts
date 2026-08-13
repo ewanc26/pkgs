@@ -121,6 +121,8 @@ export class Aggregator {
   private firstListenMap = new Map<string, string>(); // artist → earliest YYYY-MM-DD
   private trackFirstListen = new Map<string, string>(); // trackKey → earliest YYYY-MM-DD
   private albumFirstListen = new Map<string, string>(); // albumKey → earliest YYYY-MM-DD
+  /** artist → distinct track names played, for the "one-hit wonder" definition (one song, any number of plays). */
+  private artistTracks = new Map<string, Set<string>>();
   private minutesCount = 0;
   private total = 0;
   // ── New tracking fields ─────────────────────────────────────────────────────
@@ -187,6 +189,11 @@ export class Aggregator {
       const artistTs = this.artistTimestamps.get(artistName);
       if (artistTs) artistTs.push(date.getTime());
       else this.artistTimestamps.set(artistName, [date.getTime()]);
+
+      // Per-artist distinct track set, for the "one-hit wonder" definition
+      const tracksForArtist = this.artistTracks.get(artistName);
+      if (tracksForArtist) tracksForArtist.add(scrobble.trackName);
+      else this.artistTracks.set(artistName, new Set([scrobble.trackName]));
 
       const trackKey = TRACK_KEY(scrobble);
       const existing = this.trackCounts.get(trackKey);
@@ -322,8 +329,11 @@ export class Aggregator {
     const daysScrobbledPercentage =
       (daysScrobbled / daysSinceFirstScrobble) * 100;
 
-    const oneHitWondersCount = [...this.artistCounts.values()].filter(
-      (c) => c === 1,
+    // "One-hit wonder": known for exactly one song, however many times it's
+    // been replayed — not an artist merely heard once (that would exclude
+    // someone you've played the same single track by 50 times).
+    const oneHitWondersCount = [...this.artistTracks.values()].filter(
+      (tracks) => tracks.size === 1,
     ).length;
     const oneHitWondersPercentage =
       this.artistCounts.size > 0
