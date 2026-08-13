@@ -10,6 +10,7 @@
 import type { Agent } from '@atproto/api';
 import { RECORD_TYPE, LEGACY_RECORD_TYPE } from './config.js';
 import { fetchRepoViaCAR, getPdsUrlFromAgent, getAgentToken } from './car-fetch.js';
+import { retryWithBackoff } from './retry-helper.js';
 
 export interface PolishRecord {
   rkey: string;
@@ -43,8 +44,6 @@ export interface PolishMigrateOptions {
   signal?: AbortSignal;
 }
 
-const OP_DELAY_MS = 120;
-
 /** Extract DID from any agent shape (credential session or OAuth session manager). */
 function getDid(agent: Agent): string | undefined {
   return agent.did ?? (agent as any).sessionManager?.did;
@@ -63,23 +62,6 @@ function asPolishRecord(rec: { rkey: string; uri: string; cid: string; value: un
   };
 }
 
-function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(signal.reason);
-      return;
-    }
-    const onAbort = () => {
-      clearTimeout(timer);
-      reject(signal?.reason ?? new Error('Aborted'));
-    };
-    const timer = setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort);
-      resolve();
-    }, ms);
-    signal?.addEventListener('abort', onAbort, { once: true });
-  });
-}
 
 /**
  * Build a migration plan from raw CAR record lists. Pure and unit-testable.
@@ -139,6 +121,8 @@ export async function analyzeLegacyRecords(agent: Agent, signal?: AbortSignal): 
  * Backfill failures are reported and their legacy copies are retained so no
  * data is ever lost — re-running polish will finish the job.
  */
+const MAX_WRITES_PER_BATCH = 200;
+
 export async function migrateLegacyRecords(
   agent: Agent,
   plan: PolishPlan,
@@ -164,26 +148,65 @@ export async function migrateLegacyRecords(
   const backfilledRkeys = new Set<string>();
 
   if (plan.toBackfill.length > 0) {
-    for (const record of plan.toBackfill) {
+    for (let i = 0; i < plan.toBackfill.length; i += MAX_WRITES_PER_BATCH) {
       signal?.throwIfAborted();
+      const batch = plan.toBackfill.slice(i, i + MAX_WRITES_PER_BATCH);
+
+      const writes = batch.map((record) => ({
+        $type: 'com.atproto.repo.applyWrites#create' as const,
+        collection: RECORD_TYPE,
+        rkey: record.rkey,
+        value: { ...record.value, $type: RECORD_TYPE },
+      }));
+
       try {
-        await agent.com.atproto.repo.createRecord(
+        const response = await retryWithBackoff(
+          async () =>
+            await agent.com.atproto.repo.applyWrites(
+              {
+                repo: did,
+                writes: writes as any,
+              },
+              { signal }
+            ),
           {
-            repo: did,
-            collection: RECORD_TYPE,
-            rkey: record.rkey,
-            record: { ...record.value, $type: RECORD_TYPE },
-          },
-          { signal }
+            maxAttempts: 3,
+            initialDelayMs: 1000,
+            backoffMultiplier: 2,
+            retryableErrors: [
+              'fetch failed',
+              'ECONNRESET',
+              'ETIMEDOUT',
+              'ENOTFOUND',
+              'ECONNREFUSED',
+              'network',
+              'socket hang up',
+              'timeout',
+              '503',
+              '502',
+              '504',
+            ],
+          }
         );
-        backfilled++;
-        backfilledRkeys.add(record.rkey);
+
+        const results = (response.data.results ?? []) as any[];
+        for (let j = 0; j < batch.length; j++) {
+          const result = results[j];
+          if (result && !('error' in result)) {
+            backfilled++;
+            backfilledRkeys.add(batch[j].rkey);
+          } else {
+            failed++;
+          }
+          onProgress?.('backfill', backfilled + failed, plan.toBackfill.length);
+        }
       } catch (err: unknown) {
         if (signal?.aborted) throw err;
-        failed++;
+        for (let j = 0; j < batch.length; j++) {
+          failed++;
+          onProgress?.('backfill', backfilled + failed, plan.toBackfill.length);
+        }
       }
-      onProgress?.('backfill', backfilled + failed, plan.toBackfill.length);
-      await sleep(OP_DELAY_MS, signal);
     }
   }
 
@@ -193,24 +216,62 @@ export async function migrateLegacyRecords(
   ];
 
   let deleted = 0;
-  for (const record of toDelete) {
-    signal?.throwIfAborted();
-    try {
-      await agent.com.atproto.repo.deleteRecord(
-        {
-          repo: did,
-          collection: collectionFromUri(record.uri),
-          rkey: record.rkey,
-        },
-        { signal }
-      );
-      deleted++;
-    } catch (err: unknown) {
-      if (signal?.aborted) throw err;
-      // continue on individual failures
+  if (toDelete.length > 0) {
+    for (let i = 0; i < toDelete.length; i += MAX_WRITES_PER_BATCH) {
+      signal?.throwIfAborted();
+      const batch = toDelete.slice(i, i + MAX_WRITES_PER_BATCH);
+
+      const writes = batch.map((record) => ({
+        $type: 'com.atproto.repo.applyWrites#delete' as const,
+        collection: collectionFromUri(record.uri),
+        rkey: record.rkey,
+      }));
+
+      try {
+        const response = await retryWithBackoff(
+          async () =>
+            await agent.com.atproto.repo.applyWrites(
+              {
+                repo: did,
+                writes: writes as any,
+              },
+              { signal }
+            ),
+          {
+            maxAttempts: 3,
+            initialDelayMs: 1000,
+            backoffMultiplier: 2,
+            retryableErrors: [
+              'fetch failed',
+              'ECONNRESET',
+              'ETIMEDOUT',
+              'ENOTFOUND',
+              'ECONNREFUSED',
+              'network',
+              'socket hang up',
+              'timeout',
+              '503',
+              '502',
+              '504',
+            ],
+          }
+        );
+
+        const results = (response.data.results ?? []) as any[];
+        for (let j = 0; j < batch.length; j++) {
+          const result = results[j];
+          if (result && !('error' in result)) {
+            deleted++;
+          }
+          onProgress?.('delete', deleted, toDelete.length);
+        }
+      } catch (err: unknown) {
+        if (signal?.aborted) throw err;
+        for (let j = 0; j < batch.length; j++) {
+          onProgress?.('delete', deleted, toDelete.length);
+        }
+      }
     }
-    onProgress?.('delete', deleted, toDelete.length);
-    await sleep(OP_DELAY_MS, signal);
   }
 
   return { backfilled, deduped: plan.toDedupe.length, deleted, failed };
