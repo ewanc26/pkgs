@@ -12,6 +12,8 @@ import type { PersonalityCardData } from "./personality-svg";
 import { renderPersonalitySvg } from "./personality-svg";
 import type { ReceiptCardData } from "./receipt-svg";
 import { renderReceiptSvg } from "./receipt-svg";
+import type { FestivalCardData } from "./festival-svg";
+import { renderFestivalSvg } from "./festival-svg";
 import { svgToPng } from "./svg-to-png";
 
 export interface ShareResult {
@@ -35,9 +37,12 @@ export async function postCardImage(
   const pngBytes = await svgToPng(opts.svg);
 
   // Parse SVG dimensions for aspect ratio
-  const viewBoxMatch = opts.svg.match(/viewBox="0 0 (\d+) (\d+)"/);
-  const svgW = viewBoxMatch ? parseInt(viewBoxMatch[1], 10) : 600;
-  const svgH = viewBoxMatch ? parseInt(viewBoxMatch[2], 10) : 620;
+  // Card heights can be non-integer (accumulated from fractional line-height
+  // math) — match decimals too, or a card with a fractional viewBox silently
+  // falls back to the wrong aspect ratio here.
+  const viewBoxMatch = opts.svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+  const svgW = viewBoxMatch ? Math.round(parseFloat(viewBoxMatch[1])) : 600;
+  const svgH = viewBoxMatch ? Math.round(parseFloat(viewBoxMatch[2])) : 620;
 
   // 2. Upload the image blob
   const { data: blobData } = await agent.uploadBlob(pngBytes, {
@@ -151,5 +156,24 @@ export async function shareReceipt(agent: Agent, card: ReceiptCardData): Promise
     postText: `My listening receipt (${card.rangeLabel ?? "all time"}) 🧾\n\nvia tourmaline by @ewancroft.uk`,
     toolkitExtra:
       card.totalScrobbles != null ? { scrobblesAnalyzed: card.totalScrobbles } : {},
+  });
+}
+
+export async function shareFestival(agent: Agent, card: FestivalCardData): Promise<ShareResult> {
+  const svg = renderFestivalSvg(card);
+
+  const artists = (Array.isArray(card.artists) ? card.artists : []).slice(0, 10);
+  const alt = [
+    `Festival-style lineup poster for ${card.displayName ?? "this listener"} (${card.rangeLabel ?? "all time"}).`,
+    artists.length ? `Lineup, headliners first: ${artists.map((a) => a.name).join(", ")}.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return postCardImage(agent, {
+    svg,
+    alt,
+    postText: `My listening lineup (${card.rangeLabel ?? "all time"}) 🎪\n\nvia tourmaline by @ewancroft.uk`,
+    toolkitExtra: {},
   });
 }
