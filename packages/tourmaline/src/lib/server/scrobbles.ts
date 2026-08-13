@@ -2,6 +2,9 @@ import { TEAL_LEXICON } from "@ewanc26/utils";
 import { fetchRepoViaCAR } from "@ewanc26/croft-click-core";
 import type { TealScrobble } from "$lib/types";
 
+const STABLE_TEAL_LEXICON = "fm.teal.feed.play";
+const TEAL_LEXICONS = [TEAL_LEXICON, STABLE_TEAL_LEXICON] as const;
+
 /**
  * Safely parse a playedTime value from an ATProto record.
  *
@@ -36,6 +39,29 @@ function num(v: unknown): number | undefined {
   return typeof v === "number" && isFinite(v) && v >= 0 ? v : undefined;
 }
 
+function serviceDomain(v: unknown): string | undefined {
+  const raw = str(v, 2048);
+  if (!raw) return undefined;
+
+  try {
+    return new URL(raw).hostname || raw;
+  } catch {
+    return raw;
+  }
+}
+
+function deduplicationKey(record: { rkey: string; value: unknown }): string {
+  const value =
+    record.value && typeof record.value === "object"
+      ? {
+          ...(record.value as Record<string, unknown>),
+          $type: STABLE_TEAL_LEXICON,
+        }
+      : record.value;
+
+  return `${record.rkey}:${JSON.stringify(value)}`;
+}
+
 function parseScrobble(v: Record<string, unknown>): TealScrobble {
   const rawArtists = Array.isArray(v.artists) ? v.artists : [];
 
@@ -53,10 +79,12 @@ function parseScrobble(v: Record<string, unknown>): TealScrobble {
     recordingMbId: str(v.recordingMbId, 64),
     releaseMbId: str(v.releaseMbId, 64),
     duration: num(v.duration),
-    originUrl: str(v.originUrl, 2048),
+    originUrl: str(v.originUri, 2048) ?? str(v.originUrl, 2048),
     playedTime: parsePlayedTime(v.playedTime),
     submissionClientAgent: str(v.submissionClientAgent, 256),
-    musicServiceBaseDomain: str(v.musicServiceBaseDomain, 253),
+    musicServiceBaseDomain:
+      serviceDomain(v.musicServiceUri) ??
+      serviceDomain(v.musicServiceBaseDomain),
     trackDiscriminant: str(v.trackDiscriminant),
     releaseDiscriminant: str(v.releaseDiscriminant),
   };
@@ -69,24 +97,38 @@ export interface ScrobbleBatchResult {
 }
 
 /**
- * Fetch a user's entire `fm.teal.alpha.feed.play` collection via the CAR
- * export (`com.atproto.sync.getRepo`) and parse the records locally.
+ * Fetch both Teal play collections via the CAR export
+ * (`com.atproto.sync.getRepo`) and parse the records locally. Identical
+ * alpha/stable records are counted once, preferring the stable collection.
  *
  * Replaces the previous listRecords pagination, which needed up to 25
  * AppView-ratelimited requests per 2,500 records and looped until done. The
- * sync namespace has its own far more generous envelope, so one request
- * downloads the whole repo and the records are extracted with Malachite's CAR
- * MST walker. The response is intentionally one-shot: `cursor` is always null
- * and `done` always true, so the client loop exits after a single call.
+ * sync namespace has its own far more generous envelope, so one request per
+ * collection downloads the whole repo and the records are extracted with
+ * Malachite's CAR MST walker. The response is intentionally one-shot: `cursor`
+ * is always null and `done` always true, so the client loop exits after a
+ * single call.
  */
 export async function fetchScrobbleBatch(
   pdsUrl: string,
   did: string,
 ): Promise<ScrobbleBatchResult> {
-  const records = await fetchRepoViaCAR(pdsUrl, did, TEAL_LEXICON);
+  const [legacyRecords, stableRecords] = await Promise.all(
+    TEAL_LEXICONS.map((collection) => fetchRepoViaCAR(pdsUrl, did, collection)),
+  );
+  const records = [...legacyRecords, ...stableRecords];
+
+  const uniqueRecords = new Map<string, (typeof records)[number]>();
+  for (const record of records) {
+    const key = deduplicationKey(record);
+    const previous = uniqueRecords.get(key);
+    if (!previous || record.uri.includes(`/${STABLE_TEAL_LEXICON}/`)) {
+      uniqueRecords.set(key, record);
+    }
+  }
 
   const scrobbles: TealScrobble[] = [];
-  for (const record of records) {
+  for (const record of uniqueRecords.values()) {
     const value = record.value;
     if (value && typeof value === "object") {
       scrobbles.push(parseScrobble(value as Record<string, unknown>));

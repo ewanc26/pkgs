@@ -176,7 +176,7 @@
 		{
 			title: "Fetch scrobbles",
 			description:
-				"fm.teal.alpha.feed.play records are read from the user's PDS. All processing runs server-side.",
+				"fm.teal.feed.play and legacy fm.teal.alpha.feed.play records are read from the user's PDS. All processing runs server-side.",
 		},
 		{
 			title: "Analyse",
@@ -330,7 +330,7 @@
 	{/if}
 
 	<p class="hero-note">
-		Reads <code>fm.teal.alpha.feed.play</code> records from the user's PDS. Enriches
+		Reads <code>fm.teal.feed.play</code> and legacy <code>fm.teal.alpha.feed.play</code> records from the user's PDS. Enriches
 		with MusicBrainz, Last.fm, and Deezer.
 	</p>
 {/snippet}
