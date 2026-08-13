@@ -62,6 +62,7 @@ export interface CommandLineArgs {
   'dry-run'?: boolean;
   aggressive?: boolean;
   fresh?: boolean;
+  'non-interactive'?: boolean;
   'clear-cache'?: boolean;
   'clear-all-caches'?: boolean;
   'clear-credentials'?: boolean;

@@ -17,6 +17,8 @@ import { execSync } from "child_process";
 dotenv.config();
 
 const FORCE_SYNC = process.argv.includes("--force");
+const DRY_RUN = process.argv.includes("--dry-run");
+const NON_INTERACTIVE = process.argv.includes("--non-interactive");
 
 const BASE_DIR = process.env.BASE_DIR!;
 const GITHUB_USER = process.env.GITHUB_USER!;
@@ -53,7 +55,7 @@ async function getGitHubRepos(): Promise<{ clone_url: string; name: string; desc
     .map((r: any) => ({ clone_url: r.clone_url, name: r.name, description: r.description }));
 }
 
-async function ensureTangledRemoteAndPush(repoDir: string, repoName: string, cloneUrl: string) {
+async function ensureTangledRemoteAndPush(repoDir: string, repoName: string, cloneUrl: string, dryRun: boolean) {
   const tangledUrl = `${TANGLED_BASE_URL}/${repoName}`;
   try {
     const remotes = run("git remote", repoDir).split("\n");
@@ -68,8 +70,12 @@ async function ensureTangledRemoteAndPush(repoDir: string, repoName: string, clo
       console.log(`[REMOTE] Reset origin push URL to GitHub`);
     }
 
-    run(`git push tangled main`, repoDir);
-    console.log(`[PUSH] Pushed main to Tangled`);
+    if (dryRun) {
+      console.log(`[DRY-RUN] Would push main to Tangled remote ${tangledUrl}`);
+    } else {
+      run(`git push tangled main`, repoDir);
+      console.log(`[PUSH] Pushed main to Tangled`);
+    }
   } catch (error) {
     console.warn(`[WARN] Could not push ${repoName} to Tangled. Check SSH or repo existence.`);
   }
@@ -134,7 +140,8 @@ async function ensureTangledRecord(
   atprotoDid: string,
   githubUser: string,
   repoName: string,
-  description?: string
+  description: string | undefined,
+  dryRun: boolean
 ): Promise<{ tid: string; existed: boolean }> {
   if (recordCache[repoName]) {
     return { tid: recordCache[repoName], existed: true };
@@ -179,28 +186,35 @@ async function ensureTangledRecord(
       labels: [],
     };
 
-    try {
-      const result = await agent.api.com.atproto.repo.putRecord({
-        repo: atprotoDid,
-        collection: "sh.tangled.repo",
-        rkey: tid,
-        record,
-      });
-      console.log(`[CREATED] ATProto record URI: ${result.data.uri}`);
-    } catch (error: any) {
-      console.error(`[ERROR] Failed to create ATProto record for ${repoName}:`, error.message);
-      throw error;
+    if (dryRun) {
+      console.log(
+        `[DRY-RUN] Would create ATProto record sh.tangled.repo for ${repoName} (rkey: ${tid}, repo: ${atprotoDid})`
+      );
+    } else {
+      try {
+        const result = await agent.api.com.atproto.repo.putRecord({
+          repo: atprotoDid,
+          collection: "sh.tangled.repo",
+          rkey: tid,
+          record,
+        });
+        console.log(`[CREATED] ATProto record URI: ${result.data.uri}`);
+      } catch (error: any) {
+        console.error(`[ERROR] Failed to create ATProto record for ${repoName}:`, error.message);
+        throw error;
+      }
+
+      console.log(`[CREATED] Tangled record for ${repoName} (TID: ${tid})`);
     }
 
     recordCache[repoName] = tid;
-    console.log(`[CREATED] Tangled record for ${repoName} (TID: ${tid})`);
     return { tid, existed: false };
   }
 
   return { tid, existed: false };
 }
 
-function updateReadme(baseDir: string, repoName: string, atprotoDid: string) {
+function updateReadme(baseDir: string, repoName: string, atprotoDid: string, dryRun: boolean) {
   const repoDir = path.join(baseDir, repoName);
   const readmeFiles = ["README.md", "README.MD", "README.txt", "README"];
   const readmeFile = readmeFiles.find((f) => fs.existsSync(path.join(repoDir, f)));
@@ -208,16 +222,20 @@ function updateReadme(baseDir: string, repoName: string, atprotoDid: string) {
   const readmePath = path.join(repoDir, readmeFile);
   const content = fs.readFileSync(readmePath, "utf-8");
   if (!/tangled\.org/i.test(content)) {
-    fs.appendFileSync(
-      readmePath,
-      `
+    if (dryRun) {
+      console.log(`[DRY-RUN] Would append Tangled mirror note to ${readmeFile} and push for ${repoName}`);
+    } else {
+      fs.appendFileSync(
+        readmePath,
+        `
 Mirrored on Tangled: https://tangled.org/${atprotoDid}/${repoName}
 `
-    );
-    run(`git add ${readmeFile}`, repoDir);
-    run(`git commit -m "Add Tangled mirror reference to README"`, repoDir);
-    run(`git push origin main`, repoDir);
-    console.log(`[README] Updated for ${repoName}`);
+      );
+      run(`git add ${readmeFile}`, repoDir);
+      run(`git commit -m "Add Tangled mirror reference to README"`, repoDir);
+      run(`git push origin main`, repoDir);
+      console.log(`[README] Updated for ${repoName}`);
+    }
   }
 }
 
@@ -225,6 +243,9 @@ async function main() {
   console.log("[STARTUP] Starting Tangled Sync...");
   if (FORCE_SYNC) {
     console.log("[MODE] Force sync enabled - will process all repos");
+  }
+  if (DRY_RUN) {
+    console.log("[MODE] Dry run enabled - no pushes, records, or README writes will be made");
   }
   console.log(`[CONFIG] Base directory: ${BASE_DIR}`);
   console.log(`[CONFIG] GitHub user: ${GITHUB_USER}`);
@@ -303,9 +324,9 @@ async function main() {
         console.log(`[EXISTS] ${repoName} already cloned`);
       }
 
-      await ensureTangledRemoteAndPush(repoDir, repoName, clone_url);
-      updateReadme(BASE_DIR, repoName, ATPROTO_DID);
-      const result = await ensureTangledRecord(agent, ATPROTO_DID, GITHUB_USER, repoName, description);
+      await ensureTangledRemoteAndPush(repoDir, repoName, clone_url, DRY_RUN);
+      updateReadme(BASE_DIR, repoName, ATPROTO_DID, DRY_RUN);
+      const result = await ensureTangledRecord(agent, ATPROTO_DID, GITHUB_USER, repoName, description, DRY_RUN);
       
       if (!result.existed) {
         syncedCount++;

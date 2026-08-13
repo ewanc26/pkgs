@@ -3,7 +3,7 @@
  * Supports OAuth (recommended) and app password fallback
  */
 import { AtpAgent, Agent } from "@atproto/api";
-import { prompt } from "../utils/input.js";
+import { prompt, isNonInteractive } from "../utils/input.js";
 import * as ui from "../utils/ui.js";
 import { log } from "../utils/logger.js";
 import {
@@ -188,6 +188,13 @@ export async function authenticate(
 
   // Fall back to app password
   if (!handle || !password) {
+    if (isNonInteractive()) {
+      log.error(
+        "Authentication requires --handle and --password in non-interactive mode (or a stored OAuth session).",
+      );
+      process.exit(1);
+    }
+
     log.blank();
     log.info("Please provide your credentials:");
     log.blank();

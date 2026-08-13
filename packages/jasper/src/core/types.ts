@@ -112,6 +112,12 @@ export interface ImportOptions {
   alt?: string;
   /** Target platform */
   target: Target;
+  /** Use an existing gallery by AT-URI instead of prompting (Grain only) */
+  gallery?: string;
+  /** Title for a newly created gallery, supplied non-interactively (Grain only) */
+  galleryTitle?: string;
+  /** Description for a newly created gallery (Grain only) */
+  galleryDescription?: string;
 }
 
 export interface ImportResult {
@@ -167,6 +173,11 @@ export interface CommandLineArgs {
   resume?: boolean;
   listImports?: boolean;
   clearImports?: boolean;
+  gallery?: string;
+  galleryTitle?: string;
+  galleryDescription?: string;
+  session?: number;
+  nonInteractive?: boolean;
 }
 
 // ============================================

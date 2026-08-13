@@ -5,7 +5,7 @@
 
 import type { Agent } from '@atproto/api';
 import { login as coreLogin, resolveIdentity } from '@ewanc26/croft-click-core';
-import { prompt } from '../utils/input.js';
+import { prompt, isNonInteractive } from '../utils/input.js';
 import * as ui from '../utils/ui.js';
 import { saveCredentials } from '../utils/credentials.js';
 
@@ -21,6 +21,12 @@ export async function login(
   resolverOrPds?: string
 ): Promise<Agent> {
   ui.header('ATProto Login');
+
+  if ((!identifier || !password) && isNonInteractive()) {
+    throw new Error(
+      'Authentication requires credentials in non-interactive mode. Pass -h/--handle and -p/--password explicitly, or run --oauth-login.'
+    );
+  }
 
   if (!identifier) {
     identifier = await prompt('Handle, DID (did:plc or did:web): ');

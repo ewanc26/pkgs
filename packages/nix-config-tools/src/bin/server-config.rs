@@ -12,6 +12,7 @@
 use console::Style;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use regex::Regex;
+use std::io::IsTerminal;
 use tools_common::*;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -550,6 +551,17 @@ fn main() {
     if show_only {
         print_summary(&svc, &st, &ck, &fg, &mx, &pd, &cf);
         return;
+    }
+
+    let non_interactive = args.iter().any(|a| a == "--non-interactive")
+        || env::var("CI").is_ok()
+        || !std::io::stdin().is_terminal();
+
+    if non_interactive {
+        eprintln!("❌  server-config requires an interactive terminal.");
+        eprintln!("    Use --show to inspect the current config, or edit the NixOS modules");
+        eprintln!("    under modules/server/services/ directly.");
+        std::process::exit(1);
     }
 
     let menu_items = [
