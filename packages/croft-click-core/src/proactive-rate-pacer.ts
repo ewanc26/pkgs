@@ -69,8 +69,15 @@ export interface PacingCalculation {
  * - This creates a steady-state where we never exhaust quota
  */
 export class ProactiveRatePacer {
-  /** Points per record in ATProto (constant) */
-  private readonly POINTS_PER_RECORD = 3;
+  /**
+   * Default points-per-record assumption, used only when the caller hasn't
+   * supplied an empirically observed value (see RateLimiter.getPointsPerRecord).
+   * The server may report capacity for a bucket with entirely different
+   * per-request semantics (e.g. a flat per-IP request cap rather than a
+   * write-cost budget) under the same header names, so this constant is a
+   * starting assumption to converge from, not a fact about every bucket.
+   */
+  private readonly DEFAULT_POINTS_PER_RECORD = 3;
 
   /** Target utilization of maximum rate (80% = comfortable margin) */
   private readonly TARGET_UTILIZATION = 0.80;
@@ -104,17 +111,21 @@ export class ProactiveRatePacer {
    * @param serverLimit Total server capacity (e.g., 5000)
    * @param windowSeconds Window duration (e.g., 3600 = 1 hour)
    * @param currentRemaining Current ACTUAL quota remaining (not safe quota)
+   * @param pointsPerRecord Cost per record against the reported bucket —
+   *   pass an empirically observed value when available (see
+   *   RateLimiter.getPointsPerRecord); defaults to the write-cost assumption.
    * @returns Optimal delay calculation
    */
   calculateDelay(
     batchSize: number,
     serverLimit: number,
     windowSeconds: number,
-    currentRemaining: number
+    currentRemaining: number,
+    pointsPerRecord: number = this.DEFAULT_POINTS_PER_RECORD
   ): PacingCalculation {
     // Calculate maximum sustainable rate (records per second)
     const pointsPerSecond = serverLimit / windowSeconds;
-    const maxRecordsPerSecond = pointsPerSecond / this.POINTS_PER_RECORD;
+    const maxRecordsPerSecond = pointsPerSecond / pointsPerRecord;
 
     // Calculate quota health (percentage of limit remaining)
     const quotaHealthPercent = (currentRemaining / serverLimit) * 100;
@@ -184,17 +195,21 @@ export class ProactiveRatePacer {
    * @param windowSeconds Window duration
    * @param currentRemaining Current ACTUAL remaining (not safe quota)
    * @param maxBatchSize Hard limit (PDS max = 200)
+   * @param pointsPerRecord Cost per record against the reported bucket —
+   *   pass an empirically observed value when available; defaults to the
+   *   write-cost assumption.
    * @returns Recommended batch size
    */
   calculateOptimalBatchSize(
     serverLimit: number,
     windowSeconds: number,
     currentRemaining: number,
-    maxBatchSize: number = 200
+    maxBatchSize: number = 200,
+    pointsPerRecord: number = this.DEFAULT_POINTS_PER_RECORD
   ): number {
     // Calculate sustainable rate
     const pointsPerSecond = serverLimit / windowSeconds;
-    const maxRecordsPerSecond = pointsPerSecond / this.POINTS_PER_RECORD;
+    const maxRecordsPerSecond = pointsPerSecond / pointsPerRecord;
 
     // Quota health determines target rate
     const quotaHealthPercent = (currentRemaining / serverLimit) * 100;
@@ -203,12 +218,12 @@ export class ProactiveRatePacer {
     // OPTIMIZED: Progressive throttling for batch size calculation
     if (quotaHealthPercent < 5) {
       // Critical: tiny batches (1-10 records) to maintain minimal progress
-      const criticalSize = Math.max(1, Math.min(10, Math.floor(currentRemaining / this.POINTS_PER_RECORD)));
+      const criticalSize = Math.max(1, Math.min(10, Math.floor(currentRemaining / pointsPerRecord)));
       return criticalSize;
     } else if (quotaHealthPercent < 15) {
       // Very Low: small batches (10-20 records) to gradually rebuild
       targetUtilization = 0.10;
-      const lowSize = Math.max(10, Math.min(20, Math.floor(currentRemaining / this.POINTS_PER_RECORD)));
+      const lowSize = Math.max(10, Math.min(20, Math.floor(currentRemaining / pointsPerRecord)));
       return lowSize;
     } else if (quotaHealthPercent < 30) {
       // Low: conservative batches
@@ -243,17 +258,21 @@ export class ProactiveRatePacer {
    * @param serverLimit Server capacity
    * @param windowSeconds Window duration
    * @param currentQuota Current quota remaining
+   * @param pointsPerRecord Cost per record against the reported bucket —
+   *   pass an empirically observed value when available; defaults to the
+   *   write-cost assumption.
    * @returns Estimated seconds to completion
    */
   estimateTimeToCompletion(
     remainingRecords: number,
     serverLimit: number,
     windowSeconds: number,
-    currentQuota: number
+    currentQuota: number,
+    pointsPerRecord: number = this.DEFAULT_POINTS_PER_RECORD
   ): number {
     // Calculate sustainable rate
     const pointsPerSecond = serverLimit / windowSeconds;
-    const maxRecordsPerSecond = pointsPerSecond / this.POINTS_PER_RECORD;
+    const maxRecordsPerSecond = pointsPerSecond / pointsPerRecord;
 
     // Use current quota health to estimate average utilization
     const quotaHealthPercent = (currentQuota / serverLimit) * 100;

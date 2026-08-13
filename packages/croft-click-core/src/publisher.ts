@@ -98,7 +98,8 @@ export async function publishRecords(
       serverCapacity.limit,
       serverCapacity.windowSeconds,
       actualRemaining,
-      MAX_PDS_BATCH_SIZE
+      MAX_PDS_BATCH_SIZE,
+      rl.getPointsPerRecord(POINTS_PER_RECORD)
     );
     currentDelay = 500;
     onLog('info', `Using saved server info: ${serverCapacity.limit} pts/${serverCapacity.windowSeconds}s`);
@@ -135,7 +136,8 @@ export async function publishRecords(
           capacity.limit,
           capacity.windowSeconds,
           actualRemaining,
-          MAX_PDS_BATCH_SIZE
+          MAX_PDS_BATCH_SIZE,
+          rl.getPointsPerRecord(POINTS_PER_RECORD)
         );
 
         // Apply adaptive scaling from performance metrics
@@ -222,7 +224,7 @@ export async function publishRecords(
         const rawHeaders = extractHeaders(response);
         if (Object.keys(rawHeaders).length > 0) {
           const norm = normalizeHeaders(rawHeaders);
-          rl.updateFromHeaders(norm);
+          rl.updateFromHeaders(norm, batch.length);
 
           // After first response, log the learned capacity and recalculate
           if (batchCounter === 1 && rl.hasServerInfo()) {
@@ -233,7 +235,8 @@ export async function publishRecords(
                 cap.limit,
                 cap.windowSeconds,
                 remaining,
-                MAX_PDS_BATCH_SIZE
+                MAX_PDS_BATCH_SIZE,
+                rl.getPointsPerRecord(POINTS_PER_RECORD)
               );
 
               const quotaPercent = ((remaining / cap.limit) * 100).toFixed(1);
@@ -253,13 +256,14 @@ export async function publishRecords(
         // PROACTIVE PACING: Calculate optimal delay for next batch
         if (i < total) {
           const cap = rl.getServerCapacity();
-          if (cap) {
+          if (cap && rl.hasObservedPointsPerRecord()) {
             const actualQuota = rl.getActualRemaining();
             const pacing = pacer.calculateDelay(
               currentBatchSize,
               cap.limit,
               cap.windowSeconds,
-              actualQuota
+              actualQuota,
+              rl.getPointsPerRecord(POINTS_PER_RECORD)
             );
 
             // Update delay if changed significantly
