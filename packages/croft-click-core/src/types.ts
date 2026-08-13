@@ -25,11 +25,11 @@ export interface PlayRecord {
   artists: PlayRecordArtist[];
   playedTime: string;
   submissionClientAgent: string;
-  musicServiceBaseDomain: string;
+  musicServiceUri: string;
   releaseName?: string;
   releaseMbId?: string;
   recordingMbId?: string;
-  originUrl: string;
+  originUri?: string;
 }
 
 export interface PublishResult {

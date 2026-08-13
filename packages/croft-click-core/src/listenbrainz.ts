@@ -98,8 +98,10 @@ export function convertListenBrainzToPlayRecord(r: ListenBrainzRecord, clientAge
     releaseName,
     playedTime: new Date(r.listened_at * 1000).toISOString(),
     submissionClientAgent: clientAgent,
-    musicServiceBaseDomain: additional_info?.music_service || 'listenbrainz.org',
-    originUrl: additional_info?.origin_url || '',
+    musicServiceUri: additional_info?.music_service
+      ? `https://${additional_info.music_service.replace(/^https?:\/\//, '').replace(/\/$/, '')}/`
+      : 'https://listenbrainz.org/',
+    ...(additional_info?.origin_url ? { originUri: additional_info.origin_url } : {}),
     ...(recordingMbId ? { recordingMbId } : {}),
     ...(releaseMbId ? { releaseMbId } : {}),
   };

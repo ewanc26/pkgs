@@ -104,8 +104,7 @@ export function convertSpotifyToPlayRecord(spotifyRecord: SpotifyRecord, config:
     artists,
     playedTime,
     submissionClientAgent: buildClientAgent(debug),
-    musicServiceBaseDomain: 'spotify.com',
-    originUrl: '',
+    musicServiceUri: 'https://open.spotify.com/',
   };
 
   // Add optional fields
@@ -116,7 +115,7 @@ export function convertSpotifyToPlayRecord(spotifyRecord: SpotifyRecord, config:
   // Generate Spotify URL if we have the track URI
   if (spotifyRecord.spotify_track_uri) {
     const trackId = spotifyRecord.spotify_track_uri.replace('spotify:track:', '');
-    playRecord.originUrl = `https://open.spotify.com/track/${trackId}`;
+    playRecord.originUri = `https://open.spotify.com/track/${trackId}`;
   }
 
   return playRecord;

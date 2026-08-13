@@ -21,7 +21,7 @@ import {
 import type { Config, LastFmCsvRecord } from '../types.js';
 
 const mockConfig: Config = {
-  RECORD_TYPE: 'fm.teal.alpha.feed.play',
+  RECORD_TYPE: 'fm.teal.feed.play',
   MIN_RECORDS_FOR_SCALING: 20,
   BASE_BATCH_SIZE: 200,
   MAX_BATCH_SIZE: 200,
@@ -182,8 +182,8 @@ describe('Last.fm Record Conversion', () => {
     assert.strictEqual(playRecord.releaseName, 'Test Album');
     assert.strictEqual(playRecord.releaseMbId, 'mbid:d87e52c5-bb8d-4da8-b941-9f4928627dc8');
     assert.strictEqual(playRecord.recordingMbId, 'mbid:b3a5364c-8282-4a61-a5db-3dbead027def');
-    assert.strictEqual(playRecord.musicServiceBaseDomain, 'last.fm');
-    assert.match(playRecord.originUrl, /last\.fm/);
+    assert.strictEqual(playRecord.musicServiceUri, 'https://www.last.fm/');
+    assert.match(playRecord.originUri ?? '', /last\.fm/);
   });
 
   it('should handle records without optional MBIDs', () => {
@@ -216,9 +216,9 @@ describe('Last.fm Record Conversion', () => {
 
     const playRecord = convertToPlayRecord(csvRecord, mockConfig);
 
-    assert.match(playRecord.originUrl, /https:\/\/www\.last\.fm/);
-    assert.match(playRecord.originUrl, /The%20Beatles/);
-    assert.match(playRecord.originUrl, /Come%20Together/);
+    assert.match(playRecord.originUri ?? '', /https:\/\/www\.last\.fm/);
+    assert.match(playRecord.originUri ?? '', /The%20Beatles/);
+    assert.match(playRecord.originUri ?? '', /Come%20Together/);
   });
 
   it('should set correct record type', () => {

@@ -20,7 +20,9 @@ const pkg = JSON.parse(readFileSync(path.join(__dirname, '../package.json'), 'ut
 // - Success/failure patterns
 
 // Record type
-export const RECORD_TYPE = 'fm.teal.alpha.feed.play';
+export const RECORD_TYPE = 'fm.teal.feed.play';
+export const LEGACY_RECORD_TYPE = 'fm.teal.alpha.feed.play';
+export const RECORD_TYPES = [RECORD_TYPE, LEGACY_RECORD_TYPE] as const;
 
 // CLI version string, read directly from package.json so it can never drift.
 export const VERSION = pkg.version;

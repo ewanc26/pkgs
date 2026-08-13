@@ -116,8 +116,8 @@ describe('Record Sorting', () => {
         artists: [{ artistName: 'Artist 1' }],
         playedTime: '2025-06-15T10:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
       {
         $type: 'test',
@@ -125,8 +125,8 @@ describe('Record Sorting', () => {
         artists: [{ artistName: 'Artist 2' }],
         playedTime: '2025-06-10T10:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
     ];
 
@@ -151,8 +151,8 @@ describe('Record Sorting', () => {
         artists: [{ artistName: 'Artist 1' }],
         playedTime: '2025-06-10T10:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
       {
         $type: 'test',
@@ -160,8 +160,8 @@ describe('Record Sorting', () => {
         artists: [{ artistName: 'Artist 2' }],
         playedTime: '2025-06-15T10:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
     ];
 
@@ -190,8 +190,8 @@ describe('Record Sorting', () => {
       artists: [{ artistName: 'Artist 1' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const sorted = sortRecords([record], false);
