@@ -27,6 +27,10 @@ export interface ArtistInfo {
   playCount?: number;
   imageUrl?: string;
   startYear?: number;
+  /** MusicBrainz area (country/region of origin), e.g. "United States". */
+  area?: string;
+  /** ISO 3166-1 alpha-2 code for `area`, e.g. "US". */
+  areaCode?: string;
 }
 
 export interface GenreEntry {

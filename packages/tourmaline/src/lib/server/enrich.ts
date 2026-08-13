@@ -92,6 +92,10 @@ interface MBArtist {
   genres?: Array<{ name: string; count: number }>;
   rating?: { value?: number };
   "life-span"?: { begin?: string; end?: string; ended?: boolean };
+  // `area` (and the `iso-3166-1-codes` it carries) is a core artist field
+  // returned by the base MusicBrainz artist lookup — no extra `inc=` param
+  // or additional request is needed to get it.
+  area?: { name?: string; "iso-3166-1-codes"?: string[] };
 }
 
 interface MBSearchResult {
@@ -136,6 +140,8 @@ async function mbGetArtistInfo(mbId: string): Promise<ArtistInfo | null> {
     listenerCount: undefined,
     playCount: undefined,
     startYear: isNaN(startYear!) ? undefined : startYear,
+    area: data.area?.name,
+    areaCode: data.area?.["iso-3166-1-codes"]?.[0],
   };
 }
 
@@ -315,6 +321,8 @@ export async function enrichArtistBatch(
             genres: mbInfo.genres?.length ? mbInfo.genres : info.genres,
             tags: mbInfo.tags?.length ? mbInfo.tags : info.tags,
             mbId: mbInfo.mbId,
+            area: mbInfo.area,
+            areaCode: mbInfo.areaCode,
           };
         }
       } else {
