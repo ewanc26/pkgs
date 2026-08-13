@@ -10,9 +10,11 @@
 import type { Agent } from "@atproto/api";
 import type { PersonalityCardData } from "./personality-svg";
 import { renderPersonalitySvg } from "./personality-svg";
-import { sharePersonality, type ShareResult } from "./post";
+import type { ReceiptCardData } from "./receipt-svg";
+import { renderReceiptSvg } from "./receipt-svg";
+import { sharePersonality, shareReceipt, type ShareResult } from "./post";
 
-export type ShareCardType = "personality";
+export type ShareCardType = "personality" | "receipt";
 
 /** sessionStorage envelope written by a card's "Share" button, read by /share. */
 export interface ShareEnvelope {
@@ -28,6 +30,7 @@ interface CardHandler<T> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const handlers: Record<ShareCardType, CardHandler<any>> = {
   personality: { render: renderPersonalitySvg, share: sharePersonality },
+  receipt: { render: renderReceiptSvg, share: shareReceipt },
 };
 
 export function renderCard(envelope: ShareEnvelope): string {
@@ -43,4 +46,4 @@ export function writeShareEnvelope(type: ShareCardType, data: unknown): void {
   sessionStorage.setItem("tourmaline:share", JSON.stringify({ type, data }));
 }
 
-export type { PersonalityCardData };
+export type { PersonalityCardData, ReceiptCardData };

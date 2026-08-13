@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { renderNoiseAvatar } from '@ewanc26/noise-avatar';
-	import { Loader2, Cpu, Sparkles, Music2, Users, LayoutGrid, Gem } from '@lucide/svelte';
+	import { Loader2, Cpu, Sparkles, Music2, Users, LayoutGrid, Gem, Receipt } from '@lucide/svelte';
 	import type { DateRangePreset } from '$lib/analysis/date-range';
+	import { PRESET_LABELS } from '$lib/analysis/date-range';
+	import { writeShareEnvelope } from '$lib/share/registry';
 	import {
 		loadProfile,
 		emptyResults,
@@ -50,6 +52,19 @@
 				renderNoiseAvatar(canvas, newSeed, { displaySize: 32, gridSize: 5 });
 			}
 		};
+	}
+
+	function shareReceipt() {
+		if (!profile) return;
+		writeShareEnvelope('receipt', {
+			displayName: bskyDisplayName ?? handle ?? did,
+			rangeLabel: PRESET_LABELS[dateRange],
+			tracks: profile.topTracks.slice(0, 10).map((t) => ({ name: t.name, artist: t.artist, count: t.count })),
+			totalScrobbles: profile.totalScrobbles,
+			totalMinutes: profile.totalMinutes
+		});
+		const params = new URLSearchParams({ handle: handle ?? '', did });
+		window.location.href = `/share?${params}`;
 	}
 
 	function formatTime(seconds: number): string {
@@ -484,7 +499,16 @@
 			<!-- Top tracks + albums side by side -->
 			<div class="mb-6 grid gap-4 sm:mb-8 sm:gap-8 lg:grid-cols-2">
 				<div class="overflow-hidden rounded border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
-					<h2 class="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Top Tracks</h2>
+					<div class="mb-3 flex items-center justify-between sm:mb-4">
+						<h2 class="text-base font-semibold sm:text-lg">Top Tracks</h2>
+						<button
+							onclick={shareReceipt}
+							class="flex items-center gap-1.5 rounded border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+						>
+							<Receipt size={12} />
+							Receipt
+						</button>
+					</div>
 					<ol class="space-y-2">
 						{#each profile.topTracks.slice(0, 25) as track, i (i)}
 							<li class="flex items-center gap-2 overflow-hidden sm:gap-3">

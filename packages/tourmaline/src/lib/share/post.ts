@@ -10,6 +10,8 @@
 import { Agent, RichText } from "@atproto/api";
 import type { PersonalityCardData } from "./personality-svg";
 import { renderPersonalitySvg } from "./personality-svg";
+import type { ReceiptCardData } from "./receipt-svg";
+import { renderReceiptSvg } from "./receipt-svg";
 import { svgToPng } from "./svg-to-png";
 
 export interface ShareResult {
@@ -124,6 +126,29 @@ export async function sharePersonality(
     svg,
     alt,
     postText: `I'm a ${card.archetype}!\n\nfound out by using tourmaline by @ewancroft.uk`,
+    toolkitExtra:
+      card.totalScrobbles != null ? { scrobblesAnalyzed: card.totalScrobbles } : {},
+  });
+}
+
+export async function shareReceipt(agent: Agent, card: ReceiptCardData): Promise<ShareResult> {
+  const svg = renderReceiptSvg(card);
+
+  const tracks = (Array.isArray(card.tracks) ? card.tracks : []).slice(0, 5);
+  const trackList = tracks.map((t, i) => `${i + 1}. ${t.name} — ${t.artist}`).join("; ");
+
+  const alt = [
+    `Listening receipt for ${card.displayName ?? "this listener"} (${card.rangeLabel ?? "all time"}).`,
+    trackList ? `Top tracks: ${trackList}.` : "",
+    card.totalScrobbles != null ? `Total scrobbles: ${card.totalScrobbles}.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return postCardImage(agent, {
+    svg,
+    alt,
+    postText: `My listening receipt (${card.rangeLabel ?? "all time"}) 🧾\n\nvia tourmaline by @ewancroft.uk`,
     toolkitExtra:
       card.totalScrobbles != null ? { scrobblesAnalyzed: card.totalScrobbles } : {},
   });
