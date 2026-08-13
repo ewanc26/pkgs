@@ -138,6 +138,9 @@ export interface ListenerProfile {
   topTrackGaps: Array<{ name: string; artist: string; gapDays: number; count: number }>;
   /** Top 10 artists by distinct tracks played — breadth within one artist's catalogue. */
   topArtistsByTrackCount: Array<{ name: string; trackCount: number; count: number }>;
+  /** Top 10 artists by earliest/latest average listen date (min 5 plays). */
+  goldenOldieArtists: Array<{ name: string; avgDate: string; count: number }>;
+  latestDiscoveryArtists: Array<{ name: string; avgDate: string; count: number }>;
   /** Per-month most statistically unusual artist (highest z-score). */
   unusualMonths: UnusualMonth[];
   // ── Ported from lastfm-stats-web ─────────────────────────────────────

@@ -35,6 +35,7 @@ import { topZScorePerMonth } from "$lib/analysis/zscore";
 import { buildRecommendations } from "$lib/analysis/recommendations";
 import { buildAnniversaries } from "$lib/analysis/anniversaries";
 import { topGaps } from "$lib/analysis/gaps";
+import { topByAvgDate } from "$lib/analysis/average-listen-date";
 
 export type RangeKey = "all" | "7d" | "30d" | "90d" | "365d";
 export const RANGES: RangeKey[] = ["all", "7d", "30d", "90d", "365d"];
@@ -146,6 +147,17 @@ export function computeProfile(
     .sort((a, b) => b.trackCount - a.trackCount)
     .slice(0, 10);
 
+  const goldenOldieArtists = topByAvgDate(data.artistTimestamps, data.artistPlayCounts, 5, 10, "oldest").map(
+    (e) => ({ name: e.key, avgDate: new Date(e.avgTimestamp).toISOString().slice(0, 10), count: e.count }),
+  );
+  const latestDiscoveryArtists = topByAvgDate(
+    data.artistTimestamps,
+    data.artistPlayCounts,
+    5,
+    10,
+    "newest",
+  ).map((e) => ({ name: e.key, avgDate: new Date(e.avgTimestamp).toISOString().slice(0, 10), count: e.count }));
+
   const profile: ListenerProfile = {
     did,
     handle,
@@ -193,6 +205,8 @@ export function computeProfile(
     topArtistGaps,
     topTrackGaps,
     topArtistsByTrackCount,
+    goldenOldieArtists,
+    latestDiscoveryArtists,
     scrobbleMilestones: data.scrobbleMilestones,
     artistMilestones: data.artistMilestones,
     trackMilestones: data.trackMilestones,
