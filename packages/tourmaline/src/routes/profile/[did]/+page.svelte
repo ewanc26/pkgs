@@ -41,6 +41,7 @@
 	import GoldenOldies from './GoldenOldies.svelte';
 	import RankMovers from './RankMovers.svelte';
 	import EveryYearArtists from './EveryYearArtists.svelte';
+	import WordCloud from './WordCloud.svelte';
 	import DateRangePicker from './DateRangePicker.svelte';
 	import ListeningPhases from './ListeningPhases.svelte';
 	import StoryRecap from './StoryRecap.svelte';
@@ -599,6 +600,14 @@
 						{/each}
 					</ol>
 				</div>
+			</div>
+
+			<div class="mb-6 sm:mb-8">
+				<WordCloud
+					topArtists={profile.topArtists}
+					topTracks={profile.topTracks}
+					topAlbums={profile.topAlbums}
+				/>
 			</div>
 
 			{#if profile.discoveredArtists.length > 0 || profile.discoveredTracks.length > 0 || profile.discoveredAlbums.length > 0}
