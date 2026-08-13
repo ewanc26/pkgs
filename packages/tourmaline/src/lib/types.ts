@@ -149,6 +149,10 @@ export interface ListenerProfile {
   biggestFallers: RankMover[];
   mostNewArtistsInAMonth: NewArtistMonthStat | null;
   mostListenedNewArtist: MostListenedNewArtist | null;
+  /** Artists scrobbled in every calendar year of the listener's history, ranked by play count. */
+  everyYearArtists: Array<{ name: string; count: number }>;
+  /** Same, excluding the first and last (possibly partial) year. */
+  everyCompletedYearArtists: Array<{ name: string; count: number }>;
   /** Per-month most statistically unusual artist (highest z-score). */
   unusualMonths: UnusualMonth[];
   // ── Ported from lastfm-stats-web ─────────────────────────────────────
