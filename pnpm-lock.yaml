@@ -22,7 +22,7 @@ importers:
         version: 0.7.2(prettier-plugin-svelte@3.5.1(prettier@3.8.3)(svelte@5.55.4))(prettier@3.8.3)
       vercel:
         specifier: ^54.17.1
-        version: 54.17.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(rollup@4.60.1)
+        version: 54.17.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
 
   packages/atproto:
     devDependencies:
@@ -619,6 +619,9 @@ importers:
       '@sveltejs/adapter-auto':
         specifier: ^7.0.1
         version: 7.0.1(@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.6.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))
+      '@sveltejs/adapter-vercel':
+        specifier: ^6.3.3
+        version: 6.3.3(@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.6.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(rollup@4.60.1)
       '@sveltejs/kit':
         specifier: ^2.55.0
         version: 2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.6.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0))
@@ -7344,7 +7347,7 @@ snapshots:
   '@sveltejs/adapter-vercel@6.3.3(@sveltejs/kit@2.57.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.55.2)(vite@8.0.7(@types/node@25.9.1)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)))(svelte@5.55.2)(typescript@6.0.2)(vite@8.0.7(@types/node@25.9.1)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)))(rollup@4.60.1)':
     dependencies:
       '@sveltejs/kit': 2.57.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.55.2)(vite@8.0.7(@types/node@25.9.1)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)))(svelte@5.55.2)(typescript@6.0.2)(vite@8.0.7(@types/node@25.9.1)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0))
-      '@vercel/nft': 1.5.0(rollup@4.60.1)
+      '@vercel/nft': 1.10.0(rollup@4.60.1)
       esbuild: 0.25.12
     transitivePeerDependencies:
       - encoding
@@ -7354,7 +7357,7 @@ snapshots:
   '@sveltejs/adapter-vercel@6.3.3(@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(rollup@4.60.1)':
     dependencies:
       '@sveltejs/kit': 2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0))
-      '@vercel/nft': 1.5.0(rollup@4.60.1)
+      '@vercel/nft': 1.10.0(rollup@4.60.1)
       esbuild: 0.25.12
     transitivePeerDependencies:
       - encoding
@@ -7364,7 +7367,7 @@ snapshots:
   '@sveltejs/adapter-vercel@6.3.3(@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.6.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(rollup@4.60.1)':
     dependencies:
       '@sveltejs/kit': 2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.6.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0))
-      '@vercel/nft': 1.5.0(rollup@4.60.1)
+      '@vercel/nft': 1.10.0(rollup@4.60.1)
       esbuild: 0.25.12
     transitivePeerDependencies:
       - encoding
@@ -7374,7 +7377,7 @@ snapshots:
   '@sveltejs/adapter-vercel@6.3.3(@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@7.1.2(svelte@5.55.4)(vite@8.0.12(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)))(svelte@5.55.4)(typescript@6.0.3)(vite@8.0.12(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)))(rollup@4.60.1)':
     dependencies:
       '@sveltejs/kit': 2.57.1(@sveltejs/vite-plugin-svelte@7.1.2(svelte@5.55.4)(vite@8.0.12(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)))(svelte@5.55.4)(typescript@6.0.3)(vite@8.0.12(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0))
-      '@vercel/nft': 1.5.0(rollup@4.60.1)
+      '@vercel/nft': 1.10.0(rollup@4.60.1)
       esbuild: 0.25.12
     transitivePeerDependencies:
       - encoding
@@ -7864,7 +7867,7 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/backends@0.8.18(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(rollup@4.60.1)':
+  '@vercel/backends@0.8.18(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     dependencies:
       '@vercel/build-utils': 13.32.1
       '@vercel/nft': 1.10.0(rollup@4.60.1)
@@ -7949,9 +7952,9 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/cervel@0.1.26(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(rollup@4.60.1)':
+  '@vercel/cervel@0.1.26(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     dependencies:
-      '@vercel/backends': 0.8.18(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(rollup@4.60.1)
+      '@vercel/backends': 0.8.18(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -7996,9 +7999,9 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/elysia@0.1.97(rollup@4.60.1)':
+  '@vercel/elysia@0.1.97':
     dependencies:
-      '@vercel/node': 5.8.21(rollup@4.60.1)
+      '@vercel/node': 5.8.21
       '@vercel/static-config': 3.4.0
     transitivePeerDependencies:
       - encoding
@@ -8009,11 +8012,11 @@ snapshots:
 
   '@vercel/error-utils@2.2.0': {}
 
-  '@vercel/express@0.1.109(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(rollup@4.60.1)':
+  '@vercel/express@0.1.109(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     dependencies:
-      '@vercel/cervel': 0.1.26(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(rollup@4.60.1)
+      '@vercel/cervel': 0.1.26(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
       '@vercel/nft': 1.10.0(rollup@4.60.1)
-      '@vercel/node': 5.8.21(rollup@4.60.1)
+      '@vercel/node': 5.8.21
       '@vercel/static-config': 3.4.0
       fs-extra: 11.1.0
       path-to-regexp: 8.3.0
@@ -8062,9 +8065,9 @@ snapshots:
       - supports-color
       - typescript
 
-  '@vercel/fastify@0.1.100(rollup@4.60.1)':
+  '@vercel/fastify@0.1.100':
     dependencies:
-      '@vercel/node': 5.8.21(rollup@4.60.1)
+      '@vercel/node': 5.8.21
       '@vercel/static-config': 3.4.0
     transitivePeerDependencies:
       - encoding
@@ -8147,9 +8150,9 @@ snapshots:
 
   '@vercel/go@3.5.0': {}
 
-  '@vercel/h3@0.1.106(rollup@4.60.1)':
+  '@vercel/h3@0.1.106':
     dependencies:
-      '@vercel/node': 5.8.21(rollup@4.60.1)
+      '@vercel/node': 5.8.21
       '@vercel/static-config': 3.4.0
     transitivePeerDependencies:
       - encoding
@@ -8174,10 +8177,10 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/hono@0.2.100(rollup@4.60.1)':
+  '@vercel/hono@0.2.100':
     dependencies:
       '@vercel/nft': 1.10.0(rollup@4.60.1)
-      '@vercel/node': 5.8.21(rollup@4.60.1)
+      '@vercel/node': 5.8.21
       '@vercel/static-config': 3.4.0
       fs-extra: 11.1.0
       path-to-regexp: 8.3.0
@@ -8244,18 +8247,18 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/koa@0.1.80(rollup@4.60.1)':
+  '@vercel/koa@0.1.80':
     dependencies:
-      '@vercel/node': 5.8.21(rollup@4.60.1)
+      '@vercel/node': 5.8.21
       '@vercel/static-config': 3.4.0
     transitivePeerDependencies:
       - encoding
       - rollup
       - supports-color
 
-  '@vercel/nestjs@0.2.101(rollup@4.60.1)':
+  '@vercel/nestjs@0.2.101':
     dependencies:
-      '@vercel/node': 5.8.21(rollup@4.60.1)
+      '@vercel/node': 5.8.21
       '@vercel/static-config': 3.4.0
     transitivePeerDependencies:
       - encoding
@@ -8296,7 +8299,7 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/next@4.20.1(rollup@4.60.1)':
+  '@vercel/next@4.20.1':
     dependencies:
       '@vercel/nft': 1.10.0(rollup@4.60.1)
     transitivePeerDependencies:
@@ -8400,7 +8403,7 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/node@5.8.21(rollup@4.60.1)':
+  '@vercel/node@5.8.21':
     dependencies:
       '@edge-runtime/node-utils': 2.3.0
       '@edge-runtime/primitives': 4.1.0
@@ -8478,7 +8481,7 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/redwood@2.5.0(rollup@4.60.1)':
+  '@vercel/redwood@2.5.0':
     dependencies:
       '@vercel/nft': 1.10.0(rollup@4.60.1)
       '@vercel/static-config': 3.4.0
@@ -8502,7 +8505,7 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/remix-builder@5.9.1(rollup@4.60.1)':
+  '@vercel/remix-builder@5.9.1':
     dependencies:
       '@vercel/error-utils': 2.2.0
       '@vercel/nft': 1.10.0(rollup@4.60.1)
@@ -11085,31 +11088,31 @@ snapshots:
       - supports-color
       - typescript
 
-  vercel@54.17.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(rollup@4.60.1):
+  vercel@54.17.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0):
     dependencies:
-      '@vercel/backends': 0.8.18(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(rollup@4.60.1)
+      '@vercel/backends': 0.8.18(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
       '@vercel/blob': 2.4.0
       '@vercel/build-utils': 13.32.1
       '@vercel/cli-auth': 0.3.0
       '@vercel/cli-config': 0.2.0
       '@vercel/container': 0.0.2
       '@vercel/detect-agent': 1.2.3
-      '@vercel/elysia': 0.1.97(rollup@4.60.1)
-      '@vercel/express': 0.1.109(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(rollup@4.60.1)
-      '@vercel/fastify': 0.1.100(rollup@4.60.1)
+      '@vercel/elysia': 0.1.97
+      '@vercel/express': 0.1.109(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
+      '@vercel/fastify': 0.1.100
       '@vercel/fun': 1.3.0
       '@vercel/go': 3.10.0
-      '@vercel/h3': 0.1.106(rollup@4.60.1)
-      '@vercel/hono': 0.2.100(rollup@4.60.1)
+      '@vercel/h3': 0.1.106
+      '@vercel/hono': 0.2.100
       '@vercel/hydrogen': 1.4.0
-      '@vercel/koa': 0.1.80(rollup@4.60.1)
-      '@vercel/nestjs': 0.2.101(rollup@4.60.1)
-      '@vercel/next': 4.20.1(rollup@4.60.1)
-      '@vercel/node': 5.8.21(rollup@4.60.1)
+      '@vercel/koa': 0.1.80
+      '@vercel/nestjs': 0.2.101
+      '@vercel/next': 4.20.1
+      '@vercel/node': 5.8.21
       '@vercel/prepare-flags-definitions': 0.3.0
       '@vercel/python': 6.47.1
-      '@vercel/redwood': 2.5.0(rollup@4.60.1)
-      '@vercel/remix-builder': 5.9.1(rollup@4.60.1)
+      '@vercel/redwood': 2.5.0
+      '@vercel/remix-builder': 5.9.1
       '@vercel/ruby': 2.5.1
       '@vercel/rust': 1.3.0
       '@vercel/static-build': 2.11.3
