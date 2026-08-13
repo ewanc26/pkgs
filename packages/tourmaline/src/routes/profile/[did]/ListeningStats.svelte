@@ -10,6 +10,8 @@
 		mostPopularMonth: { month: string; count: number };
 		tracksWithoutAlbumCount: number;
 		tracksWithoutAlbumPercentage: number;
+		scrobblesWithoutAlbumCount: number;
+		scrobblesWithoutAlbumPercentage: number;
 	}
 
 	let {
@@ -216,6 +218,17 @@
 			<p class="mt-1 text-xl font-bold sm:text-2xl">
 				{statsData.tracksWithoutAlbumCount}
 				<span class="text-sm text-[var(--text-muted)]">({(statsData.tracksWithoutAlbumPercentage ?? 0).toFixed(1)}%)</span>
+			</p>
+		</div>
+
+		<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
+			<div class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+				<Disc size={12} class="text-cyan-400" />
+				Scrobbles without album
+			</div>
+			<p class="mt-1 text-xl font-bold sm:text-2xl">
+				{statsData.scrobblesWithoutAlbumCount.toLocaleString()}
+				<span class="text-sm text-[var(--text-muted)]">({(statsData.scrobblesWithoutAlbumPercentage ?? 0).toFixed(1)}%)</span>
 			</p>
 		</div>
 	</div>
