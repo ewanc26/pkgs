@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Flame, TrendingUp, Calendar, Hash, Clock, User, Zap, Star, Disc } from '@lucide/svelte';
-	import type { DailyScrobble, Gap } from '$lib/types';
+	import { Flame, TrendingUp, Calendar, Hash, Clock, User, Zap, Star, Disc, Sparkle } from '@lucide/svelte';
+	import type { DailyScrobble, Gap, DiscoveredArtist } from '$lib/types';
 
 	interface StatsData {
 		daysScrobbled: number;
@@ -12,6 +12,7 @@
 		tracksWithoutAlbumPercentage: number;
 		scrobblesWithoutAlbumCount: number;
 		scrobblesWithoutAlbumPercentage: number;
+		discoveredArtists: DiscoveredArtist[];
 	}
 
 	let {
@@ -231,5 +232,16 @@
 				<span class="text-sm text-[var(--text-muted)]">({(statsData.scrobblesWithoutAlbumPercentage ?? 0).toFixed(1)}%)</span>
 			</p>
 		</div>
+
+		{#if statsData.discoveredArtists[0]}
+			<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
+				<div class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+					<Sparkle size={12} class="text-emerald-400" />
+					Latest new artist
+				</div>
+				<p class="mt-1 truncate text-lg font-bold sm:text-xl">{statsData.discoveredArtists[0].name}</p>
+				<p class="text-xs text-[var(--text-dim)]">{formatDate(statsData.discoveredArtists[0].firstListen)}</p>
+			</div>
+		{/if}
 	</div>
 {/if}
