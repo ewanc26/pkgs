@@ -36,6 +36,7 @@ import { buildRecommendations } from "$lib/analysis/recommendations";
 import { buildAnniversaries } from "$lib/analysis/anniversaries";
 import { topGaps } from "$lib/analysis/gaps";
 import { topByAvgDate } from "$lib/analysis/average-listen-date";
+import { buildRankHistory, biggestMovers } from "$lib/analysis/rank-history";
 
 export type RangeKey = "all" | "7d" | "30d" | "90d" | "365d";
 export const RANGES: RangeKey[] = ["all", "7d", "30d", "90d", "365d"];
@@ -158,6 +159,9 @@ export function computeProfile(
     "newest",
   ).map((e) => ({ name: e.key, avgDate: new Date(e.avgTimestamp).toISOString().slice(0, 10), count: e.count }));
 
+  const rankHistory = buildRankHistory(data.monthlyArtistPlays);
+  const { climbers: biggestClimbers, fallers: biggestFallers } = biggestMovers(rankHistory, 10);
+
   const profile: ListenerProfile = {
     did,
     handle,
@@ -207,6 +211,8 @@ export function computeProfile(
     topArtistsByTrackCount,
     goldenOldieArtists,
     latestDiscoveryArtists,
+    biggestClimbers,
+    biggestFallers,
     scrobbleMilestones: data.scrobbleMilestones,
     artistMilestones: data.artistMilestones,
     trackMilestones: data.trackMilestones,
