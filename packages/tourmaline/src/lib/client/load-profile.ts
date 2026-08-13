@@ -39,6 +39,8 @@ import { topByAvgDate } from "$lib/analysis/average-listen-date";
 import { buildRankHistory, biggestMovers } from "$lib/analysis/rank-history";
 import { mostNewArtistsMonth, mostListenedNewArtistInMonth } from "$lib/analysis/new-artists";
 import { buildEveryYearArtists } from "$lib/analysis/every-year";
+import { buildTagsProfile } from "$lib/analysis/tags-breakdown";
+import { buildRegionProfile } from "$lib/analysis/region-breakdown";
 
 export type RangeKey = "all" | "7d" | "30d" | "90d" | "365d";
 export const RANGES: RangeKey[] = ["all", "7d", "30d", "90d", "365d"];
@@ -175,6 +177,9 @@ export function computeProfile(
   const everyYearArtists = toRanked(everyYear.everyYear);
   const everyCompletedYearArtists = toRanked(everyYear.everyCompletedYear);
 
+  const tagsBreakdown = buildTagsProfile(data, artistInfos);
+  const regionBreakdown = buildRegionProfile(data, artistInfos);
+
   const profile: ListenerProfile = {
     did,
     handle,
@@ -252,6 +257,8 @@ export function computeProfile(
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, artists]) => [month, [...artists.entries()]] as [string, Array<[string, number]>]),
     artistRankHistory: [...rankHistory.entries()],
+    tagsBreakdown,
+    regionBreakdown,
   };
 
   const sessions = deriveSessions(filtered);
