@@ -2,15 +2,13 @@
 	import { onMount } from 'svelte';
 	import type { Agent } from '@atproto/api';
 	import { initOAuth, signInWithOAuth } from '$lib/atproto/oauth';
-	import { sharePersonality } from '$lib/share/post';
-	import { renderPersonalitySvg } from '$lib/share/personality-svg';
-	import type { PersonalityCardData } from '$lib/share/personality-svg';
+	import { renderCard, shareCard, type ShareEnvelope } from '$lib/share/registry';
 	import { ExternalLink, ArrowLeft } from '@lucide/svelte';
 
 	const STORAGE_KEY = 'tourmaline:share';
 
 	let agent = $state<Agent | null>(null);
-	let card = $state<PersonalityCardData | null>(null);
+	let envelope = $state<ShareEnvelope | null>(null);
 	let handle = $state('');
 	let svgPreview = $state('');
 	let profileUrl = $state('/');
@@ -23,18 +21,18 @@
 	let error = $state('');
 
 	onMount(async () => {
-		// Restore personality data from sessionStorage
+		// Restore the share envelope from sessionStorage
 		const stored = sessionStorage.getItem(STORAGE_KEY);
 		if (stored) {
 			try {
-				const parsed = JSON.parse(stored) as PersonalityCardData;
-				card = parsed;
-				svgPreview = renderPersonalitySvg(parsed);
+				const parsed = JSON.parse(stored) as ShareEnvelope;
+				envelope = parsed;
+				svgPreview = renderCard(parsed);
 			} catch {
-				error = 'No personality data found. Go back to your profile and try again.';
+				error = 'No share data found. Go back to your profile and try again.';
 			}
 		} else {
-			error = 'No personality data found. Go back to your profile and try again.';
+			error = 'No share data found. Go back to your profile and try again.';
 		}
 
 		// Build a link back to the profile page
@@ -82,11 +80,11 @@
 	}
 
 	async function doPost() {
-		if (!agent || !card) return;
+		if (!agent || !envelope) return;
 		posting = true;
 		error = '';
 		try {
-			const result = await sharePersonality(agent, card);
+			const result = await shareCard(agent, envelope);
 			postUri = result.uri;
 
 			done = true;
@@ -158,7 +156,7 @@
 				View post <ExternalLink size={12} />
 			</a>
 		</div>
-	{:else if card}
+	{:else if envelope}
 		<!-- SVG preview -->
 		<div class="mt-4 rounded border border-[var(--border)]">
 			{@html svgPreview}
