@@ -19,7 +19,7 @@ import {
 } from '@ewanc26/croft-click-core';
 
 const RECORD_TYPE = 'app.bsky.feed.post';
-const POINTS_PER_RECORD = 1;
+const POINTS_PER_RECORD = 3;
 const MAX_BATCH_SIZE = 200;
 
 export interface PublishProgress {
