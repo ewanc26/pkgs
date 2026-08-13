@@ -49,6 +49,12 @@ export interface AggregatedData {
   lastScrobble: { date: string; track: string; artist: string } | null;
   oneHitWondersCount: number;
   oneHitWondersPercentage: number;
+  /** Distinct tracks with at least one scrobble missing album metadata. */
+  tracksWithoutAlbumCount: number;
+  tracksWithoutAlbumPercentage: number;
+  /** Total scrobbles missing album metadata. */
+  scrobblesWithoutAlbumCount: number;
+  scrobblesWithoutAlbumPercentage: number;
   mostPopularYear: { year: string; count: number };
   mostPopularMonth: { month: string; count: number };
   /** All scrobble streaks, sorted by length descending. Streaks < 2 days omitted. */
@@ -112,7 +118,7 @@ export class Aggregator {
   private artistCounts = new Map<string, number>();
   private trackCounts = new Map<
     string,
-    { name: string; artist: string; count: number }
+    { name: string; artist: string; count: number; withAlbum: number }
   >();
   private albumCounts = new Map<
     string,
@@ -137,6 +143,7 @@ export class Aggregator {
   private artistWeeks = new Map<string, Set<string>>();
   private minutesCount = 0;
   private total = 0;
+  private scrobblesWithoutAlbum = 0;
   // ── New tracking fields ─────────────────────────────────────────────────────
   private weeklyCounts = new Map<string, number>();
   private artistTimestamps = new Map<string, number[]>();
@@ -214,14 +221,19 @@ export class Aggregator {
       if (trackTs) trackTs.push(date.getTime());
       else this.trackTimestamps.set(trackKey, [date.getTime()]);
 
+      const hasAlbum = Boolean(scrobble.releaseName);
+      if (!hasAlbum) this.scrobblesWithoutAlbum++;
+
       const existing = this.trackCounts.get(trackKey);
       if (existing) {
         existing.count++;
+        if (hasAlbum) existing.withAlbum++;
       } else {
         this.trackCounts.set(trackKey, {
           name: scrobble.trackName,
           artist: artistName,
           count: 1,
+          withAlbum: hasAlbum ? 1 : 0,
         });
         // Track milestones (every 500th unique track)
         if (this.trackCounts.size % 500 === 0) {
@@ -369,6 +381,16 @@ export class Aggregator {
         ? (oneHitWondersCount / this.artistCounts.size) * 100
         : 0;
 
+    const tracksWithoutAlbumCount = [...this.trackCounts.values()].filter(
+      (t) => t.withAlbum < t.count,
+    ).length;
+    const tracksWithoutAlbumPercentage =
+      this.trackCounts.size > 0
+        ? (tracksWithoutAlbumCount / this.trackCounts.size) * 100
+        : 0;
+    const scrobblesWithoutAlbumPercentage =
+      this.total > 0 ? (this.scrobblesWithoutAlbum / this.total) * 100 : 0;
+
     // Most popular year/month
     const yearCounts = new Map<string, number>();
     for (const [key, count] of this.monthlyCounts.entries()) {
@@ -480,6 +502,10 @@ export class Aggregator {
         : null,
       oneHitWondersCount,
       oneHitWondersPercentage,
+      tracksWithoutAlbumCount,
+      tracksWithoutAlbumPercentage,
+      scrobblesWithoutAlbumCount: this.scrobblesWithoutAlbum,
+      scrobblesWithoutAlbumPercentage,
       mostPopularYear: { year: mostPopularYear[0], count: mostPopularYear[1] },
       mostPopularMonth: {
         month: mostPopularMonth[0],
