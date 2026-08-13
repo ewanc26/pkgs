@@ -123,6 +123,7 @@ export interface ListenerProfile {
   eddingtonNumber: number;
   daysToNextEddington: number;
   artistCutoverPoint: number;
+  bestArtistDay: { date: string; artist: string; count: number } | null;
   longestScrobbleStreak: { start: string; end: string; length: number } | null;
   longestArtistStreak: { artist: string; length: number } | null;
   longestTrackStreak: { track: string; artist: string; length: number } | null;

@@ -202,6 +202,7 @@ export function computeProfile(
     eddingtonNumber: data.eddingtonNumber,
     daysToNextEddington: data.daysToNextEddington,
     artistCutoverPoint: data.artistCutoverPoint,
+    bestArtistDay: data.bestArtistDay,
     longestScrobbleStreak: data.longestScrobbleStreak,
     longestArtistStreak: data.longestArtistStreak,
     longestTrackStreak: data.longestTrackStreak,
