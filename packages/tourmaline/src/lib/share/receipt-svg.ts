@@ -18,12 +18,17 @@ const WIDTH = 380;
 const PAD = 24;
 const MAX_TRACKS = 12;
 
-/** Dotted leader line between a name and its trailing number, receipt-style. */
-function dottedLeader(nameWidth: number, availableWidth: number): string {
-  const dotsWidth = Math.max(0, availableWidth - nameWidth);
-  const dotCount = Math.floor(dotsWidth / 4);
-  return ".".repeat(Math.max(0, dotCount));
-}
+/**
+ * JetBrains Mono is monospace, but estimating rendered text width from a
+ * per-character multiplier is still inherently approximate — there's no
+ * canvas measureText available in this pure-string SVG generator. A
+ * geometric dashed <line> (used for the leader below) tolerates that
+ * approximation safely: worst case a slightly shorter/longer leader, never
+ * literal dot characters overlapping the count like an earlier version of
+ * this file did.
+ */
+const MONO_CHAR_WIDTH_11PX = 6.8; // slightly generous — safe direction is UNDER-filling, not overlapping
+
 
 /** Decorative barcode — purely visual, not a real scannable code. */
 function barcodeSvg(y: number): string {
@@ -106,15 +111,26 @@ export function renderReceiptSvg(card: ReceiptCardData): string {
   const trackLines = tracks
     .map((t, i) => {
       const ty = tracksStartY + i * 20;
-      const label = `${esc(t.name)} - ${esc(t.artist)}`;
+      // Truncate the RAW label before escaping — esc() can expand a single
+      // character (e.g. "&" -> "&amp;"), which would throw off a
+      // length-based truncation/width estimate computed after escaping.
+      const rawLabel = `${t.name} - ${t.artist}`;
+      const truncatedRaw = rawLabel.length > 44 ? rawLabel.slice(0, 41) + "..." : rawLabel;
       const countStr = String(t.count ?? 0);
-      // Rough character-width estimate at 11px JetBrains Mono for leader sizing.
-      const nameCharWidth = 6.2;
-      const available = WIDTH - PAD * 2 - countStr.length * 7 - 4;
-      const leader = dottedLeader(Math.min(label.length, 44) * nameCharWidth, available);
-      const truncated = label.length > 44 ? label.slice(0, 41) + "..." : label;
+
+      // Leader as a geometric dashed line, not literal dot characters —
+      // width-estimation error just shortens/lengthens it, never overlaps
+      // the count the way text-based dots could.
+      const nameEndX = PAD + truncatedRaw.length * MONO_CHAR_WIDTH_11PX + 6;
+      const countStartX = WIDTH - PAD - countStr.length * MONO_CHAR_WIDTH_11PX - 8;
+      const leaderLine =
+        countStartX > nameEndX
+          ? `<line x1="${nameEndX}" y1="${ty - 4}" x2="${countStartX}" y2="${ty - 4}" stroke="${DIM}" stroke-width="1" stroke-dasharray="1.5,3" />`
+          : "";
+
       return `
-<text x="${PAD}" y="${ty}" font-family="'JetBrains Mono', monospace" font-size="11" fill="${TEXT}" xml:space="preserve">${esc(truncated)} ${esc(leader)}</text>
+<text x="${PAD}" y="${ty}" font-family="'JetBrains Mono', monospace" font-size="11" fill="${TEXT}">${esc(truncatedRaw)}</text>
+${leaderLine}
 <text x="${WIDTH - PAD}" y="${ty}" font-family="'JetBrains Mono', monospace" font-size="11" fill="${MUTED}" text-anchor="end">${esc(countStr)}</text>`;
     })
     .join("");
