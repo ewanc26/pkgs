@@ -32,6 +32,7 @@
 	import ListeningSessions from './ListeningSessions.svelte';
 	import OnThisDay from './OnThisDay.svelte';
 	import Anniversaries from './Anniversaries.svelte';
+	import WeeksActive from './WeeksActive.svelte';
 	import DateRangePicker from './DateRangePicker.svelte';
 	import ListeningPhases from './ListeningPhases.svelte';
 	import StoryRecap from './StoryRecap.svelte';
@@ -516,6 +517,8 @@
 					{/each}
 				</ol>
 			</div>
+
+			<WeeksActive artists={profile.topArtistsByWeeksActive} />
 
 			<!-- Top tracks + albums side by side -->
 			<div class="mb-6 grid gap-4 sm:mb-8 sm:gap-8 lg:grid-cols-2">

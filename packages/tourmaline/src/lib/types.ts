@@ -129,6 +129,8 @@ export interface ListenerProfile {
     avgDaysBetween: number;
     count: number;
   }>;
+  /** Top 10 artists by distinct weeks active — favourites returned to over a long span, not just a heavy binge. */
+  topArtistsByWeeksActive: Array<{ name: string; weeksActive: number; count: number }>;
   /** Per-month most statistically unusual artist (highest z-score). */
   unusualMonths: UnusualMonth[];
   // ── Ported from lastfm-stats-web ─────────────────────────────────────
