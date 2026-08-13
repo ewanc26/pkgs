@@ -20,7 +20,7 @@ import {
 import type { Config } from '../types.js';
 
 const mockConfig: Config = {
-  RECORD_TYPE: 'fm.teal.alpha.feed.play',
+  RECORD_TYPE: 'fm.teal.feed.play',
   MIN_RECORDS_FOR_SCALING: 20,
   BASE_BATCH_SIZE: 200,
   MAX_BATCH_SIZE: 200,
@@ -205,9 +205,9 @@ describe('Spotify Record Conversion', () => {
     assert.strictEqual(playRecord.artists[0].artistName, 'Test Artist');
     assert.strictEqual(playRecord.releaseName, 'Test Album');
     assert.strictEqual(playRecord.playedTime, '2021-06-15T20:00:00Z');
-    assert.strictEqual(playRecord.musicServiceBaseDomain, 'spotify.com');
-    assert.match(playRecord.originUrl, /spotify.com/);
-    assert.match(playRecord.originUrl, /7qiZfU4dY1lsylvNFutmtK/);
+    assert.strictEqual(playRecord.musicServiceUri, 'https://open.spotify.com/');
+    assert.match(playRecord.originUri ?? '', /spotify.com/);
+    assert.match(playRecord.originUri ?? '', /7qiZfU4dY1lsylvNFutmtK/);
   });
 
   it('should generate Spotify origin URL from track URI', () => {
@@ -220,7 +220,7 @@ describe('Spotify Record Conversion', () => {
     const playRecord = convertSpotifyToPlayRecord(spotifyRecord, mockConfig);
 
     assert.strictEqual(
-      playRecord.originUrl,
+      playRecord.originUri,
       'https://open.spotify.com/track/abc123xyz'
     );
   });
@@ -235,7 +235,7 @@ describe('Spotify Record Conversion', () => {
     const playRecord = convertSpotifyToPlayRecord(spotifyRecord, mockConfig);
 
     assert.strictEqual(playRecord.trackName, 'Track');
-    assert.strictEqual(playRecord.originUrl, '');
+    assert.strictEqual(playRecord.originUri, undefined);
   });
 
   it('should handle missing album name', () => {

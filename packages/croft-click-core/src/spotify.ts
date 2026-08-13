@@ -34,14 +34,13 @@ export function convertSpotifyToPlayRecord(r: SpotifyRecord, clientAgent: string
     artists,
     playedTime: r.ts,
     submissionClientAgent: clientAgent,
-    musicServiceBaseDomain: 'spotify.com',
-    originUrl: '',
+    musicServiceUri: 'https://open.spotify.com/',
   };
 
   if (r.master_metadata_album_album_name) record.releaseName = r.master_metadata_album_album_name;
   if (r.spotify_track_uri) {
     const id = r.spotify_track_uri.replace('spotify:track:', '');
-    record.originUrl = `https://open.spotify.com/track/${id}`;
+    record.originUri = `https://open.spotify.com/track/${id}`;
   }
 
   return record;

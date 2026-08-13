@@ -231,7 +231,7 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
       </li>
       <li>
         <a href="https://teal.fm" target="_blank" rel="noopener">Teal</a>
-        — the <code>fm.teal.alpha</code> lexicon this tool publishes to
+        — the <code>fm.teal</code> lexicon this tool publishes to
       </li>
     </ul>
   </section>

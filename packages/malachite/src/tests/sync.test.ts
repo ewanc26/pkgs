@@ -21,8 +21,8 @@ describe('Record Key Generation', () => {
       artists: [{ artistName: 'Test Artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const key1 = createRecordKey(record);
@@ -38,8 +38,8 @@ describe('Record Key Generation', () => {
       artists: [{ artistName: 'Artist One' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const record2: PlayRecord = {
@@ -48,8 +48,8 @@ describe('Record Key Generation', () => {
       artists: [{ artistName: 'Artist One' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const key1 = createRecordKey(record1);
@@ -65,8 +65,8 @@ describe('Record Key Generation', () => {
       artists: [{ artistName: 'Test Artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const record2: PlayRecord = {
@@ -75,8 +75,8 @@ describe('Record Key Generation', () => {
       artists: [{ artistName: 'test artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const key1 = createRecordKey(record1);
@@ -92,8 +92,8 @@ describe('Record Key Generation', () => {
       artists: [{ artistName: 'Test  Artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const record2: PlayRecord = {
@@ -102,8 +102,8 @@ describe('Record Key Generation', () => {
       artists: [{ artistName: 'Test  Artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const key1 = createRecordKey(record1);
@@ -119,8 +119,8 @@ describe('Record Key Generation', () => {
       artists: [{ artistName: 'Test Artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const record2: PlayRecord = {
@@ -129,8 +129,8 @@ describe('Record Key Generation', () => {
       artists: [{ artistName: 'Test Artist' }],
       playedTime: '2025-06-15T11:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const key1 = createRecordKey(record1);
@@ -149,8 +149,8 @@ describe('Record Key Generation', () => {
       ],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const key = createRecordKey(record);
@@ -167,8 +167,8 @@ describe('Record Deduplication', () => {
       artists: [{ artistName: 'Test Artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const record2: PlayRecord = {
@@ -177,8 +177,8 @@ describe('Record Deduplication', () => {
       artists: [{ artistName: 'Test Artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const result = deduplicateInputRecords([record1, record2]);
@@ -194,8 +194,8 @@ describe('Record Deduplication', () => {
       artists: [{ artistName: 'Test Artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'last.fm',
-      originUrl: 'http://last.fm',
+      musicServiceUri: 'last.fm',
+      originUri: 'http://last.fm',
     };
 
     const record2: PlayRecord = {
@@ -204,14 +204,14 @@ describe('Record Deduplication', () => {
       artists: [{ artistName: 'Test Artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'spotify.com',
-      originUrl: 'http://spotify.com',
+      musicServiceUri: 'spotify.com',
+      originUri: 'http://spotify.com',
     };
 
     const result = deduplicateInputRecords([record1, record2]);
 
     assert.strictEqual(result.unique.length, 1);
-    assert.strictEqual(result.unique[0].musicServiceBaseDomain, 'last.fm');
+    assert.strictEqual(result.unique[0].musicServiceUri, 'last.fm');
   });
 
   it('should not mark different records as duplicates', () => {
@@ -222,8 +222,8 @@ describe('Record Deduplication', () => {
         artists: [{ artistName: 'Artist One' }],
         playedTime: '2025-06-15T10:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
       {
         $type: 'test',
@@ -231,8 +231,8 @@ describe('Record Deduplication', () => {
         artists: [{ artistName: 'Artist Two' }],
         playedTime: '2025-06-15T11:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
     ];
 
@@ -256,8 +256,8 @@ describe('Record Deduplication', () => {
       artists: [{ artistName: 'Test Artist' }],
       playedTime: '2025-06-15T10:00:00Z',
       submissionClientAgent: 'test',
-      musicServiceBaseDomain: 'test.com',
-      originUrl: 'http://test.com',
+      musicServiceUri: 'test.com',
+      originUri: 'http://test.com',
     };
 
     const result = deduplicateInputRecords([record]);
@@ -274,8 +274,8 @@ describe('Record Deduplication', () => {
         artists: [{ artistName: 'Artist A' }],
         playedTime: '2025-06-15T10:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
       {
         $type: 'test',
@@ -283,8 +283,8 @@ describe('Record Deduplication', () => {
         artists: [{ artistName: 'Artist A' }],
         playedTime: '2025-06-15T10:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
       {
         $type: 'test',
@@ -292,8 +292,8 @@ describe('Record Deduplication', () => {
         artists: [{ artistName: 'Artist B' }],
         playedTime: '2025-06-15T11:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
       {
         $type: 'test',
@@ -301,8 +301,8 @@ describe('Record Deduplication', () => {
         artists: [{ artistName: 'Artist B' }],
         playedTime: '2025-06-15T11:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
     ];
 
@@ -320,8 +320,8 @@ describe('Record Deduplication', () => {
         artists: [{ artistName: 'Test Artist' }],
         playedTime: '2025-06-15T10:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
       {
         $type: 'test',
@@ -329,8 +329,8 @@ describe('Record Deduplication', () => {
         artists: [{ artistName: 'test artist' }],
         playedTime: '2025-06-15T10:00:00Z',
         submissionClientAgent: 'test',
-        musicServiceBaseDomain: 'test.com',
-        originUrl: 'http://test.com',
+        musicServiceUri: 'test.com',
+        originUri: 'http://test.com',
       },
     ];
 
