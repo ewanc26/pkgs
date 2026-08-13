@@ -1,5 +1,5 @@
 import type { TealScrobble, Milestone, Gap } from "$lib/types";
-import { calcEddington } from "./eddington";
+import { calcEddington, daysToNextEddington } from "./eddington";
 import { calcScrobbleStreaks, ItemStreakStack, type Streak } from "./streaks";
 export interface AggregatedData {
   totalScrobbles: number;
@@ -34,6 +34,10 @@ export interface AggregatedData {
   artistWeeksActive: Map<string, number>;
   // ── Derived stats computed in snapshot() ──────────────────────────────
   eddingtonNumber: number;
+  /** How many more days at eddingtonNumber+1 scrobbles are needed to advance. */
+  daysToNextEddington: number;
+  /** Eddington number applied to per-artist play counts: largest N such that N artists each have >= N scrobbles. */
+  artistCutoverPoint: number;
   daysSinceFirstScrobble: number;
   daysScrobbled: number;
   daysScrobbledPercentage: number;
@@ -324,6 +328,10 @@ export class Aggregator {
 
     // ── Derived stats ─────────────────────────────────────────────────────
     const eddingtonNumber = calcEddington(this.dailyCounts);
+    const daysToNextEddingtonNumber = daysToNextEddington(this.dailyCounts, eddingtonNumber);
+    // Same algorithm applied to per-artist play counts instead of daily
+    // counts: largest N such that N artists each have >= N scrobbles.
+    const artistCutoverPoint = calcEddington(this.artistCounts);
 
     // ── New stats ──────────────────────────────────────────────────────────
     const sortedDates = [...this.dailyCounts.keys()].sort();
@@ -423,6 +431,8 @@ export class Aggregator {
         [...this.artistWeeks.entries()].map(([name, weeks]) => [name, weeks.size]),
       ),
       eddingtonNumber,
+      daysToNextEddington: daysToNextEddingtonNumber,
+      artistCutoverPoint,
       daysSinceFirstScrobble,
       daysScrobbled,
       daysScrobbledPercentage,

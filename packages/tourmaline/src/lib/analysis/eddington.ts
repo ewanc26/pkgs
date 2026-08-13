@@ -19,3 +19,18 @@ export function calcEddington(dailyCounts: Map<string, number>): number {
 
   return e;
 }
+
+/**
+ * How many more days need at least `eddington + 1` scrobbles to reach the
+ * next Eddington number. Counts days already at or above that target, since
+ * qualifying days can come from existing days growing past the threshold as
+ * much as from new days.
+ */
+export function daysToNextEddington(
+  dailyCounts: Map<string, number>,
+  eddington: number,
+): number {
+  const target = eddington + 1;
+  const daysAtTarget = [...dailyCounts.values()].filter((c) => c >= target).length;
+  return Math.max(0, target - daysAtTarget);
+}

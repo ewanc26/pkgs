@@ -4,10 +4,14 @@
 
 	let {
 		dailyScrobbles = [],
-		eddingtonNumber = 0
+		eddingtonNumber = 0,
+		daysToNextEddington = 0,
+		artistCutoverPoint = 0
 	}: {
 		dailyScrobbles: DailyScrobble[];
 		eddingtonNumber: number;
+		daysToNextEddington?: number;
+		artistCutoverPoint?: number;
 	} = $props();
 
 	let canvas: HTMLCanvasElement;
@@ -130,11 +134,26 @@
 </script>
 
 {#if eddingtonNumber > 0}
-	<p class="mb-3 text-sm text-[var(--text-muted)]">
+	<p class="mb-1 text-sm text-[var(--text-muted)]">
 		Eddington number:
 		<span class="font-semibold text-[var(--text)]">{eddingtonNumber}</span>
 		<span class="text-[var(--text-dim)]">
 			— {eddingtonNumber} days with at least {eddingtonNumber} scrobbles
+		</span>
+	</p>
+	{#if daysToNextEddington > 0}
+		<p class="mb-3 text-xs text-[var(--text-dim)]">
+			{daysToNextEddington} more day{daysToNextEddington === 1 ? '' : 's'} at {eddingtonNumber + 1}+ scrobbles to reach {eddingtonNumber + 1}
+		</p>
+	{/if}
+{/if}
+
+{#if artistCutoverPoint > 0}
+	<p class="mb-3 text-sm text-[var(--text-muted)]">
+		Artist cut-over point:
+		<span class="font-semibold text-[var(--text)]">{artistCutoverPoint}</span>
+		<span class="text-[var(--text-dim)]">
+			— {artistCutoverPoint} artists with at least {artistCutoverPoint} scrobbles each
 		</span>
 	</p>
 {/if}

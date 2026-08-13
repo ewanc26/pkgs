@@ -157,6 +157,8 @@ export function computeProfile(
     phases,
     unusualMonths,
     eddingtonNumber: data.eddingtonNumber,
+    daysToNextEddington: data.daysToNextEddington,
+    artistCutoverPoint: data.artistCutoverPoint,
     longestScrobbleStreak: data.longestScrobbleStreak,
     longestArtistStreak: data.longestArtistStreak,
     longestTrackStreak: data.longestTrackStreak,
