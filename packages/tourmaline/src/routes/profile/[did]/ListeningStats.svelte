@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { Flame, TrendingUp, Calendar, Hash, Clock, User, Zap, Star, Disc, Sparkle } from '@lucide/svelte';
+	import { Flame, TrendingUp, Calendar, Hash, Clock, User, Zap, Star, Disc, Sparkle, UserPlus } from '@lucide/svelte';
 	import type { DailyScrobble, Gap, DiscoveredArtist } from '$lib/types';
+	import type { NewArtistMonthStat, MostListenedNewArtist } from '$lib/analysis/new-artists';
 
 	interface StatsData {
 		daysScrobbled: number;
@@ -13,6 +14,13 @@
 		scrobblesWithoutAlbumCount: number;
 		scrobblesWithoutAlbumPercentage: number;
 		discoveredArtists: DiscoveredArtist[];
+		mostNewArtistsInAMonth: NewArtistMonthStat | null;
+		mostListenedNewArtist: MostListenedNewArtist | null;
+	}
+
+	function formatMonth(monthStr: string): string {
+		const [y, m] = monthStr.split('-').map(Number);
+		return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 	}
 
 	let {
@@ -241,6 +249,28 @@
 				</div>
 				<p class="mt-1 truncate text-lg font-bold sm:text-xl">{statsData.discoveredArtists[0].name}</p>
 				<p class="text-xs text-[var(--text-dim)]">{formatDate(statsData.discoveredArtists[0].firstListen)}</p>
+			</div>
+		{/if}
+
+		{#if statsData.mostNewArtistsInAMonth}
+			<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
+				<div class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+					<UserPlus size={12} class="text-teal-400" />
+					Biggest discovery month
+				</div>
+				<p class="mt-1 text-lg font-bold sm:text-xl">{statsData.mostNewArtistsInAMonth.count} new artists</p>
+				<p class="text-xs text-[var(--text-dim)]">{formatMonth(statsData.mostNewArtistsInAMonth.month)}</p>
+			</div>
+		{/if}
+
+		{#if statsData.mostListenedNewArtist}
+			<div class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-3 sm:p-4">
+				<div class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+					<UserPlus size={12} class="text-teal-400" />
+					Best new-artist debut
+				</div>
+				<p class="mt-1 truncate text-lg font-bold sm:text-xl">{statsData.mostListenedNewArtist.name}</p>
+				<p class="text-xs text-[var(--text-dim)]">{statsData.mostListenedNewArtist.plays.toLocaleString()} plays in {formatMonth(statsData.mostListenedNewArtist.month)}</p>
 			</div>
 		{/if}
 	</div>
