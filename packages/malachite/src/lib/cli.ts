@@ -20,8 +20,9 @@ import { parseCombinedExports } from '../lib/merge.js';
 import { publishRecordsWithApplyWrites } from './publisher.js';
 import { prompt, confirm, promptWithValidation, validateFilePath } from '../utils/input.js';
 import { sortRecords } from '../utils/helpers.js';
-import config, { VERSION } from '../config.js';
+import config, { VERSION, RECORD_TYPE, LEGACY_RECORD_TYPE } from '../config.js';
 import { fetchExistingRecords, filterNewRecords, displaySyncStats, removeDuplicates, deduplicateInputRecords } from './sync.js';
+import { analyzeLegacyRecords, displayPolishPlan, migrateLegacyRecords } from './polish.js';
 import { Logger, LogLevel, setGlobalLogger, log } from '../utils/logger.js';
 import { registerKillswitch } from '../utils/killswitch.js';
 import { clearCache, clearAllCaches } from '../utils/teal-cache.js';
@@ -78,6 +79,10 @@ ${'\x1b[1m'}MODE:${'\x1b[0m'}
                                  combined        Merge any provided exports
                                  sync            Skip existing records (sync mode)
                                  deduplicate     Remove duplicate records
+                                 polish          Migrate legacy fm.teal.alpha scrobbles
+                                                 to fm.teal.feed.play (a migration
+                                                 subtool — not a Polish-language
+                                                 version of Malachite, sorry)
 
 ${'\x1b[1m'}BATCH CONFIGURATION:${'\x1b[0m'}
   -b, --batch-size <number>      ${'\x1b[2m'}Deprecated, no effect — batching is automatic and adapts to live rate limits${'\x1b[0m'}
@@ -245,13 +250,13 @@ export function parseCommandLineArgs(): CommandLineArgs {
 /**
  * Validate and normalize mode
  */
-function validateMode(mode: string): 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'listenbrainz' | 'combined' | 'sync' | 'deduplicate' {
-  const validModes = ['lastfm', 'spotify', 'apple', 'youtube', 'listenbrainz', 'combined', 'sync', 'deduplicate'];
+function validateMode(mode: string): 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'listenbrainz' | 'combined' | 'sync' | 'deduplicate' | 'polish' {
+  const validModes = ['lastfm', 'spotify', 'apple', 'youtube', 'listenbrainz', 'combined', 'sync', 'deduplicate', 'polish'];
   const normalized = mode.toLowerCase();
   if (!validModes.includes(normalized)) {
     throw new Error(`Invalid mode: ${mode}. Must be one of: ${validModes.join(', ')}`);
   }
-  return normalized as 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'listenbrainz' | 'combined' | 'sync' | 'deduplicate';
+  return normalized as 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'listenbrainz' | 'combined' | 'sync' | 'deduplicate' | 'polish';
 }
 
 /**
@@ -307,11 +312,14 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   console.log('\x1b[33m│\x1b[0m \x1b[1m12\x1b[0m │ Sign out (OAuth)                           \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m    │ \x1b[2mRemove a stored OAuth session\x1b[0m             \x1b[33m│\x1b[0m');
   console.log('\x1b[33m│\x1b[0m                                                 \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m  \x1b[1m13\x1b[0m │ Polish legacy scrobbles                   \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m    │ \x1b[2mMigrate fm.teal.alpha scrobbles\x1b[0m           \x1b[33m│\x1b[0m');
+  console.log('\x1b[33m│\x1b[0m    │ \x1b[2m(not the Polish language!)\x1b[0m                \x1b[33m│\x1b[0m');
   console.log('\x1b[33m╰─────────────────────────────────────────────────╯\x1b[0m\n');
 
   console.log('\x1b[90m  0 │ Exit\x1b[0m\n');
 
-  const mode = await prompt('\x1b[1mEnter your choice [0-12]:\x1b[0m ');
+  const mode = await prompt('\x1b[1mEnter your choice [0-13]:\x1b[0m ');
 
   if (mode === '0' || !mode) {
     console.log('\nGoodbye!');
@@ -319,8 +327,8 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   }
 
   // Validate input
-  if (!['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].includes(mode)) {
-    console.log('\nInvalid choice. Please run again and select a valid option (0-12).');
+  if (!['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'].includes(mode)) {
+    console.log('\nInvalid choice. Please run again and select a valid option (0-13).');
     process.exit(1);
   }
 
@@ -351,11 +359,14 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
     args['logout'] = ''; // empty string = logout first/only session
     return args;
   }
+  else if (mode === '13') {
+    args.mode = 'polish';
+  }
 
   console.log('');
 
   // Get authentication (not needed for clear cache)
-  if (args.mode === 'deduplicate' || args.mode === 'sync' || args.mode === 'combined' || args.mode === 'lastfm' || args.mode === 'spotify' || args.mode === 'apple' || args.mode === 'youtube' || args.mode === 'listenbrainz') {
+  if (args.mode === 'deduplicate' || args.mode === 'polish' || args.mode === 'sync' || args.mode === 'combined' || args.mode === 'lastfm' || args.mode === 'spotify' || args.mode === 'apple' || args.mode === 'youtube' || args.mode === 'listenbrainz') {
     // Prefer stored OAuth sessions
     const oauthDids = await listOAuthSessions();
     if (oauthDids.length > 0) {
@@ -419,7 +430,7 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   }
   
   // Get input files with validation
-  if (args.mode !== 'deduplicate') {
+  if (args.mode !== 'deduplicate' && args.mode !== 'polish') {
     if (args.mode === 'combined') {
       console.log('\n📁 Input Files');
       console.log('─'.repeat(50));
@@ -501,7 +512,13 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   console.log('\nAdditional Options (press Enter to skip):');
   console.log('─'.repeat(50));
   
-  if (args.mode !== 'deduplicate') {
+  if (args.mode === 'polish') {
+    const dryRun = await confirm('Preview without migrating (dry run)?', false);
+    if (dryRun) args['dry-run'] = true;
+
+    const verbose = await confirm('Enable verbose logging?', false);
+    if (verbose) args.verbose = true;
+  } else if (args.mode !== 'deduplicate') {
     const dryRun = await confirm('Preview without importing (dry run)?', false);
     if (dryRun) args['dry-run'] = true;
     
@@ -662,7 +679,7 @@ export async function runCLI(): Promise<void> {
       if (!args.input && !args['spotify-input'] && !args['apple-input'] && !args['youtube-input'] && !args['listenbrainz-input']) {
         throw new Error('Combined mode requires at least one input file (--input, --spotify-input, --apple-input, --youtube-input, --listenbrainz-input)');
       }
-    } else if (mode !== 'deduplicate' && !args.input) {
+    } else if (mode !== 'deduplicate' && mode !== 'polish' && !args.input) {
       throw new Error('Missing required argument: --input <path>');
     }
 
@@ -710,6 +727,85 @@ export async function runCLI(): Promise<void> {
       } else if (dryRun) {
         log.info('DRY RUN: No records were actually removed.');
         log.info('Remove --dry-run flag to actually delete duplicates.');
+      }
+      return;
+    }
+
+    if (mode === 'polish') {
+      // Authenticate — OAuth sessions take priority over app-password credentials.
+      const oauthDids = await listOAuthSessions();
+      if (oauthDids.length >= 1 && !args.password) {
+        const did = args.handle && args.handle.startsWith('did:') ? args.handle : oauthDids[0]!;
+        const handle = await getOAuthHandle(did);
+        log.info(`Using OAuth session for ${handle ?? did}`);
+        const oauthAgent = await restoreOAuthSession(did);
+        if (oauthAgent) {
+          agent = oauthAgent as unknown as AtpAgent;
+        }
+      }
+      if (!agent) {
+        if (!args.handle || !args.password) {
+          const creds = loadCredentials();
+          if (creds) {
+            args.handle = creds.handle;
+            args.password = creds.password;
+            log.info(`Using saved credentials for: ${creds.handle}`);
+          } else {
+            throw new Error('Polish mode requires authentication. Run --oauth-login or pass --handle and --password.');
+          }
+        }
+        agent = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER) as AtpAgent;
+      }
+
+      log.section('Polish Legacy Scrobbles');
+      log.info(`Migrates legacy ${LEGACY_RECORD_TYPE} records into ${RECORD_TYPE}.`);
+      log.info('(No, this is not a Polish-language version of Malachite — it polishes your scrobble history.)');
+      log.blank();
+
+      const plan = await analyzeLegacyRecords(agent);
+      displayPolishPlan(plan, dryRun);
+
+      if (plan.legacyTotal === 0) {
+        log.success('No legacy records to migrate — nothing to do!');
+        return;
+      }
+
+      if (dryRun) {
+        log.info('Remove --dry-run to run the migration for real.');
+        return;
+      }
+
+      if (!args.yes) {
+        log.warn(`This will backfill ${plan.toBackfill.length.toLocaleString()} record(s) into ${RECORD_TYPE}`);
+        log.warn(`and permanently delete ${plan.legacyTotal.toLocaleString()} legacy ${LEGACY_RECORD_TYPE} record(s).`);
+        log.blank();
+        const answer = await prompt('Are you sure you want to continue? (y/N) ');
+        if (answer.toLowerCase() !== 'y') {
+          log.info('Migration cancelled by user.');
+          process.exit(0);
+        }
+        log.blank();
+      }
+
+      await migrateLegacyRecords(agent, plan, false);
+      log.success('Migration complete!');
+
+      try {
+        await agent.com.atproto.repo.createRecord({
+          repo: agent.session?.did ?? agent.did ?? '',
+          collection: 'click.croft.toolkit.use',
+          record: {
+            $type: 'click.croft.toolkit.use',
+            tool: {
+              $type: 'click.croft.tools.malachite',
+              recordsImported: plan.legacyTotal,
+              mode: 'polish',
+            },
+            createdAt: new Date().toISOString()
+          }
+        });
+      } catch (err) {
+        log.warn(`Failed to log toolkit usage: ${(err as Error).message}`);
       }
       return;
     }

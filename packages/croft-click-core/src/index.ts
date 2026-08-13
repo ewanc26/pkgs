@@ -19,6 +19,7 @@ export * from './dynamic-batch-calculator.js';
 export { parseListenBrainzJsonContent, convertListenBrainzToPlayRecord } from './listenbrainz.js';
 export * from './merge.js';
 export * from './proactive-rate-pacer.js';
+export * from './polish.js';
 export * from './publisher.js';
 export * from './retry-helper.js';
 export * from './rate-limit-headers.js';

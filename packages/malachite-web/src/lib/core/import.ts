@@ -1,6 +1,6 @@
 /**
  * Import orchestration logic — pure TypeScript, no Svelte deps.
- * Handles all seven ImportMode flows with progress + cancellation callbacks.
+ * Handles all eight ImportMode flows with progress + cancellation callbacks.
  *
  * All heavy logic (publisher, sync, merge) lives in src/core/ and is shared
  * with the CLI. Only the browser File-loading helpers and this orchestrator
@@ -25,6 +25,7 @@ import {
   type ExistingRecord,
 } from '@ewanc26/croft-click-core';
 import { publishRecords, type PublishProgress } from '@ewanc26/croft-click-core';
+import { analyzeLegacyRecords, migrateLegacyRecords } from '@ewanc26/croft-click-core';
 
 export type { PublishProgress };
 
@@ -101,6 +102,60 @@ export async function runImport(
       );
       onLog('success', `Removed ${removed.toLocaleString()} duplicate(s)`);
       return { success: removed, errors: 0, cancelled: false };
+    }
+
+    // ── Polish mode ───────────────────────────────────────────────────────────
+    if (mode === 'polish') {
+      onLog('section', '── Polish ───────────────────────────────────────────');
+      onLog('info', 'Fetching legacy fm.teal.alpha.feed.play records…');
+      const plan = await analyzeLegacyRecords(agent, sig);
+
+      if (plan.legacyTotal === 0) {
+        onLog('success', 'No legacy scrobbles found — nothing to migrate.');
+        return { success: 0, errors: 0, cancelled: false };
+      }
+
+      onLog('success', `Found ${plan.legacyTotal.toLocaleString()} legacy scrobble(s)`);
+      onLog('info', `  ${plan.toBackfill.length.toLocaleString()} to backfill into fm.teal.feed.play`);
+      onLog('info', `  ${plan.toDedupe.length.toLocaleString()} already in production — will drop the legacy copy`);
+
+      if (dryRun) {
+        onLog('success', `[DRY RUN] Would backfill ${plan.toBackfill.length.toLocaleString()} record(s) and remove ${plan.legacyTotal.toLocaleString()} legacy copy/copies.`);
+        return { success: plan.legacyTotal, errors: 0, cancelled: false };
+      }
+
+      onLog('warn', 'Migrating — legacy copies are only removed after a successful backfill.');
+      const polishRes = await migrateLegacyRecords(agent, plan, {
+        onProgress: (phase, done, total) =>
+          onLog('progress', `  ${phase === 'backfill' ? 'Backfilled' : 'Removed'} ${done}/${total}…`),
+        signal: sig,
+      });
+
+      onLog('success', `Backfilled ${polishRes.backfilled.toLocaleString()} scrobble(s) into fm.teal.feed.play`);
+      onLog('success', `Removed ${polishRes.deleted.toLocaleString()} legacy copy/copies`);
+      if (polishRes.failed > 0) {
+        onLog('warn', `${polishRes.failed.toLocaleString()} backfill(s) failed — their legacy copies were kept.`);
+      }
+
+      try {
+        await agent.com.atproto.repo.createRecord({
+          repo: agent.did ?? '',
+          collection: 'click.croft.toolkit.use',
+          record: {
+            $type: 'click.croft.toolkit.use',
+            tool: {
+              $type: 'click.croft.tools.malachite',
+              recordsImported: plan.legacyTotal,
+              mode: 'polish',
+            },
+            createdAt: new Date().toISOString()
+          }
+        });
+      } catch (err) {
+        onLog('warn', `Failed to log toolkit usage: ${(err as Error).message}`);
+      }
+
+      return { success: polishRes.backfilled + polishRes.deleted, errors: polishRes.failed, cancelled: false };
     }
 
     // ── Load records ─────────────────────────────────────────────────────────

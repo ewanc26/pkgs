@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { LandingPage } from '@ewanc26/landing-ui';
-	import { Music2, Disc3, Layers2, RefreshCw, ListFilter, Waves } from '@lucide/svelte';
+	import { Music2, Disc3, Layers2, RefreshCw, ListFilter, Waves, Sparkles } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -45,10 +45,11 @@
 		{ icon: Waves, title: 'ListenBrainz', description: 'Import your listens from a ListenBrainz JSON export.' },
 		{ icon: Layers2, title: 'Combined', description: 'Merge sources together with smart deduplication to avoid double-counting plays.' },
 		{ icon: RefreshCw, title: 'Sync', description: 'Only import records not already in Teal — safe to re-run any time.' },
-		{ icon: ListFilter, title: 'Deduplicate', description: 'Find and remove duplicate records already in your Teal account.' }
+		{ icon: ListFilter, title: 'Deduplicate', description: 'Find and remove duplicate records already in your Teal account.' },
+		{ icon: Sparkles, title: 'Polish', description: 'Migrate legacy fm.teal.alpha scrobbles into the current fm.teal.feed.play collection.' }
 	]}
 	steps={[
-		{ title: 'Choose a mode', description: 'Pick Last.fm, Spotify, combined, sync, or deduplicate.' },
+		{ title: 'Choose a mode', description: 'Pick Last.fm, Spotify, combined, sync, deduplicate, or polish.' },
 		{ title: 'Sign in with ATProto', description: 'Use your Bluesky handle and an app password. Nothing is stored.' },
 		{ title: 'Upload your export', description: 'Drop in your CSV or JSON files — everything is processed locally in your browser.' },
 		{ title: 'Import', description: 'Malachite publishes your records to your PDS with automatic rate-limit handling.' }

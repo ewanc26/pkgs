@@ -1,4 +1,4 @@
-import { Music2, Disc3, Layers2, RefreshCw, ListFilter, Apple, Youtube, Waves } from '@lucide/svelte';
+import { Music2, Disc3, Layers2, RefreshCw, ListFilter, Apple, Youtube, Waves, Sparkles } from '@lucide/svelte';
 import type { ImportMode } from '$lib/types.js';
 import type { Component } from 'svelte';
 
@@ -20,6 +20,7 @@ export const MODES: ModeConfig[] = [
   { id: 'combined',    icon: Layers2 as IconComponent,    title: 'Combined',    description: 'Merge multiple sources with smart deduplication' },
   { id: 'sync',        icon: RefreshCw as IconComponent,  title: 'Sync',        description: 'Only import records not already in Teal' },
   { id: 'deduplicate', icon: ListFilter as IconComponent, title: 'Deduplicate', description: 'Find and remove duplicate records from Teal' },
+  { id: 'polish', icon: Sparkles as IconComponent, title: 'Polish', description: 'Migrate legacy fm.teal.alpha scrobbles to fm.teal.feed.play' },
 ];
 
 /** Which file sources does a given mode require? */
@@ -30,13 +31,13 @@ export function modeNeeds(mode: ImportMode | null) {
     apple:   mode === 'apple'   || mode === 'combined',
     youtube: mode === 'youtube' || mode === 'combined',
     listenbrainz: mode === 'listenbrainz' || mode === 'combined',
-    files:   mode !== 'deduplicate',
+    files:   mode !== 'deduplicate' && mode !== 'polish',
   };
 }
 
 /** Wizard step labels for a given mode. */
 export function stepLabelsFor(mode: ImportMode | null): string[] {
-  return mode === 'deduplicate'
+  return mode === 'deduplicate' || mode === 'polish'
     ? ['Mode', 'Sign in', 'Options', 'Run']
     : ['Mode', 'Sign in', 'Files',   'Options', 'Run'];
 }
