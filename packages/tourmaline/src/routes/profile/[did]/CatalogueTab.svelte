@@ -2,6 +2,7 @@
     import { renderNoiseAvatar } from '@ewanc26/noise-avatar';
     import Discovery from './Discovery.svelte';
     import OnThisDay from './OnThisDay.svelte';
+    import Anniversaries from './Anniversaries.svelte';
     import type { ListenerProfile } from '$lib/types';
     import type { OnThisDayEntry } from '$lib/analysis/on-this-day';
 
@@ -92,3 +93,7 @@
         <OnThisDay entries={onThisDayEntries} />
     </div>
 {/if}
+
+<div class="mb-6 sm:mb-8">
+    <Anniversaries groups={profile.anniversaries} />
+</div>

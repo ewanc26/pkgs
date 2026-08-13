@@ -31,6 +31,7 @@
 	import ProfileTabs from './ProfileTabs.svelte';
 	import ListeningSessions from './ListeningSessions.svelte';
 	import OnThisDay from './OnThisDay.svelte';
+	import Anniversaries from './Anniversaries.svelte';
 	import DateRangePicker from './DateRangePicker.svelte';
 	import ListeningPhases from './ListeningPhases.svelte';
 	import StoryRecap from './StoryRecap.svelte';
@@ -576,6 +577,10 @@
 					<OnThisDay entries={onThisDayEntries} />
 				</div>
 			{/if}
+
+			<div class="mb-6 sm:mb-8">
+				<Anniversaries groups={profile.anniversaries} />
+			</div>
 		{/if}
 	{/if}
 </div>
