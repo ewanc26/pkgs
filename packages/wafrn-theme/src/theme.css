@@ -62,6 +62,9 @@
 
 .mat-drawer-content {
   background-color: var(--pds-crust) !important;
+  background-image:
+    radial-gradient(ellipse 55% 35% at 50% 0%, color-mix(in srgb, var(--pds-green) 6%, transparent), transparent 70%) !important;
+  background-attachment: fixed !important;
 }
 
 div.wafrn-container.mx-1 {
@@ -183,7 +186,13 @@ mat-nav-list .woot {
   color: var(--pds-green) !important;
   border: 1px solid color-mix(in srgb, var(--pds-green) 40%, transparent) !important;
   border-radius: 0.5rem !important;
-  transition: var(--color-trans);
+  transition: var(--color-trans), box-shadow 0.2s ease;
+}
+app-menu-item button[aria-label*="oot"]:hover,
+button.woot-button:hover,
+a[routerlink*="woot"] mat-list-item:hover,
+mat-nav-list .woot:hover {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pds-green) 14%, transparent);
 }
 mat-drawer a {
   color: var(--pds-subtext);
@@ -203,7 +212,8 @@ mat-drawer a:hover {
   border-color: var(--pds-surface-1);
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--pds-green) 6%, transparent),
-    0 4px 16px color-mix(in srgb, #000000 35%, transparent);
+    0 1px 0 0 color-mix(in srgb, var(--pds-green) 8%, transparent) inset,
+    0 16px 32px -16px color-mix(in srgb, #000000 45%, transparent);
 }
 
 .mat-mdc-card {
@@ -211,7 +221,9 @@ mat-drawer a:hover {
   background-color: var(--pds-mantle);
   border-radius: 0.75rem;
   border: 1px solid var(--pds-surface-1);
-  box-shadow: 0 2px 12px color-mix(in srgb, #000000 30%, transparent);
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--pds-green) 6%, transparent) inset,
+    0 12px 28px -16px color-mix(in srgb, #000000 40%, transparent);
   overflow: hidden;
 }
 
@@ -290,7 +302,9 @@ button:active {
   color: var(--pds-text);
   border: 1px solid var(--pds-surface-1);
   border-radius: 0.75rem !important;
-  box-shadow: 0 4px 20px color-mix(in srgb, #000000 50%, transparent) !important;
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--pds-green) 8%, transparent) inset,
+    0 12px 32px -8px color-mix(in srgb, #000000 55%, transparent) !important;
 }
 
 .mdc-tooltip__surface {
@@ -397,6 +411,7 @@ div.quoted-post {
   background: var(--pds-surface-0);
   border: 1px solid var(--pds-surface-1);
   border-radius: 0.5rem;
+  transition: var(--color-trans), box-shadow 0.2s ease;
 }
 .embed-text {
   background-color: var(--pds-base);
@@ -410,6 +425,7 @@ div.quoted-post {
 }
 .embed-link:hover {
   border-color: var(--pds-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pds-green) 10%, transparent);
 }
 
 .media-content-container,
@@ -506,7 +522,9 @@ app-post-actions button:hover {
   background-color: var(--pds-base) !important;
   border: 1px solid var(--pds-surface-1) !important;
   border-radius: 1rem !important;
-  box-shadow: 0 8px 32px color-mix(in srgb, #000000 60%, transparent) !important;
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--pds-green) 8%, transparent) inset,
+    0 24px 48px -16px color-mix(in srgb, #000000 65%, transparent) !important;
 }
 .mdc-floating-label {
   color: var(--pds-subtext) !important;
