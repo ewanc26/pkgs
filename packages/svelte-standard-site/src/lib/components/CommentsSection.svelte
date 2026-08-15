@@ -1,7 +1,4 @@
-<script lang="ts">
-	import Comment from './Comment.svelte';
-	import { organizeCommentsIntoThreads } from '$lib/utils/native-comments.js';
-
+<script module lang="ts">
 	export interface CommentProps {
 		uri: string;
 		cid: string;
@@ -19,6 +16,11 @@
 		facets?: any[];
 		attachment?: any;
 	}
+</script>
+
+<script lang="ts">
+	import Comment from './Comment.svelte';
+	import { organizeCommentsIntoThreads } from '$lib/utils/native-comments.js';
 
 	interface Props {
 		/** AT-URI of the document */

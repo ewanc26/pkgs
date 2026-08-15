@@ -727,6 +727,9 @@ importers:
       '@atproto/lex':
         specifier: ^0.3.0
         version: 0.3.6
+      '@atproto/lex-password-session':
+        specifier: ^0.2.0
+        version: 0.2.0
       '@bsky/sdk':
         specifier: latest
         version: 1.0.0(@atproto/lex@0.3.6)

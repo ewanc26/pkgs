@@ -29,7 +29,8 @@
 
 import { Client } from '@atproto/lex'
 import { PasswordSession } from '@atproto/lex-password-session'
-import { api, com } from '@bsky/sdk'
+import { api } from '@bsky/sdk'
+import { com } from '@bsky/sdk/lexicons'
 import type { PublisherConfig, Document, Publication } from './schemas.js'
 import { PublisherConfigSchema, COLLECTIONS } from './schemas.js'
 
@@ -277,12 +278,12 @@ export class StandardSitePublisher {
 
 		const rkey = generateTid();
 
-		const response = await client.call(com.atproto.repo.createRecord, {
+		const response = (await client.call(com.atproto.repo.createRecord.main as any, {
 			repo: did,
 			collection: COLLECTIONS.DOCUMENT,
 			rkey,
 			record: cleanRecord
-		});
+		})) as any;
 
 		return {
 			uri: response.uri,
@@ -317,12 +318,12 @@ export class StandardSitePublisher {
 			Object.entries(record).filter(([_, v]) => v !== undefined)
 		) as Document;
 
-		const response = await client.call(com.atproto.repo.putRecord, {
+		const response = (await client.call(com.atproto.repo.putRecord.main as any, {
 			repo: did,
 			collection: COLLECTIONS.DOCUMENT,
 			rkey,
 			record: cleanRecord
-		});
+		})) as any;
 
 		return {
 			uri: response.uri,
@@ -334,7 +335,7 @@ export class StandardSitePublisher {
 		const did = this.getDid();
 		const client = this.getClient();
 
-		await client.call(com.atproto.repo.deleteRecord, {
+		await client.call(com.atproto.repo.deleteRecord.main as any, {
 			repo: did,
 			collection: COLLECTIONS.DOCUMENT,
 			rkey
@@ -362,12 +363,12 @@ export class StandardSitePublisher {
 		// Generate TID for record key per lexicon spec (key: "tid")
 		const rkey = generateTid();
 
-		const response = await client.call(com.atproto.repo.createRecord, {
+		const response = (await client.call(com.atproto.repo.createRecord.main as any, {
 			repo: did,
 			collection: COLLECTIONS.PUBLICATION,
 			rkey,
 			record: cleanRecord
-		});
+		})) as any;
 
 		return {
 			uri: response.uri,
@@ -393,12 +394,12 @@ export class StandardSitePublisher {
 			Object.entries(record).filter(([_, v]) => v !== undefined)
 		) as Publication;
 
-		const response = await client.call(com.atproto.repo.putRecord, {
+		const response = (await client.call(com.atproto.repo.putRecord.main as any, {
 			repo: did,
 			collection: COLLECTIONS.PUBLICATION,
 			rkey,
 			record: cleanRecord
-		});
+		})) as any;
 
 		return {
 			uri: response.uri,
@@ -410,7 +411,7 @@ export class StandardSitePublisher {
 		const did = this.getDid();
 		const client = this.getClient();
 
-		await client.call(com.atproto.repo.deleteRecord, {
+		await client.call(com.atproto.repo.deleteRecord.main as any, {
 			repo: did,
 			collection: COLLECTIONS.PUBLICATION,
 			rkey
@@ -423,13 +424,13 @@ export class StandardSitePublisher {
 		const did = this.getDid();
 		const client = this.getClient();
 
-		const response = await client.call(com.atproto.repo.listRecords, {
+		const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 			repo: did,
 			collection: COLLECTIONS.DOCUMENT,
 			limit
-		});
+		})) as any;
 
-		return response.records.map((r) => ({
+		return response.records.map((r: any) => ({
 			uri: r.uri,
 			cid: r.cid,
 			value: r.value as Document
@@ -442,13 +443,13 @@ export class StandardSitePublisher {
 		const did = this.getDid();
 		const client = this.getClient();
 
-		const response = await client.call(com.atproto.repo.listRecords, {
+		const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 			repo: did,
 			collection: COLLECTIONS.PUBLICATION,
 			limit
-		});
+		})) as any;
 
-		return response.records.map((r) => ({
+		return response.records.map((r: any) => ({
 			uri: r.uri,
 			cid: r.cid,
 			value: r.value as Publication
@@ -520,12 +521,12 @@ export class StandardSitePublisher {
 
 		const rkey = generateTid();
 
-		const response = await client.call(com.atproto.repo.createRecord({
+		const response = (await client.call(com.atproto.repo.createRecord.main as any, {
 			repo: did,
 			collection: 'pub.leaflet.comment',
 			rkey,
 			record
-		});
+		})) as any;
 
 		return {
 			uri: response.uri,
@@ -540,7 +541,7 @@ export class StandardSitePublisher {
 		const did = this.getDid();
 		const client = this.getClient();
 
-		await client.call(com.atproto.repo.deleteRecord({
+		await client.call(com.atproto.repo.deleteRecord.main as any, {
 			repo: did,
 			collection: 'pub.leaflet.comment',
 			rkey
@@ -566,12 +567,12 @@ export class StandardSitePublisher {
 
 		const rkey = generateTid();
 
-		const response = await client.call(com.atproto.repo.createRecord({
+		const response = (await client.call(com.atproto.repo.createRecord.main as any, {
 			repo: did,
 			collection: 'pub.leaflet.interactions.recommend',
 			rkey,
 			record
-		});
+		})) as any;
 
 		return {
 			uri: response.uri,
@@ -586,7 +587,7 @@ export class StandardSitePublisher {
 		const did = this.getDid();
 		const client = this.getClient();
 
-		await client.call(com.atproto.repo.deleteRecord({
+		await client.call(com.atproto.repo.deleteRecord.main as any, {
 			repo: did,
 			collection: 'pub.leaflet.interactions.recommend',
 			rkey
@@ -600,11 +601,11 @@ export class StandardSitePublisher {
 		const did = this.getDid();
 		const client = this.getClient();
 
-		const response = await client.call(com.atproto.repo.listRecords({
+		const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 			repo: did,
 			collection: 'pub.leaflet.interactions.recommend',
 			limit: 100
-		});
+		})) as any;
 
 		const record = response.records.find(
 			(r: any) => r.value?.subject === subject
@@ -636,12 +637,12 @@ export class StandardSitePublisher {
 
 		const rkey = generateTid();
 
-		const response = await client.call(com.atproto.repo.createRecord({
+		const response = (await client.call(com.atproto.repo.createRecord.main as any, {
 			repo: did,
 			collection: 'site.standard.graph.subscription',
 			rkey,
 			record
-		});
+		})) as any;
 
 		return {
 			uri: response.uri,
@@ -656,7 +657,7 @@ export class StandardSitePublisher {
 		const did = this.getDid();
 		const client = this.getClient();
 
-		await client.call(com.atproto.repo.deleteRecord({
+		await client.call(com.atproto.repo.deleteRecord.main as any, {
 			repo: did,
 			collection: 'site.standard.graph.subscription',
 			rkey
@@ -672,13 +673,13 @@ export class StandardSitePublisher {
 		const did = this.getDid();
 		const client = this.getClient();
 
-		const response = await client.call(com.atproto.repo.listRecords({
+		const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 			repo: did,
 			collection: 'site.standard.graph.subscription',
 			limit
-		});
+		})) as any;
 
-		return response.records.map((r) => ({
+		return response.records.map((r: any) => ({
 			uri: r.uri,
 			cid: r.cid,
 			value: r.value as { publication: string }
@@ -692,11 +693,11 @@ export class StandardSitePublisher {
 		const did = this.getDid();
 		const client = this.getClient();
 
-		const response = await client.call(com.atproto.repo.listRecords({
+		const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 			repo: did,
 			collection: 'site.standard.graph.subscription',
 			limit: 100
-		});
+		})) as any;
 
 		const record = response.records.find(
 			(r: any) => r.value?.publication === publication

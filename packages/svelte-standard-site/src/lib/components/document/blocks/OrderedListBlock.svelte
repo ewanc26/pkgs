@@ -1,3 +1,17 @@
+<script module lang="ts">
+	export interface OrderedListItem {
+		content?: OrderedListContent;
+		checked?: boolean;
+		children?: OrderedListItem[];
+		unorderedListChildren?: {
+			children: Array<{
+				content?: { plaintext: string; facets?: any[] };
+				children?: OrderedListItem[];
+			}>;
+		};
+	}
+</script>
+
 <script lang="ts">
 	import RichText from '../RichText.svelte';
 	import OrderedListBlock from './OrderedListBlock.svelte';
@@ -18,18 +32,6 @@
 		};
 		alt?: string;
 		aspectRatio?: { width: number; height: number };
-	}
-
-	export interface OrderedListItem {
-		content?: OrderedListContent;
-		checked?: boolean;
-		children?: OrderedListItem[];
-		unorderedListChildren?: {
-			children: Array<{
-				content?: { plaintext: string; facets?: any[] };
-				children?: OrderedListItem[];
-			}>;
-		};
 	}
 
 	interface Props {

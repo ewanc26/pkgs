@@ -82,24 +82,9 @@ export type {
 	FootnoteFeature,
 	FacetFeature,
 	Facet,
-	// Block types
-	TextBlock,
-	HeaderBlock,
-	BlockquoteBlock,
-	ImageBlock,
-	CodeBlock,
-	MathBlock,
+	// Block types (component-colliding data types are exported as `Block` union members)
 	OrderedListItem,
-	OrderedListBlock,
 	UnorderedListItem,
-	UnorderedListBlock,
-	HorizontalRuleBlock,
-	IframeBlock,
-	WebsiteBlock,
-	ButtonBlock,
-	BskyPostBlock,
-	PollBlock,
-	PageBlock,
 	Block,
 	// Content types
 	Position,
@@ -117,6 +102,10 @@ export type {
 	SubscriptionRecord,
 	LeafletSubscriptionRecord
 } from './types.js';
+
+// Block data types (TextBlock, HeaderBlock, etc.) are not re-exported here:
+// their names are taken by the Svelte component values in ./components/index.js.
+// They remain available via './types.js' and the exported `Block` union type.
 
 // Schema exports
 export type {
@@ -161,9 +150,7 @@ export {
 	getFontStyles,
 	getHeadingFontStyles,
 	getPageWidthStyles,
-	themeToCssVars,
-	extendedThemeToCssVars,
-	anyThemeToCssVars
+	themeToCssVars
 } from './utils/theme-helpers.js';
 
 export {
@@ -188,7 +175,7 @@ export type { TransformOptions, TransformResult } from './utils/content.js';
 // Comments exports (Bluesky replies)
 export { fetchComments, fetchMentionComments, formatRelativeTime } from './utils/comments.js';
 
-export type { Comment, CommentAuthor, FetchCommentsOptions } from './utils/comments.js';
+export type { CommentAuthor, FetchCommentsOptions } from './utils/comments.js';
 
 // Native comments exports
 export {
