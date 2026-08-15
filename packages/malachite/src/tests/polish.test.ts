@@ -11,7 +11,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import type { AtpAgent } from '@atproto/api';
+import type { Client } from '@atproto/lex';
 import { buildPolishPlan, migrateLegacyRecords } from '../lib/polish.js';
 import type { PolishPlan } from '../lib/polish.js';
 
@@ -55,7 +55,7 @@ function makeFakeAgent(
       },
     },
   };
-  return { agent: agent as unknown as AtpAgent, created, deleted };
+  return { agent: agent as unknown as Client, created, deleted };
 }
 
 describe('buildPolishPlan', () => {

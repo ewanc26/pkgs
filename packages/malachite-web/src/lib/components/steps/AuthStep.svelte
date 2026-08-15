@@ -2,7 +2,7 @@
 	import { ArrowLeft, ArrowRight, Eye, EyeOff } from '@lucide/svelte';
 	import { login } from '$lib/core/auth.js';
 	import { signInWithOAuth } from '$lib/core/oauth.js';
-	import type { Agent } from '@atproto/api';
+	import type { Client } from '@atproto/lex';
 	import {
 		saveCredentials,
 		loadCredentials,
@@ -13,7 +13,7 @@
 		onauth,
 		onback,
 	}: {
-		onauth: (agent: Agent) => void;
+		onauth: (client: Client) => void;
 		onback: () => void;
 	} = $props();
 

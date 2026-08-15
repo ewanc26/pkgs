@@ -8,6 +8,7 @@
 import { cache } from './cache.js';
 import { withFallback } from './agents.js';
 import type { BlueskyPost, PostAuthor, ExternalLink } from './types.js';
+import { app } from '@bsky/sdk/lexicons';
 
 export async function fetchLatestBlueskyPost(
 	did: string,
@@ -18,14 +19,14 @@ export async function fetchLatestBlueskyPost(
 	if (cached) return cached;
 
 	try {
-		const feedResponse = await withFallback(
-			did,
-			async (agent) => agent.getAuthorFeed({ actor: did, limit: 5 }),
-			false,
-			fetchFn
-		);
+	const feedResponse = (await withFallback(
+		did,
+		async (client) => client.call(app.bsky.feed.getAuthorFeed.main as any, { actor: did, limit: 5 }),
+		false,
+		fetchFn
+	)) as any;
 
-		const feed = feedResponse.data.feed;
+		const feed = feedResponse.feed;
 		if (!feed.length) return null;
 
 		const latestFeedItem = feed[0];
@@ -72,16 +73,16 @@ export async function fetchPostFromUri(
 	if (depth >= 3) return null;
 
 	try {
-		const threadResponse = await withFallback(
-			did,
-			async (agent) => agent.getPostThread({ uri, depth: 0 }),
-			false,
-			fetchFn
-		);
+	const threadResponse = (await withFallback(
+		did,
+		async (client) => client.call(app.bsky.feed.getPostThread.main as any, { uri, depth: 0 }),
+		false,
+		fetchFn
+	)) as any;
 
-		if (!threadResponse.data.thread || !('post' in threadResponse.data.thread)) return null;
+		if (!threadResponse.thread || !('post' in threadResponse.thread)) return null;
 
-		const postData = threadResponse.data.thread.post;
+		const postData = threadResponse.thread.post;
 		const value = postData.record as any;
 		const embed = (postData as any).embed ?? null;
 

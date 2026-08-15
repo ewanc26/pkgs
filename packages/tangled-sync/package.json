@@ -47,7 +47,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@atproto/api": "^0.19.3",
+    "@bsky/sdk": "latest",
+    "@atproto/lex": "^0.3.0",
+    "@atproto/lex-password-session": "^0.2.0",
     "dotenv": "^16.0.0"
   },
   "devDependencies": {

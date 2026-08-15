@@ -8,8 +8,9 @@
  * The CLI wrapper in src/lib/publisher.ts adapts this to terminal UI.
  */
 
-import type { Agent } from '@atproto/api';
-import type { PlayRecord } from './types.js';
+import type { Client } from '@atproto/lex'
+import type { PlayRecord } from './types.js'
+import { com } from '@bsky/sdk/lexicons'
 import { RECORD_TYPE, MAX_PDS_BATCH_SIZE, POINTS_PER_RECORD } from './config.js';
 import { RateLimiter } from './rate-limiter.js';
 import { ProactiveRatePacer } from './proactive-rate-pacer.js';
@@ -60,7 +61,7 @@ function extractHeaders(response: unknown): Record<string, string> {
 }
 
 export async function publishRecords(
-  agent: Agent,
+  client: Client,
   records: PlayRecord[],
   dryRun: boolean,
   callbacks: PublisherCallbacks,
@@ -185,8 +186,8 @@ export async function publishRecords(
 
       try {
         const response = await retryWithBackoff(
-          () => agent.com.atproto.repo.applyWrites(
-            { repo: agent.did ?? (agent as any).sessionManager?.did ?? '', writes: writes as any },
+          () => client.call(com.atproto.repo.applyWrites.main as any,
+            { repo: client.assertDid, writes: writes as any },
             { signal: ac.signal }
           ),
           {
@@ -213,7 +214,7 @@ export async function publishRecords(
         );
 
         // Success!
-        const batchSuccessCount = (response.data as any).results?.length ?? batch.length;
+        const batchSuccessCount = (response as any).results?.length ?? batch.length;
         successCount += batchSuccessCount;
         const batchDuration = Date.now() - batchStartTime;
 

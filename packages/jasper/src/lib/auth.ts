@@ -2,7 +2,9 @@
  * Authentication wrapper for Jasper
  * Supports OAuth (recommended) and app password fallback
  */
-import { AtpAgent, Agent } from "@atproto/api";
+import { Client } from '@atproto/lex'
+import { PasswordSession } from '@atproto/lex-password-session'
+import { api } from '@bsky/sdk'
 import { prompt, isNonInteractive } from "../utils/input.js";
 import * as ui from "../utils/ui.js";
 import { log } from "../utils/logger.js";
@@ -107,7 +109,7 @@ export async function resolveIdentity(
 export async function loginWithPassword(
   identifier: string,
   password: string,
-): Promise<AtpAgent> {
+): Promise<Client> {
   ui.header("Jasper Login");
 
   ui.startSpinner("Resolving identity...");
@@ -115,33 +117,18 @@ export async function loginWithPassword(
   ui.succeedSpinner(`Resolved to ${did}`);
 
   ui.startSpinner("Authenticating...");
-  const agent = new AtpAgent({ service: pds });
+  const session = await PasswordSession.login({
+    service: pds,
+    identifier: did,
+    password,
+  });
+  const client = new Client(session, { service: api.app.service });
 
-  try {
-    await agent.login({ identifier: did, password });
-    ui.succeedSpinner("Logged in successfully!");
-    ui.keyValue("DID", agent.session?.did || "unknown");
-    ui.keyValue("Handle", agent.session?.handle || "unknown");
+  ui.succeedSpinner("Logged in successfully!");
+  ui.keyValue("DID", client.assertDid);
+  ui.keyValue("Handle", (session as any).handle || "unknown");
 
-    return agent;
-  } catch (error) {
-    ui.failSpinner("Login failed");
-    const err = error as Error;
-
-    if (err.message.includes("AuthFactorTokenRequired")) {
-      throw new Error(
-        "Two-factor authentication required. Please use your app password.",
-      );
-    } else if (err.message.includes("AccountTakedown")) {
-      throw new Error("Account is suspended or has been taken down.");
-    } else if (err.message.includes("InvalidCredentials")) {
-      throw new Error(
-        "Invalid credentials. Please check your handle and app password.",
-      );
-    } else {
-      throw new Error(`Login failed: ${err.message}`);
-    }
-  }
+  return client;
 }
 
 /**
@@ -170,17 +157,17 @@ export async function authenticate(
   handle?: string,
   password?: string,
   useOAuth = true,
-): Promise<Agent> {
+): Promise<Client> {
   // Try to restore existing OAuth session
   if (useOAuth) {
     const sessions = await listOAuthSessions();
     if (sessions.length > 0) {
       const did = handle?.startsWith("did:") ? handle : sessions[0]!;
       log.info(`Attempting to restore OAuth session for ${did}...`);
-      const agent = await restoreOAuthSession(did);
-      if (agent) {
+      const client = await restoreOAuthSession(did);
+      if (client) {
         log.info("Restored OAuth session successfully.");
-        return agent;
+        return client;
       }
       log.warn("Could not restore OAuth session.");
     }

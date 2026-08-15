@@ -15,9 +15,11 @@
  *   ATPROTO_APP_PASSWORD  — an app password from your PDS settings
  */
 
-import { AtpAgent } from '@atproto/api';
+import { Client } from '@atproto/lex'
+import { PasswordSession } from '@atproto/lex-password-session'
 import { generateTID, decodeTid } from "@ewanc26/tid";
 import type { GitHubSponsor, GitHubSponsorshipAction } from './github-types.js';
+import { com } from '@bsky/sdk/lexicons'
 
 const COLLECTION = 'uk.ewancroft.support.github';
 
@@ -60,13 +62,17 @@ async function resolvePdsUrl(did: string): Promise<string> {
 	return data.pds;
 }
 
-async function authedAgent(): Promise<{ agent: AtpAgent; did: string }> {
+async function authedClient(): Promise<{ client: Client; did: string }> {
 	const did = requireEnv('ATPROTO_DID');
 	const password = requireEnv('ATPROTO_APP_PASSWORD');
 	const pdsUrl = await resolvePdsUrl(did);
-	const agent = new AtpAgent({ service: pdsUrl });
-	await agent.login({ identifier: did, password });
-	return { agent, did };
+	const session = await PasswordSession.login({
+		service: pdsUrl,
+		identifier: did,
+		password,
+	});
+	const client = new Client(session, { service: pdsUrl as any });
+	return { client, did };
 }
 
 /**
@@ -77,21 +83,21 @@ async function authedAgent(): Promise<{ agent: AtpAgent; did: string }> {
  */
 export async function fetchSponsorEvents(did: string): Promise<GitHubSponsorEvent[]> {
 	const pdsUrl = await resolvePdsUrl(did);
-	const agent = new AtpAgent({ service: pdsUrl });
+	const client = new Client(pdsUrl);
 
 	const events: GitHubSponsorEvent[] = [];
 	let cursor: string | undefined;
 
 	do {
-		const res = await agent.com.atproto.repo.listRecords({
-			repo: did,
+		const res = await client.call(com.atproto.repo.listRecords, {
+			repo: did as any,
 			collection: COLLECTION,
 			limit: 100,
 			cursor
 		});
 
-		for (const record of res.data.records) {
-			const value = record.value as GitHubSponsorEventRecord;
+		for (const record of res.records) {
+			const value = record.value as any;
 			const rkey = record.uri.split('/').pop() ?? '';
 			let date: Date;
 			try {
@@ -110,7 +116,7 @@ export async function fetchSponsorEvents(did: string): Promise<GitHubSponsorEven
 			});
 		}
 
-		cursor = res.data.cursor;
+		cursor = res.cursor;
 	} while (cursor);
 
 	return events.sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -124,25 +130,25 @@ export async function fetchSponsorEvents(did: string): Promise<GitHubSponsorEven
 export async function readSponsors(): Promise<GitHubSponsor[]> {
 	const did = requireEnv('ATPROTO_DID');
 	const pdsUrl = await resolvePdsUrl(did);
-	const agent = new AtpAgent({ service: pdsUrl });
+	const client = new Client(pdsUrl);
 
 	const events: Array<{ rkey: string; record: GitHubSponsorEventRecord }> = [];
 	let cursor: string | undefined;
 
 	do {
-		const res = await agent.com.atproto.repo.listRecords({
-			repo: did,
+		const res = await client.call(com.atproto.repo.listRecords, {
+			repo: did as any,
 			collection: COLLECTION,
 			limit: 100,
 			cursor
 		});
 
-		for (const record of res.data.records) {
+		for (const record of res.records) {
 			const rkey = record.uri.split('/').pop() ?? '';
-			events.push({ rkey, record: record.value as unknown as GitHubSponsorEventRecord });
+			events.push({ rkey, record: record.value as any });
 		}
 
-		cursor = res.data.cursor;
+		cursor = res.cursor;
 	} while (cursor);
 
 	events.sort((a, b) => (a.rkey < b.rkey ? -1 : 1));
@@ -185,7 +191,7 @@ export async function appendSponsorEvent(
 	monthlyUsd: number,
 	timestamp: string
 ): Promise<void> {
-	const { agent, did } = await authedAgent();
+	const { client, did } = await authedClient();
 
 	const record: GitHubSponsorEventRecord = {
 		login,
@@ -197,10 +203,10 @@ export async function appendSponsorEvent(
 
 	const ts = timestamp.endsWith('Z') ? timestamp : timestamp + 'Z';
 
-	await agent.com.atproto.repo.putRecord({
-		repo: did,
+	await client.call(com.atproto.repo.putRecord.main as any, {
+		repo: did as any,
 		collection: COLLECTION,
 		rkey: generateTID(ts),
-		record: record as unknown as { [x: string]: unknown }
+		record: record as any
 	});
 }

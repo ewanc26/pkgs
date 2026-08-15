@@ -20,6 +20,7 @@ import { cache } from './cache.js';
 import { withFallback, resolveIdentity } from './agents.js';
 import { buildPdsBlobUrl } from './media.js';
 import { findArtwork } from './musicbrainz.js';
+import { com, app } from '@bsky/sdk/lexicons';
 import type {
 	ProfileData,
 	SiteInfoData,
@@ -73,13 +74,13 @@ async function listLatestRecord(
 ): Promise<{ uri: string; value: any } | null> {
 	const records = await withFallback(
 		did,
-		async (agent) => {
-			const response = await agent.com.atproto.repo.listRecords({
+		async (client) => {
+			const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 				repo: did,
 				collection,
 				limit: 1
-			});
-			return response.data.records;
+			})) as any;
+			return response.records;
 		},
 		true,
 		fetchFn
@@ -96,8 +97,8 @@ export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise
 
 	const profile = await withFallback(
 		did,
-		async (agent) => {
-			const response = await agent.getProfile({ actor: did });
+		async (client) => {
+			const response = (await client.call(app.bsky.actor.getProfile.main as any, { actor: did })) as any;
 			return response.data;
 		},
 		false,
@@ -108,12 +109,12 @@ export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise
 	try {
 		const recordResponse = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.getRecord({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.getRecord.main as any, {
 					repo: did,
 					collection: 'app.bsky.actor.profile',
 					rkey: 'self'
-				});
+				})) as any;
 				return response.data;
 			},
 			false,
@@ -152,13 +153,13 @@ export async function fetchSiteInfo(
 	try {
 		const result = await withFallback(
 			did,
-			async (agent) => {
+			async (client) => {
 				try {
-					const response = await agent.com.atproto.repo.getRecord({
+					const response = (await client.call(com.atproto.repo.getRecord.main as any, {
 						repo: did,
 						collection: 'uk.ewancroft.site.info',
 						rkey: 'self'
-					});
+					})) as any;
 					return response.data;
 				} catch (err: any) {
 					if (err.error === 'RecordNotFound') return null;
@@ -189,13 +190,13 @@ export async function fetchLinks(
 	try {
 		const value = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.getRecord({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.getRecord.main as any, {
 					repo: did,
 					collection: 'blue.linkat.board',
 					rkey: 'self'
-				});
-				return response.data.value;
+				})) as any;
+				return response.value;
 			},
 			true,
 			fetchFn
@@ -327,13 +328,13 @@ export async function fetchKibunStatus(
 	try {
 		const statusRecords = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'social.kibun.status',
 					limit: 1
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
@@ -370,13 +371,13 @@ export async function fetchRecentPopfeedReviews(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'social.popfeed.feed.review',
 					limit
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
@@ -384,7 +385,7 @@ export async function fetchRecentPopfeedReviews(
 
 		if (!records?.length) return [];
 
-		const data: PopfeedReview[] = records.map((record) => {
+		const data: PopfeedReview[] = records.map((record: any) => {
 			const value = record.value as any;
 			const rkey = record.uri.split('/').pop() ?? record.uri;
 			return {
@@ -423,19 +424,19 @@ export async function fetchSifaPositions(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.position',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaPosition[] = records.map((record) => {
+		const data: SifaPosition[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				company: value.company,
@@ -477,19 +478,19 @@ export async function fetchSifaEducation(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.education',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaEducation[] = records.map((record) => {
+		const data: SifaEducation[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				institution: value.institution,
@@ -530,19 +531,19 @@ export async function fetchSifaVolunteering(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.volunteering',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaVolunteering[] = records.map((record) => {
+		const data: SifaVolunteering[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				organization: value.organization,
@@ -574,19 +575,19 @@ export async function fetchSifaHonors(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.honor',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaHonor[] = records.map((record) => {
+		const data: SifaHonor[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				title: value.title,
@@ -622,19 +623,19 @@ export async function fetchSifaCourses(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.course',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaCourse[] = records.map((record) => {
+		const data: SifaCourse[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				name: value.name,
@@ -663,19 +664,19 @@ export async function fetchSifaPublications(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.publication',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaPublication[] = records.map((record) => {
+		const data: SifaPublication[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				title: value.title,
@@ -712,13 +713,13 @@ export async function fetchTangledRepos(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'sh.tangled.repo',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
@@ -726,7 +727,7 @@ export async function fetchTangledRepos(
 
 		if (!records.length) return null;
 
-		const repos: TangledRepo[] = records.map((record) => {
+		const repos: TangledRepo[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				uri: record.uri,
@@ -762,12 +763,12 @@ export async function fetchSifaProfile(
 	try {
 		const result = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.getRecord({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.getRecord.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.self',
 					rkey: 'self'
-				});
+				})) as any;
 				return response.data;
 			},
 			true,
@@ -804,19 +805,19 @@ export async function fetchSifaSkills(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.skill',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaSkill[] = records.map((record) => {
+		const data: SifaSkill[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				name: value.name,
@@ -843,19 +844,19 @@ export async function fetchSifaProjects(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.project',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaProject[] = records.map((record) => {
+		const data: SifaProject[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				name: value.name,
@@ -890,19 +891,19 @@ export async function fetchSifaLanguages(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.language',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaLanguage[] = records.map((record) => {
+		const data: SifaLanguage[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				name: value.name,
@@ -929,19 +930,19 @@ export async function fetchSifaCertifications(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.certification',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaCertification[] = records.map((record) => {
+		const data: SifaCertification[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				name: value.name,
@@ -975,19 +976,19 @@ export async function fetchSifaExternalAccounts(
 	try {
 		const records = await withFallback(
 			did,
-			async (agent) => {
-				const response = await agent.com.atproto.repo.listRecords({
+			async (client) => {
+				const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 					repo: did,
 					collection: 'id.sifa.profile.externalAccount',
 					limit: 100
-				});
-				return response.data.records;
+				})) as any;
+				return response.records;
 			},
 			true,
 			fetchFn
 		);
 
-		const data: SifaExternalAccount[] = records.map((record) => {
+		const data: SifaExternalAccount[] = records.map((record: any) => {
 			const value = record.value as any;
 			return {
 				platform: value.platform,

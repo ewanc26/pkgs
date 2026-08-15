@@ -164,8 +164,8 @@ export async function fetchRepoViaCAR(
 }
 
 /**
- * Extract the PDS base URL from an @atproto/api Agent or AtpAgent.
- * Handles both password-auth agents and OAuth session-manager agents.
+ * Extract the PDS base URL from an @atproto/lex Client or legacy @atproto/api Agent.
+ * Handles both password-auth clients and OAuth session-manager clients.
  */
 export function getPdsUrlFromAgent(agent: unknown): string {
   const a = agent as Record<string, unknown>;
@@ -174,8 +174,12 @@ export function getPdsUrlFromAgent(agent: unknown): string {
   const issuer = (a['sessionManager'] as any)?.serverMetadata?.issuer;
   if (issuer) return issuer.toString();
 
-  // AtpAgent / password-auth agent: direct URL fields.
-  for (const field of ['dispatchUrl', 'pdsUrl', 'serviceUrl', 'service']) {
+  // @atproto/lex Client: direct service URL.
+  const service = a['service'];
+  if (service && typeof service === 'string') return service;
+
+  // Legacy AtpAgent / password-auth agent: direct URL fields.
+  for (const field of ['dispatchUrl', 'pdsUrl', 'serviceUrl']) {
     const v = a[field] ?? (a['sessionManager'] as any)?.[field];
     if (v) return v.toString();
   }
@@ -184,26 +188,26 @@ export function getPdsUrlFromAgent(agent: unknown): string {
 }
 
 /**
- * Extract a Bearer token from an agent for authenticated CAR fetches.
+ * Extract a Bearer token from a client for authenticated CAR fetches.
  *
  * Some PDS instances return 401 on com.atproto.sync.getRepo without auth,
  * even though the spec marks it public.  This helper covers both auth shapes:
  *
- * - Password / AtpAgent:  agent.session.accessJwt
- * - OAuth (browser):      agent.sessionManager.getTokens() → accessToken
- *
- * Returns undefined if the token can't be obtained non-destructively
- * (e.g. an expired OAuth session that would need a refresh — callers should
- * let the normal agent.* API methods handle that path instead).
+ * - @atproto/lex Client backed by PasswordSession: session.accessJwt
+ * - Legacy @atproto/api Agent: agent.session.accessJwt
+ * - OAuth (browser): agent.sessionManager.getTokens() → accessToken
  */
 export async function getAgentToken(agent: unknown): Promise<string | undefined> {
   const a = agent as Record<string, unknown>;
 
-  // Password-auth CredentialSession (AtpAgent):
-  // session.accessJwt holds the current JWT. It may be expired — callers
-  // should handle CARFetchUnauthorizedError and retry after refreshing.
+  // @atproto/lex Client with PasswordSession:
+  // session.accessJwt holds the current JWT.
   const jwt = (a['session'] as any)?.accessJwt;
   if (jwt) return jwt as string;
+
+  // Legacy @atproto/api Agent / AtpAgent:
+  const legacyJwt = (a['session'] as any)?.accessJwt;
+  if (legacyJwt) return legacyJwt as string;
 
   // OAuth agent: session manager exposes getTokens() (non-mutating read).
   const sm = (a['sessionManager'] as any);

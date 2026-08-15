@@ -2,7 +2,7 @@
  * Core type definitions for Jasper
  */
 
-import type { Agent } from "@atproto/api";
+import type { Client } from '@atproto/lex';
 
 // ============================================
 // Grain Types
@@ -333,4 +333,4 @@ export interface Config {
   MIN_UPLOAD_DELAY: number;
 }
 
-export type { Agent };
+export type { Client };

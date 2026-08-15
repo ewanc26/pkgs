@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import type { Agent } from '@atproto/api';
+	import type { Client } from '@atproto/lex';
 
 	import { initOAuth } from '$lib/core/oauth.js';
 	import { modeNeeds } from '$lib/modes.js';
@@ -39,7 +39,7 @@
 	let prevStep = $state(_initStep);
 	let mode = $state<ImportMode | null>(_initMode);
 
-	let agent = $state<Agent | null>(null);
+	let agent = $state<Client | null>(null);
 	let lastfmFiles = $state<File[]>([]);
 	let spotifyFiles = $state<File[]>([]);
 	let appleFiles = $state<File[]>([]);
@@ -98,7 +98,7 @@
 		goTo(Math.max(0, step - 1));
 	}
 
-	function handleAuth(a: Agent) {
+	function handleAuth(a: Client) {
 		agent = a;
 		goTo(needs.files ? 2 : 3);
 	}

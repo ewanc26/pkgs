@@ -4,10 +4,11 @@
  * No CLI UI or caching; those are added by the CLI wrapper in src/lib/sync.ts.
  */
 
-import type { Agent } from '@atproto/api';
-import type { PlayRecord } from './types.js';
-import { RECORD_TYPES } from './config.js';
-import { fetchRepoViaCAR, getPdsUrlFromAgent, getAgentToken, CARFetchUnauthorizedError } from './car-fetch.js';
+import type { Client } from '@atproto/lex'
+import type { PlayRecord } from './types.js'
+import { RECORD_TYPES } from './config.js'
+import { fetchRepoViaCAR, getPdsUrlFromAgent, getAgentToken, CARFetchUnauthorizedError } from './car-fetch.js'
+import { com } from '@bsky/sdk/lexicons'
 
 export interface ExistingRecord {
   uri: string;
@@ -44,18 +45,18 @@ function collectionFromUri(uri: string): string {
   return uri.split('/').slice(3, -1).join('/');
 }
 
-/** Extract DID from any agent shape (credential session or OAuth session manager). */
-function getDid(agent: Agent): string | undefined {
-  return agent.did ?? (agent as any).sessionManager?.did;
+/** Extract DID from a Client. */
+function getDid(client: Client): string {
+  return client.assertDid
 }
 
 export async function fetchExistingRecords(
-  agent: Agent,
+  client: Client,
   onProgress?: (fetched: number) => void,
   forceRefresh = false,
   signal?: AbortSignal
 ): Promise<Map<string, ExistingRecord>> {
-  const did = getDid(agent);
+  const did = getDid(client);
   if (!did) throw new Error('No authenticated session');
 
   if (!forceRefresh && sessionCache.has(did)) {
@@ -64,23 +65,19 @@ export async function fetchExistingRecords(
 
   signal?.throwIfAborted();
 
-  const pdsUrl = getPdsUrlFromAgent(agent);
-  let token = await getAgentToken(agent);
+  const pdsUrl = getPdsUrlFromAgent(client);
+  let token = await getAgentToken(client);
   let carRecords: Awaited<ReturnType<typeof fetchPlayRecords>>;
   try {
     carRecords = await fetchPlayRecords(pdsUrl, did, signal, token);
   } catch (err) {
     if (err instanceof CARFetchUnauthorizedError) {
-      // The token we sent was invalid or expired.  Try to silently refresh the
-      // session (works for both CredentialSession / AtpAgent and OAuth agents
-      // that expose a refreshSession method on their session manager) then
-      // retry the CAR fetch exactly once before giving up.
-      const sm = (agent as any)?.sessionManager;
+      const sm = (client as any)?.sessionManager;
       let retried = false;
       if (typeof sm?.refreshSession === 'function') {
         try {
           await sm.refreshSession();
-          const freshToken = await getAgentToken(agent);
+          const freshToken = await getAgentToken(client);
           if (freshToken && freshToken !== token) {
             carRecords = await fetchPlayRecords(pdsUrl, did, signal, freshToken);
             token = freshToken;
@@ -91,7 +88,6 @@ export async function fetchExistingRecords(
         }
       }
       if (!retried) {
-        // Clear the stale session cache so the next call starts clean.
         sessionCache.delete(did);
         throw err;
       }
@@ -119,28 +115,28 @@ export function filterNewRecords(
 }
 
 export async function fetchAllRecordsForDedup(
-  agent: Agent,
+  client: Client,
   onProgress?: (fetched: number) => void,
   signal?: AbortSignal
 ): Promise<ExistingRecord[]> {
-  const did = getDid(agent);
+  const did = getDid(client);
   if (!did) throw new Error('No authenticated session');
 
   signal?.throwIfAborted();
 
-  const pdsUrl = getPdsUrlFromAgent(agent);
-  let token = await getAgentToken(agent);
+  const pdsUrl = getPdsUrlFromAgent(client);
+  let token = await getAgentToken(client);
   let carRecords: Awaited<ReturnType<typeof fetchPlayRecords>>;
   try {
     carRecords = await fetchPlayRecords(pdsUrl, did, signal, token);
   } catch (err) {
     if (err instanceof CARFetchUnauthorizedError) {
-      const sm = (agent as any)?.sessionManager;
+      const sm = (client as any)?.sessionManager;
       let retried = false;
       if (typeof sm?.refreshSession === 'function') {
         try {
           await sm.refreshSession();
-          const freshToken = await getAgentToken(agent);
+          const freshToken = await getAgentToken(client);
           if (freshToken && freshToken !== token) {
             carRecords = await fetchPlayRecords(pdsUrl, did, signal, freshToken);
             token = freshToken;
@@ -184,7 +180,7 @@ export function findDuplicateGroups(records: ExistingRecord[]): DedupGroup[] {
 }
 
 export async function removeDuplicateRecords(
-  agent: Agent,
+  client: Client,
   groups: DedupGroup[],
   onProgress?: (removed: number) => void,
   signal?: AbortSignal
@@ -194,8 +190,8 @@ export async function removeDuplicateRecords(
     for (const rec of group.records.slice(1)) {
       signal?.throwIfAborted();
       try {
-        await agent.com.atproto.repo.deleteRecord(
-          { repo: getDid(agent) ?? '', collection: collectionFromUri(rec.uri), rkey: rec.uri.split('/').pop()! },
+        await client.call(com.atproto.repo.deleteRecord.main as any,
+          { repo: getDid(client)!, collection: collectionFromUri(rec.uri), rkey: rec.uri.split('/').pop()! },
           { signal }
         );
         removed++;

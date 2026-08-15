@@ -2,7 +2,7 @@
  * Publisher for Spark stories
  * Handles blob upload and so.sprk.story.post record creation
  */
-import type { Agent } from "@atproto/api";
+import type { Client } from '@atproto/lex';
 import { generateTID } from "@ewanc26/tid";
 import type {
   SparkMediaImage,
@@ -18,6 +18,7 @@ import {
   SPARK_MEDIA_VIDEO,
 } from "../core/config.js";
 import { log } from "../utils/logger.js";
+import { com } from '@bsky/sdk/lexicons'
 
 /**
  * Result of publishing a Spark story
@@ -33,21 +34,27 @@ export interface SparkStoryPublishResult {
  * Upload an image as a blob
  */
 async function uploadBlob(
-  agent: Agent,
+  client: Client,
   imageData: Uint8Array,
   mimeType: string,
 ): Promise<{ cid: string; mimeType: string }> {
-  const uploadResult = await agent.uploadBlob(imageData, {
-    encoding: mimeType,
+  const form = new FormData();
+  form.append('file', new Blob([imageData as any], { type: mimeType }));
+
+  const res = await fetch(`${(client as any).service || 'https://bsky.social'}/xrpc/com.atproto.repo.uploadBlob`, {
+    method: 'POST',
+    headers: (client as any).session?.accessJwt ? { Authorization: `Bearer ${(client as any).session.accessJwt}` } : undefined,
+    body: form,
   });
 
-  if (!uploadResult.data.blob) {
-    throw new Error("No blob returned from upload");
+  if (!res.ok) {
+    throw new Error(`Blob upload failed: ${res.status}`);
   }
 
+  const data = await res.json() as { blob: { $type: 'blob'; ref: { $link: string }; mimeType: string; size: number } };
   return {
-    cid: uploadResult.data.blob.ref.toString(),
-    mimeType: uploadResult.data.blob.mimeType,
+    cid: data.blob.ref.toString(),
+    mimeType: data.blob.mimeType,
   };
 }
 
@@ -80,7 +87,7 @@ function buildMediaImage(
  * of so.sprk.media.images or so.sprk.media.video.
  */
 export async function publishSparkStory(
-  agent: Agent,
+  client: Client,
   images: Array<{
     data: Uint8Array;
     mimeType: string;
@@ -103,7 +110,7 @@ export async function publishSparkStory(
     const mediaImages: SparkMediaImage[] = [];
 
     for (const img of images) {
-      const blob = await uploadBlob(agent, img.data, img.mimeType);
+      const blob = await uploadBlob(client, img.data, img.mimeType);
       mediaImages.push(
         buildMediaImage(blob, img.size, img.alt, img.aspectRatio),
       );
@@ -122,17 +129,17 @@ export async function publishSparkStory(
       media,
     };
 
-    const result = await agent.com.atproto.repo.createRecord({
-      repo: agent.did!,
+    const result = await client.call(com.atproto.repo.createRecord, {
+      repo: client.assertDid!,
       collection: SPARK_STORY_COLLECTION,
       rkey: generateTID(createdAt),
-      record,
+      record: record as any,
     });
 
     return {
       success: true,
-      uri: result.data.uri,
-      cid: result.data.cid,
+      uri: result.uri,
+      cid: result.cid,
     };
   } catch (error) {
     const err = error as Error;
@@ -147,7 +154,7 @@ export async function publishSparkStory(
  * Publish a Spark story with a video
  */
 export async function publishSparkVideoStory(
-  agent: Agent,
+  client: Client,
   videoBlob: {
     cid: string;
     mimeType: string;
@@ -182,17 +189,17 @@ export async function publishSparkVideoStory(
       media,
     };
 
-    const result = await agent.com.atproto.repo.createRecord({
-      repo: agent.did!,
+    const result = await client.call(com.atproto.repo.createRecord, {
+      repo: client.assertDid!,
       collection: SPARK_STORY_COLLECTION,
       rkey: generateTID(createdAt),
-      record,
+      record: record as any,
     });
 
     return {
       success: true,
-      uri: result.data.uri,
-      cid: result.data.cid,
+      uri: result.uri,
+      cid: result.cid,
     };
   } catch (error) {
     const err = error as Error;
@@ -207,28 +214,28 @@ export async function publishSparkVideoStory(
  * Check for existing Spark stories to avoid duplicates
  */
 export async function getExistingSparkStories(
-  agent: Agent,
+  client: Client,
 ): Promise<Set<string>> {
   const existing = new Set<string>();
 
   try {
     let cursor: string | undefined;
     do {
-      const result = await agent.com.atproto.repo.listRecords({
-        repo: agent.did!,
+      const result = await client.call(com.atproto.repo.listRecords, {
+        repo: client.assertDid!,
         collection: SPARK_STORY_COLLECTION,
         limit: 100,
         cursor,
       });
 
-      for (const record of result.data.records) {
+      for (const record of result.records) {
         const value = record.value as { createdAt?: string };
         if (value.createdAt) {
           existing.add(value.createdAt);
         }
       }
 
-      cursor = result.data.cursor;
+      cursor = result.cursor;
     } while (cursor);
   } catch (error) {
     log.warn(

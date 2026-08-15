@@ -3,8 +3,10 @@
  * No CLI prompts; credentials come from the caller.
  */
 
-import { Agent, AtpAgent } from '@atproto/api';
-import { SLINGSHOT_RESOLVER } from './config.js';
+import { Client } from '@atproto/lex'
+import { PasswordSession } from '@atproto/lex-password-session'
+import { api } from '@bsky/sdk'
+import { SLINGSHOT_RESOLVER } from './config.js'
 
 export interface ResolvedIdentity {
   did: string;
@@ -86,15 +88,12 @@ export async function login(
   identifier: string,
   password: string,
   pdsOverride?: string
-): Promise<Agent> {
-  if (pdsOverride) {
-    const agent = new AtpAgent({ service: pdsOverride });
-    await agent.login({ identifier, password });
-    return agent;
-  }
-
-  const identity = await resolveIdentity(identifier);
-  const agent = new AtpAgent({ service: identity.pds });
-  await agent.login({ identifier: identity.did, password });
-  return agent;
+): Promise<Client> {
+  const service = pdsOverride || (await resolveIdentity(identifier)).pds
+  const session = await PasswordSession.login({
+    service,
+    identifier,
+    password,
+  })
+  return new Client(session, { service: api.app.service })
 }

@@ -8,8 +8,9 @@
  * parent's AT URI + CID is known when the child record is constructed.
  */
 
-import type { Agent } from '@atproto/api';
+import type { Client } from '@atproto/lex';
 import type { MicroblogPost, Facet } from './types.js';
+import { com } from '@bsky/sdk/lexicons';
 import { generateTID } from '@ewanc26/tid';
 import {
   RateLimiter,
@@ -166,7 +167,7 @@ function dependenciesMet(
 }
 
 export async function publishRecords(
-  agent: Agent,
+  agent: Client,
   posts: MicroblogPost[],
   dryRun: boolean,
   callbacks: PublisherCallbacks,
@@ -262,9 +263,10 @@ export async function publishRecords(
 
       try {
         const response = await retryWithBackoff(
-          () => agent.com.atproto.repo.applyWrites(
+          () => agent.call(
+            com.atproto.repo.applyWrites,
             {
-              repo: agent.did ?? (agent as any).sessionManager?.did ?? '',
+              repo: agent.assertDid ?? '',
               writes: writes as any,
             },
             { signal: ac.signal },
@@ -293,7 +295,7 @@ export async function publishRecords(
         );
 
         // Extract results and build publishedMap for thread reference resolution
-        const results = (response.data as any)?.results ?? [];
+        const results = (response as any)?.results ?? [];
         for (let j = 0; j < Math.min(results.length, batch.length); j++) {
           const result = results[j] as { uri?: string; cid?: string } | undefined;
           if (result?.uri && result?.cid) {

@@ -7,7 +7,7 @@
  */
 
 import http from 'node:http';
-import { Agent } from '@atproto/api';
+import { Client } from '@atproto/lex'
 import { resolveIdentity } from '@ewanc26/croft-click-core';
 import * as ui from '../utils/ui.js';
 import { prompt } from '../utils/input.js';
@@ -102,7 +102,7 @@ function waitForCallback(): Promise<CallbackResult> {
  * Resolves the identity, opens the browser, waits for the callback,
  * exchanges the code for a session, and saves it to disk.
  */
-export async function loginWithOAuth(handle?: string): Promise<Agent> {
+export async function loginWithOAuth(handle?: string): Promise<Client> {
   ui.header('ATProto OAuth Login');
 
   if (!handle) {
@@ -152,18 +152,18 @@ export async function loginWithOAuth(handle?: string): Promise<Agent> {
   ui.info('Your session will refresh automatically when needed.');
   console.log('');
 
-  return new Agent(session);
+  return new Client(session);
 }
 
 /**
  * Restore a stored OAuth session for the given DID.
  * Returns null if no session is stored or if the refresh fails.
  */
-export async function restoreOAuthSession(did: string): Promise<Agent | null> {
+export async function restoreOAuthSession(did: string): Promise<Client | null> {
   try {
     const client = await getOAuthClient();
     const session = await client.restore(did);
-    return new Agent(session);
+    return new Client(session);
   } catch {
     return null;
   }

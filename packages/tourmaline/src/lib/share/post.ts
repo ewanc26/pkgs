@@ -7,7 +7,10 @@
  * only needs to build the SVG, alt text, and post copy.
  */
 
-import { Agent, RichText } from "@atproto/api";
+import { Client } from '@atproto/lex'
+import { RichText } from '@bsky/sdk/richtext'
+import { post } from '@bsky/sdk'
+import { com } from '@bsky/sdk/lexicons'
 import type { PersonalityCardData } from "./personality-svg";
 import { renderPersonalitySvg } from "./personality-svg";
 import type { ReceiptCardData } from "./receipt-svg";
@@ -32,7 +35,7 @@ export interface PostCardImageOptions {
 }
 
 export async function postCardImage(
-  agent: Agent,
+  client: Client,
   opts: PostCardImageOptions,
 ): Promise<ShareResult> {
   // 1. Render SVG → PNG
@@ -47,16 +50,17 @@ export async function postCardImage(
   const svgH = viewBoxMatch ? Math.round(parseFloat(viewBoxMatch[2])) : 620;
 
   // 2. Upload the image blob
-  const { data: blobData } = await agent.uploadBlob(pngBytes, {
+  const uploadResponse = await client.uploadBlob(pngBytes, {
     encoding: "image/png",
   });
+  const blobData = uploadResponse.body;
 
   // 3. Build rich text with @mention
   const rt = new RichText({ text: opts.postText });
-  await rt.detectFacets(agent);
+  await rt.detectFacets(client);
 
   // 4. Create the post
-  const result = await agent.post({
+  const result = await client.call(post, {
     text: rt.text,
     facets: rt.facets,
     embed: {
@@ -72,13 +76,13 @@ export async function postCardImage(
         },
       ],
     },
-    createdAt: new Date().toISOString(),
+    createdAt: new Date().toISOString() as any,
   });
 
   // 5. Log toolkit usage — best-effort, don't let it fail the share
   try {
-    await agent.com.atproto.repo.createRecord({
-      repo: agent.sessionManager.did ?? agent.did ?? "",
+    await client.call(com.atproto.repo.createRecord, {
+      repo: client.assertDid,
       collection: "click.croft.toolkit.use",
       record: {
         $type: "click.croft.toolkit.use",
@@ -87,7 +91,7 @@ export async function postCardImage(
           ...opts.toolkitExtra,
           sharedToBluesky: true,
         },
-        createdAt: new Date().toISOString(),
+        createdAt: new Date().toISOString() as any,
       },
     });
   } catch {
@@ -98,7 +102,7 @@ export async function postCardImage(
 }
 
 export async function sharePersonality(
-  agent: Agent,
+  client: Client,
   card: PersonalityCardData,
 ): Promise<ShareResult> {
   const svg = renderPersonalitySvg(card);
@@ -129,7 +133,7 @@ export async function sharePersonality(
     .filter(Boolean)
     .join(" ");
 
-  return postCardImage(agent, {
+  return postCardImage(client, {
     svg,
     alt,
     postText: `I'm a ${card.archetype}!\n\nfound out by using tourmaline by @ewancroft.uk`,
@@ -138,7 +142,7 @@ export async function sharePersonality(
   });
 }
 
-export async function shareReceipt(agent: Agent, card: ReceiptCardData): Promise<ShareResult> {
+export async function shareReceipt(client: Client, card: ReceiptCardData): Promise<ShareResult> {
   const svg = renderReceiptSvg(card);
 
   const tracks = (Array.isArray(card.tracks) ? card.tracks : []).slice(0, 5);
@@ -152,7 +156,7 @@ export async function shareReceipt(agent: Agent, card: ReceiptCardData): Promise
     .filter(Boolean)
     .join(" ");
 
-  return postCardImage(agent, {
+  return postCardImage(client, {
     svg,
     alt,
     postText: `My listening receipt (${card.rangeLabel ?? "all time"}) 🧾\n\nvia tourmaline by @ewancroft.uk`,
@@ -161,7 +165,7 @@ export async function shareReceipt(agent: Agent, card: ReceiptCardData): Promise
   });
 }
 
-export async function shareFestival(agent: Agent, card: FestivalCardData): Promise<ShareResult> {
+export async function shareFestival(client: Client, card: FestivalCardData): Promise<ShareResult> {
   const svg = renderFestivalSvg(card);
 
   const artists = (Array.isArray(card.artists) ? card.artists : []).slice(0, 10);
@@ -172,7 +176,7 @@ export async function shareFestival(agent: Agent, card: FestivalCardData): Promi
     .filter(Boolean)
     .join(" ");
 
-  return postCardImage(agent, {
+  return postCardImage(client, {
     svg,
     alt,
     postText: `My listening lineup (${card.rangeLabel ?? "all time"}) 🎪\n\nvia tourmaline by @ewancroft.uk`,
@@ -180,7 +184,7 @@ export async function shareFestival(agent: Agent, card: FestivalCardData): Promi
   });
 }
 
-export async function shareStory(agent: Agent, card: StoryCardData): Promise<ShareResult> {
+export async function shareStory(client: Client, card: StoryCardData): Promise<ShareResult> {
   const svg = renderStorySvg(card);
 
   const alt = [
@@ -191,7 +195,7 @@ export async function shareStory(agent: Agent, card: StoryCardData): Promise<Sha
     .filter(Boolean)
     .join(" ");
 
-  return postCardImage(agent, {
+  return postCardImage(client, {
     svg,
     alt,
     postText: `${card.heading}\n\nfrom my ${card.label} recap on tourmaline by @ewancroft.uk`,

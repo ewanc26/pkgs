@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import type { Agent } from '@atproto/api';
+	import type { Client } from '@atproto/lex';
+	import { com } from '@bsky/sdk/lexicons';
 	import { initOAuth, signInWithOAuth } from '$lib/core/oauth';
 	import {
 		runImport,
@@ -40,7 +41,7 @@
 	let step = $state(0);
 	let prevStep = $state(0);
 
-	let agent = $state<Agent | null>(null);
+	let agent = $state<Client | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let profile = $state<{ displayName?: string; description?: string; avatar?: string } | null>(
@@ -344,15 +345,13 @@
 			agent = await initOAuth();
 			if (agent) {
 				// Fetch profile record from PDS
-				const profileResult = await agent.com.atproto.repo
-					.getRecord({
-						repo: agent.did ?? '',
-						collection: 'app.bsky.actor.profile',
-						rkey: 'self'
-					})
-					.catch(() => null);
+			const profileResult = (await agent.call(com.atproto.repo.getRecord.main as any, {
+				repo: agent.assertDid,
+				collection: 'app.bsky.actor.profile',
+				rkey: 'self'
+			})) as any;
 
-				const profileRecord = profileResult?.data?.value as
+			const profileRecord = profileResult?.value as
 					| {
 							displayName?: string;
 							description?: string;
@@ -365,8 +364,8 @@
 
 				let avatarUrl = undefined;
 				const cid = (profileRecord?.avatar as { ref?: { $link?: string } } | undefined)?.ref?.$link;
-				if (cid && agent.did) {
-					avatarUrl = `https://cdn.bsky.app/img/avatar/plain/${agent.did}/${cid}@jpeg`;
+			if (cid && agent.assertDid) {
+				avatarUrl = `https://cdn.bsky.app/img/avatar/plain/${agent.assertDid}/${cid}@jpeg`;
 				}
 
 				profile = {

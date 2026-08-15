@@ -1,25 +1,11 @@
-/**
- * Agent management for AT Protocol XRPC calls.
- *
- * Creates and caches ATP agents with fallback between public and PDS endpoints.
- * All functions that previously read PUBLIC_ATPROTO_DID from the environment
- * now accept `did: string` as their first argument.
- */
-
-import { AtpAgent } from '@atproto/api';
+import { Client } from '@atproto/lex';
+import { app } from '@bsky/sdk/lexicons';
 import type { ResolvedIdentity } from './types.js';
 import { cache } from './cache.js';
 
-/** Default timeout for individual AT Protocol XRPC calls (ms). */
 const XRPC_TIMEOUT = 8_000;
-
-/** Default timeout for identity resolution (ms). */
 const IDENTITY_TIMEOUT = 5_000;
 
-/**
- * Wraps a promise with a timeout. Rejects with a TimeoutError if the promise
- * doesn't settle within `ms` milliseconds.
- */
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 	return new Promise<T>((resolve, reject) => {
 		const timer = setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms);
@@ -30,7 +16,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 	});
 }
 
-export function createAgent(service: string, fetchFn?: typeof fetch): AtpAgent {
+export function createAgent(service: string, fetchFn?: typeof fetch): Client {
 	const wrappedFetch = fetchFn
 		? async (url: URL | RequestInfo, init?: RequestInit) => {
 				const urlStr = url instanceof URL ? url.toString() : url;
@@ -47,17 +33,14 @@ export function createAgent(service: string, fetchFn?: typeof fetch): AtpAgent {
 			}
 		: undefined;
 
-	return new AtpAgent({
-		service,
-		...(wrappedFetch && { fetch: wrappedFetch })
-	});
+	return new Client({ service, fetch: wrappedFetch });
 }
 
 export const constellationAgent = createAgent('https://constellation.microcosm.blue');
 export const defaultAgent = createAgent('https://public.api.bsky.app');
 
-let resolvedAgent: AtpAgent | null = null;
-let pdsAgent: AtpAgent | null = null;
+let resolvedAgent: Client | null = null;
+let pdsAgent: Client | null = null;
 
 export async function resolveIdentity(
 	did: string,
@@ -97,19 +80,17 @@ export async function resolveIdentity(
 	return data;
 }
 
-export async function getPublicAgent(did: string, fetchFn?: typeof fetch): Promise<AtpAgent> {
+export async function getPublicAgent(did: string, fetchFn?: typeof fetch): Promise<Client> {
 	if (resolvedAgent) return resolvedAgent;
 
 	try {
 		try {
-			const response = await withTimeout(
-				constellationAgent.getProfile({ actor: did }),
+			await withTimeout(
+				constellationAgent.call(app.bsky.actor.getProfile.main as any, { actor: did }),
 				XRPC_TIMEOUT
 			);
-			if (response.success) {
-				resolvedAgent = constellationAgent;
-				return resolvedAgent;
-			}
+			resolvedAgent = constellationAgent;
+			return resolvedAgent;
 		} catch {
 			// fall through
 		}
@@ -123,7 +104,7 @@ export async function getPublicAgent(did: string, fetchFn?: typeof fetch): Promi
 	}
 }
 
-export async function getPDSAgent(did: string, fetchFn?: typeof fetch): Promise<AtpAgent> {
+export async function getPDSAgent(did: string, fetchFn?: typeof fetch): Promise<Client> {
 	if (pdsAgent) return pdsAgent;
 	const resolved = await resolveIdentity(did, fetchFn);
 	pdsAgent = createAgent(resolved.pds, fetchFn);
@@ -132,7 +113,7 @@ export async function getPDSAgent(did: string, fetchFn?: typeof fetch): Promise<
 
 export async function withFallback<T>(
 	did: string,
-	operation: (agent: AtpAgent) => Promise<T>,
+	operation: (agent: Client) => Promise<T>,
 	usePDSFirst = false,
 	fetchFn?: typeof fetch
 ): Promise<T> {

@@ -80,16 +80,22 @@ Examples:
 }
 
 async function login(handle: string, password: string) {
-  // Dynamic import so @atproto/api is only loaded when publishing
-  const { AtpAgent } = await import('@atproto/api');
-  const agent = new AtpAgent({ service: 'https://bsky.social' });
+  // Dynamic import so @atproto/lex is only loaded when publishing
+  const { Client } = await import('@atproto/lex');
+  const { PasswordSession } = await import('@atproto/lex-password-session');
 
   console.log(`Logging in as ${handle}…`);
-  await agent.login({ identifier: handle, password });
+  const session = await PasswordSession.login({
+    service: 'https://bsky.social',
+    identifier: handle,
+    password,
+  });
 
-  const did = agent.did ?? 'unknown';
+  const client = new Client(session, { service: 'https://bsky.social' as any });
+
+  const did = client.assertDid ?? 'unknown';
   console.log(`  DID: ${did}`);
-  return agent;
+  return client;
 }
 
 export async function runCLI(): Promise<void> {
@@ -174,10 +180,10 @@ export async function runCLI(): Promise<void> {
     process.once('SIGINT', onSigInt);
 
     try {
-      const agent = await login(args.handle!, args.password!);
+      const client = await login(args.handle!, args.password!);
 
       const pubResult = await publishRecords(
-        agent,
+        client,
         result.posts,
         opts.dryRun ?? false,
         {

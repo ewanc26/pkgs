@@ -27,9 +27,11 @@
  * ```
  */
 
-import { AtpAgent } from '@atproto/api';
-import type { PublisherConfig, Document, Publication } from './schemas.js';
-import { PublisherConfigSchema, COLLECTIONS } from './schemas.js';
+import { Client } from '@atproto/lex'
+import { PasswordSession } from '@atproto/lex-password-session'
+import { api, com } from '@bsky/sdk'
+import type { PublisherConfig, Document, Publication } from './schemas.js'
+import { PublisherConfigSchema, COLLECTIONS } from './schemas.js'
 
 /**
  * Resolve a handle to a DID using the public API
@@ -188,40 +190,35 @@ export interface PublishResult {
  * Publisher for standard.site documents on ATProto
  */
 export class StandardSitePublisher {
-	private agent: AtpAgent | null = null;
+	private client: Client | null = null;
 	private config: PublisherConfig;
 	private did: string | null = null;
 	private pdsUrl: string | null = null;
+	private session: Awaited<ReturnType<typeof PasswordSession.login>> | null = null;
 
 	constructor(config: Partial<PublisherConfig>) {
 		this.config = PublisherConfigSchema.parse(config);
 	}
 
-	/**
-	 * Authenticate with the PDS
-	 * Automatically resolves the correct PDS from the DID document
-	 */
 	async login(): Promise<void> {
-		// Resolve handle to DID if needed
 		let did = this.config.identifier;
 		if (!did.startsWith('did:')) {
 			did = await resolveHandle(this.config.identifier);
 		}
 		this.did = did;
 
-		// Get PDS URL from DID document (unless manually overridden)
 		if (this.config.service) {
 			this.pdsUrl = this.config.service;
 		} else {
 			this.pdsUrl = await getPdsFromDid(did);
 		}
 
-		// Create agent and login
-		this.agent = new AtpAgent({ service: this.pdsUrl });
-		await this.agent.login({
+		this.session = await PasswordSession.login({
+			service: this.pdsUrl,
 			identifier: this.config.identifier,
-			password: this.config.password
+			password: this.config.password,
 		});
+		this.client = new Client(this.session, { service: api.app.service });
 	}
 
 	/**
@@ -244,11 +241,11 @@ export class StandardSitePublisher {
 		return this.pdsUrl;
 	}
 
-	private getAgent(): AtpAgent {
-		if (!this.agent) {
+	private getClient(): Client {
+		if (!this.client) {
 			throw new Error('Not logged in. Call login() first.');
 		}
-		return this.agent;
+		return this.client;
 	}
 
 	/**
@@ -256,7 +253,7 @@ export class StandardSitePublisher {
 	 */
 	async publishDocument(input: PublishDocumentInput): Promise<PublishResult> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
 		const record: Document = {
 			$type: 'site.standard.document',
@@ -274,15 +271,13 @@ export class StandardSitePublisher {
 			preferences: input.preferences
 		};
 
-		// Remove undefined values
 		const cleanRecord = Object.fromEntries(
 			Object.entries(record).filter(([_, v]) => v !== undefined)
 		) as Document;
 
-		// Generate TID for record key per lexicon spec (key: "tid")
 		const rkey = generateTid();
 
-		const response = await agent.api.com.atproto.repo.createRecord({
+		const response = await client.call(com.atproto.repo.createRecord, {
 			repo: did,
 			collection: COLLECTIONS.DOCUMENT,
 			rkey,
@@ -290,8 +285,8 @@ export class StandardSitePublisher {
 		});
 
 		return {
-			uri: response.data.uri,
-			cid: response.data.cid
+			uri: response.uri,
+			cid: response.cid
 		};
 	}
 
@@ -300,7 +295,7 @@ export class StandardSitePublisher {
 	 */
 	async updateDocument(rkey: string, input: PublishDocumentInput): Promise<PublishResult> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
 		const record: Document = {
 			$type: 'site.standard.document',
@@ -322,7 +317,7 @@ export class StandardSitePublisher {
 			Object.entries(record).filter(([_, v]) => v !== undefined)
 		) as Document;
 
-		const response = await agent.api.com.atproto.repo.putRecord({
+		const response = await client.call(com.atproto.repo.putRecord, {
 			repo: did,
 			collection: COLLECTIONS.DOCUMENT,
 			rkey,
@@ -330,31 +325,25 @@ export class StandardSitePublisher {
 		});
 
 		return {
-			uri: response.data.uri,
-			cid: response.data.cid
+			uri: response.uri,
+			cid: response.cid
 		};
 	}
 
-	/**
-	 * Delete a document
-	 */
 	async deleteDocument(rkey: string): Promise<void> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
-		await agent.api.com.atproto.repo.deleteRecord({
+		await client.call(com.atproto.repo.deleteRecord, {
 			repo: did,
 			collection: COLLECTIONS.DOCUMENT,
 			rkey
 		});
 	}
 
-	/**
-	 * Publish a publication record
-	 */
 	async publishPublication(input: PublishPublicationInput): Promise<PublishResult> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
 		const record: Publication = {
 			$type: 'site.standard.publication',
@@ -373,7 +362,7 @@ export class StandardSitePublisher {
 		// Generate TID for record key per lexicon spec (key: "tid")
 		const rkey = generateTid();
 
-		const response = await agent.api.com.atproto.repo.createRecord({
+		const response = await client.call(com.atproto.repo.createRecord, {
 			repo: did,
 			collection: COLLECTIONS.PUBLICATION,
 			rkey,
@@ -381,17 +370,14 @@ export class StandardSitePublisher {
 		});
 
 		return {
-			uri: response.data.uri,
-			cid: response.data.cid
+			uri: response.uri,
+			cid: response.cid
 		};
 	}
 
-	/**
-	 * Update an existing publication
-	 */
 	async updatePublication(rkey: string, input: PublishPublicationInput): Promise<PublishResult> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
 		const record: Publication = {
 			$type: 'site.standard.publication',
@@ -407,7 +393,7 @@ export class StandardSitePublisher {
 			Object.entries(record).filter(([_, v]) => v !== undefined)
 		) as Publication;
 
-		const response = await agent.api.com.atproto.repo.putRecord({
+		const response = await client.call(com.atproto.repo.putRecord, {
 			repo: did,
 			collection: COLLECTIONS.PUBLICATION,
 			rkey,
@@ -415,74 +401,62 @@ export class StandardSitePublisher {
 		});
 
 		return {
-			uri: response.data.uri,
-			cid: response.data.cid
+			uri: response.uri,
+			cid: response.cid
 		};
 	}
 
-	/**
-	 * Delete a publication
-	 */
 	async deletePublication(rkey: string): Promise<void> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
-		await agent.api.com.atproto.repo.deleteRecord({
+		await client.call(com.atproto.repo.deleteRecord, {
 			repo: did,
 			collection: COLLECTIONS.PUBLICATION,
 			rkey
 		});
 	}
 
-	/**
-	 * Get all documents for the current account
-	 */
 	async listDocuments(
 		limit = 100
 	): Promise<Array<{ uri: string; cid: string; value: Document }>> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
-		const response = await agent.api.com.atproto.repo.listRecords({
+		const response = await client.call(com.atproto.repo.listRecords, {
 			repo: did,
 			collection: COLLECTIONS.DOCUMENT,
 			limit
 		});
 
-		return response.data.records.map((r) => ({
+		return response.records.map((r) => ({
 			uri: r.uri,
 			cid: r.cid,
 			value: r.value as Document
 		}));
 	}
 
-	/**
-	 * Get all publications for the current account
-	 */
 	async listPublications(
 		limit = 100
 	): Promise<Array<{ uri: string; cid: string; value: Publication }>> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
-		const response = await agent.api.com.atproto.repo.listRecords({
+		const response = await client.call(com.atproto.repo.listRecords, {
 			repo: did,
 			collection: COLLECTIONS.PUBLICATION,
 			limit
 		});
 
-		return response.data.records.map((r) => ({
+		return response.records.map((r) => ({
 			uri: r.uri,
 			cid: r.cid,
 			value: r.value as Publication
 		}));
 	}
 
-	/**
-	 * Get the underlying ATP agent for advanced operations
-	 */
-	getAtpAgent(): AtpAgent {
-		return this.getAgent();
+	getAtpAgent(): Client {
+		return this.getClient();
 	}
 
 	// ============================================
@@ -513,7 +487,7 @@ export class StandardSitePublisher {
 		};
 	}): Promise<PublishResult> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
 		const record: any = {
 			$type: 'pub.leaflet.comment',
@@ -546,7 +520,7 @@ export class StandardSitePublisher {
 
 		const rkey = generateTid();
 
-		const response = await agent.api.com.atproto.repo.createRecord({
+		const response = await client.call(com.atproto.repo.createRecord({
 			repo: did,
 			collection: 'pub.leaflet.comment',
 			rkey,
@@ -554,8 +528,8 @@ export class StandardSitePublisher {
 		});
 
 		return {
-			uri: response.data.uri,
-			cid: response.data.cid
+			uri: response.uri,
+			cid: response.cid
 		};
 	}
 
@@ -564,9 +538,9 @@ export class StandardSitePublisher {
 	 */
 	async deleteComment(rkey: string): Promise<void> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
-		await agent.api.com.atproto.repo.deleteRecord({
+		await client.call(com.atproto.repo.deleteRecord({
 			repo: did,
 			collection: 'pub.leaflet.comment',
 			rkey
@@ -582,7 +556,7 @@ export class StandardSitePublisher {
 	 */
 	async recommendDocument(subject: string): Promise<PublishResult> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
 		const record = {
 			$type: 'pub.leaflet.interactions.recommend',
@@ -592,7 +566,7 @@ export class StandardSitePublisher {
 
 		const rkey = generateTid();
 
-		const response = await agent.api.com.atproto.repo.createRecord({
+		const response = await client.call(com.atproto.repo.createRecord({
 			repo: did,
 			collection: 'pub.leaflet.interactions.recommend',
 			rkey,
@@ -600,8 +574,8 @@ export class StandardSitePublisher {
 		});
 
 		return {
-			uri: response.data.uri,
-			cid: response.data.cid
+			uri: response.uri,
+			cid: response.cid
 		};
 	}
 
@@ -610,9 +584,9 @@ export class StandardSitePublisher {
 	 */
 	async unrecommendDocument(rkey: string): Promise<void> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
-		await agent.api.com.atproto.repo.deleteRecord({
+		await client.call(com.atproto.repo.deleteRecord({
 			repo: did,
 			collection: 'pub.leaflet.interactions.recommend',
 			rkey
@@ -624,15 +598,15 @@ export class StandardSitePublisher {
 	 */
 	async hasRecommended(subject: string): Promise<{ recommended: boolean; rkey?: string }> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
-		const response = await agent.api.com.atproto.repo.listRecords({
+		const response = await client.call(com.atproto.repo.listRecords({
 			repo: did,
 			collection: 'pub.leaflet.interactions.recommend',
 			limit: 100
 		});
 
-		const record = response.data.records.find(
+		const record = response.records.find(
 			(r: any) => r.value?.subject === subject
 		);
 
@@ -653,7 +627,7 @@ export class StandardSitePublisher {
 	 */
 	async subscribeToPublication(publication: string): Promise<PublishResult> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
 		const record = {
 			$type: 'site.standard.graph.subscription',
@@ -662,7 +636,7 @@ export class StandardSitePublisher {
 
 		const rkey = generateTid();
 
-		const response = await agent.api.com.atproto.repo.createRecord({
+		const response = await client.call(com.atproto.repo.createRecord({
 			repo: did,
 			collection: 'site.standard.graph.subscription',
 			rkey,
@@ -670,8 +644,8 @@ export class StandardSitePublisher {
 		});
 
 		return {
-			uri: response.data.uri,
-			cid: response.data.cid
+			uri: response.uri,
+			cid: response.cid
 		};
 	}
 
@@ -680,9 +654,9 @@ export class StandardSitePublisher {
 	 */
 	async unsubscribeFromPublication(rkey: string): Promise<void> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
-		await agent.api.com.atproto.repo.deleteRecord({
+		await client.call(com.atproto.repo.deleteRecord({
 			repo: did,
 			collection: 'site.standard.graph.subscription',
 			rkey
@@ -696,15 +670,15 @@ export class StandardSitePublisher {
 		limit = 100
 	): Promise<Array<{ uri: string; cid: string; value: { publication: string } }>> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
-		const response = await agent.api.com.atproto.repo.listRecords({
+		const response = await client.call(com.atproto.repo.listRecords({
 			repo: did,
 			collection: 'site.standard.graph.subscription',
 			limit
 		});
 
-		return response.data.records.map((r) => ({
+		return response.records.map((r) => ({
 			uri: r.uri,
 			cid: r.cid,
 			value: r.value as { publication: string }
@@ -716,15 +690,15 @@ export class StandardSitePublisher {
 	 */
 	async isSubscribed(publication: string): Promise<{ subscribed: boolean; rkey?: string }> {
 		const did = this.getDid();
-		const agent = this.getAgent();
+		const client = this.getClient();
 
-		const response = await agent.api.com.atproto.repo.listRecords({
+		const response = await client.call(com.atproto.repo.listRecords({
 			repo: did,
 			collection: 'site.standard.graph.subscription',
 			limit: 100
 		});
 
-		const record = response.data.records.find(
+		const record = response.records.find(
 			(r: any) => r.value?.publication === publication
 		);
 

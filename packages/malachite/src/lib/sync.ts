@@ -1,4 +1,4 @@
-import type { AtpAgent } from '@atproto/api';
+import type { Client } from '@atproto/lex'
 import type { PlayRecord, Config } from '../types.js';
 import { fetchRepoViaCAR, getPdsUrlFromAgent, getAgentToken } from '../utils/car-fetch.js';
 import { formatDate, formatDateRange } from '../utils/helpers.js';
@@ -6,6 +6,7 @@ import * as ui from '../utils/ui.js';
 import { log } from '../utils/logger.js';
 import { isCacheValid, loadCache, saveCache, getCacheInfo } from '../utils/teal-cache.js';
 import { RECORD_TYPES } from '../config.js';
+import { com } from '@bsky/sdk/lexicons'
 
 interface ExistingRecord {
   uri: string;
@@ -40,12 +41,12 @@ function collectionFromUri(uri: string): string {
  * write-quota points.
  */
 export async function fetchExistingRecords(
-  agent: AtpAgent,
+  client: Client,
   _config: Config,
   forceRefresh: boolean = false
 ): Promise<Map<string, ExistingRecord>> {
   log.section('Checking Existing Records');
-  const did = agent.session?.did;
+  const did = client.assertDid;
 
   if (!did) {
     throw new Error('No authenticated session found');
@@ -74,8 +75,8 @@ export async function fetchExistingRecords(
     log.info('📦 Fetching repo via CAR export (no rate-limit points consumed)...');
   }
 
-  const pdsUrl = getPdsUrlFromAgent(agent);
-  const token = await getAgentToken(agent);
+  const pdsUrl = getPdsUrlFromAgent(client);
+  const token = await getAgentToken(client);
   const carStart = Date.now();
   const carRecords = await fetchPlayRecords(pdsUrl, did, token);
   const carElapsed = ((Date.now() - carStart) / 1000).toFixed(1);
@@ -101,10 +102,10 @@ export async function fetchExistingRecords(
  * Used by the deduplicate flow.
  */
 export async function fetchAllRecords(
-  agent: AtpAgent,
+  client: Client,
   _config: Config
 ): Promise<ExistingRecord[]> {
-  const did = agent.session?.did;
+  const did = client.assertDid;
 
   if (!did) {
     throw new Error('No authenticated session found');
@@ -112,10 +113,10 @@ export async function fetchAllRecords(
 
   ui.startSpinner('📦 Fetching repo via CAR export...');
 
-  const pdsUrl = getPdsUrlFromAgent(agent);
-  const token = await getAgentToken(agent);
+  const pdsUrl = getPdsUrlFromAgent(client);
+  const token = await getAgentToken(client);
   const carRecords = await fetchPlayRecords(pdsUrl, did, token);
-  const allRecords: ExistingRecord[] = carRecords.map((rec) => ({
+  const allRecords: ExistingRecord[] = carRecords.map((rec: { uri: string; cid: string; value: any }) => ({
     uri: rec.uri,
     cid: rec.cid,
     value: rec.value as PlayRecord,
@@ -274,13 +275,13 @@ export function findDuplicates(allRecords: ExistingRecord[], fuzzy = true): Dupl
  * Remove duplicate records from Teal, keeping only the first occurrence.
  */
 export async function removeDuplicates(
-  agent: AtpAgent,
+  client: Client,
   config: Config,
   dryRun: boolean = false
 ): Promise<{ totalDuplicates: number; recordsRemoved: number }> {
   ui.header('Checking for Duplicate Records');
 
-  const allRecords = await fetchAllRecords(agent, config);
+  const allRecords = await fetchAllRecords(client, config);
 
   ui.startSpinner('Analyzing records for duplicates...');
   const duplicateGroups = findDuplicates(allRecords);
@@ -323,11 +324,11 @@ export async function removeDuplicates(
   for (const group of duplicateGroups) {
     for (const record of group.records.slice(1)) {
       try {
-        await agent.com.atproto.repo.deleteRecord({
-          repo: agent.session?.did || '',
-          collection: collectionFromUri(record.uri),
-          rkey: record.uri.split('/').pop()!,
-        });
+         await client.call(com.atproto.repo.deleteRecord.main as any, {
+           repo: client.assertDid,
+           collection: collectionFromUri(record.uri),
+           rkey: record.uri.split('/').pop()!,
+         });
         recordsRemoved++;
         const elapsed = (Date.now() - startTime) / 1000;
         progressBar.update(recordsRemoved, { speed: recordsRemoved / Math.max(elapsed, 0.1) });

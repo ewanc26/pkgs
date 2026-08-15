@@ -5,7 +5,7 @@
  * Supports batch record creation via com.atproto.repo.applyWrites
  * for efficient bulk imports (avoids per-record rate limit costs).
  */
-import type { Agent } from "@atproto/api";
+import type { Client } from '@atproto/lex';
 import { generateTID } from "@ewanc26/tid";
 import type { ParsedPost } from "../core/types.js";
 import { config, GRAIN_GALLERY_COLLECTION, GRAIN_GALLERY_ITEM_COLLECTION } from "../core/config.js";
@@ -13,6 +13,7 @@ import { log } from "../utils/logger.js";
 import {
   processImageBrowser,
 } from "./browser-image-utils.js";
+import { com } from '@bsky/sdk/lexicons'
 
 /**
  * Result of publishing a single photo
@@ -68,25 +69,28 @@ export interface GalleryItemInput {
  */
 const APPLY_WRITES_MAX = 200;
 
-/**
- * Upload an image as a blob
- */
 async function uploadBlob(
-  agent: Agent,
+  client: Client,
   imageData: Uint8Array,
   mimeType: string,
 ): Promise<{ cid: string; mimeType: string }> {
-  const uploadResult = await agent.uploadBlob(imageData, {
-    encoding: mimeType,
+  const form = new FormData();
+  form.append('file', new Blob([imageData as any], { type: mimeType }));
+
+  const res = await fetch(`${(client as any).service || 'https://bsky.social'}/xrpc/com.atproto.repo.uploadBlob`, {
+    method: 'POST',
+    headers: (client as any).session?.accessJwt ? { Authorization: `Bearer ${(client as any).session.accessJwt}` } : undefined,
+    body: form,
   });
 
-  if (!uploadResult.data.blob) {
-    throw new Error("No blob returned from upload");
+  if (!res.ok) {
+    throw new Error(`Blob upload failed: ${res.status}`);
   }
 
+  const data = await res.json() as { blob: { $type: 'blob'; ref: { $link: string }; mimeType: string; size: number } };
   return {
-    cid: uploadResult.data.blob.ref.toString(),
-    mimeType: uploadResult.data.blob.mimeType,
+    cid: data.blob.ref.toString(),
+    mimeType: data.blob.mimeType,
   };
 }
 
@@ -96,14 +100,14 @@ async function uploadBlob(
  * This is a thin wrapper around publishPhotos for backward compatibility.
  */
 export async function publishPhoto(
-  agent: Agent,
+  client: Client,
   imageData: Buffer | Uint8Array,
   aspectRatio: { width: number; height: number },
   createdAt: string,
   alt?: string,
   dryRun = false,
 ): Promise<PublishResult> {
-  const results = await publishPhotos(agent, [{
+  const results = await publishPhotos(client, [{
     imageData: imageData instanceof Buffer ? new Uint8Array(imageData) : imageData,
     aspectRatio,
     createdAt,
@@ -124,7 +128,7 @@ export async function publishPhoto(
  * reducing per-record overhead and rate-limit consumption.
  */
 export async function publishPhotos(
-  agent: Agent,
+  client: Client,
   photos: PhotoInput[],
   dryRun = false,
 ): Promise<PublishResult[]> {
@@ -157,7 +161,7 @@ export async function publishPhotos(
 
       // Upload blob
       const blob = await uploadBlob(
-        agent,
+        client,
         processed.processed,
         processed.mimeType,
       );
@@ -193,12 +197,12 @@ export async function publishPhotos(
     for (let chunkStart = 0; chunkStart < writes.length; chunkStart += APPLY_WRITES_MAX) {
       const chunk = writes.slice(chunkStart, chunkStart + APPLY_WRITES_MAX);
       try {
-        const response = await agent.com.atproto.repo.applyWrites({
-          repo: agent.did!,
+        const response = await client.call(com.atproto.repo.applyWrites, {
+          repo: client.assertDid,
           writes: chunk as any,
         });
 
-        const respResults = (response.data as any)?.results as Array<{ uri: string; cid: string }> | undefined;
+        const respResults = (response as any)?.results as Array<{ uri: string; cid: string }> | undefined;
 
         if (respResults) {
           // Map results back to the correct positions
@@ -236,20 +240,20 @@ export async function publishPhotos(
 /**
  * Check for existing photos to avoid duplicates
  */
-export async function getExistingPhotos(agent: Agent): Promise<Set<string>> {
+export async function getExistingPhotos(client: Client): Promise<Set<string>> {
   const existing = new Set<string>();
 
   try {
     let cursor: string | undefined;
     do {
-      const result = await agent.com.atproto.repo.listRecords({
-        repo: agent.did!,
+      const result = await client.call(com.atproto.repo.listRecords, {
+        repo: client.assertDid!,
         collection: config.GRAIN_PHOTO_COLLECTION,
         limit: 100,
         cursor,
       });
 
-      for (const record of result.data.records) {
+      for (const record of result.records) {
         // Extract createdAt from the record
         const value = record.value as { createdAt?: string };
         if (value.createdAt) {
@@ -257,7 +261,7 @@ export async function getExistingPhotos(agent: Agent): Promise<Set<string>> {
         }
       }
 
-      cursor = result.data.cursor;
+      cursor = result.cursor;
     } while (cursor);
   } catch (error) {
     log.warn(
@@ -303,7 +307,7 @@ export async function loadPostMedia(
  * Create a new gallery
  */
 export async function createGallery(
-  agent: Agent,
+  client: Client,
   title: string,
   description?: string,
   dryRun = false,
@@ -322,8 +326,8 @@ export async function createGallery(
       createdAt: now,
     };
 
-    const result = await agent.com.atproto.repo.createRecord({
-      repo: agent.did!,
+    const result = await client.call(com.atproto.repo.createRecord, {
+      repo: client.assertDid!,
       collection: GRAIN_GALLERY_COLLECTION,
       rkey: generateTID(now),
       record,
@@ -331,8 +335,8 @@ export async function createGallery(
 
     return {
       success: true,
-      uri: result.data.uri,
-      cid: result.data.cid,
+      uri: result.uri,
+      cid: result.cid,
     };
   } catch (error) {
     return {
@@ -348,14 +352,14 @@ export async function createGallery(
  * This is a thin wrapper around createGalleryItems for backward compatibility.
  */
 export async function createGalleryItem(
-  agent: Agent,
+  client: Client,
   galleryUri: string,
   photoUri: string,
   position: number,
   createdAt: string,
   dryRun = false,
 ): Promise<PublishResult> {
-  const results = await createGalleryItems(agent, [{
+  const results = await createGalleryItems(client, [{
     galleryUri,
     photoUri,
     position,
@@ -372,7 +376,7 @@ export async function createGalleryItem(
  * record creation operation.
  */
 export async function createGalleryItems(
-  agent: Agent,
+  client: Client,
   items: GalleryItemInput[],
   dryRun = false,
 ): Promise<PublishResult[]> {
@@ -404,12 +408,12 @@ export async function createGalleryItems(
     }));
 
     try {
-      const response = await agent.com.atproto.repo.applyWrites({
-        repo: agent.did!,
+      const response = await client.call(com.atproto.repo.applyWrites, {
+        repo: client.assertDid!,
         writes: writes as any,
       });
 
-      const respResults = (response.data as any)?.results as Array<{ uri: string; cid: string }> | undefined;
+      const respResults = (response as any)?.results as Array<{ uri: string; cid: string }> | undefined;
 
       if (respResults) {
         for (let j = 0; j < respResults.length; j++) {
@@ -426,7 +430,7 @@ export async function createGalleryItems(
           const idx = chunkStart + j;
           results[idx] = {
             success: true,
-            uri: `at://${agent.did}/${GRAIN_GALLERY_ITEM_COLLECTION}/${generateTID(chunk[j].createdAt)}`,
+            uri: `at://${client.assertDid}/${GRAIN_GALLERY_ITEM_COLLECTION}/${generateTID(chunk[j].createdAt)}`,
             cid: '',
           };
         }
@@ -448,20 +452,20 @@ export async function createGalleryItems(
 /**
  * Get existing galleries for the user
  */
-export async function getExistingGalleries(agent: Agent): Promise<GalleryInfo[]> {
+export async function getExistingGalleries(client: Client): Promise<GalleryInfo[]> {
   const galleries: GalleryInfo[] = [];
 
   try {
     let cursor: string | undefined;
     do {
-      const result = await agent.com.atproto.repo.listRecords({
-        repo: agent.did!,
+      const result = await client.call(com.atproto.repo.listRecords, {
+        repo: client.assertDid!,
         collection: GRAIN_GALLERY_COLLECTION,
         limit: 100,
         cursor,
       });
 
-      for (const record of result.data.records) {
+      for (const record of result.records) {
         const value = record.value as { title?: string; createdAt?: string };
         galleries.push({
           uri: record.uri,
@@ -470,7 +474,7 @@ export async function getExistingGalleries(agent: Agent): Promise<GalleryInfo[]>
         });
       }
 
-      cursor = result.data.cursor;
+      cursor = result.cursor;
     } while (cursor);
   } catch (error) {
     log.warn("Could not fetch existing galleries");

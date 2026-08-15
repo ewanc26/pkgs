@@ -4,7 +4,7 @@
  */
 
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser';
-import { Agent } from '@atproto/api';
+import { Client } from '@atproto/lex'
 
 // The loopback redirect_uri must use 127.0.0.1, not localhost — RFC 8252
 // explicitly disallows the localhost hostname in loopback redirect URIs.
@@ -44,11 +44,11 @@ function getClient(): Promise<BrowserOAuthClient> {
  * Processes any OAuth callback params in the URL and restores stored sessions.
  * Returns an Agent if a session is active, or null if the user still needs to sign in.
  */
-export async function initOAuth(): Promise<Agent | null> {
+export async function initOAuth(): Promise<Client | null> {
   const client = await getClient();
   const result = await client.init();
   if (!result) return null;
-  return new Agent(result.session);
+  return new Client(result.session);
 }
 
 /**

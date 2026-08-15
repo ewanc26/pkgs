@@ -1,6 +1,5 @@
 <script lang="ts">
 	import InlineMath from './InlineMath.svelte';
-	import { UnicodeString } from '@atproto/api';
 	import { getContext, setContext } from 'svelte';
 
 	interface Facet {
@@ -47,11 +46,11 @@
 	}
 
 	class RichText {
-		unicodeText: UnicodeString;
+		unicodeText: string;
 		facets: Facet[];
 
 		constructor(props: { text: string; facets: Facet[] }) {
-			this.unicodeText = new UnicodeString(props.text || '');
+			this.unicodeText = props.text || '';
 			this.facets = props.facets || [];
 			if (this.facets) {
 				this.facets = this.facets
@@ -63,7 +62,7 @@
 		*segments(): Generator<RichTextSegment, void, void> {
 			const facets = this.facets || [];
 			if (!facets.length) {
-				yield { text: this.unicodeText.utf16 || '' };
+				yield { text: this.unicodeText };
 				return;
 			}
 

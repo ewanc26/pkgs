@@ -4,7 +4,7 @@
  */
 
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser';
-import { Agent } from '@atproto/api';
+import { Client } from '@atproto/lex'
 
 const SCOPE = 'atproto repo:click.croft.toolkit.use';
 
@@ -31,11 +31,11 @@ function getClient(): Promise<BrowserOAuthClient> {
 /**
  * Call once on mount on the /convert page.
  */
-export async function initOAuth(): Promise<Agent | null> {
+export async function initOAuth(): Promise<Client | null> {
 	const client = await getClient();
 	const result = await client.init();
 	if (!result) return null;
-	return new Agent(result.session);
+	return new Client(result.session);
 }
 
 /**

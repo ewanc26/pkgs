@@ -63,6 +63,7 @@ import {
 } from "./lib/import-state.js";
 import path from "path";
 import fs from "fs";
+import { com } from '@bsky/sdk/lexicons'
 
 /**
  * Run interactive mode
@@ -832,8 +833,8 @@ async function runImport(options: {
 
   if (!options.dryRun && imported > 0) {
     try {
-      await agent.com.atproto.repo.createRecord({
-        repo: agent.did!,
+      await agent.call(com.atproto.repo.createRecord, {
+        repo: agent.assertDid!,
         collection: 'click.croft.toolkit.use',
         record: {
           $type: 'click.croft.toolkit.use',

@@ -67,10 +67,12 @@
     "check-limits": "node scripts/rate-limit-monitor.js"
   },
   "dependencies": {
-    "@ewanc26/croft-click-core": "workspace:*",
-    "@atproto/api": "^0.19.16",
+    "@bsky/sdk": "latest",
+    "@atproto/lex": "^0.3.0",
+    "@atproto/lex-password-session": "^0.2.0",
     "@atproto/oauth-client-node": "^0.3.16",
     "@atproto/common-web": "^0.4.12",
+    "@ewanc26/croft-click-core": "workspace:*",
     "@ewanc26/tid": "workspace:*",
     "@ipld/car": "^5.3.2",
     "@ipld/dag-cbor": "^9.2.2",

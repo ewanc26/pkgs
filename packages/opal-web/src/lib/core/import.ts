@@ -3,9 +3,10 @@
  * Handles the conversion + publishing flow with progress + cancellation callbacks.
  */
 
-import type { Agent } from '@atproto/api';
+import type { Client } from '@atproto/lex';
 import type { Platform, MicroblogPost, ConvertResult } from '@ewanc26/opal';
 import { convertData, parseTwitterArchive, publishRecords } from '@ewanc26/opal';
+import { com } from '@bsky/sdk/lexicons';
 
 export interface ImportResult {
   success: number;
@@ -39,7 +40,7 @@ export async function parseExport(
  * Full import flow: parse → publish.
  */
 export async function runImport(
-  agent: Agent,
+  agent: Client,
   posts: MicroblogPost[],
   dryRun: boolean,
   { onLog, onProgress, isCancelled }: ImportCallbacks,
@@ -54,18 +55,21 @@ export async function runImport(
 
   if (!dryRun && !res.cancelled && res.successCount > 0) {
     try {
-      await agent.com.atproto.repo.createRecord({
-        repo: agent.did ?? '',
-        collection: 'click.croft.toolkit.use',
-        record: {
-          $type: 'click.croft.toolkit.use',
-          tool: {
-            $type: 'click.croft.tools.opal',
-            postsImported: res.successCount,
-          },
-          createdAt: new Date().toISOString()
+      await agent.call(
+        com.atproto.repo.createRecord,
+        {
+          repo: agent.assertDid ?? '',
+          collection: 'click.croft.toolkit.use',
+          record: {
+            $type: 'click.croft.toolkit.use',
+            tool: {
+              $type: 'click.croft.tools.opal',
+              postsImported: res.successCount,
+            },
+            createdAt: new Date().toISOString()
+          }
         }
-      });
+      );
     } catch (err) {
       onLog('warn', `Failed to log toolkit usage: ${(err as Error).message}`);
     }

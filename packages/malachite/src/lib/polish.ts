@@ -1,4 +1,4 @@
-import type { AtpAgent } from '@atproto/api';
+import type { Client } from '@atproto/lex';
 import type { SingleBar } from 'cli-progress';
 import { RECORD_TYPE, LEGACY_RECORD_TYPE } from '../config.js';
 import { formatDate } from '../utils/helpers.js';
@@ -30,14 +30,14 @@ export { buildPolishPlan } from '@ewanc26/croft-click-core';
  * Fetch both collections via CAR and build a migration plan.
  * Read-only — performs no writes.
  */
-export async function analyzeLegacyRecords(agent: AtpAgent): Promise<PolishPlan> {
+export async function analyzeLegacyRecords(client: Client): Promise<PolishPlan> {
   log.section('Analyzing Legacy Records');
   const start = Date.now();
 
   ui.startSpinner('📦 Fetching repo via CAR export...');
   let plan: PolishPlan;
   try {
-    plan = await coreAnalyze(agent);
+    plan = await coreAnalyze(client);
   } catch (err) {
     ui.failSpinner('Failed to fetch repo via CAR export');
     throw err;
@@ -100,7 +100,7 @@ function formatPlay(value: Record<string, unknown>): string {
  * data is ever lost — re-running polish will finish the job.
  */
 export async function migrateLegacyRecords(
-  agent: AtpAgent,
+  client: Client,
   plan: PolishPlan,
   dryRun = false
 ): Promise<PolishResult> {
@@ -130,9 +130,9 @@ export async function migrateLegacyRecords(
     log.info(`${label}: ${done.toLocaleString()}/${total.toLocaleString()} (${pct}%) — ${elapsed}s elapsed`);
   };
 
-  const result = await coreMigrate(agent, plan, {
+  const result = await coreMigrate(client, plan, {
     dryRun,
-    onProgress: (phase, done, total) => {
+    onProgress: (phase, done, total: number) => {
       if (phase === 'backfill') {
         bars.backfill?.update(done, {});
       } else {

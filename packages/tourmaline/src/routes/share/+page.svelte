@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { Agent } from '@atproto/api';
+	import type { Client } from '@atproto/lex';
 	import { initOAuth, signInWithOAuth } from '$lib/atproto/oauth';
 	import { renderCard, shareCard, type ShareEnvelope } from '$lib/share/registry';
 	import { ExternalLink, ArrowLeft } from '@lucide/svelte';
 
 	const STORAGE_KEY = 'tourmaline:share';
 
-	let agent = $state<Agent | null>(null);
+	let agent = $state<Client | null>(null);
 	let envelope = $state<ShareEnvelope | null>(null);
 	let handle = $state('');
 	let svgPreview = $state('');

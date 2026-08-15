@@ -1,9 +1,6 @@
-import { AtpAgent as Agent } from '@atproto/api';
+import { Client } from '@atproto/lex'
 
-/**
- * Type alias for the ATProto Agent, used for clarity in the project.
- */
-export type AtpAgent = Agent;
+export type AtpAgent = Client;
 
 export interface LastFmCsvRecord {
   uts: string;

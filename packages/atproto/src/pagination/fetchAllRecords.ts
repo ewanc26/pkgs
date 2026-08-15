@@ -6,6 +6,7 @@
  */
 
 import { withFallback } from '../agents.js';
+import { com } from '@bsky/sdk/lexicons';
 
 export interface FetchRecordsConfig {
 	repo: string;
@@ -31,15 +32,15 @@ export async function fetchAllRecords<T = any>(
 		do {
 			const records = await withFallback(
 				repo,
-				async (agent) => {
-					const response = await agent.com.atproto.repo.listRecords({
+				async (client) => {
+					const response = (await client.call(com.atproto.repo.listRecords.main as any, {
 						repo,
 						collection,
 						limit,
 						cursor
-					});
-					cursor = response.data.cursor;
-					return response.data.records;
+					})) as any;
+					cursor = response.cursor;
+					return response.records;
 				},
 				true,
 				fetchFn
