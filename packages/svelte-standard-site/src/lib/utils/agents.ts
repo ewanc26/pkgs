@@ -21,7 +21,7 @@ export function createAgent(service: string, fetchFn?: typeof fetch): Client {
 			}
 		: undefined;
 
-	return new Client(service, { fetch: wrappedFetch });
+	return new Client({ service, fetch: wrappedFetch });
 }
 
 /**

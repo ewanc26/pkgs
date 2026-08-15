@@ -25,8 +25,8 @@
 		try {
 			const { codeToHtml, bundledLanguages, bundledThemes } = await import('shiki');
 
-			// shiki 4: bundledLanguages is string[], bundledThemes is Record<string, Theme>
-			const lang = bundledLanguages.includes(block.language ?? '') ? block.language! : 'plaintext';
+			// shiki 4: bundledLanguages is a Record, bundledThemes is Record<string, Theme>
+			const lang = (block.language ?? '') in bundledLanguages ? block.language! : 'plaintext';
 			const theme = block.syntaxHighlightingTheme && block.syntaxHighlightingTheme in bundledThemes
 				? block.syntaxHighlightingTheme
 				: 'github-light';

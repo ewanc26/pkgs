@@ -71,11 +71,11 @@ async function fetchThread(
 	currentDepth = 0
 ): Promise<Comment | null> {
 	try {
-		const response = await client.call(app.bsky.feed.getPostThread, {
+		const response = (await client.call(app.bsky.feed.getPostThread.main as any, {
 			uri,
 			depth: maxDepth - currentDepth,
 			parentHeight: 0
-		});
+		})) as any;
 
 		const thread = response.thread;
 

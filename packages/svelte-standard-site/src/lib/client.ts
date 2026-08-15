@@ -8,6 +8,7 @@ import type {
 import { cache } from './utils/cache.js';
 import { resolveIdentity, withFallback, buildPdsBlobUrl } from './utils/agents.js';
 import { parseAtUri, atUriToHttps } from './utils/at-uri.js';
+import { com } from '@bsky/sdk/lexicons';
 
 /**
  * Main client for interacting with site.standard.* records
@@ -77,12 +78,12 @@ export class SiteStandardClient {
 			const result = await withFallback(
 				this.config.did,
 				async (agent) => {
-					const response = await agent.com.atproto.repo.getRecord({
+					const response = (await agent.call(com.atproto.repo.getRecord.main as any, {
 						repo: this.config.did,
 						collection: 'site.standard.publication',
 						rkey
-					});
-					return response.data;
+					})) as any;
+					return response;
 				},
 				fetchFn
 			);
@@ -132,14 +133,14 @@ export class SiteStandardClient {
 				const records = await withFallback(
 					this.config.did,
 					async (agent) => {
-						const response = await agent.com.atproto.repo.listRecords({
+						const response = (await agent.call(com.atproto.repo.listRecords.main as any, {
 							repo: this.config.did,
 							collection: 'site.standard.publication',
 							limit: 100,
 							cursor
-						});
-						cursor = response.data.cursor;
-						return response.data.records;
+						})) as any;
+						cursor = response.cursor;
+						return response.records;
 					},
 					fetchFn
 				);
@@ -190,12 +191,12 @@ export class SiteStandardClient {
 			const result = await withFallback(
 				this.config.did,
 				async (agent) => {
-					const response = await agent.com.atproto.repo.getRecord({
+					const response = (await agent.call(com.atproto.repo.getRecord.main as any, {
 						repo: this.config.did,
 						collection: 'site.standard.document',
 						rkey
-					});
-					return response.data;
+					})) as any;
+					return response;
 				},
 				fetchFn
 			);
@@ -252,14 +253,14 @@ export class SiteStandardClient {
 				const records = await withFallback(
 					this.config.did,
 					async (agent) => {
-						const response = await agent.com.atproto.repo.listRecords({
+						const response = (await agent.call(com.atproto.repo.listRecords.main as any, {
 							repo: this.config.did,
 							collection: 'site.standard.document',
 							limit: 100,
 							cursor
-						});
-						cursor = response.data.cursor;
-						return response.data.records;
+						})) as any;
+						cursor = response.cursor;
+						return response.records;
 					},
 					fetchFn
 				);
