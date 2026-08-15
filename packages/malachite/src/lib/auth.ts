@@ -3,7 +3,7 @@
  * Adds terminal prompts and credential persistence on top of the core login.
  */
 
-import type { Agent } from '@atproto/api';
+import type { Client } from '@atproto/lex';
 import { login as coreLogin, resolveIdentity } from '@ewanc26/croft-click-core';
 import { prompt, isNonInteractive } from '../utils/input.js';
 import * as ui from '../utils/ui.js';
@@ -19,7 +19,7 @@ export async function login(
   identifier: string | undefined,
   password: string | undefined,
   resolverOrPds?: string
-): Promise<Agent> {
+): Promise<Client> {
   ui.header('ATProto Login');
 
   if ((!identifier || !password) && isNonInteractive()) {
@@ -49,11 +49,11 @@ export async function login(
   try {
     ui.startSpinner(pdsOverride ? `Using provided PDS: ${pdsOverride}` : 'Resolving identity…');
 
-    const agent = await coreLogin(identifier!, password!, pdsOverride);
+    const client = await coreLogin(identifier!, password!, pdsOverride);
 
     ui.succeedSpinner('Logged in successfully!');
-    ui.keyValue('DID', (agent as any).session?.did || (agent as any).did || 'unknown');
-    ui.keyValue('Handle', (agent as any).session?.handle || 'unknown');
+    ui.keyValue('DID', client.assertDid);
+    ui.keyValue('Handle', (client as any).session?.handle || 'unknown');
 
     try {
       saveCredentials(identifier!, password!);
@@ -63,7 +63,7 @@ export async function login(
     }
 
     console.log('');
-    return agent;
+    return client;
   } catch (error) {
     const err = error as Error;
     ui.failSpinner('Login failed');

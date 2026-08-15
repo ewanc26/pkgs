@@ -54,7 +54,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@atproto/api": "^0.19.3",
+    "@bsky/sdk": "latest",
+    "@atproto/lex": "^0.3.0",
+    "@atproto/lex-password-session": "^0.2.0",
     "@atproto/oauth-client-node": "^0.3.16",
     "@ewanc26/croft-click-core": "workspace:*",
     "@ewanc26/tid": "workspace:*",

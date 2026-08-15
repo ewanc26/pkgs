@@ -16,9 +16,11 @@
  * The PDS URL is resolved automatically from the DID via Slingshot.
  */
 
-import { AtpAgent } from '@atproto/api';
+import { Client } from '@atproto/lex'
+import { PasswordSession } from '@atproto/lex-password-session'
 import { generateTID } from "@ewanc26/tid";
 import type { KofiSupporter, KofiEventType } from './types.js';
+import { com } from '@bsky/sdk/lexicons'
 
 const COLLECTION = 'uk.ewancroft.support.kofi';
 
@@ -53,15 +55,19 @@ async function resolvePdsUrl(did: string): Promise<string> {
 	return data.pds;
 }
 
-/** Authenticated agent for write operations. */
-async function authedAgent(): Promise<{ agent: AtpAgent; did: string }> {
-	const did = requireEnv('ATPROTO_DID');
-	const password = requireEnv('ATPROTO_APP_PASSWORD');
+/** Authenticated client for write operations. */
+async function authedClient(): Promise<{ client: Client; did: string }> {
+  const did = requireEnv('ATPROTO_DID');
+  const password = requireEnv('ATPROTO_APP_PASSWORD');
 
-	const pdsUrl = await resolvePdsUrl(did);
-	const agent = new AtpAgent({ service: pdsUrl });
-	await agent.login({ identifier: did, password });
-	return { agent, did };
+  const pdsUrl = await resolvePdsUrl(did);
+  const session = await PasswordSession.login({
+    service: pdsUrl,
+    identifier: did,
+    password,
+  });
+  const client = new Client(session, { service: pdsUrl as any });
+  return { client, did };
 }
 
 /**
@@ -72,24 +78,24 @@ export async function readStore(): Promise<KofiSupporter[]> {
 	const did = requireEnv('ATPROTO_DID');
 	const pdsUrl = await resolvePdsUrl(did);
 
-	const agent = new AtpAgent({ service: pdsUrl });
+	const client = new Client(pdsUrl);
 
 	const events: KofiEventRecord[] = [];
 	let cursor: string | undefined;
 
 	do {
-		const res = await agent.com.atproto.repo.listRecords({
-			repo: did,
+		const res = await client.call(com.atproto.repo.listRecords, {
+			repo: did as any,
 			collection: COLLECTION,
 			limit: 100,
 			cursor
 		});
 
-		for (const record of res.data.records) {
-			events.push(record.value as unknown as KofiEventRecord);
+		for (const record of res.records) {
+			events.push(record.value as any);
 		}
 
-		cursor = res.data.cursor;
+		cursor = res.cursor;
 	} while (cursor);
 
 	return aggregateEvents(events);
@@ -129,7 +135,7 @@ export async function appendEvent(
 		shopItems?: string[];
 	}
 ): Promise<void> {
-	const { agent, did } = await authedAgent();
+	const { client, did } = await authedClient();
 
 	// Ko-fi timestamps have no timezone; normalise to UTC
 	const ts = timestamp.endsWith('Z') ? timestamp : timestamp + 'Z';
@@ -143,10 +149,10 @@ export async function appendEvent(
 		...(opts?.shopItems?.length ? { shopItems: opts.shopItems } : {})
 	};
 
-	await agent.com.atproto.repo.putRecord({
-		repo: did,
+	await client.call(com.atproto.repo.putRecord.main as any, {
+		repo: did as any,
 		collection: COLLECTION,
 		rkey: generateTID(ts),
-		record: record as unknown as { [x: string]: unknown }
+		record: record as any
 	});
 }

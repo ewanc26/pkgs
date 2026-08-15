@@ -7,13 +7,14 @@
  * in malachite) and by malachite-web.
  */
 
-import type { Agent } from '@atproto/api';
+import type { Client } from '@atproto/lex';
 import { RECORD_TYPE, LEGACY_RECORD_TYPE } from './config.js';
 import { fetchRepoViaCAR, getPdsUrlFromAgent, getAgentToken } from './car-fetch.js';
 import { retryWithBackoff } from './retry-helper.js';
 import { RateLimiter } from './rate-limiter.js';
 import { ProactiveRatePacer } from './proactive-rate-pacer.js';
 import { isRateLimitError, normalizeHeaders } from './rate-limit-headers.js';
+import { com } from '@bsky/sdk/lexicons'
 
 export interface PolishRecord {
   rkey: string;
@@ -50,9 +51,9 @@ export interface PolishMigrateOptions {
 const POINTS_PER_RECORD = 3;
 const MAX_WRITES_PER_BATCH = 200;
 
-/** Extract DID from any agent shape (credential session or OAuth session manager). */
-function getDid(agent: Agent): string | undefined {
-  return agent.did ?? (agent as any).sessionManager?.did;
+/** Extract DID from a Client. */
+function getDid(client: Client): string {
+  return client.assertDid
 }
 
 function collectionFromUri(uri: string): string {
@@ -120,14 +121,14 @@ export function buildPolishPlan(
  * Fetch both collections via CAR and build a migration plan.
  * Read-only — performs no writes.
  */
-export async function analyzeLegacyRecords(agent: Agent, signal?: AbortSignal): Promise<PolishPlan> {
-  const did = getDid(agent);
+export async function analyzeLegacyRecords(client: Client, signal?: AbortSignal): Promise<PolishPlan> {
+  const did = getDid(client);
   if (!did) throw new Error('No authenticated session');
 
   signal?.throwIfAborted();
 
-  const pdsUrl = getPdsUrlFromAgent(agent);
-  const token = await getAgentToken(agent);
+  const pdsUrl = getPdsUrlFromAgent(client);
+  const token = await getAgentToken(client);
 
   const [legacy, production] = await Promise.all([
     fetchRepoViaCAR(pdsUrl, did, LEGACY_RECORD_TYPE, signal, token),
@@ -149,11 +150,11 @@ export async function analyzeLegacyRecords(agent: Agent, signal?: AbortSignal): 
  * data is ever lost — re-running polish will finish the job.
  */
 export async function migrateLegacyRecords(
-  agent: Agent,
+  client: Client,
   plan: PolishPlan,
   opts: PolishMigrateOptions = {}
 ): Promise<PolishResult> {
-  const did = getDid(agent);
+  const did = getDid(client);
   if (!did) throw new Error('No authenticated session');
 
   const { dryRun = false, onProgress, signal } = opts;
@@ -191,9 +192,9 @@ export async function migrateLegacyRecords(
       }));
 
       try {
-        const response = await retryWithBackoff(
+        const response = (await retryWithBackoff(
           async () =>
-            await agent.com.atproto.repo.applyWrites(
+            await client.call(com.atproto.repo.applyWrites.main as any,
               {
                 repo: did,
                 writes: writes as any,
@@ -218,7 +219,7 @@ export async function migrateLegacyRecords(
               '504',
             ],
           }
-        );
+        )) as any;
 
         try {
           const respHeaders = (response as any)?.headers as Record<string, string> | undefined;
@@ -229,7 +230,7 @@ export async function migrateLegacyRecords(
           // ignore header parse errors
         }
 
-        const results = (response.data.results ?? []) as any[];
+        const results = (response.results ?? []) as any[];
         for (let j = 0; j < batch.length; j++) {
           const result = results[j];
           if (result && !('error' in result)) {
@@ -296,9 +297,9 @@ export async function migrateLegacyRecords(
       }));
 
       try {
-        const response = await retryWithBackoff(
+        const response = (await retryWithBackoff(
           async () =>
-            await agent.com.atproto.repo.applyWrites(
+            await client.call(com.atproto.repo.applyWrites.main as any,
               {
                 repo: did,
                 writes: writes as any,
@@ -323,7 +324,7 @@ export async function migrateLegacyRecords(
               '504',
             ],
           }
-        );
+        )) as any;
 
         try {
           const respHeaders = (response as any)?.headers as Record<string, string> | undefined;
@@ -334,7 +335,7 @@ export async function migrateLegacyRecords(
           // ignore header parse errors
         }
 
-        const results = (response.data.results ?? []) as any[];
+        const results = (response.results ?? []) as any[];
         for (let j = 0; j < batch.length; j++) {
           const result = results[j];
           if (result && !('error' in result)) {

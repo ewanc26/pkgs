@@ -1,4 +1,4 @@
-import type { AtpAgent } from '@atproto/api';
+import type { Client } from '@atproto/lex'
 import { formatDuration, formatDate } from '../utils/helpers.js';
 import { isImportCancelled } from '../utils/killswitch.js';
 import { RateLimiter } from '../utils/rate-limiter.js';
@@ -14,6 +14,7 @@ import {
   completeImport,
   getResumeStartIndex,
 } from '../utils/import-state.js';
+import { com } from '@bsky/sdk/lexicons'
 
 /**
  * Publish records using PROACTIVE rate limiting - never hits rate limits
@@ -38,7 +39,7 @@ import {
  * Never hits 750-point headroom threshold!
  */
 export async function publishRecordsWithApplyWrites(
-  agent: AtpAgent | null,
+  client: Client | null,
   records: PlayRecord[],
   _initialBatchSize: number, // Ignored - kept for backwards compatibility
   _batchDelay: number, // Ignored - kept for backwards compatibility
@@ -54,8 +55,8 @@ export async function publishRecordsWithApplyWrites(
     return handleDryRun(records, config, syncMode);
   }
 
-  if (!agent) {
-    throw new Error('Agent is required for publishing');
+  if (!client) {
+    throw new Error('Client is required for publishing');
   }
 
   // Initialize systems
@@ -195,8 +196,8 @@ export async function publishRecordsWithApplyWrites(
       // Send batch with retry logic for transient failures
       const response = await retryWithBackoff(
         async () => {
-          return await agent.com.atproto.repo.applyWrites({
-            repo: agent.session?.did || '',
+          return await client.call(com.atproto.repo.applyWrites.main as any, {
+            repo: client.assertDid,
             writes: writes as any,
           });
         },
@@ -217,7 +218,7 @@ export async function publishRecordsWithApplyWrites(
             '502',
             '504',
           ],
-          onRetry: (attempt, maxAttempts, delay, error) => {
+          onRetry: (attempt: number, maxAttempts: number, delay: number, error: Error) => {
             log.warn(`⚠️  Batch ${batchCounter} failed (attempt ${attempt}/${maxAttempts}): ${error.message}`);
             log.info(`⏳ Retrying in ${(delay / 1000).toFixed(1)}s...`);
           },
@@ -225,7 +226,7 @@ export async function publishRecordsWithApplyWrites(
       );
 
       // Success!
-      const batchSuccessCount = response.data.results?.length || batch.length;
+      const batchSuccessCount = (response as any).results?.length || batch.length;
       successCount += batchSuccessCount;
       const batchDuration = Date.now() - batchStartTime;
       

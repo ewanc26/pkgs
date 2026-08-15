@@ -3,7 +3,7 @@
  * Handles video upload via so.sprk.video.uploadVideo, job polling,
  * and so.sprk.feed.post record creation with so.sprk.media.video
  */
-import type { Agent } from "@atproto/api";
+import type { Client } from '@atproto/lex';
 import { generateTID } from "@ewanc26/tid";
 import type {
   SparkMediaVideo,
@@ -12,6 +12,7 @@ import type {
 } from "../core/types.js";
 import { SPARK_POST_COLLECTION, SPARK_MEDIA_VIDEO } from "../core/config.js";
 import { log } from "../utils/logger.js";
+import { com } from '@bsky/sdk/lexicons'
 
 /** Maximum time to wait for video processing (5 minutes) */
 const VIDEO_PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
@@ -48,28 +49,26 @@ export interface SparkVideoPostResult {
  * 3. Use the returned blob in the record
  */
 export async function uploadSparkVideo(
-  agent: Agent,
+  client: Client,
   videoData: Uint8Array,
   mimeType: string,
 ): Promise<SparkVideoUploadResult> {
   try {
-    // Step 1: Upload the video
-    const uploadResult = await agent.com.atproto.repo.uploadBlob(videoData, {
-      encoding: mimeType,
+    const form = new FormData();
+    form.append('file', new Blob([videoData as any], { type: mimeType }));
+
+    const res = await fetch(`${(client as any).service || 'https://bsky.social'}/xrpc/com.atproto.repo.uploadBlob`, {
+      method: 'POST',
+      headers: (client as any).session?.accessJwt ? { Authorization: `Bearer ${(client as any).session.accessJwt}` } : undefined,
+      body: form,
     });
 
-    if (!uploadResult.data.blob) {
-      throw new Error("No blob returned from video upload");
+    if (!res.ok) {
+      throw new Error(`Video upload failed: ${res.status}`);
     }
 
-    // Note: Spark's video upload flow (so.sprk.video.uploadVideo) is a
-    // separate XRPC procedure that processes the video server-side.
-    // For now, we use the standard blob upload as a fallback, since
-    // the Spark video processing service may not be available on all PDSs.
-    // When the Spark AppView is available, this should be updated to use
-    // so.sprk.video.uploadVideo and poll for job completion.
-
-    const blob = uploadResult.data.blob;
+    const data = await res.json() as { blob: { $type: 'blob'; ref: { $link: string }; mimeType: string; size: number } };
+    const blob = data.blob;
     return {
       success: true,
       blob: {
@@ -95,7 +94,7 @@ export async function uploadSparkVideo(
  * requires a custom agent method since so.sprk.* isn't in the default @atproto/api types.
  */
 export async function waitForVideoJob(
-  _agent: Agent,
+  _client: Client,
   _jobId: string,
   timeoutMs: number = VIDEO_PROCESSING_TIMEOUT_MS,
 ): Promise<SparkVideoUploadResult> {
@@ -118,7 +117,7 @@ export async function waitForVideoJob(
  * Creates a so.sprk.feed.post with so.sprk.media.video as the media union.
  */
 export async function publishSparkVideoPost(
-  agent: Agent,
+  client: Client,
   videoBlob: {
     cid: string;
     mimeType: string;
@@ -158,17 +157,17 @@ export async function publishSparkVideoPost(
       record.caption = { text: caption };
     }
 
-    const result = await agent.com.atproto.repo.createRecord({
-      repo: agent.did!,
+    const result = await client.call(com.atproto.repo.createRecord, {
+      repo: client.assertDid!,
       collection: SPARK_POST_COLLECTION,
       rkey: generateTID(createdAt),
-      record,
+      record: record as any,
     });
 
     return {
       success: true,
-      uri: result.data.uri,
-      cid: result.data.cid,
+      uri: result.uri,
+      cid: result.cid,
     };
   } catch (error) {
     const err = error as Error;

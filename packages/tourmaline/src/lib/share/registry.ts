@@ -7,7 +7,7 @@
  * one card type directly, so adding a new card type is a matter of adding
  * an entry here — not touching the OAuth/posting page.
  */
-import type { Agent } from "@atproto/api";
+import type { Client } from '@atproto/lex';
 import type { PersonalityCardData } from "./personality-svg";
 import { renderPersonalitySvg } from "./personality-svg";
 import type { ReceiptCardData } from "./receipt-svg";
@@ -28,7 +28,7 @@ export interface ShareEnvelope {
 
 interface CardHandler<T> {
   render: (data: T) => string;
-  share: (agent: Agent, data: T) => Promise<ShareResult>;
+  share: (client: Client, data: T) => Promise<ShareResult>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,8 +43,8 @@ export function renderCard(envelope: ShareEnvelope): string {
   return handlers[envelope.type].render(envelope.data);
 }
 
-export function shareCard(agent: Agent, envelope: ShareEnvelope): Promise<ShareResult> {
-  return handlers[envelope.type].share(agent, envelope.data);
+export function shareCard(client: Client, envelope: ShareEnvelope): Promise<ShareResult> {
+  return handlers[envelope.type].share(client, envelope.data);
 }
 
 /** Convenience for a card's "Share" button: writes the envelope tourmaline/share reads. */

@@ -5,7 +5,7 @@
  * Supports batch record creation via com.atproto.repo.applyWrites
  * for efficient bulk imports.
  */
-import type { Agent } from "@atproto/api";
+import type { Client } from '@atproto/lex';
 import { generateTID } from "@ewanc26/tid";
 import type {
   SparkMediaImage,
@@ -14,6 +14,7 @@ import type {
 } from "../core/types.js";
 import { SPARK_POST_COLLECTION, SPARK_MEDIA_IMAGES } from "../core/config.js";
 import { log } from "../utils/logger.js";
+import { com } from '@bsky/sdk/lexicons'
 
 /**
  * Result of publishing a Spark post
@@ -49,21 +50,27 @@ const APPLY_WRITES_MAX = 200;
  * Upload an image as a blob
  */
 async function uploadBlob(
-  agent: Agent,
+  client: Client,
   imageData: Uint8Array,
   mimeType: string,
 ): Promise<{ cid: string; mimeType: string }> {
-  const uploadResult = await agent.uploadBlob(imageData, {
-    encoding: mimeType,
+  const form = new FormData();
+  form.append('file', new Blob([imageData as any], { type: mimeType }));
+
+  const res = await fetch(`${(client as any).service || 'https://bsky.social'}/xrpc/com.atproto.repo.uploadBlob`, {
+    method: 'POST',
+    headers: (client as any).session?.accessJwt ? { Authorization: `Bearer ${(client as any).session.accessJwt}` } : undefined,
+    body: form,
   });
 
-  if (!uploadResult.data.blob) {
-    throw new Error("No blob returned from upload");
+  if (!res.ok) {
+    throw new Error(`Blob upload failed: ${res.status}`);
   }
 
+  const data = await res.json() as { blob: { $type: 'blob'; ref: { $link: string }; mimeType: string; size: number } };
   return {
-    cid: uploadResult.data.blob.ref.toString(),
-    mimeType: uploadResult.data.blob.mimeType,
+    cid: data.blob.ref.toString(),
+    mimeType: data.blob.mimeType,
   };
 }
 
@@ -98,7 +105,7 @@ function buildMediaImage(
  * This is a thin wrapper around publishSparkPosts for backward compatibility.
  */
 export async function publishSparkPost(
-  agent: Agent,
+  client: Client,
   images: Array<{
     data: Uint8Array;
     mimeType: string;
@@ -110,7 +117,7 @@ export async function publishSparkPost(
   caption?: string,
   dryRun = false,
 ): Promise<SparkPublishResult> {
-  const results = await publishSparkPosts(agent, [{
+  const results = await publishSparkPosts(client, [{
     images,
     createdAt,
     caption,
@@ -128,7 +135,7 @@ export async function publishSparkPost(
  * but all record creations are batched into one applyWrites call.
  */
 export async function publishSparkPosts(
-  agent: Agent,
+  client: Client,
   posts: SparkPostInput[],
   dryRun = false,
 ): Promise<SparkPublishResult[]> {
@@ -156,7 +163,7 @@ export async function publishSparkPosts(
       const mediaImages: SparkMediaImage[] = [];
 
       for (const img of post.images.slice(0, 12)) {
-        const blob = await uploadBlob(agent, img.data, img.mimeType);
+        const blob = await uploadBlob(client, img.data, img.mimeType);
         mediaImages.push(
           buildMediaImage(blob, img.size, img.alt, img.aspectRatio),
         );
@@ -196,12 +203,12 @@ export async function publishSparkPosts(
     for (let chunkStart = 0; chunkStart < writes.length; chunkStart += APPLY_WRITES_MAX) {
       const chunk = writes.slice(chunkStart, chunkStart + APPLY_WRITES_MAX);
       try {
-        const response = await agent.com.atproto.repo.applyWrites({
-          repo: agent.did!,
+        const response = await client.call(com.atproto.repo.applyWrites, {
+          repo: client.assertDid!,
           writes: chunk as any,
         });
 
-        const respResults = (response.data as any)?.results as Array<{ uri: string; cid: string }> | undefined;
+        const respResults = (response as any)?.results as Array<{ uri: string; cid: string }> | undefined;
 
         if (respResults) {
           for (let j = 0; j < respResults.length; j++) {
@@ -236,28 +243,28 @@ export async function publishSparkPosts(
  * Check for existing Spark posts to avoid duplicates
  */
 export async function getExistingSparkPosts(
-  agent: Agent,
+  client: Client,
 ): Promise<Set<string>> {
   const existing = new Set<string>();
 
   try {
     let cursor: string | undefined;
     do {
-      const result = await agent.com.atproto.repo.listRecords({
-        repo: agent.did!,
+      const result = await client.call(com.atproto.repo.listRecords, {
+        repo: client.assertDid!,
         collection: SPARK_POST_COLLECTION,
         limit: 100,
         cursor,
       });
 
-      for (const record of result.data.records) {
+      for (const record of result.records) {
         const value = record.value as { createdAt?: string };
         if (value.createdAt) {
           existing.add(value.createdAt);
         }
       }
 
-      cursor = result.data.cursor;
+      cursor = result.cursor;
     } while (cursor);
   } catch (error) {
     log.warn(

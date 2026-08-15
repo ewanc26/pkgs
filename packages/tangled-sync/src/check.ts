@@ -1,4 +1,6 @@
-import { AtpAgent } from "@atproto/api";
+import { Client } from '@atproto/lex';
+import { PasswordSession } from '@atproto/lex-password-session';
+import { api, com } from '@bsky/sdk';
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
@@ -100,41 +102,40 @@ checks.filter(c => c.category === "config").forEach((check) => {
 // ===== AT PROTO CONNECTION CHECK =====
 console.log("\n🔐 AT Proto Connection Check\n");
 
-const canTestConnection = process.env.BLUESKY_USERNAME && 
-                         process.env.BLUESKY_PASSWORD && 
+const canTestConnection = process.env.BLUESKY_USERNAME &&
+                         process.env.BLUESKY_PASSWORD &&
                          process.env.BLUESKY_PDS &&
                          process.env.ATPROTO_DID;
 
 if (canTestConnection) {
   try {
-    const agent = new AtpAgent({ service: process.env.BLUESKY_PDS! });
-    
-    const loginResponse = await agent.login({
+    const session = await PasswordSession.login({
+      service: process.env.BLUESKY_PDS!,
       identifier: process.env.BLUESKY_USERNAME!,
-      password: process.env.BLUESKY_PASSWORD!
+      password: process.env.BLUESKY_PASSWORD!,
     });
-    
+    const client = new Client(session, { service: api.app.service });
+
     console.log(`✅ Login successful`);
-    console.log(`   DID: ${loginResponse.data.did}`);
-    console.log(`   Handle: ${loginResponse.data.handle}`);
-    
-    if (loginResponse.data.did !== process.env.ATPROTO_DID) {
+    console.log(`   DID: ${session.did}`);
+    console.log(`   Handle: ${session.handle}`);
+
+    if (session.did !== process.env.ATPROTO_DID) {
       console.log(`⚠️  DID mismatch!`);
       console.log(`   Expected: ${process.env.ATPROTO_DID}`);
-      console.log(`   Got: ${loginResponse.data.did}`);
+      console.log(`   Got: ${session.did}`);
       warnings++;
     }
-    
-    // Test fetching records
-    const records = await agent.api.com.atproto.repo.listRecords({
-      repo: loginResponse.data.did,
+
+    const records = await client.call(com.atproto.repo.listRecords, {
+      repo: session.did,
       collection: "sh.tangled.repo",
       limit: 5,
     });
-    
+
     console.log(`✅ Can access AT Proto records`);
-    console.log(`   Found ${records.data.records.length} sample records`);
-    
+    console.log(`   Found ${records.records.length} sample records`);
+
   } catch (error: any) {
     console.log(`❌ AT Proto connection failed`);
     console.log(`   Error: ${error.message}`);
@@ -148,11 +149,11 @@ if (canTestConnection) {
 console.log("\n🔑 SSH Connection Check\n");
 
 try {
-  const sshTest = execSync("ssh -T git@tangled.sh 2>&1", { 
+  const sshTest = execSync("ssh -T git@tangled.sh 2>&1", {
     encoding: "utf-8",
-    timeout: 5000 
+    timeout: 5000
   });
-  
+
   if (sshTest.includes("successfully authenticated") || sshTest.includes("Hi")) {
     console.log("✅ SSH connection to Tangled works");
     console.log(`   ${sshTest.trim().split('\n')[0]}`);
@@ -163,7 +164,7 @@ try {
   }
 } catch (error: any) {
   const output = error.stdout?.toString() || error.message;
-  
+
   if (output.includes("successfully authenticated") || output.includes("Hi")) {
     console.log("✅ SSH connection to Tangled works");
   } else {
@@ -182,9 +183,9 @@ if (process.env.GITHUB_USER) {
       encoding: "utf-8",
       timeout: 5000
     });
-    
+
     const data = JSON.parse(response);
-    
+
     if (data.login) {
       console.log(`✅ GitHub user found: ${data.login}`);
       console.log(`   Public repos: ${data.public_repos || 0}`);
@@ -208,11 +209,11 @@ let hasAtproto = false;
 let hasDotenv = false;
 
 try {
-  await import("@atproto/api");
+  await import("@atproto/lex");
   hasAtproto = true;
-  console.log("✅ @atproto/api installed");
+  console.log("✅ @atproto/lex installed");
 } catch {
-  console.log("❌ @atproto/api not installed (run: npm install)");
+  console.log("❌ @atproto/lex not installed (run: npm install)");
   errors++;
 }
 
@@ -240,9 +241,9 @@ if (errors === 0 && warnings === 0) {
   if (warnings > 0) {
     console.log(`⚠️  ${warnings} warning(s) - review before syncing`);
   }
-  
+
   console.log("\nSee SETUP.md for detailed troubleshooting");
-  
+
   if (errors > 0) {
     process.exit(1);
   }

@@ -1,11 +1,8 @@
-import { AtpAgent } from '@atproto/api';
+import { Client } from '@atproto/lex'
 import type { ResolvedIdentity } from '../types.js';
 import { cache } from './cache.js';
 
-/**
- * Creates an AtpAgent with optional fetch function injection
- */
-export function createAgent(service: string, fetchFn?: typeof fetch): AtpAgent {
+export function createAgent(service: string, fetchFn?: typeof fetch): Client {
 	const wrappedFetch = fetchFn
 		? async (url: URL | RequestInfo, init?: RequestInit) => {
 				const urlStr = url instanceof URL ? url.toString() : url;
@@ -24,10 +21,7 @@ export function createAgent(service: string, fetchFn?: typeof fetch): AtpAgent {
 			}
 		: undefined;
 
-	return new AtpAgent({
-		service,
-		...(wrappedFetch && { fetch: wrappedFetch })
-	});
+	return new Client(service, { fetch: wrappedFetch });
 }
 
 /**
@@ -69,9 +63,9 @@ export async function resolveIdentity(
  * Gets or creates a PDS-specific agent
  * @param did - DID to resolve PDS for
  * @param fetchFn - Optional fetch function for SSR
- * @returns AtpAgent configured for the user's PDS
+ * @returns Client configured for the user's PDS
  */
-export async function getPDSAgent(did: string, fetchFn?: typeof fetch): Promise<AtpAgent> {
+export async function getPDSAgent(did: string, fetchFn?: typeof fetch): Promise<Client> {
 	const resolved = await resolveIdentity(did, fetchFn);
 	return createAgent(resolved.pds, fetchFn);
 }
@@ -84,7 +78,7 @@ export async function getPDSAgent(did: string, fetchFn?: typeof fetch): Promise<
  */
 export async function withFallback<T>(
 	did: string,
-	operation: (agent: AtpAgent) => Promise<T>,
+	operation: (client: Client) => Promise<T>,
 	fetchFn?: typeof fetch
 ): Promise<T> {
 	const agents = [

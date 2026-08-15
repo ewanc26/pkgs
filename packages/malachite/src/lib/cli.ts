@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
-import { AtpAgent } from '@atproto/api';
+import { Client } from '@atproto/lex'
+import { com } from '@bsky/sdk/lexicons'
 import type { PlayRecord, Config, CommandLineArgs, PublishResult } from '../types.js';
 import { login } from './auth.js';
 import {
@@ -573,7 +574,7 @@ export async function runCLI(): Promise<void> {
     }
     
     const cfg = config as Config;
-    let agent: AtpAgent | null = null;
+    let client: Client | null = null;
 
     // Development mode enables verbose logging and file logging
     const isDev = args.dev ?? false;
@@ -667,8 +668,8 @@ export async function runCLI(): Promise<void> {
       }
       log.section('Clear Cache');
       log.info('Authenticating to identify cache...');
-      agent = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER) as AtpAgent;
-      const did = agent.session?.did;
+      client = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER);
+      const did = client.assertDid;
       if (!did) {
         throw new Error('Failed to get DID from session');
       }
@@ -701,10 +702,10 @@ export async function runCLI(): Promise<void> {
         log.info(`Using OAuth session for ${handle ?? did}`);
         const oauthAgent = await restoreOAuthSession(did);
         if (oauthAgent) {
-          agent = oauthAgent as unknown as AtpAgent;
+          client = oauthAgent as Client;
         }
       }
-      if (!agent) {
+      if (!client) {
         if (!args.handle || !args.password) {
           const creds = loadCredentials();
           if (creds) {
@@ -715,10 +716,10 @@ export async function runCLI(): Promise<void> {
             throw new Error('Deduplicate mode requires authentication. Run --oauth-login or pass --handle and --password.');
           }
         }
-        agent = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER) as AtpAgent;
+        client = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER);
       }
       log.section('Remove Duplicate Records');
-      const result = await removeDuplicates(agent, cfg, dryRun);
+      const result = await removeDuplicates(client, cfg, dryRun);
       if (result.totalDuplicates === 0) {
         return;
       }
@@ -734,7 +735,7 @@ export async function runCLI(): Promise<void> {
           log.info('Duplicate removal cancelled by user.');
           process.exit(0);
         }
-        await removeDuplicates(agent, cfg, false);
+        await removeDuplicates(client, cfg, false);
         log.success('Duplicate removal complete!');
       } else if (dryRun) {
         log.info('DRY RUN: No records were actually removed.');
@@ -752,10 +753,10 @@ export async function runCLI(): Promise<void> {
         log.info(`Using OAuth session for ${handle ?? did}`);
         const oauthAgent = await restoreOAuthSession(did);
         if (oauthAgent) {
-          agent = oauthAgent as unknown as AtpAgent;
+          client = oauthAgent as Client;
         }
       }
-      if (!agent) {
+      if (!client) {
         if (!args.handle || !args.password) {
           const creds = loadCredentials();
           if (creds) {
@@ -766,7 +767,7 @@ export async function runCLI(): Promise<void> {
             throw new Error('Polish mode requires authentication. Run --oauth-login or pass --handle and --password.');
           }
         }
-        agent = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER) as AtpAgent;
+        client = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER);
       }
 
       log.section('Polish Legacy Scrobbles');
@@ -774,7 +775,7 @@ export async function runCLI(): Promise<void> {
       log.info('(No, this is not a Polish-language version of Malachite — it polishes your scrobble history.)');
       log.blank();
 
-      const plan = await analyzeLegacyRecords(agent);
+      const plan = await analyzeLegacyRecords(client);
       displayPolishPlan(plan, dryRun);
 
       if (plan.legacyTotal === 0) {
@@ -802,12 +803,12 @@ export async function runCLI(): Promise<void> {
         log.blank();
       }
 
-      await migrateLegacyRecords(agent, plan, false);
+      await migrateLegacyRecords(client, plan, false);
       log.success('Migration complete!');
 
       try {
-        await agent.com.atproto.repo.createRecord({
-          repo: agent.session?.did ?? agent.did ?? '',
+        await client.call(com.atproto.repo.createRecord.main as any, {
+          repo: client.assertDid,
           collection: 'click.croft.toolkit.use',
           record: {
             $type: 'click.croft.toolkit.use',
@@ -833,12 +834,12 @@ export async function runCLI(): Promise<void> {
       log.info(`Using OAuth session for ${handle ?? did}`);
       const oauthAgent = await restoreOAuthSession(did);
       if (oauthAgent) {
-        agent = oauthAgent as unknown as AtpAgent;
+          client = oauthAgent as Client;
       } else {
         log.warn('OAuth session could not be restored — falling back to app-password credentials.');
       }
     }
-    if (!agent) {
+    if (!client) {
       if (!args.handle || !args.password) {
         const creds = loadCredentials();
         if (creds) {
@@ -850,7 +851,7 @@ export async function runCLI(): Promise<void> {
         }
       }
       log.debug('Authenticating...');
-      agent = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER) as AtpAgent;
+      client = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER);
     }
     log.debug('Authentication successful');
 
@@ -908,13 +909,13 @@ export async function runCLI(): Promise<void> {
     }
     log.blank();
 
-    if (agent) {
+    if (client) {
       const originalRecords = [...records];
 
       let carSyncOk = true;
       let existingMap: Awaited<ReturnType<typeof fetchExistingRecords>>;
       try {
-        existingMap = await fetchExistingRecords(agent, cfg, args.fresh ?? false);
+        existingMap = await fetchExistingRecords(client, cfg, args.fresh ?? false);
       } catch (carErr) {
         carSyncOk = false;
         const msg = (carErr as Error)?.message ?? String(carErr);
@@ -1024,7 +1025,7 @@ export async function runCLI(): Promise<void> {
 
     log.section('Publishing Records');
     const result: PublishResult = await publishRecordsWithApplyWrites(
-      agent,
+      client,
       records,
       batchSize,
       batchDelay,
@@ -1051,9 +1052,14 @@ export async function runCLI(): Promise<void> {
         }
       }
 
+      if (!client) {
+        log.info('No authenticated client — skipping publish');
+        return;
+      }
+
       try {
-        await agent.com.atproto.repo.createRecord({
-          repo: agent.session?.did ?? agent.did ?? '',
+        await client.call(com.atproto.repo.createRecord.main as any, {
+          repo: client.assertDid,
           collection: 'click.croft.toolkit.use',
           record: {
             $type: 'click.croft.toolkit.use',

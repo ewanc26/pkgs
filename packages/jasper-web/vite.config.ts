@@ -22,7 +22,7 @@ export default defineConfig({
 	},
 
 	optimizeDeps: {
-		include: ['@atproto/api', '@atproto/common-web']
+		include: ['@atproto/common-web']
 	},
 
 	build: {

@@ -7,7 +7,7 @@
  * are web-specific.
  */
 
-import type { Agent } from '@atproto/api';
+import type { Client } from '@atproto/lex';
 import type { ImportMode, LogEntry, PlayRecord } from '$lib/types.js';
 import { CLIENT_AGENT } from '../config.js';
 import { parseLastFmFile, convertToPlayRecord } from './csv.js';
@@ -26,6 +26,7 @@ import {
 } from '@ewanc26/croft-click-core';
 import { publishRecords, type PublishProgress } from '@ewanc26/croft-click-core';
 import { analyzeLegacyRecords, migrateLegacyRecords } from '@ewanc26/croft-click-core';
+import { com } from '@bsky/sdk/lexicons'
 
 export type { PublishProgress };
 
@@ -50,7 +51,7 @@ export interface ImportCallbacks {
 }
 
 export async function runImport(
-  agent: Agent,
+  client: Client,
   mode: ImportMode,
   lastfmFiles: File[],
   spotifyFiles: File[],
@@ -73,7 +74,7 @@ export async function runImport(
       onLog('section', '── Deduplication ──────────────────────────────────');
       onLog('info', 'Fetching existing records from Teal…');
       const all = await fetchAllRecordsForDedup(
-        agent,
+        client,
         (n) => onLog('progress', `  Fetched ${n.toLocaleString()} records…`),
         sig,
       );
@@ -95,7 +96,7 @@ export async function runImport(
 
       onLog('info', 'Removing duplicates…');
       const removed = await removeDuplicateRecords(
-        agent,
+        client,
         groups,
         (n) => onLog('progress', `  Removed ${n}/${totalDups}…`),
         sig,
@@ -108,7 +109,7 @@ export async function runImport(
     if (mode === 'polish') {
       onLog('section', '── Polish ───────────────────────────────────────────');
       onLog('info', 'Fetching legacy fm.teal.alpha.feed.play records…');
-      const plan = await analyzeLegacyRecords(agent, sig);
+      const plan = await analyzeLegacyRecords(client, sig);
 
       if (plan.legacyTotal === 0) {
         onLog('success', 'No legacy scrobbles found — nothing to migrate.');
@@ -125,7 +126,7 @@ export async function runImport(
       }
 
       onLog('warn', 'Migrating — legacy copies are only removed after a successful backfill.');
-      const polishRes = await migrateLegacyRecords(agent, plan, {
+      const polishRes = await migrateLegacyRecords(client, plan, {
         onProgress: (phase, done, total) =>
           onLog('progress', `  ${phase === 'backfill' ? 'Backfilled' : 'Removed'} ${done}/${total}…`),
         signal: sig,
@@ -138,8 +139,8 @@ export async function runImport(
       }
 
       try {
-        await agent.com.atproto.repo.createRecord({
-          repo: agent.did ?? '',
+        await client.call(com.atproto.repo.createRecord, {
+          repo: client.assertDid,
           collection: 'click.croft.toolkit.use',
           record: {
             $type: 'click.croft.toolkit.use',
@@ -237,7 +238,7 @@ export async function runImport(
     let carSyncOk = true;
 
     // Check web cache (sessionStorage with 24h TTL) before fetching.
-    const did = agent.did ?? (agent as any)?.sessionManager?.did;
+    const did = client.assertDid ?? (client as any)?.sessionManager?.did;
     let fromCache = false;
     if (!fresh && did) {
       const cached = loadRecordsCache(did);
@@ -252,7 +253,7 @@ export async function runImport(
     if (!fromCache) {
       try {
         existing = await fetchExistingRecords(
-          agent,
+          client,
           (n) => onLog('progress', `  Fetched ${n.toLocaleString()} existing records…`),
           fresh,
           sig,
@@ -299,7 +300,7 @@ export async function runImport(
     // ── Publish ──────────────────────────────────────────────────────────────
     onLog('section', '── Publishing ───────────────────────────────────────');
     onLog('warn', 'Do not close this tab while publishing.');
-    const res = await publishRecords(agent, records, dryRun, {
+    const res = await publishRecords(client, records, dryRun, {
       onProgress,
       onLog: (level, msg) => onLog(level as LogEntry['level'], msg),
       isCancelled,
@@ -307,8 +308,8 @@ export async function runImport(
     
     if (!dryRun && !res.cancelled && res.successCount > 0) {
       try {
-        await agent.com.atproto.repo.createRecord({
-          repo: agent.did ?? '',
+        await client.call(com.atproto.repo.createRecord, {
+          repo: client.assertDid,
           collection: 'click.croft.toolkit.use',
           record: {
             $type: 'click.croft.toolkit.use',

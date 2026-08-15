@@ -2,7 +2,7 @@
  * Rate-limited publisher wrapper
  * Integrates Malachite's RateLimiter with Jasper's publishing
  */
-import type { Agent } from "@atproto/api";
+import type { Client } from '@atproto/lex';
 import { RateLimiter, isRateLimitError } from "@ewanc26/croft-click-core";
 import {
   publishPhoto,
@@ -42,12 +42,12 @@ export const OPERATION_POINTS = {
  */
 export class RateLimitedPublisher {
   private rateLimiter: RateLimiter;
-  private agent: Agent;
+  private client: Client;
   private dryRun: boolean;
   private cancelled = false;
 
-  constructor(agent: Agent, dryRun = false, headroom = 0.15) {
-    this.agent = agent;
+  constructor(client: Client, dryRun = false, headroom = 0.15) {
+    this.client = client;
     this.dryRun = dryRun;
     this.rateLimiter = new RateLimiter({ headroom });
   }
@@ -105,7 +105,7 @@ export class RateLimitedPublisher {
 
     try {
       const result = await publishPhoto(
-        this.agent,
+        this.client,
         imageData,
         aspectRatio,
         createdAt,
@@ -121,7 +121,7 @@ export class RateLimitedPublisher {
         // Wait and retry once
         await this.waitForQuota(OPERATION_POINTS.PHOTO);
         return publishPhoto(
-          this.agent,
+          this.client,
           imageData,
           aspectRatio,
           createdAt,
@@ -143,13 +143,13 @@ export class RateLimitedPublisher {
     await this.waitForQuota(OPERATION_POINTS.GALLERY);
 
     try {
-      return await createGallery(this.agent, title, description, this.dryRun);
+      return await createGallery(this.client, title, description, this.dryRun);
     } catch (error) {
       if (isRateLimitError(error)) {
         log.warn("Rate limit hit, waiting for reset...");
         this.rateLimiter.handleRateLimitHit();
         await this.waitForQuota(OPERATION_POINTS.GALLERY);
-        return createGallery(this.agent, title, description, this.dryRun);
+        return createGallery(this.client, title, description, this.dryRun);
       }
       throw error;
     }
@@ -168,7 +168,7 @@ export class RateLimitedPublisher {
 
     try {
       return await createGalleryItem(
-        this.agent,
+        this.client,
         galleryUri,
         photoUri,
         position,
@@ -181,7 +181,7 @@ export class RateLimitedPublisher {
         this.rateLimiter.handleRateLimitHit();
         await this.waitForQuota(OPERATION_POINTS.GALLERY_ITEM);
         return createGalleryItem(
-          this.agent,
+          this.client,
           galleryUri,
           photoUri,
           position,

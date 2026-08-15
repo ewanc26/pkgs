@@ -59,11 +59,13 @@
     "@lucide/svelte": "^0.575.0"
   },
   "peerDependencies": {
-    "@atproto/api": ">=0.13.0",
+    "@bsky/sdk": ">=0.1.0",
     "svelte": "^5.0.0"
   },
   "devDependencies": {
-    "@atproto/api": "^0.19.3",
+    "@atproto/lex": "^0.3.0",
+    "@atproto/lex-password-session": "^0.2.0",
+    "@bsky/sdk": "latest",
     "@sveltejs/adapter-auto": "^7.0.1",
     "@sveltejs/adapter-vercel": "^6.3.3",
     "@sveltejs/kit": "^2.55.0",

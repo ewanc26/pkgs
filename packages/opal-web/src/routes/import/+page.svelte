@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import type { Agent } from '@atproto/api';
+	import type { Client } from '@atproto/lex';
 	import type { Platform, MicroblogPost, ConvertResult } from '@ewanc26/opal';
 	import { initOAuth, signInWithOAuth } from '$lib/core/oauth.js';
 	import { parseExport, runImport } from '$lib/core/import.js';
@@ -22,7 +22,7 @@
 	let prevStep = $state(_initStep);
 	let platform = $state<Platform | null>(_initPlatform);
 
-	let agent = $state<Agent | null>(null);
+	let agent = $state<Client | null>(null);
 	let handle = $state('');
 	let convertResult = $state<ConvertResult | null>(null);
 	let selectedPosts = $state<Set<number>>(new Set());
@@ -77,7 +77,7 @@
 		}
 	}
 
-	function handleAuth(a: Agent) {
+	function handleAuth(a: Client) {
 		agent = a;
 		goTo(2);
 	}

@@ -22,12 +22,12 @@ export default defineConfig({
 	},
 
 	optimizeDeps: {
-		include: ['@atproto/api', '@atproto/common-web']
+		include: ['@atproto/lex', '@atproto/lex-password-session']
 	},
 
 	build: {
 		target: 'es2022',
-		// The /import page chunk is large because it bundles @atproto/api, the OAuth
+		// The /import page chunk is large because it bundles @atproto/lex, the OAuth
 		// client, and the IPLD/CAR parser — all unavoidable for an ATProto import tool.
 		// The page is client-only (ssr=false, prerender=false) so it's never on the
 		// critical path; gzipped it's ~350 kB which is acceptable.

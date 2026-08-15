@@ -15,7 +15,8 @@
  * ```
  */
 
-import { AtpAgent } from '@atproto/api';
+import { Client } from '@atproto/lex'
+import { app } from '@bsky/sdk/lexicons'
 
 export interface CommentAuthor {
 	did: string;
@@ -64,19 +65,19 @@ function parseAtUri(uri: string): { did: string; collection: string; rkey: strin
  * Fetch a single thread of replies
  */
 async function fetchThread(
-	agent: AtpAgent,
+	client: Client,
 	uri: string,
 	maxDepth: number,
 	currentDepth = 0
 ): Promise<Comment | null> {
 	try {
-		const response = await agent.getPostThread({
+		const response = await client.call(app.bsky.feed.getPostThread, {
 			uri,
 			depth: maxDepth - currentDepth,
 			parentHeight: 0
 		});
 
-		const thread = response.data.thread;
+		const thread = response.thread;
 
 		if (thread.$type !== 'app.bsky.feed.defs#threadViewPost') {
 			return null;
@@ -106,12 +107,12 @@ async function fetchThread(
 		if (thread.replies && currentDepth < maxDepth) {
 			for (const reply of thread.replies) {
 				if (reply.$type === 'app.bsky.feed.defs#threadViewPost') {
-					const replyComment = await fetchThread(
-						agent,
-						reply.post.uri,
-						maxDepth,
-						currentDepth + 1
-					);
+				const replyComment = await fetchThread(
+					client,
+					reply.post.uri,
+					maxDepth,
+					currentDepth + 1
+				);
 					if (replyComment) {
 						comment.replies!.push(replyComment);
 					}
@@ -144,10 +145,9 @@ export async function fetchComments(options: FetchCommentsOptions): Promise<Comm
 
 	try {
 		// Create agent
-		const agent = new AtpAgent({ service: 'https://public.api.bsky.app' });
+		const client = new Client('https://public.api.bsky.app');
 
-		// Fetch the main thread
-		const mainComment = await fetchThread(agent, bskyPostUri, maxDepth, 0);
+		const mainComment = await fetchThread(client, bskyPostUri, maxDepth, 0);
 
 		if (!mainComment || !mainComment.replies) {
 			return [];
@@ -172,18 +172,17 @@ export async function fetchMentionComments(
 	maxDepth = 3
 ): Promise<Comment[]> {
 	try {
-		const agent = new AtpAgent({ service: 'https://public.api.bsky.app' });
+		const client = new Client('https://public.api.bsky.app');
 
-		// Search for posts mentioning the URL
-		const searchResponse = await agent.app.bsky.feed.searchPosts({
+		const searchResponse = await client.call(app.bsky.feed.searchPosts, {
 			q: canonicalUrl,
 			limit: 25
 		});
 
 		const comments: Comment[] = [];
 
-		for (const post of searchResponse.data.posts) {
-			const comment = await fetchThread(agent, post.uri, maxDepth, 0);
+		for (const post of searchResponse.posts) {
+			const comment = await fetchThread(client, post.uri, maxDepth, 0);
 			if (comment) {
 				comments.push(comment);
 			}

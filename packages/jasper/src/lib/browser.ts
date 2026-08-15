@@ -38,7 +38,8 @@ import {
   uploadSparkVideo,
   publishSparkVideoPost,
 } from "./spark-video-publisher.js";
-import type { Agent } from "@atproto/api";
+import type { Client } from '@atproto/lex';
+import { com } from '@bsky/sdk/lexicons';
 import type { Target, SparkAspectRatio } from "../core/types.js";
 import { GRAIN_GALLERY_ITEM_COLLECTION } from "../core/config.js";
 import {
@@ -311,7 +312,7 @@ function parsePost(rawPost: InstagramExportPost, isStory = false): ParsedPost | 
  * Browser-compatible publishPhoto that accepts Blob
  */
 export async function publishPhotoFromBlob(
-  agent: Agent,
+  client: Client,
   imageBlob: Blob,
   aspectRatio: { width: number; height: number },
   createdAt: string,
@@ -322,7 +323,7 @@ export async function publishPhotoFromBlob(
   const arrayBuffer = await imageBlob.arrayBuffer();
   const uint8Array = new Uint8Array(arrayBuffer);
 
-  return publishPhoto(agent, uint8Array, aspectRatio, createdAt, alt, dryRun);
+  return publishPhoto(client, uint8Array, aspectRatio, createdAt, alt, dryRun);
 }
 
 /**
@@ -344,7 +345,7 @@ interface FlushGrainBatchResult {
  * gallery items that should be created for successful photos.
  */
 async function flushGrainPhotoBatch(
-  agent: Agent,
+  client: Client,
   photoBatch: PhotoInput[],
   galleryUri: string | null,
   dryRun: boolean,
@@ -353,7 +354,7 @@ async function flushGrainPhotoBatch(
     return { successes: [], uris: [], galleryItemInputs: [] };
   }
 
-  const results = await publishPhotos(agent, photoBatch, dryRun);
+  const results = await publishPhotos(client, photoBatch, dryRun);
 
   const successes: boolean[] = [];
   const uris: string[] = [];
@@ -382,8 +383,8 @@ async function flushGrainPhotoBatch(
 /**
  * Fetch user's existing galleries
  */
-export async function fetchUserGalleries(agent: Agent): Promise<GalleryInfo[]> {
-  const galleries = await getExistingGalleries(agent);
+export async function fetchUserGalleries(client: Client): Promise<GalleryInfo[]> {
+  const galleries = await getExistingGalleries(client);
   return galleries.map((g) => ({
     uri: g.uri,
     title: g.title,
@@ -395,12 +396,12 @@ export async function fetchUserGalleries(agent: Agent): Promise<GalleryInfo[]> {
  * Create a new gallery
  */
 export async function createNewGallery(
-  agent: Agent,
+  client: Client,
   title: string,
   description?: string,
   dryRun = false,
 ): Promise<{ success: boolean; uri?: string; error?: string }> {
-  const result = await createGallery(agent, title, description, dryRun);
+  const result = await createGallery(client, title, description, dryRun);
   return { success: result.success, uri: result.uri, error: result.error };
 }
 
@@ -408,7 +409,7 @@ export async function createNewGallery(
  * Find orphan photos (photos not in any gallery)
  * These would be from imports before the gallery fix
  */
-export async function fetchOrphanPhotos(agent: Agent): Promise<OrphanPhoto[]> {
+export async function fetchOrphanPhotos(client: Client): Promise<OrphanPhoto[]> {
   const orphans: OrphanPhoto[] = [];
 
   try {
@@ -416,8 +417,8 @@ export async function fetchOrphanPhotos(agent: Agent): Promise<OrphanPhoto[]> {
     const galleryItemUris = new Set<string>();
     let cursor: string | undefined;
     do {
-      const result = await agent.com.atproto.repo.listRecords({
-        repo: agent.did!,
+      const result: any = await client.call(com.atproto.repo.listRecords, {
+        repo: client.assertDid!,
         collection: GRAIN_GALLERY_ITEM_COLLECTION,
         limit: 100,
         cursor,
@@ -436,8 +437,8 @@ export async function fetchOrphanPhotos(agent: Agent): Promise<OrphanPhoto[]> {
     // Find photos not in any gallery
     cursor = undefined;
     do {
-      const result = await agent.com.atproto.repo.listRecords({
-        repo: agent.did!,
+      const result: any = await client.call(com.atproto.repo.listRecords, {
+        repo: client.assertDid!,
         collection: "social.grain.photo",
         limit: 100,
         cursor,
@@ -468,7 +469,7 @@ export async function fetchOrphanPhotos(agent: Agent): Promise<OrphanPhoto[]> {
  * Add orphan photos to a gallery
  */
 export async function organizeOrphanPhotos(
-  agent: Agent,
+  client: Client,
   galleryUri: string,
   orphanUris: string[],
   dryRun = false,
@@ -497,7 +498,7 @@ export async function organizeOrphanPhotos(
     try {
       logger.info(`Adding photo to gallery...`);
       const result = await createGalleryItem(
-        agent,
+        client,
         galleryUri,
         photoUri,
         i,
@@ -532,11 +533,11 @@ async function getImageDimensionsFromBlob(
 }
 
 /**
- * Wrap an ATProto Agent to capture rate-limit headers from all XRPC responses.
- * The proxy intercepts method calls on the agent (uploadBlob, com.atproto.repo.*, etc.)
+  * Wrap an ATProto Client to capture rate-limit headers from all XRPC responses.
+ * The proxy intercepts method calls on the client (uploadBlob, com.atproto.repo.*, etc.)
  * and feeds response headers into a RateLimiter for server-driven burst protection.
  */
-function withRateLimitCapture(agent: Agent, rateLimiter: RateLimiter): Agent {
+function withRateLimitCapture(client: Client, rateLimiter: RateLimiter): Client {
   const wrapPromise = (p: Promise<unknown>): Promise<unknown> =>
     p.then(
       (res) => {
@@ -580,7 +581,7 @@ function withRateLimitCapture(agent: Agent, rateLimiter: RateLimiter): Agent {
     },
   };
 
-  return new Proxy(agent, handler) as Agent;
+  return new Proxy(client, handler) as Client;
 }
 
 /**
@@ -588,7 +589,7 @@ function withRateLimitCapture(agent: Agent, rateLimiter: RateLimiter): Agent {
  * Supports gallery selection, batch limiting, state persistence, and alt text override
  */
 export async function runImport(
-  agent: Agent,
+  client: Client,
   file: File,
   dryRun: boolean,
   galleryUri: string | null,
@@ -618,7 +619,7 @@ export async function runImport(
     : log;
 
   const rateLimiter = new RateLimiter();
-  agent = withRateLimitCapture(agent, rateLimiter);
+  client = withRateLimitCapture(client, rateLimiter);
 
   try {
     logger.info("Parsing Instagram export...");
@@ -633,11 +634,11 @@ export async function runImport(
     );
     const existingPhotos =
       target === "spark"
-        ? await getExistingSparkPosts(agent)
-        : await getExistingPhotos(agent);
+        ? await getExistingSparkPosts(client)
+        : await getExistingPhotos(client);
     const existingStories =
       target === "spark"
-        ? await getExistingSparkStories(agent)
+        ? await getExistingSparkStories(client)
         : new Set<string>();
     logger.info(
       `Found ${existingPhotos.size} existing ${target === "spark" ? "posts" : "photos"}${existingStories.size > 0 ? `, ${existingStories.size} stories` : ""}`,
@@ -679,7 +680,7 @@ export async function runImport(
       );
     } else if (galleryUri) {
       // Try to get gallery title
-      const galleries = await getExistingGalleries(agent);
+      const galleries = await getExistingGalleries(client);
       const gallery = galleries.find((g) => g.uri === galleryUri);
       galleryTitle = gallery?.title || "Unknown Gallery";
 
@@ -798,7 +799,7 @@ export async function runImport(
       // Flush any pending Grain batch so batchCount is accurate for the daily limit check
       if (target === "grain" && grainPhotoBatch.length > 0) {
         const flushResult = await flushGrainPhotoBatch(
-          agent, grainPhotoBatch, galleryUri, dryRun,
+          client, grainPhotoBatch, galleryUri, dryRun,
         );
 
         // Assign gallery item positions
@@ -810,7 +811,7 @@ export async function runImport(
         // Batch-create gallery items
         if (flushResult.galleryItemInputs.length > 0) {
           const itemResults = await createGalleryItems(
-            agent, flushResult.galleryItemInputs, dryRun,
+            client, flushResult.galleryItemInputs, dryRun,
           );
           for (let gi = 0; gi < itemResults.length; gi++) {
             if (itemResults[gi].success) {
@@ -878,7 +879,7 @@ export async function runImport(
                 await videoMedia.data!.arrayBuffer(),
               );
               const uploadResult = await uploadSparkVideo(
-                agent,
+                client,
                 videoData,
                 videoMedia.data!.type || "video/mp4",
               );
@@ -903,7 +904,7 @@ export async function runImport(
                 const { publishSparkVideoStory } =
                   await import("./spark-story-publisher.js");
                 const result = await publishSparkVideoStory(
-                  agent,
+                  client,
                   uploadResult.blob,
                   getAltText(post.caption),
                   aspectRatio,
@@ -924,7 +925,7 @@ export async function runImport(
                 }
               } else {
                 const result = await publishSparkVideoPost(
-                  agent,
+                  client,
                   uploadResult.blob,
                   getAltText(post.caption),
                   aspectRatio,
@@ -989,14 +990,14 @@ export async function runImport(
               let result;
               if (isStory) {
                 result = await publishSparkStory(
-                  agent,
+                  client,
                   imageItems.slice(0, 12),
                   timestamp,
                   dryRun,
                 );
               } else {
                 result = await publishSparkPost(
-                  agent,
+                  client,
                   imageItems.slice(0, 12),
                   timestamp,
                   post.caption,
@@ -1054,7 +1055,7 @@ export async function runImport(
     // Flush remaining Grain batch (if any)
     if (target === "grain" && grainPhotoBatch.length > 0) {
       const flushResult = await flushGrainPhotoBatch(
-        agent, grainPhotoBatch, galleryUri, dryRun,
+        client, grainPhotoBatch, galleryUri, dryRun,
       );
 
       // Assign gallery item positions using the accumulated timestamp order
@@ -1067,7 +1068,7 @@ export async function runImport(
       let galleryItemSuccessCount = 0;
       if (flushResult.galleryItemInputs.length > 0) {
         const itemResults = await createGalleryItems(
-          agent, flushResult.galleryItemInputs, dryRun,
+          client, flushResult.galleryItemInputs, dryRun,
         );
         for (let gi = 0; gi < itemResults.length; gi++) {
           if (itemResults[gi].success) {
@@ -1107,8 +1108,8 @@ export async function runImport(
 
     if (!dryRun && photosImported > 0) {
       try {
-        await agent.com.atproto.repo.createRecord({
-          repo: agent.did!,
+        await client.call(com.atproto.repo.createRecord, {
+          repo: client.assertDid!,
           collection: 'click.croft.toolkit.use',
           record: {
             $type: 'click.croft.toolkit.use',
