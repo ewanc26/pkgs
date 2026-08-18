@@ -223,8 +223,18 @@ export function getPdsUrlFromAgent(clientOrAgent: unknown): string {
   if (issuer) return issuer.toString();
 
   // Legacy AtpAgent / password-auth agent: direct URL fields.
+  //
+  // `service` is deliberately never read off an @atproto/lex Client wrapper.
+  // There it is the service-proxy target — croft-click-core builds its password
+  // clients with `{ service: api.app.service }`, i.e. the AppView DID
+  // `did:web:api.bsky.app#bsky_appview` — so treating it as a PDS URL would
+  // yield a nonsensical endpoint instead of a clear failure. Only a bare agent,
+  // which has no `agent` of its own to delegate to, may expose `service`
+  // meaning "the host I talk to". (Caught by @mmattbtw in #41.)
+  const isWrapper = c?.['agent'] != null;
   for (const field of ['service', 'dispatchUrl', 'pdsUrl', 'serviceUrl']) {
-    const v = agent?.[field] ?? c?.[field] ?? (c?.['sessionManager'] as any)?.[field];
+    if (field === 'service' && isWrapper) continue;
+    const v = agent?.[field] ?? (c?.['sessionManager'] as any)?.[field];
     if (typeof v === 'string' && v) return v;
     if (v instanceof URL) return v.toString();
   }

@@ -18,6 +18,7 @@ import { sha256 } from 'multiformats/hashes/sha2';
 import {
   fetchRepoViaCARWithClient,
   getPdsUrlFromAgent,
+  getAgentToken,
   CARFetchUnauthorizedError,
 } from '@ewanc26/croft-click-core';
 
@@ -230,5 +231,46 @@ describe('getPdsUrlFromAgent', () => {
       fetchHandler: () => Promise.resolve(new Response()),
     };
     assert.strictEqual(getPdsUrlFromAgent(new Client(agent as never)), PDS);
+  });
+
+  it('preserves direct service support for legacy agents', () => {
+    // A bare agent has no inner agent to delegate to, so its `service` really
+    // is the host it talks to.
+    assert.strictEqual(
+      getPdsUrlFromAgent({ service: 'https://legacy-pds.example' }),
+      'https://legacy-pds.example',
+    );
+  });
+
+  it('never mistakes a Client service-proxy target for the PDS', () => {
+    // croft-click-core builds password clients with `{ service: api.app.service }`,
+    // which is the AppView DID — not a PDS URL. Falling through to it would
+    // produce a nonsensical endpoint instead of a clear failure.
+    const client = new Client(
+      { did: DID, fetchHandler: () => Promise.resolve(new Response()) } as never,
+      { service: 'did:web:api.bsky.app#bsky_appview' },
+    );
+
+    assert.strictEqual((client as { service?: unknown }).service, 'did:web:api.bsky.app#bsky_appview');
+    assert.throws(() => getPdsUrlFromAgent(client), /Cannot determine PDS URL/);
+  });
+});
+
+describe('getAgentToken', () => {
+  it('reads a password-session token through the lex Client wrapper', async () => {
+    const client = new Client(stubSession({}) as never);
+    assert.strictEqual(await getAgentToken(client), 'jwt-token');
+  });
+
+  it('returns undefined for an OAuth session, whose token is DPoP-bound', async () => {
+    // OAuthSession deliberately never exposes its access token, which is why
+    // fetchRepoViaCARWithClient lets the session issue the request itself.
+    const agent = {
+      did: DID,
+      serverMetadata: { issuer: PDS },
+      getTokenInfo: async () => ({ aud: PDS }),
+      fetchHandler: () => Promise.resolve(new Response()),
+    };
+    assert.strictEqual(await getAgentToken(new Client(agent as never)), undefined);
   });
 });
