@@ -1,6 +1,6 @@
 import type { Client } from '@atproto/lex'
 import type { PlayRecord, Config } from '../types.js';
-import { fetchRepoViaCAR, getPdsUrlFromAgent, getAgentToken } from '../utils/car-fetch.js';
+import { fetchRepoViaCARWithClient } from '../utils/car-fetch.js';
 import { formatDate, formatDateRange } from '../utils/helpers.js';
 import * as ui from '../utils/ui.js';
 import { log } from '../utils/logger.js';
@@ -19,13 +19,9 @@ interface DuplicateGroup {
   records: ExistingRecord[];
 }
 
-async function fetchPlayRecords(
-  pdsUrl: string,
-  did: string,
-  token: string | undefined,
-) {
+async function fetchPlayRecords(client: Client, did: string) {
   const collections = await Promise.all(
-    RECORD_TYPES.map((collection) => fetchRepoViaCAR(pdsUrl, did, collection, undefined, token)),
+    RECORD_TYPES.map((collection) => fetchRepoViaCARWithClient(client, collection, did)),
   );
   return collections.flat();
 }
@@ -75,10 +71,8 @@ export async function fetchExistingRecords(
     log.info('📦 Fetching repo via CAR export (no rate-limit points consumed)...');
   }
 
-  const pdsUrl = getPdsUrlFromAgent(client);
-  const token = await getAgentToken(client);
   const carStart = Date.now();
-  const carRecords = await fetchPlayRecords(pdsUrl, did, token);
+  const carRecords = await fetchPlayRecords(client, did);
   const carElapsed = ((Date.now() - carStart) / 1000).toFixed(1);
 
   const existingRecords = new Map<string, ExistingRecord>();
@@ -113,9 +107,7 @@ export async function fetchAllRecords(
 
   ui.startSpinner('📦 Fetching repo via CAR export...');
 
-  const pdsUrl = getPdsUrlFromAgent(client);
-  const token = await getAgentToken(client);
-  const carRecords = await fetchPlayRecords(pdsUrl, did, token);
+  const carRecords = await fetchPlayRecords(client, did);
   const allRecords: ExistingRecord[] = carRecords.map((rec: { uri: string; cid: string; value: any }) => ({
     uri: rec.uri,
     cid: rec.cid,

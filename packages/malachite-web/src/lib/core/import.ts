@@ -14,7 +14,7 @@ import { parseLastFmFile, convertToPlayRecord } from './csv.js';
 import { parseSpotifyFiles, convertSpotifyToPlayRecord } from './spotify.js';
 import { parseAppleMusicFile, convertAppleMusicToPlayRecord } from './apple-music.js';
 import { parseYouTubeMusicFiles, convertYouTubeMusicToPlayRecord } from './youtube-music.js';
-import { parseListenBrainzFile, convertListenBrainzToPlayRecord } from './listenbrainz.js';
+import { parseListenBrainzFiles, convertListenBrainzToPlayRecord } from './listenbrainz.js';
 import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '@ewanc26/croft-click-core';
 import {
   fetchExistingRecords,
@@ -195,7 +195,7 @@ export async function runImport(
       }
 
       if (listenbrainzFiles.length > 0) {
-        const lbRaw = await parseListenBrainzFile(listenbrainzFiles[0]);
+        const lbRaw = await parseListenBrainzFiles(listenbrainzFiles);
         onLog('info', `ListenBrainz: ${lbRaw.length.toLocaleString()} listens`);
         listenbrainzRecords = lbRaw.map(r => convertListenBrainzToPlayRecord(r, CLIENT_AGENT));
       }
@@ -216,7 +216,7 @@ export async function runImport(
       records = ytRaw.map((r) => convertYouTubeMusicToPlayRecord(r, CLIENT_AGENT));
       onLog('success', `Loaded ${records.length.toLocaleString()} YouTube Music records`);
     } else if (mode === 'listenbrainz') {
-      const lbRaw = await parseListenBrainzFile(listenbrainzFiles[0]);
+      const lbRaw = await parseListenBrainzFiles(listenbrainzFiles);
       records = lbRaw.map((r) => convertListenBrainzToPlayRecord(r, CLIENT_AGENT));
       onLog('success', `Loaded ${records.length.toLocaleString()} ListenBrainz records`);
     } else {
