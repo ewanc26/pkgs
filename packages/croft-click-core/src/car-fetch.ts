@@ -113,6 +113,46 @@ export interface CARRecord {
   value: unknown;
 }
 
+type AgentLike = Record<string, any>;
+
+/**
+ * Return the object that may contain the actual authenticated agent first.
+ *
+ * `@atproto/lex` wraps password and OAuth agents in `Client.agent`.  The
+ * wrapper's `service` is a service-proxy setting, not necessarily the user's
+ * PDS, so callers must inspect the underlying agent before the wrapper.
+ */
+function getAgentCandidates(agent: unknown): AgentLike[] {
+  if (
+    (typeof agent !== "object" && typeof agent !== "function") ||
+    agent === null
+  ) {
+    return [];
+  }
+
+  const root = agent as AgentLike;
+  const nested = root['agent'];
+  if (
+    (typeof nested === "object" || typeof nested === "function") &&
+    nested !== null
+  ) {
+    return [nested as AgentLike, root];
+  }
+
+  return [root];
+}
+
+function getOAuthIssuer(agent: AgentLike): string | undefined {
+  const sessionManagerIssuer = agent['sessionManager']?.serverMetadata?.issuer;
+  if (sessionManagerIssuer) return sessionManagerIssuer.toString();
+
+  // Current @atproto/oauth-client sessions expose the same metadata directly.
+  const issuer = agent['serverMetadata']?.issuer;
+  if (issuer) return issuer.toString();
+
+  return undefined;
+}
+
 /**
  * Fetch a user's entire ATProto repo as a CAR file and extract all records
  * from `collection`.
@@ -168,20 +208,27 @@ export async function fetchRepoViaCAR(
  * Handles both password-auth clients and OAuth session-manager clients.
  */
 export function getPdsUrlFromAgent(agent: unknown): string {
-  const a = agent as Record<string, unknown>;
+  const candidates = getAgentCandidates(agent);
 
-  // OAuth agent: session manager carries serverMetadata.issuer as the PDS base URL.
-  const issuer = (a['sessionManager'] as any)?.serverMetadata?.issuer;
-  if (issuer) return issuer.toString();
+  for (const candidate of candidates) {
+    const issuer = getOAuthIssuer(candidate);
+    if (issuer) return issuer;
 
-  // @atproto/lex Client: direct service URL.
-  const service = a['service'];
-  if (service && typeof service === 'string') return service;
+    // PasswordSession keeps the PDS used for authentication in session.service.
+    const sessionService = candidate['session']?.service;
+    if (sessionService) return sessionService.toString();
 
-  // Legacy AtpAgent / password-auth agent: direct URL fields.
-  for (const field of ['dispatchUrl', 'pdsUrl', 'serviceUrl']) {
-    const v = a[field] ?? (a['sessionManager'] as any)?.[field];
-    if (v) return v.toString();
+    // Legacy AtpAgent / password-auth agent: direct URL fields.
+    for (const field of ['dispatchUrl', 'pdsUrl', 'serviceUrl']) {
+      const value = candidate[field] ?? candidate['sessionManager']?.[field];
+      if (value) return value.toString();
+    }
+
+    // A plain legacy agent may expose its service directly.  Do not read
+    // Client.service here: for @atproto/lex that is a proxy configuration.
+    if (!candidate['agent'] && candidate['service']) {
+      return candidate['service'].toString();
+    }
   }
 
   throw new Error('Cannot determine PDS URL from agent');
@@ -198,36 +245,36 @@ export function getPdsUrlFromAgent(agent: unknown): string {
  * - OAuth (browser): agent.sessionManager.getTokens() → accessToken
  */
 export async function getAgentToken(agent: unknown): Promise<string | undefined> {
-  const a = agent as Record<string, unknown>;
+  for (const candidate of getAgentCandidates(agent)) {
+    // PasswordSession and legacy AtpAgent expose the access JWT through
+    // session.accessJwt.
+    const jwt = candidate['session']?.accessJwt;
+    if (jwt) return jwt as string;
 
-  // @atproto/lex Client with PasswordSession:
-  // session.accessJwt holds the current JWT.
-  const jwt = (a['session'] as any)?.accessJwt;
-  if (jwt) return jwt as string;
-
-  // Legacy @atproto/api Agent / AtpAgent:
-  const legacyJwt = (a['session'] as any)?.accessJwt;
-  if (legacyJwt) return legacyJwt as string;
-
-  // OAuth agent: session manager exposes getTokens() (non-mutating read).
-  const sm = (a['sessionManager'] as any);
-  if (typeof sm?.getTokens === 'function') {
-    try {
-      const tokens = await sm.getTokens() as { accessToken?: string } | null;
-      if (tokens?.accessToken) return tokens.accessToken;
-    } catch {
-      // Token read failed — try a silent refresh before giving up.
-    }
-
-    // If getTokens() returned nothing (expired session), attempt a silent
-    // refresh via the session manager and retry once.
-    if (typeof sm?.refresh === 'function') {
+    // OAuth agent: session manager exposes getTokens() (non-mutating read).
+    const sm = candidate['sessionManager'];
+    if (typeof sm?.getTokens === 'function') {
       try {
-        await sm.refresh();
-        const refreshed = await sm.getTokens() as { accessToken?: string } | null;
-        if (refreshed?.accessToken) return refreshed.accessToken;
+        const tokens = (await sm.getTokens()) as {
+          accessToken?: string;
+        } | null;
+        if (tokens?.accessToken) return tokens.accessToken;
       } catch {
-        // Refresh failed — fall through and return undefined.
+        // Token read failed — try a silent refresh before giving up.
+      }
+
+      // If getTokens() returned nothing (expired session), attempt a silent
+      // refresh via the session manager and retry once.
+      if (typeof sm?.refresh === 'function') {
+        try {
+          await sm.refresh();
+          const refreshed = (await sm.getTokens()) as {
+            accessToken?: string;
+          } | null;
+          if (refreshed?.accessToken) return refreshed.accessToken;
+        } catch {
+          // Refresh failed — fall through and try the next candidate.
+        }
       }
     }
   }
