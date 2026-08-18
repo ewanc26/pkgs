@@ -68,7 +68,8 @@ ${'\x1b[1m'}INPUT:${'\x1b[0m'}
   --spotify-input <path>         Path to Spotify JSON export
   --apple-input <path>           Path to Apple Music CSV export
   --youtube-input <path>         Path to YouTube Music JSON export
-  --listenbrainz-input <path>    Path to ListenBrainz JSON export
+  --listenbrainz-input <path>    Path to ListenBrainz export (.zip, export
+                                 directory, or .json/.jsonl file)
 
 ${'\x1b[1m'}MODE:${'\x1b[0m'}
   -m, --mode <mode>              Import mode (default: lastfm)
@@ -459,7 +460,7 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
         args['youtube-input'] = youtube;
       }
 
-      const listenbrainz = await promptWithValidation('📁 Path to ListenBrainz JSON export (optional, Enter to skip): ', (input) => validateFilePath(input, 'json'), true);
+      const listenbrainz = await promptWithValidation('📁 Path to ListenBrainz export .zip, directory, or .json/.jsonl file (optional, Enter to skip): ', (input) => validateFilePath(input, 'listenbrainz'), true);
       if (listenbrainz) {
         args['listenbrainz-input'] = listenbrainz;
       }
@@ -495,8 +496,8 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
       console.log('─'.repeat(50));
 
       args.input = await promptWithValidation(
-        '📁 Path to ListenBrainz JSON export: ',
-        (input) => validateFilePath(input, 'json')
+        '📁 Path to ListenBrainz export (.zip, directory, or .json/.jsonl file): ',
+        (input) => validateFilePath(input, 'listenbrainz')
       );
       console.log('✓ File validated');
     } else {

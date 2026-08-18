@@ -1,5 +1,11 @@
 <script lang="ts">
   import { ArrowLeft, ArrowRight, CheckCircle2, Music2, Disc3, Apple, Youtube, Waves } from '@lucide/svelte';
+  import { LISTENBRAINZ_ACCEPT } from '$lib/core/listenbrainz.js';
+
+  /** A ListenBrainz export is a .zip of per-month .jsonl files. */
+  const LB_EXTENSIONS = ['.zip', '.json', '.jsonl'];
+  const isListenBrainzFile = (f: File) =>
+    LB_EXTENSIONS.some((ext) => f.name.toLowerCase().endsWith(ext));
 
   let {
     lastfmFiles  = $bindable<File[]>([]),
@@ -44,7 +50,7 @@
       youtubeFiles = files.filter((f) => f.name.endsWith('.json'));
     } else if (type === 'lb') {
       lbDragging   = false;
-      listenbrainzFiles = files.filter((f) => f.name.endsWith('.json'));
+      listenbrainzFiles = files.filter(isListenBrainzFile);
     }
   }
 
@@ -218,7 +224,7 @@
         class:filled={listenbrainzFiles.length > 0}
         role="button"
         tabindex="0"
-        aria-label="Upload ListenBrainz JSON file"
+        aria-label="Upload ListenBrainz export"
         ondragover={(e) => { e.preventDefault(); lbDragging = true; }}
         ondragleave={() => (lbDragging = false)}
         ondrop={(e) => handleDrop(e, 'lb')}
@@ -228,18 +234,25 @@
         <input
           id="lbInput"
           type="file"
-          accept=".json"
+          accept={LISTENBRAINZ_ACCEPT}
+          multiple
           hidden
           onchange={(e) => { listenbrainzFiles = Array.from((e.target as HTMLInputElement).files ?? []); }}
         />
         {#if listenbrainzFiles.length > 0}
           <span class="drop-icon drop-done"><CheckCircle2 size={28} /></span>
-          <span class="drop-filename">{listenbrainzFiles[0].name}</span>
-          <span class="drop-meta">{(listenbrainzFiles[0].size / 1024).toFixed(0)} KB · JSON</span>
+          <span class="drop-filename">
+            {listenbrainzFiles.length === 1
+              ? listenbrainzFiles[0].name
+              : `${listenbrainzFiles.length} files selected`}
+          </span>
+          <span class="drop-meta">
+            {(listenbrainzFiles.reduce((n, f) => n + f.size, 0) / 1024 / 1024).toFixed(1)} MB
+          </span>
         {:else}
           <span class="drop-icon"><Waves size={28} /></span>
-          <span class="drop-title">ListenBrainz JSON</span>
-          <span class="drop-hint">Drag & drop or click to select</span>
+          <span class="drop-title">ListenBrainz export</span>
+          <span class="drop-hint">Drop the .zip, or select the .jsonl files</span>
         {/if}
       </div>
     {/if}
@@ -293,7 +306,9 @@
         <p>
           Go to your <a href="https://listenbrainz.org/settings/export/" target="_blank" rel="noopener">
             ListenBrainz export settings
-          </a> and use "Download Listens" to get your listen history as JSON.
+          </a> and use "Download Listens". Upload the .zip exactly as downloaded —
+          it contains one .jsonl file per month, and all of them are imported.
+          Individual .json or .jsonl files work too.
         </p>
       </details>
     {/if}

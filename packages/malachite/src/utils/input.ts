@@ -40,7 +40,10 @@ export function isDirectory(filepath: string): boolean {
 /**
  * Validate file path and provide helpful feedback
  */
-export function validateFilePath(filepath: string, fileType: 'csv' | 'json' | 'directory'): { valid: boolean; message?: string } {
+export function validateFilePath(
+  filepath: string,
+  fileType: 'csv' | 'json' | 'directory' | 'listenbrainz'
+): { valid: boolean; message?: string } {
   if (!filepath || filepath.trim() === '') {
     return { valid: false, message: '⚠️  Path cannot be empty' };
   }
@@ -60,7 +63,7 @@ export function validateFilePath(filepath: string, fileType: 'csv' | 'json' | 'd
   }
 
   // Check if it's a directory when we expect a file
-  if (fileType !== 'directory' && isDirectory(trimmedPath)) {
+  if (fileType !== 'directory' && fileType !== 'listenbrainz' && isDirectory(trimmedPath)) {
     return { valid: false, message: `⚠️  Expected a file but got a directory: ${trimmedPath}` };
   }
 
@@ -71,6 +74,18 @@ export function validateFilePath(filepath: string, fileType: 'csv' | 'json' | 'd
 
   if (fileType === 'json' && !isDirectory(trimmedPath) && !trimmedPath.toLowerCase().endsWith('.json')) {
     return { valid: false, message: `⚠️  Expected a JSON file or directory, but got: ${path.extname(trimmedPath)}` };
+  }
+
+  // A ListenBrainz export is a .zip of per-month .jsonl files, so accept the
+  // archive, the unpacked directory, or any single export file.
+  if (fileType === 'listenbrainz' && !isDirectory(trimmedPath)) {
+    const lower = trimmedPath.toLowerCase();
+    if (!lower.endsWith('.zip') && !lower.endsWith('.json') && !lower.endsWith('.jsonl')) {
+      return {
+        valid: false,
+        message: `⚠️  Expected a .zip, .json, .jsonl, or export directory, but got: ${path.extname(trimmedPath)}`,
+      };
+    }
   }
 
   return { valid: true };

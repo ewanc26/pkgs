@@ -5,20 +5,7 @@
 
 import type { LastFmCsvRecord, PlayRecord } from './types.js';
 import { RECORD_TYPE } from './config.js';
-
-const MBID_URI_RE = /^mbid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export function normalizeMusicBrainzId(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  if (MBID_URI_RE.test(trimmed)) return `mbid:${trimmed.slice(5).toLowerCase()}`;
-
-  const withoutUrl = trimmed.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0];
-  if (withoutUrl && UUID_RE.test(withoutUrl)) return `mbid:${withoutUrl.toLowerCase()}`;
-
-  return undefined;
-}
+import { normalizeMusicBrainzId } from './mbid.js';
 
 // ─── delimiter detection ──────────────────────────────────────────────────────
 

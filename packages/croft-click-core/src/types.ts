@@ -66,20 +66,23 @@ export interface ListenBrainzRecord {
   track_metadata: {
     additional_info?: {
       artist_mbids?: string[];
-      release_mbid?: string;
-      recording_mbid?: string;
-      track_mbid?: string;
+      release_mbid?: string | null;
+      recording_mbid?: string | null;
+      track_mbid?: string | null;
       isrc?: string;
       music_service?: string;
       origin_url?: string;
     };
-    mbid_mapping: {
+    // Only populated once ListenBrainz has matched the listen against
+    // MusicBrainz — real exports carry an explicit `null` for unmatched listens
+    // and omit the key entirely in older dumps.
+    mbid_mapping?: {
       artist_mbids?: string[];
-      release_mbid?: string;
-      recording_mbid?: string;
+      release_mbid?: string | null;
+      recording_mbid?: string | null;
       recording_name?: string;
       artists?: { artist_credit_name: string; artist_mbid: string; }[];
-    }
+    } | null;
     artist_name: string;
     track_name: string;
     release_name?: string;
