@@ -142,7 +142,11 @@ export async function fetchRepoViaCAR(
     throw new Error(`CAR fetch failed: ${response.status} ${response.statusText}`);
   }
 
-  const carBytes = new Uint8Array(await response.arrayBuffer());
+  return parseCAR(new Uint8Array(await response.arrayBuffer()), did, collection);
+}
+
+/** Decode a CARv1 repo export and extract every record in `collection`. */
+async function parseCAR(carBytes: Uint8Array, did: string, collection: string): Promise<CARRecord[]> {
   const reader = await CarReader.fromBytes(carBytes);
   const blocks = await buildBlockMap(reader);
 
@@ -164,53 +168,186 @@ export async function fetchRepoViaCAR(
 }
 
 /**
- * Extract the PDS base URL from an @atproto/lex Client or legacy @atproto/api Agent.
- * Handles both password-auth clients and OAuth session-manager clients.
+ * Minimal shape of the session object an @atproto/lex `Client` wraps.
+ * Both PasswordSession and OAuthSession satisfy this.
  */
-export function getPdsUrlFromAgent(agent: unknown): string {
-  const a = agent as Record<string, unknown>;
+interface AgentLike {
+  did?: string;
+  fetchHandler(path: string, init?: RequestInit): Promise<Response>;
+  /** OAuthSession only — reports the true PDS as the token audience. */
+  getTokenInfo?(refresh?: boolean | 'auto'): Promise<{ aud?: string }>;
+}
 
-  // OAuth agent: session manager carries serverMetadata.issuer as the PDS base URL.
-  const issuer = (a['sessionManager'] as any)?.serverMetadata?.issuer;
+/**
+ * Unwrap the request-issuing agent from an @atproto/lex `Client`.
+ *
+ * `Client` delegates every request to `client.agent`, which is the
+ * PasswordSession or OAuthSession that actually knows the PDS URL and holds
+ * the credentials. Callers may pass either the Client or the bare agent.
+ */
+function asAgent(clientOrAgent: unknown): AgentLike | undefined {
+  const c = clientOrAgent as Record<string, unknown> | undefined;
+  if (!c) return undefined;
+
+  const inner = c['agent'] as Record<string, unknown> | undefined;
+  if (inner && typeof inner['fetchHandler'] === 'function') return inner as unknown as AgentLike;
+  if (typeof c['fetchHandler'] === 'function') return c as unknown as AgentLike;
+
+  return undefined;
+}
+
+/**
+ * Best-effort PDS base URL for a Client, agent, or legacy @atproto/api Agent.
+ *
+ * Only used for diagnostics now — {@link fetchRepoViaCARWithClient} routes
+ * through the agent's own fetch handler rather than rebuilding the URL, since
+ * the handler already resolves the PDS (including the didDoc override that a
+ * PasswordSession applies after login).
+ */
+export function getPdsUrlFromAgent(clientOrAgent: unknown): string {
+  const c = clientOrAgent as Record<string, unknown>;
+  const agent = (c?.['agent'] as Record<string, unknown> | undefined) ?? c;
+
+  // @atproto/lex PasswordSession: session data carries the PDS it logged in to,
+  // with the DID document's endpoint taking precedence once resolved.
+  const session = agent?.['session'] as Record<string, unknown> | undefined;
+  const didDocPds = pdsFromDidDoc(session?.['didDoc']);
+  if (didDocPds) return didDocPds;
+  if (typeof session?.['service'] === 'string') return session['service'];
+
+  // OAuth session: the authorization server metadata issuer doubles as the PDS
+  // base URL for PDS-hosted authorization servers.
+  const issuer =
+    (agent?.['serverMetadata'] as any)?.issuer ??
+    (c?.['sessionManager'] as any)?.serverMetadata?.issuer;
   if (issuer) return issuer.toString();
 
-  // @atproto/lex Client: direct service URL.
-  const service = a['service'];
-  if (service && typeof service === 'string') return service;
-
   // Legacy AtpAgent / password-auth agent: direct URL fields.
-  for (const field of ['dispatchUrl', 'pdsUrl', 'serviceUrl']) {
-    const v = a[field] ?? (a['sessionManager'] as any)?.[field];
-    if (v) return v.toString();
+  for (const field of ['service', 'dispatchUrl', 'pdsUrl', 'serviceUrl']) {
+    const v = agent?.[field] ?? c?.[field] ?? (c?.['sessionManager'] as any)?.[field];
+    if (typeof v === 'string' && v) return v;
+    if (v instanceof URL) return v.toString();
   }
 
   throw new Error('Cannot determine PDS URL from agent');
 }
 
+/** Pull the #atproto_pds service endpoint out of a DID document, if present. */
+function pdsFromDidDoc(didDoc: unknown): string | undefined {
+  const services = (didDoc as { service?: unknown })?.service;
+  if (!Array.isArray(services)) return undefined;
+  for (const svc of services) {
+    const s = svc as { id?: string; type?: string; serviceEndpoint?: unknown };
+    const id = s?.id;
+    if ((id === '#atproto_pds' || id?.endsWith('#atproto_pds')) && typeof s.serviceEndpoint === 'string') {
+      return s.serviceEndpoint;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Fetch a repo as a CAR file using an authenticated client's own transport.
+ *
+ * This is the preferred entry point for any signed-in flow. Delegating to
+ * `client.agent.fetchHandler` means the session resolves the PDS origin and
+ * attaches credentials itself — Bearer for password sessions, DPoP-bound
+ * tokens for OAuth — and transparently refreshes and retries on an expired
+ * token. Reconstructing the URL and token by hand (as this module used to do)
+ * cannot work for OAuth, whose access tokens are never exposed.
+ *
+ * @param clientOrAgent An @atproto/lex Client, or the session agent directly.
+ * @param did           Repo to export. Defaults to the authenticated user.
+ */
+export async function fetchRepoViaCARWithClient(
+  clientOrAgent: unknown,
+  collection: string,
+  did?: string,
+  signal?: AbortSignal,
+): Promise<CARRecord[]> {
+  const agent = asAgent(clientOrAgent);
+  if (!agent) {
+    throw new Error('Cannot fetch repo: client has no usable session agent');
+  }
+
+  const repoDid = did ?? agent.did;
+  if (!repoDid) {
+    throw new Error('Cannot fetch repo: no DID available from the session');
+  }
+
+  const path = `/xrpc/com.atproto.sync.getRepo?did=${encodeURIComponent(repoDid)}`;
+  const headers = { Accept: 'application/vnd.ipld.car' };
+
+  const response = await agent.fetchHandler(path, { headers, signal });
+
+  if (response.ok) {
+    return parseCAR(new Uint8Array(await response.arrayBuffer()), repoDid, collection);
+  }
+
+  // com.atproto.sync.getRepo is public per spec, so a PDS that refuses our
+  // credentials (an OAuth scope that does not cover the sync namespace, say)
+  // may still serve the export anonymously. Worth one unauthenticated retry
+  // before giving up.
+  if (response.status === 401 || response.status === 403) {
+    const pdsUrl = await resolvePdsUrl(clientOrAgent);
+    if (pdsUrl) {
+      try {
+        return await fetchRepoViaCAR(pdsUrl, repoDid, collection, signal);
+      } catch {
+        // Anonymous retry failed too — report the original refusal below.
+      }
+    }
+    throw new CARFetchUnauthorizedError(pdsUrl ?? 'the PDS', repoDid);
+  }
+
+  throw new Error(`CAR fetch failed: ${response.status} ${response.statusText}`);
+}
+
+/**
+ * Resolve the PDS base URL, never throwing.
+ *
+ * An OAuth session reports the true PDS as its token audience, which matters
+ * for entryway-hosted accounts where the issuer and the PDS differ.
+ */
+async function resolvePdsUrl(clientOrAgent: unknown): Promise<string | undefined> {
+  const agent = asAgent(clientOrAgent);
+  if (typeof agent?.getTokenInfo === 'function') {
+    try {
+      const aud = (await agent.getTokenInfo('auto'))?.aud;
+      if (aud) return aud;
+    } catch {
+      // Fall through to the synchronous best-effort lookup.
+    }
+  }
+
+  try {
+    return getPdsUrlFromAgent(clientOrAgent);
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Extract a Bearer token from a client for authenticated CAR fetches.
  *
- * Some PDS instances return 401 on com.atproto.sync.getRepo without auth,
- * even though the spec marks it public.  This helper covers both auth shapes:
+ * Prefer {@link fetchRepoViaCARWithClient}, which lets the session attach its
+ * own credentials. This helper only covers bearer-token shapes: an OAuth
+ * session's access token is DPoP-bound and deliberately not exposed, so it
+ * returns undefined there.
  *
- * - @atproto/lex Client backed by PasswordSession: session.accessJwt
+ * - @atproto/lex Client backed by PasswordSession: client.agent.session.accessJwt
  * - Legacy @atproto/api Agent: agent.session.accessJwt
- * - OAuth (browser): agent.sessionManager.getTokens() → accessToken
  */
-export async function getAgentToken(agent: unknown): Promise<string | undefined> {
-  const a = agent as Record<string, unknown>;
+export async function getAgentToken(clientOrAgent: unknown): Promise<string | undefined> {
+  const a = clientOrAgent as Record<string, unknown>;
+  const agent = (a?.['agent'] as Record<string, unknown> | undefined) ?? a;
 
-  // @atproto/lex Client with PasswordSession:
-  // session.accessJwt holds the current JWT.
-  const jwt = (a['session'] as any)?.accessJwt;
+  // @atproto/lex PasswordSession / legacy AtpAgent: session.accessJwt is the JWT.
+  const jwt = (agent?.['session'] as any)?.accessJwt ?? (a?.['session'] as any)?.accessJwt;
   if (jwt) return jwt as string;
 
-  // Legacy @atproto/api Agent / AtpAgent:
-  const legacyJwt = (a['session'] as any)?.accessJwt;
-  if (legacyJwt) return legacyJwt as string;
-
-  // OAuth agent: session manager exposes getTokens() (non-mutating read).
-  const sm = (a['sessionManager'] as any);
+  // Legacy OAuth agent: session manager exposes getTokens() (non-mutating read).
+  const sm = (a?.['sessionManager'] as any);
   if (typeof sm?.getTokens === 'function') {
     try {
       const tokens = await sm.getTokens() as { accessToken?: string } | null;

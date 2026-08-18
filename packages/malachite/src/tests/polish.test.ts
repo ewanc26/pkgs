@@ -31,31 +31,44 @@ function play(rkey: string, track: string, $type = 'fm.teal.alpha.feed.play') {
   };
 }
 
+/**
+ * Stand-in for an @atproto/lex Client.
+ *
+ * Migration writes go through a single `client.call(applyWrites)` per batch,
+ * so the mock splits the batch back out into the creates and deletes the
+ * assertions care about.
+ */
 function makeFakeAgent(
-  onCreate?: (opts: any) => Promise<unknown>,
-  onDelete?: (opts: any) => Promise<unknown>
+  onCreate?: (write: any) => Promise<unknown>,
+  onDelete?: (write: any) => Promise<unknown>
 ) {
   const created: any[] = [];
   const deleted: any[] = [];
-  const agent = {
+
+  const client = {
+    assertDid: 'did:plc:test',
     did: 'did:plc:test',
-    session: { did: 'did:plc:test' },
-    com: {
-      atproto: {
-        repo: {
-          createRecord: async (opts: any) => {
-            created.push(opts);
-            return onCreate ? onCreate(opts) : { data: {} };
-          },
-          deleteRecord: async (opts: any) => {
-            deleted.push(opts);
-            return onDelete ? onDelete(opts) : { data: {} };
-          },
-        },
-      },
+    call: async (_nsid: unknown, params: any) => {
+      const results: unknown[] = [];
+      for (const write of params.writes ?? []) {
+        const isCreate = write.$type === 'com.atproto.repo.applyWrites#create';
+        // Record the write in the legacy per-record shape the assertions use.
+        (isCreate ? created : deleted).push({
+          collection: write.collection,
+          rkey: write.rkey,
+          record: write.value,
+        });
+        const hook = isCreate ? onCreate : onDelete;
+        // A throwing hook models the whole applyWrites call failing, which is
+        // how the PDS rejects a batch.
+        if (hook) await hook(write);
+        results.push({ $type: 'com.atproto.repo.applyWrites#createResult' });
+      }
+      return { results };
     },
   };
-  return { agent: agent as unknown as Client, created, deleted };
+
+  return { agent: client as unknown as Client, created, deleted };
 }
 
 describe('buildPolishPlan', () => {
