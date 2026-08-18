@@ -1,7 +1,7 @@
 {
   "name": "@ewanc26/croft-click-core",
   "version": "0.2.3",
-  "description": "Shared core library for croft.click ATProto tools \u2014 publishing, rate limiting, sync, and data conversion",
+  "description": "Shared core library for croft.click ATProto tools — publishing, rate limiting, sync, and data conversion",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -40,12 +40,13 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@bsky/sdk": "latest",
     "@atproto/lex": "^0.3.0",
     "@atproto/lex-password-session": "^0.2.0",
+    "@bsky/sdk": "latest",
     "@ewanc26/tid": "workspace:*",
     "@ipld/car": "^5.3.2",
     "@ipld/dag-cbor": "^9.2.2",
+    "fflate": "^0.8.3",
     "multiformats": "^13.3.1"
   },
   "devDependencies": {
