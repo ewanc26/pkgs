@@ -9,7 +9,7 @@
 
 import type { Client } from '@atproto/lex';
 import { RECORD_TYPE, LEGACY_RECORD_TYPE } from './config.js';
-import { fetchRepoViaCAR, getPdsUrlFromAgent, getAgentToken } from './car-fetch.js';
+import { fetchRepoViaCARWithClient } from './car-fetch.js';
 import { retryWithBackoff } from './retry-helper.js';
 import { RateLimiter } from './rate-limiter.js';
 import { ProactiveRatePacer } from './proactive-rate-pacer.js';
@@ -127,12 +127,9 @@ export async function analyzeLegacyRecords(client: Client, signal?: AbortSignal)
 
   signal?.throwIfAborted();
 
-  const pdsUrl = getPdsUrlFromAgent(client);
-  const token = await getAgentToken(client);
-
   const [legacy, production] = await Promise.all([
-    fetchRepoViaCAR(pdsUrl, did, LEGACY_RECORD_TYPE, signal, token),
-    fetchRepoViaCAR(pdsUrl, did, RECORD_TYPE, signal, token),
+    fetchRepoViaCARWithClient(client, LEGACY_RECORD_TYPE, did, signal),
+    fetchRepoViaCARWithClient(client, RECORD_TYPE, did, signal),
   ]);
 
   return buildPolishPlan(legacy, production);
