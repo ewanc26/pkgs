@@ -1,6 +1,8 @@
 <script lang="ts">
   import { ArrowLeft, ArrowRight, CheckCircle2, Music2, Disc3, Apple, Youtube, Waves } from '@lucide/svelte';
   import { LISTENBRAINZ_ACCEPT } from '$lib/core/listenbrainz.js';
+  import { fetchLastFmAsFile, type LastFmFetchProgress } from '$lib/core/csv.js';
+  import { saveLastFmApi, loadLastFmApi } from '$lib/core/web-cache.js';
 
   /** A ListenBrainz export is a .zip of per-month .jsonl files. */
   const LB_EXTENSIONS = ['.zip', '.json', '.jsonl'];
@@ -32,6 +34,44 @@
   let amDragging = $state(false);
   let ytDragging = $state(false);
   let lbDragging = $state(false);
+
+  // ─── Last.fm live fetch ────────────────────────────────────────────────────
+  const savedLastFm = loadLastFmApi();
+  let lfShowFetch  = $state(false);
+  let lfUsername   = $state(savedLastFm?.username ?? '');
+  let lfApiKey     = $state(savedLastFm?.apiKey ?? '');
+  let lfFetching   = $state(false);
+  let lfFetchError = $state<string | null>(null);
+  let lfProgress   = $state<LastFmFetchProgress | null>(null);
+  let lfAbort: AbortController | null = null;
+
+  async function handleFetchLastFm() {
+    if (!lfUsername.trim() || !lfApiKey.trim() || lfFetching) return;
+    lfFetching = true;
+    lfFetchError = null;
+    lfProgress = null;
+    lfAbort = new AbortController();
+    try {
+      const file = await fetchLastFmAsFile(lfUsername, lfApiKey, {
+        signal: lfAbort.signal,
+        onProgress: (p) => { lfProgress = p; },
+      });
+      lastfmFiles = [file];
+      saveLastFmApi(lfUsername.trim(), lfApiKey.trim());
+      lfShowFetch = false;
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        lfFetchError = err?.message ?? 'Failed to fetch scrobbles from Last.fm.';
+      }
+    } finally {
+      lfFetching = false;
+      lfAbort = null;
+    }
+  }
+
+  function handleCancelFetch() {
+    lfAbort?.abort();
+  }
 
   function handleDrop(e: DragEvent, type: 'lf' | 'sp' | 'am' | 'yt' | 'lb') {
     e.preventDefault();
@@ -258,14 +298,78 @@
     {/if}
   </div>
 
+  {#if needs.lastfm && lastfmFiles.length === 0}
+    <div class="lastfm-fetch">
+      {#if !lfShowFetch}
+        <button type="button" class="lastfm-fetch-toggle" onclick={() => (lfShowFetch = true)}>
+          Or fetch scrobbles directly from Last.fm →
+        </button>
+      {:else}
+        <div class="lastfm-fetch-form">
+          <p class="lastfm-fetch-title">Fetch directly from Last.fm</p>
+          <p class="lastfm-fetch-hint">
+            Requires a free personal API key from
+            <a href="https://www.last.fm/api/account/create" target="_blank" rel="noopener">last.fm/api/account/create</a>.
+            It's stored only in this browser and sent directly to Last.fm — never to a Malachite server.
+          </p>
+          <div class="lastfm-fetch-fields">
+            <input
+              type="text"
+              placeholder="Last.fm username"
+              autocomplete="off"
+              bind:value={lfUsername}
+              disabled={lfFetching}
+            />
+            <input
+              type="password"
+              placeholder="Last.fm API key"
+              autocomplete="off"
+              bind:value={lfApiKey}
+              disabled={lfFetching}
+            />
+          </div>
+          {#if lfFetching}
+            <div class="lastfm-fetch-progress">
+              <span class="spinner"></span>
+              <span>
+                {#if lfProgress}
+                  Fetching page {lfProgress.page} of {lfProgress.totalPages} — {lfProgress.fetched.toLocaleString()} scrobble(s) so far…
+                {:else}
+                  Fetching…
+                {/if}
+              </span>
+              <button type="button" class="lastfm-fetch-cancel" onclick={handleCancelFetch}>Cancel</button>
+            </div>
+          {:else}
+            <div class="lastfm-fetch-actions">
+              <button
+                type="button"
+                class="btn-secondary"
+                onclick={handleFetchLastFm}
+                disabled={!lfUsername.trim() || !lfApiKey.trim()}
+              >
+                Fetch scrobbles
+              </button>
+              <button type="button" class="lastfm-fetch-cancel" onclick={() => (lfShowFetch = false)}>Cancel</button>
+            </div>
+          {/if}
+          {#if lfFetchError}
+            <p class="lastfm-fetch-error">{lfFetchError}</p>
+          {/if}
+        </div>
+      {/if}
+    </div>
+  {/if}
+
   <div class="how-to">
     {#if needs.lastfm}
       <details>
         <summary>How to export from Last.fm</summary>
         <p>
-          Use the third-party export tool at <a href="https://lastfm.ghan.nl/export/" target="_blank" rel="noopener">
-            lastfm.ghan.nl/export
-          </a> to download your scrobble history as a CSV.
+          Malachite can <button type="button" class="link-btn" onclick={() => (lfShowFetch = true)}>fetch your scrobbles directly</button>
+          — no export needed. If you'd rather export a CSV yourself, use
+          <a href="https://lastfmstats.com" target="_blank" rel="noopener">lastfmstats.com</a>:
+          enter your username, then use its Export button to download your scrobble history as a CSV.
         </p>
       </details>
     {/if}
@@ -350,4 +454,86 @@
   .drop-filename      { font-size: 0.825rem; color: var(--accent); font-family: 'JetBrains Mono', monospace; word-break: break-all; }
   .drop-meta          { font-size: 0.7rem; color: var(--muted); }
   .drop-hint          { font-size: 0.75rem; color: var(--muted); }
+
+  /* ─── Last.fm live fetch ────────────────────────────────────────────────── */
+  .lastfm-fetch { margin: -0.5rem 0 1.25rem; }
+
+  .lastfm-fetch-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .lastfm-fetch-toggle:hover { color: var(--accent); }
+
+  .lastfm-fetch-form {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+  }
+
+  .lastfm-fetch-title { font-size: 0.85rem; font-weight: 500; color: var(--text); margin: 0 0 0.3rem; }
+  .lastfm-fetch-hint  { font-size: 0.75rem; color: var(--muted); line-height: 1.5; margin: 0 0 0.75rem; }
+  .lastfm-fetch-hint a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+
+  .lastfm-fetch-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .lastfm-fetch-fields input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.825rem;
+    color: var(--text);
+  }
+  .lastfm-fetch-fields input:focus { outline: none; border-color: var(--accent); }
+
+  .lastfm-fetch-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+  .lastfm-fetch-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .lastfm-fetch-cancel {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .lastfm-fetch-cancel:hover { color: var(--text); }
+
+  .lastfm-fetch-error {
+    font-size: 0.78rem;
+    color: #e5534b;
+    margin: 0.6rem 0 0;
+  }
+
+  .link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
 </style>

@@ -37,15 +37,19 @@ const COLUMN_MAP: Record<string, string> = {
 function normalizeRecord(raw: Record<string, string>): LastFmCsvRecord {
   const normalized: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw)) {
-    const mapped = COLUMN_MAP[k.toLowerCase()];
+    // Some exporters (e.g. lastfmstats.com) suffix the date column with the
+    // username, e.g. "Date#alice" — strip that before matching COLUMN_MAP.
+    const baseKey = k.toLowerCase().split('#')[0].trim();
+    const mapped = COLUMN_MAP[baseKey];
     if (mapped) normalized[mapped] = v;
   }
   if (normalized['uts']) {
     const ts = normalized['uts'].toString();
     if (ts.length >= 13) normalized['uts'] = Math.floor(parseInt(ts) / 1000).toString();
   }
-  if (normalized['uts'] && !normalized['utc_time']) {
-    normalized['utc_time'] = new Date(parseInt(normalized['uts']) * 1000).toISOString();
+  const utsNum = normalized['uts'] ? parseInt(normalized['uts'], 10) : NaN;
+  if (Number.isFinite(utsNum) && !normalized['utc_time']) {
+    normalized['utc_time'] = new Date(utsNum * 1000).toISOString();
   }
   return normalized as unknown as LastFmCsvRecord;
 }
@@ -104,7 +108,7 @@ export function parseLastFmCsvContent(rawContent: string): LastFmCsvRecord[] {
   const delimiter = detectDelimiter(content);
   const raw = parseCSV(content, delimiter);
   const records = raw.map(normalizeRecord);
-  return records.filter((r) => r.artist && r.track && r.uts);
+  return records.filter((r) => r.artist && r.track && r.uts && Number.isFinite(parseInt(r.uts, 10)));
 }
 
 /**
@@ -114,7 +118,11 @@ export function parseLastFmCsvContent(rawContent: string): LastFmCsvRecord[] {
  *                     (e.g. `malachite/v0.10.0` for CLI, `malachite/v0.3.0 (web)` for web).
  */
 export function convertToPlayRecord(csv: LastFmCsvRecord, clientAgent: string): PlayRecord {
-  const playedTime = new Date(parseInt(csv.uts) * 1000).toISOString();
+  const utsNum = parseInt(csv.uts, 10);
+  if (!Number.isFinite(utsNum)) {
+    throw new Error(`Invalid or missing timestamp for "${csv.track}" by ${csv.artist} (uts="${csv.uts}")`);
+  }
+  const playedTime = new Date(utsNum * 1000).toISOString();
 
   const artists: PlayRecord['artists'] = [];
   if (csv.artist) {
@@ -144,4 +152,26 @@ export function convertToPlayRecord(csv: LastFmCsvRecord, clientAgent: string): 
   record.originUri = `https://www.last.fm/music/${aEnc}/_/${tEnc}`;
 
   return record;
+}
+
+// ─── serialisation ──────────────────────────────────────────────────────────
+
+const CSV_COLUMNS = ['uts', 'utc_time', 'artist', 'artist_mbid', 'album', 'album_mbid', 'track', 'track_mbid'] as const;
+
+function escapeCsvCell(value: string | undefined): string {
+  const s = value ?? '';
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/**
+ * Serialise normalised Last.fm records back into Malachite's own comma-delimited
+ * CSV shape. Used to package scrobbles fetched live from the Last.fm API as a
+ * File, so they flow through the same parse/import pipeline as an uploaded export.
+ */
+export function lastFmRecordsToCsv(records: LastFmCsvRecord[]): string {
+  const lines = [CSV_COLUMNS.join(',')];
+  for (const r of records) {
+    lines.push(CSV_COLUMNS.map((col) => escapeCsvCell(r[col])).join(','));
+  }
+  return lines.join('\n');
 }
