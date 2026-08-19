@@ -180,3 +180,32 @@ export function getSavedHandle(): string | null {
 export function clearSavedCredentials(): void {
   try { localStorage.removeItem(KEY_CREDENTIALS); } catch { /* ignore */ }
 }
+
+// ─── Last.fm API credentials (localStorage) ────────────────────────────────
+// A personal Last.fm API key, entered by the user, so the "fetch directly"
+// option doesn't ask for it on every visit. Never sent anywhere but
+// ws.audioscrobbler.com — there is no Malachite server to leak it to.
+
+const KEY_LASTFM_API = 'malachite:lastfm-api';
+
+export interface SavedLastFmApi {
+  username: string;
+  apiKey: string;
+}
+
+export function saveLastFmApi(username: string, apiKey: string): void {
+  try {
+    localStorage.setItem(KEY_LASTFM_API, JSON.stringify({ username, apiKey }));
+  } catch { /* ignore */ }
+}
+
+export function loadLastFmApi(): SavedLastFmApi | null {
+  try {
+    const raw = localStorage.getItem(KEY_LASTFM_API);
+    return raw ? (JSON.parse(raw) as SavedLastFmApi) : null;
+  } catch { return null; }
+}
+
+export function clearLastFmApi(): void {
+  try { localStorage.removeItem(KEY_LASTFM_API); } catch { /* ignore */ }
+}

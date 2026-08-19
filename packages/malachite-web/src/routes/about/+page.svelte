@@ -61,6 +61,13 @@
         Fonts. If you prefer not to make this request, you can self-host the fonts or use a
         content-blocking extension.
       </li>
+      <li>
+        <strong>Last.fm</strong> (<code>ws.audioscrobbler.com</code>) — only if you use the
+        "fetch directly from Last.fm" option instead of uploading a CSV. Your username and a
+        personal API key you provide are sent straight to Last.fm's API to retrieve your
+        scrobble history; both are stored only in your browser's local storage, never on a
+        server run by this project.
+      </li>
     </ul>
     <p>
       No cookies, no local storage, no fingerprinting.
