@@ -17,6 +17,7 @@ export * from './car-fetch.js';
 export * from './config.js';
 export * from './csv.js';
 export * from './dynamic-batch-calculator.js';
+export * from './lastfm-api.js';
 export {
   parseListenBrainzJsonContent,
   parseListenBrainzJsonContents,

@@ -45,6 +45,11 @@ export interface CommandLineArgs {
   'apple-input'?: string;
   'youtube-input'?: string;
   'listenbrainz-input'?: string;
+
+  // Fetch Last.fm scrobbles directly from the API instead of --input.
+  // Requires a personal API key — see https://www.last.fm/api/account/create.
+  'lastfm-user'?: string;
+  'lastfm-api-key'?: string;
   
   // Mode
   mode?: string;

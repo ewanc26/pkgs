@@ -12,14 +12,15 @@ import {
   deleteOAuthSession,
   getOAuthHandle,
 } from './oauth-login.js';
-import { parseLastFmCsv, convertToPlayRecord } from '../lib/csv.js';
+import { parseLastFmCsv, convertToPlayRecord, fetchLastFmToTempFile } from '../lib/csv.js';
+import * as fs from 'fs';
 import { parseSpotifyJson, convertSpotifyToPlayRecord } from '../lib/spotify.js';
 import { parseAppleMusicCsv, convertAppleMusicToPlayRecord } from '../lib/apple-music.js';
 import { parseYouTubeMusicJson, convertYouTubeMusicToPlayRecord } from '../lib/youtube-music.js';
 import { parseListenBrainzJson, convertListenBrainzToPlayRecord } from '../lib/listenbrainz.js';
 import { parseCombinedExports } from '../lib/merge.js';
 import { publishRecordsWithApplyWrites } from './publisher.js';
-import { prompt, confirm, promptWithValidation, validateFilePath, isNonInteractive } from '../utils/input.js';
+import { prompt, confirm, menu, promptWithValidation, validateFilePath, isNonInteractive } from '../utils/input.js';
 import { sortRecords } from '../utils/helpers.js';
 import config, { VERSION, RECORD_TYPE, LEGACY_RECORD_TYPE } from '../config.js';
 import { fetchExistingRecords, filterNewRecords, displaySyncStats, removeDuplicates, deduplicateInputRecords } from './sync.js';
@@ -70,6 +71,11 @@ ${'\x1b[1m'}INPUT:${'\x1b[0m'}
   --youtube-input <path>         Path to YouTube Music JSON export
   --listenbrainz-input <path>    Path to ListenBrainz export (.zip, export
                                  directory, or .json/.jsonl file)
+  --lastfm-user <username>       Fetch scrobbles directly from the Last.fm API
+                                 instead of --input (requires --lastfm-api-key)
+  --lastfm-api-key <key>         Personal Last.fm API key — free, see
+                                 https://www.last.fm/api/account/create
+                                 (or set the LASTFM_API_KEY env var)
 
 ${'\x1b[1m'}MODE:${'\x1b[0m'}
   -m, --mode <mode>              Import mode (default: lastfm)
@@ -116,6 +122,9 @@ ${'\x1b[1m'}EXAMPLES:${'\x1b[0m'}
 
   ${'\x1b[2m'}# Import with app-password${'\x1b[0m'}
   pnpm start -i lastfm-export.csv -h user.bsky.social -p app-password
+
+  ${'\x1b[2m'}# Fetch scrobbles directly from Last.fm — no CSV export needed${'\x1b[0m'}
+  pnpm start --lastfm-user alice --lastfm-api-key xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
   ${'\x1b[2m'}# Import Spotify export${'\x1b[0m'}
   pnpm start -i spotify-export/ -m spotify
@@ -170,6 +179,8 @@ export function parseCommandLineArgs(): CommandLineArgs {
     'apple-input': { type: 'string' },
     'youtube-input': { type: 'string' },
     'listenbrainz-input': { type: 'string' },
+    'lastfm-user': { type: 'string' },
+    'lastfm-api-key': { type: 'string' },
     mode: { type: 'string', short: 'm' },
     'batch-size': { type: 'string', short: 'b' },
     'batch-delay': { type: 'string', short: 'd' },
@@ -210,6 +221,8 @@ export function parseCommandLineArgs(): CommandLineArgs {
       'apple-input': values['apple-input'],
       'youtube-input': values['youtube-input'],
       'listenbrainz-input': values['listenbrainz-input'],
+      'lastfm-user': values['lastfm-user'],
+      'lastfm-api-key': values['lastfm-api-key'] || process.env.LASTFM_API_KEY,
       'batch-size': values['batch-size'],
       'batch-delay': values['batch-delay'],
       reverse: values.reverse || values['reverse-chronological'],
@@ -262,6 +275,44 @@ function validateMode(mode: string): 'lastfm' | 'spotify' | 'apple' | 'youtube' 
     throw new Error(`Invalid mode: ${mode}. Must be one of: ${validModes.join(', ')}`);
   }
   return normalized as 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'listenbrainz' | 'combined' | 'sync' | 'deduplicate' | 'polish';
+}
+
+/**
+ * Ask how to get Last.fm data: fetch it directly from the Last.fm API
+ * (sets `lastfm-user`/`lastfm-api-key`, resolved to a temp CSV once the
+ * import actually starts) or point at an already-exported CSV file.
+ * When `optional` is true, a third choice skips Last.fm entirely.
+ */
+async function promptLastFmSource(args: CommandLineArgs, optional: boolean): Promise<void> {
+  const options = [
+    { key: '1', label: 'Fetch directly from Last.fm', description: 'No export needed — just your username and a free API key' },
+    { key: '2', label: 'Point to a CSV file', description: 'An export from lastfmstats.com or similar' },
+    ...(optional ? [{ key: '3', label: 'Skip', description: "Don't include Last.fm data" }] : []),
+  ];
+
+  const choice = await menu('Last.fm data source', options);
+
+  if (choice === '1') {
+    let username = '';
+    while (!username) {
+      username = await prompt('Last.fm username: ');
+      if (!username) console.log('⚠️  Username is required. Please try again.');
+    }
+    let apiKey = '';
+    while (!apiKey) {
+      apiKey = await prompt('Last.fm API key (free — last.fm/api/account/create): ', true);
+      if (!apiKey) console.log('⚠️  API key is required. Please try again.');
+    }
+    args['lastfm-user'] = username;
+    args['lastfm-api-key'] = apiKey;
+    console.log('✓ Will fetch scrobbles from Last.fm when the import starts');
+  } else if (choice === '2') {
+    args.input = await promptWithValidation(
+      '📄 Path to Last.fm CSV file: ',
+      (input) => validateFilePath(input, 'csv')
+    );
+    console.log('✓ File validated');
+  }
 }
 
 /**
@@ -440,10 +491,7 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
       console.log('\n📁 Input Files');
       console.log('─'.repeat(50));
       
-      const lastfm = await promptWithValidation('📄 Path to Last.fm CSV file (optional, Enter to skip): ', (input) => validateFilePath(input, 'csv'), true);
-      if (lastfm) {
-        args.input = lastfm;
-      }
+      await promptLastFmSource(args, true);
 
       const spotify = await promptWithValidation('📁 Path to Spotify export (optional, Enter to skip): ', (input) => validateFilePath(input, 'json'), true);
       if (spotify) {
@@ -501,14 +549,7 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
       );
       console.log('✓ File validated');
     } else {
-      console.log('\n📁 Input File');
-      console.log('─'.repeat(50));
-      
-      args.input = await promptWithValidation(
-        '📄 Path to Last.fm CSV file: ',
-        (input) => validateFilePath(input, 'csv')
-      );
-      console.log('✓ File validated');
+      await promptLastFmSource(args, false);
     }
     console.log('');
   }
@@ -543,6 +584,7 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
  * The full, real implementation of the CLI
  */
 export async function runCLI(): Promise<void> {
+  let lastfmTempFile: string | null = null;
   try {
     registerKillswitch();
     let args = parseCommandLineArgs();
@@ -685,6 +727,20 @@ export async function runCLI(): Promise<void> {
     log.debug(`Mode: ${mode}`);
     log.debug(`Dry run: ${dryRun}`);
     log.debug(`Log level: ${args.verbose ? 'DEBUG' : args.quiet ? 'WARN' : 'INFO'}`);
+
+    // Fetch directly from the Last.fm API instead of reading --input, if requested.
+    if (!args.input && args['lastfm-user'] && (mode === 'lastfm' || mode === 'sync' || mode === 'combined')) {
+      if (!args['lastfm-api-key']) {
+        throw new Error('--lastfm-user requires --lastfm-api-key (or the LASTFM_API_KEY env var). Get a free key at https://www.last.fm/api/account/create');
+      }
+      log.section('Fetching from Last.fm');
+      log.progress(`Fetching scrobbles for ${args['lastfm-user']}…`);
+      lastfmTempFile = await fetchLastFmToTempFile(args['lastfm-user'], args['lastfm-api-key'], {
+        onProgress: (p) => log.progress(`  Page ${p.page}/${p.totalPages} — ${formatLocaleNumber(p.fetched)} scrobble(s) so far…`),
+      });
+      args.input = lastfmTempFile;
+      log.success('Fetched scrobbles from Last.fm');
+    }
 
     if (mode === 'combined') {
       if (!args.input && !args['spotify-input'] && !args['apple-input'] && !args['youtube-input'] && !args['listenbrainz-input']) {
@@ -1091,6 +1147,9 @@ export async function runCLI(): Promise<void> {
     }
     process.exit(1);
   } finally {
+    if (lastfmTempFile) {
+      try { fs.unlinkSync(lastfmTempFile); } catch { /* best-effort cleanup */ }
+    }
     console.log('\x1b[2mEnjoying Malachite? Support development: Ko-fi https://ko-fi.com/ewancroft · GitHub Sponsors https://github.com/sponsors/ewanc26\x1b[0m\n');
     log.closeLogFile();
   }

@@ -61,6 +61,13 @@
         Fonts. If you prefer not to make this request, you can self-host the fonts or use a
         content-blocking extension.
       </li>
+      <li>
+        <strong>Last.fm</strong> (<code>ws.audioscrobbler.com</code>) — only if you use the
+        "fetch directly from Last.fm" option instead of uploading a CSV. Your username and a
+        personal API key you provide are sent straight to Last.fm's API to retrieve your
+        scrobble history; both are stored only in your browser's local storage, never on a
+        server run by this project.
+      </li>
     </ul>
     <p>
       No cookies, no local storage, no fingerprinting.
@@ -107,6 +114,9 @@ pnpm build</code></pre>
       <pre><code># Import from Last.fm CSV
 pnpm start -i lastfm.csv -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx -y
 
+# Fetch scrobbles directly from Last.fm — no CSV export needed
+pnpm start --lastfm-user alice --lastfm-api-key xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx -y
+
 # Import from Spotify JSON export
 pnpm start -i spotify-export/ -m spotify -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx -y
 
@@ -132,6 +142,8 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
         <span>Flag</span><span>Description</span>
       </div>
       <div class="flag-row"><code>-i &lt;path&gt;</code><span>Input file or directory</span></div>
+      <div class="flag-row"><code>--lastfm-user &lt;name&gt;</code><span>Fetch scrobbles directly from the Last.fm API instead of <code>-i</code></span></div>
+      <div class="flag-row"><code>--lastfm-api-key &lt;key&gt;</code><span>Personal Last.fm API key (free), or set <code>LASTFM_API_KEY</code></span></div>
       <div class="flag-row"><code>-h &lt;handle&gt;</code><span>ATProto handle or DID</span></div>
       <div class="flag-row"><code>-p &lt;password&gt;</code><span>App password (not your main password)</span></div>
       <div class="flag-row"><code>-m &lt;mode&gt;</code><span><code>lastfm</code> · <code>spotify</code> · <code>combined</code> · <code>sync</code> · <code>deduplicate</code> · <code>polish</code></span></div>
