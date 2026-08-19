@@ -17,6 +17,7 @@ import os from 'os';
 import {
   parseLastFmCsv,
   convertToPlayRecord,
+  fetchLastFmToTempFile,
 } from '../lib/csv.js';
 import type { Config, LastFmCsvRecord } from '../types.js';
 
@@ -311,5 +312,46 @@ describe('Last.fm Record Conversion', () => {
     assert.strictEqual(playRecord.trackName, 'Track');
     assert.ok(!playRecord.releaseName || playRecord.releaseName.trim() === '');
     assert.ok(!playRecord.releaseMbId);
+  });
+});
+
+describe('fetchLastFmToTempFile (CLI live-fetch)', () => {
+  const realFetch = globalThis.fetch;
+  let writtenFile: string | null = null;
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    if (writtenFile && fs.existsSync(writtenFile)) {
+      fs.unlinkSync(writtenFile);
+    }
+    writtenFile = null;
+  });
+
+  it('fetches scrobbles from the Last.fm API and writes them to a temp CSV', async () => {
+    globalThis.fetch = (async () => new Response(JSON.stringify({
+      recenttracks: {
+        track: [{
+          name: 'Temp Track',
+          artist: { '#text': 'Temp Artist' },
+          album: { '#text': 'Temp Album', mbid: '' },
+          date: { uts: '1623801600' },
+        }],
+        '@attr': { page: '1', totalPages: '1', total: '1' },
+      },
+    }), { status: 200 })) as typeof fetch;
+
+    writtenFile = await fetchLastFmToTempFile('temp-user', 'testkey');
+
+    assert.ok(fs.existsSync(writtenFile));
+    const content = fs.readFileSync(writtenFile, 'utf-8');
+    assert.match(content, /^uts,utc_time,artist,artist_mbid,album,album_mbid,track,track_mbid/);
+    assert.match(content, /Temp Artist/);
+    assert.match(content, /Temp Track/);
+
+    // Round-trips cleanly through the normal CSV parser.
+    const records = parseLastFmCsv(writtenFile);
+    assert.strictEqual(records.length, 1);
+    assert.strictEqual(records[0].artist, 'Temp Artist');
+    assert.strictEqual(records[0].track, 'Temp Track');
   });
 });
