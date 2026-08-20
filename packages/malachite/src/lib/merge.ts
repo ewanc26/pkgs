@@ -70,7 +70,7 @@ export function parseCombinedExports(
   if (paths.spotify) {
     log.info('Parsing Spotify export...');
     const spotifyJsonRecords = parseSpotifyJson(paths.spotify);
-    spotifyRecords = spotifyJsonRecords.map(r => convertSpotifyToPlayRecord(r, config, debug)).filter((r): r is PlayRecord => r !== null);
+    spotifyRecords = spotifyJsonRecords.map(r => convertSpotifyToPlayRecord(r, config, debug));
   }
 
   if (paths.apple) {
@@ -85,7 +85,7 @@ export function parseCombinedExports(
   if (paths.youtube) {
     log.info('Parsing YouTube Music export...');
     const youtubeJsonRecords = parseYouTubeMusicJson(paths.youtube);
-    youtubeRecords = youtubeJsonRecords.map(r => convertYouTubeMusicToPlayRecord(r, config, debug)).filter((r): r is PlayRecord => r !== null);
+    youtubeRecords = youtubeJsonRecords.map(r => convertYouTubeMusicToPlayRecord(r, config, debug));
   }
 
   if (paths.listenbrainz) {

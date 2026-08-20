@@ -61,6 +61,6 @@ export function convertYouTubeMusicToPlayRecord(
   record: YouTubeMusicRecord,
   _configOrUnused?: unknown,
   _debug?: boolean
-): PlayRecord | null {
+): PlayRecord {
   return coreConvert(record, CLI_AGENT);
 }
