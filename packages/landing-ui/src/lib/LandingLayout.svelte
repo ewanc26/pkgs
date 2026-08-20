@@ -21,6 +21,8 @@
 		supportUrl?: string;
 		/** Directory of sibling tools. Set to '' to hide. */
 		directoryUrl?: string;
+		/** Show the AT Protocol trademark attribution. */
+		showAtprotoNotice?: boolean;
 		webVersion?: string;
 		cliVersion?: string;
 		children: Snippet;
@@ -37,6 +39,7 @@
 		footerAboutUrl = '/about',
 		supportUrl = 'https://ewancroft.uk/support',
 		directoryUrl = 'https://croft.click',
+		showAtprotoNotice = true,
 		webVersion,
 		cliVersion,
 		children
@@ -121,6 +124,17 @@
 		<span class="footer-note">Free and open source — kept going by people who chip in.</span>
 	{/if}
 	<span class="footer-copyright">(c) {year} Ewan Croft | AGPL-3.0</span>
+	{#if showAtprotoNotice}
+		<span class="footer-trademark">
+			“AT Protocol” and “atproto” are trademarks of Bluesky Social PBC. {name} is an
+			independent project, not affiliated with or endorsed by Bluesky Social PBC. See the
+			<a
+				href="https://atproto.com/about/trademarks/atproto-trademark-policy"
+				target="_blank"
+				rel="noopener">trademark policy</a
+			>.
+		</span>
+	{/if}
 </footer>
 
 <style>
@@ -274,5 +288,17 @@
 		font-size: 0.65rem;
 		color: var(--muted);
 		opacity: 0.7;
+	}
+	.footer-trademark {
+		max-width: 60ch;
+		margin: 0.35rem auto 0;
+		font-size: 0.62rem;
+		line-height: 1.5;
+		color: var(--muted);
+		opacity: 0.55;
+	}
+	.footer-trademark a {
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 </style>
