@@ -3,20 +3,20 @@
 /* Tourmaline colour palette -- chrome tourmaline green */
 :root {
   /* Backgrounds -- dark with green undertone */
-  --bg: #0f0a0c;
-  --surface: #170f12;
-  --surface-2: #1f1519;
+  --bg: #0f070a;
+  --surface: #190d12;
+  --surface-2: #23151a;
 
   /* Borders */
-  --border: #2b1a20;
-  --border-subtle: #1f1418;
+  --border: #3c252d;
+  --border-subtle: #2c1c22;
 
   /* Primary accent -- rubellite tourmaline rose, per the logo's
      watermelon pleochroism. Malachite owns green in this family. */
-  --accent: #fb7185;
-  --accent-bright: #fda4af;
-  --accent-dim: #e11d48;
-  --accent-glow: rgba(251, 113, 133, 0.14);
+  --accent: #e94984;
+  --accent-bright: #f084ac;
+  --accent-dim: #bf1855;
+  --accent-glow: rgba(233, 73, 132, 0.14);
 
   /* Text */
   --text: #e5e7eb;

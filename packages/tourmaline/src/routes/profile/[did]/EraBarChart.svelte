@@ -7,7 +7,7 @@
 	let canvas: HTMLCanvasElement;
 	let chart: Chart | null = $state(null);
 
-	const BAR_COLOUR = '#fb7185';
+	const BAR_COLOUR = '#fb71a4';
 
 	$effect(() => {
 		if (!canvas || era.length === 0) return;
@@ -40,7 +40,7 @@
 				},
 				scales: {
 					x: {
-						ticks: { color: '#e5e7eb' },
+						ticks: { color: '#e5ebe8' },
 						grid: { display: false }
 					},
 					y: {

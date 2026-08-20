@@ -16,16 +16,16 @@
 	// Two-hue palette, cycled: the brand rose and its green counterpart,
 	// stepped by lightness so ten series stay separable without a rainbow.
 	const PALETTE = [
-		'#ee96a3', // rose 0
-		'#a0e3bc', // green 0
-		'#e87384', // rose 1
-		'#81daa6', // green 1
-		'#e25066', // rose 2
-		'#61d190', // green 2
-		'#dd2c47', // rose 3
-		'#41c879', // green 3
-		'#c11f38', // rose 4
-		'#32ae66' // green 4
+		'#ee96b6', // rose 0
+		'#a0e3c6', // green 0
+		'#e8739e', // rose 1
+		'#81dab3', // green 1
+		'#e25086', // rose 2
+		'#61d1a0', // green 2
+		'#dd2c6d', // rose 3
+		'#41c88d', // green 3
+		'#c11f5a', // rose 4
+		'#32ae78' // green 4
 	];
 
 	/**

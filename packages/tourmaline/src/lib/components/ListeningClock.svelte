@@ -13,7 +13,7 @@
         label: 'Scrobbles by hour',
         data: Object.values(stats.hours),
         backgroundColor: 'rgba(74, 222, 128, 0.2)',
-        borderColor: '#fb7185'
+        borderColor: '#fb71a4'
       }]
     },
     options: {

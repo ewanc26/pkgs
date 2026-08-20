@@ -120,8 +120,8 @@
 				datasets: [
 					{
 						data,
-						backgroundColor: '#fb7185',
-						borderColor: '#e11d48',
+						backgroundColor: '#fb71a4',
+						borderColor: '#e11d65',
 						borderWidth: 1
 					}
 				]
@@ -151,7 +151,7 @@
 						grid: { color: 'rgba(255,255,255,0.05)' }
 					},
 					y: {
-						ticks: { color: '#e5e7eb', font: { size: 11 } },
+						ticks: { color: '#e5ebe8', font: { size: 11 } },
 						grid: { display: false }
 					}
 				}
