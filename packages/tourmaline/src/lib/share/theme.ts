@@ -1,48 +1,48 @@
 /**
  * Shared palette, fonts, and escaping helper for every share-card SVG
  * renderer, extracted from personality-svg.ts so receipt/festival/story
- * cards match the same dark-green theme instead of redefining it three
+ * cards match the same rose theme instead of redefining it three
  * more times.
  */
 import { INTER_WOFF2, JETBRAINS_MONO_WOFF2 } from "./fonts/embedded-fonts";
 
-export const BG = "#0a0f0a";
-export const SURFACE = "#0f170f";
-export const BORDER = "#1a2b1a";
-export const ACCENT = "#4ade80";
+export const BG = "#0f0a0c";
+export const SURFACE = "#170f12";
+export const BORDER = "#2b1a20";
+export const ACCENT = "#fb7185";
 export const TEXT = "#e5e7eb";
 export const MUTED = "#9ca3af";
 export const DIM = "#6b7280";
 
 export const GENRE_COLORS: Record<string, string> = {
-  Metal: "#ef4444",
-  Rock: "#f97316",
-  Pop: "#eab308",
-  Electronic: "#22d3ee",
-  "Hip Hop": "#a855f7",
-  Jazz: "#f59e0b",
-  Classical: "#d4d4d8",
-  Folk: "#a3e635",
-  Country: "#fb923c",
-  "R&B": "#ec4899",
-  Blues: "#3b82f6",
-  Reggae: "#10b981",
-  Latin: "#f43f5e",
-  World: "#14b8a6",
-  Soundtrack: "#8b5cf6",
-  "New Age": "#67e8f9",
-  Punk: "#dc2626",
-  "Singer-Songwriter": "#fbbf24",
+  Metal: "#ef9fab",
+  Rock: "#a8e6c2",
+  Pop: "#ec8b99",
+  Electronic: "#96e1b5",
+  "Hip Hop": "#e97788",
+  Jazz: "#84dba9",
+  Classical: "#e66377",
+  Folk: "#73d69c",
+  Country: "#e25066",
+  "R&B": "#61d190",
+  Blues: "#df3c54",
+  Reggae: "#4fcc83",
+  Latin: "#dc2843",
+  World: "#3dc777",
+  Soundtrack: "#cc213b",
+  "New Age": "#35b86c",
+  Punk: "#b81e35",
+  "Singer-Songwriter": "#30a661",
 };
 
 export const MOOD_COLORS: Record<string, string> = {
-  Energetic: "#f97316",
-  Melancholic: "#6366f1",
-  Chill: "#22d3ee",
-  Happy: "#facc15",
-  Aggressive: "#ef4444",
-  Atmospheric: "#8b5cf6",
-  Nostalgic: "#f59e0b",
+  Energetic: "#ee96a3",
+  Melancholic: "#a0e3bc",
+  Chill: "#e76a7d",
+  Happy: "#79d8a0",
+  Aggressive: "#e03e56",
+  Atmospheric: "#51cd85",
+  Nostalgic: "#ca213a",
   Dark: "#6b7280",
 };
 

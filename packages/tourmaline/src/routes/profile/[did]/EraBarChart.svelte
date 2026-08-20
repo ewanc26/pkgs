@@ -7,7 +7,7 @@
 	let canvas: HTMLCanvasElement;
 	let chart: Chart | null = $state(null);
 
-	const BAR_COLOUR = '#4ade80';
+	const BAR_COLOUR = '#fb7185';
 
 	$effect(() => {
 		if (!canvas || era.length === 0) return;

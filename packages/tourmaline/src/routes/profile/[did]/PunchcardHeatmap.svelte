@@ -96,8 +96,8 @@
 
 	/* Reuse the same palette as TimelineHeatmap */
 	.bg-empty { background-color: var(--surface-2); }
-	.bg-dim   { background-color: #15803d; }
-	.bg-low   { background-color: #16a34a; }
+	.bg-dim   { background-color: #8f1734; }
+	.bg-low   { background-color: #c81e43; }
 	.bg-med   { background-color: var(--accent-dim); }
 	.bg-hot   { background-color: var(--accent); }
 </style>

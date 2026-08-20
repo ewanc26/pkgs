@@ -14,7 +14,7 @@
 				{
 					label: 'Artists',
 					data: buckets.map((b) => b.count),
-					backgroundColor: '#4ade80'
+					backgroundColor: '#fb7185'
 				}
 			]
 		},

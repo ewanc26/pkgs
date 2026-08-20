@@ -13,19 +13,19 @@
 	let canvas: HTMLCanvasElement;
 	let chart: Chart | null = null;
 
-	// Small fixed palette, cycled — spread across hues at a brightness similar
-	// to the existing #4ade80 accent green used elsewhere in this codebase.
+	// Two-hue palette, cycled: the brand rose and its green counterpart,
+	// stepped by lightness so ten series stay separable without a rainbow.
 	const PALETTE = [
-		'#4ade80', // green
-		'#60a5fa', // blue
-		'#f472b6', // pink
-		'#fb923c', // orange
-		'#a78bfa', // violet
-		'#34d399', // emerald
-		'#facc15', // yellow
-		'#f87171', // red
-		'#22d3ee', // cyan
-		'#c084fc' // purple
+		'#ee96a3', // rose 0
+		'#a0e3bc', // green 0
+		'#e87384', // rose 1
+		'#81daa6', // green 1
+		'#e25066', // rose 2
+		'#61d190', // green 2
+		'#dd2c47', // rose 3
+		'#41c879', // green 3
+		'#c11f38', // rose 4
+		'#32ae66' // green 4
 	];
 
 	/**

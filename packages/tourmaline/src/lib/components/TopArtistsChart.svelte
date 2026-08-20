@@ -20,7 +20,7 @@
       datasets: [{
         label: 'Plays',
         data: topArtists.map(a => a[1].scrobbles.length),
-        backgroundColor: '#60a5fa'
+        backgroundColor: '#fb7185'
       }]
     },
     options: {
