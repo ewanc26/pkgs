@@ -15,11 +15,14 @@
   --accent: #4ade80;
   --accent-bright: #86efac;
   --accent-dim: #22c55e;
+  --accent-glow: rgba(74, 222, 128, 0.14);
 
   /* Text */
   --text: #e5e7eb;
   --text-muted: #9ca3af;
   --text-dim: #6b7280;
+  /* landing-ui/landing.css requires --muted; keep in step with --text-muted. */
+  --muted: #9ca3af;
 
   /* Functional */
   --error: #f87171;
