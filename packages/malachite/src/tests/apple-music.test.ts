@@ -64,6 +64,33 @@ describe('Apple Music CSV Parsing', () => {
     assert.strictEqual(records.length, 1);
     assert.strictEqual(records[0]['Content Name'], 'Track One');
   });
+
+  it('should reject the daily-totals CSV with a message naming the right file', () => {
+    // The shape of "Apple Music - Play History Daily Tracks.csv", which sits
+    // next to the real export and is easy to grab by mistake. It has none of
+    // the columns we read, so previously it imported as silently zero records.
+    const csvData = `"Date Played","Track Description","Play Duration Milliseconds","Media type","Country"
+"20210615","Artist One - Track One","180000","AUDIO","US"`;
+
+    const filePath = path.join(tempDir, 'Apple Music - Play History Daily Tracks.csv');
+    fs.writeFileSync(filePath, csvData);
+
+    assert.throws(
+      () => parseAppleMusicCsv(filePath),
+      (err: Error) => {
+        assert.strictEqual(err.name, 'AppleMusicSchemaError');
+        assert.match(err.message, /Apple Music Play Activity\.csv/);
+        return true;
+      }
+    );
+  });
+
+  it('should not throw on an empty CSV (no headers to judge)', () => {
+    const filePath = path.join(tempDir, 'Apple Music Play Activity.csv');
+    fs.writeFileSync(filePath, '');
+
+    assert.strictEqual(parseAppleMusicCsv(filePath).length, 0);
+  });
 });
 
 describe('Apple Music Record Conversion', () => {
