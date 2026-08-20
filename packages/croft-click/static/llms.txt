@@ -8,7 +8,7 @@ croft.click is the central hub for a collection of browser-based tools that help
 
 - Hasharium (hasharium.croft.click): Generate stable geometric specimens from decentralised identifiers and curate a local study tray.
 - Jasper (jasper.croft.click): Import Instagram photos, stories, and videos to Grain or Spark on ATProto. Original timestamps preserved, duplicates skipped.
-- Malachite (malachite.croft.click): Import Last.fm and Spotify listening history to Teal (fm.teal.feed.play records). Smart deduplication and sync support.
+- Malachite (malachite.croft.click): Import your music listening history to Teal (fm.teal.feed.play records). Smart deduplication and sync support.
 - Bismuth (bismuth.croft.click): Convert ATProto richtext-block documents from Standard.site publications (Leaflet, Pckt, Offprint) to Markdown.
 - Opal (opal.croft.click): Convert microblog posts from Twitter, Mastodon, Threads, and Nostr to Bluesky. Original timestamps preserved.
 - Tourmaline (tourmaline.croft.click): Analyse Teal.fm scrobble history. Personality archetypes, genre profiles, mood mapping, and share-to-Bluesky.

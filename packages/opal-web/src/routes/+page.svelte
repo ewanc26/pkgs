@@ -54,7 +54,7 @@
 		{ title: 'Import', description: 'Opal publishes your posts to your PDS with automatic rate-limit handling.' }
 	]}
 	siblings={[
-		{ name: 'Malachite', url: 'https://malachite.croft.click', description: 'Import Last.fm and Spotify listening history into Teal.' },
+		{ name: 'Malachite', url: 'https://malachite.croft.click', description: 'Import your music listening history into Teal.' },
 		{ name: 'Jasper', url: 'https://jasper.croft.click', description: 'Import Instagram photos and videos to Grain or Spark.' },
 		{ name: 'Bismuth', url: 'https://bismuth.croft.click', description: 'Convert ATProto richtext-block documents to Markdown.' },
 		{ name: 'Tourmaline', url: 'https://tourmaline.croft.click', description: 'Analyse your Teal.fm scrobbles and discover your listener archetype.' }

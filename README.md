@@ -22,8 +22,8 @@ Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/p
 | [`@ewanc26/supporters`](./packages/supporters)                     | Ko-fi supporter display backed by AT Protocol                        |
 | [`@ewanc26/wafrn-theme`](./packages/wafrn-theme)                   | WAFRN CSS theme — Catppuccin terminal aesthetic                      |
 | [`@ewanc26/tangled-sync`](./packages/tangled-sync)                 | CLI for syncing GitHub repos to Tangled                              |
-| [`malachite`](./packages/malachite)                                | Last.fm/Spotify → AT Protocol scrobble importer (CLI)                |
-| [`malachite-web`](./packages/malachite-web)                        | Last.fm/Spotify → AT Protocol scrobble importer (web frontend, private) |
+| [`malachite`](./packages/malachite)                                | Music listening history → AT Protocol scrobble importer (CLI)        |
+| [`malachite-web`](./packages/malachite-web)                        | Music listening history → AT Protocol scrobble importer (web frontend, private) |
 | [`nix-config-tools`](./packages/nix-config-tools)                  | Nix config management tools (Rust)                                   |
 | [`llm-analyser`](./packages/llm-analyser)                          | `.docx` analysis with Ollama (Python)                                |
 

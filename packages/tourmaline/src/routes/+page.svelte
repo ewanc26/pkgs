@@ -195,7 +195,7 @@
 			name: "Malachite",
 			url: "https://malachite.croft.click",
 			description:
-				"Import Last.fm and Spotify listening history into Teal.",
+				"Import your music listening history into Teal.",
 		},
 		{
 			name: "Opal",
