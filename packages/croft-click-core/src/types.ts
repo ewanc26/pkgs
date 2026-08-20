@@ -35,6 +35,8 @@ export interface PlayRecord {
   releaseName?: string;
   releaseMbId?: string;
   recordingMbId?: string;
+  /** ISRC of the recording, per the lexicon. Set by MusicBrainz enrichment. */
+  isrc?: string;
   originUri?: string;
 }
 

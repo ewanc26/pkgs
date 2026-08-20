@@ -45,6 +45,7 @@ export interface CommandLineArgs {
   'spotify-input'?: string;
   'apple-input'?: string;
   'apple-daily-tracks'?: string;
+  enrich?: boolean;
   'youtube-input'?: string;
   'listenbrainz-input'?: string;
 
