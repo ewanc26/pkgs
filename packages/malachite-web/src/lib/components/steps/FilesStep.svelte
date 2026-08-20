@@ -202,17 +202,22 @@
           id="amInput"
           type="file"
           accept=".csv"
+          multiple
           hidden
           onchange={(e) => { appleFiles = Array.from((e.target as HTMLInputElement).files ?? []); }}
         />
         {#if appleFiles.length > 0}
           <span class="drop-icon drop-done"><CheckCircle2 size={28} /></span>
-          <span class="drop-filename">{appleFiles[0].name}</span>
-          <span class="drop-meta">{(appleFiles[0].size / 1024).toFixed(0)} KB · CSV</span>
+          <span class="drop-filename">
+            {appleFiles.length === 1 ? appleFiles[0].name : `${appleFiles.length} files selected`}
+          </span>
+          <span class="drop-meta">
+            {(appleFiles.reduce((n, f) => n + f.size, 0) / 1024).toFixed(0)} KB · CSV
+          </span>
         {:else}
           <span class="drop-icon"><Apple size={28} /></span>
           <span class="drop-title">Apple Music CSV</span>
-          <span class="drop-hint">Drag & drop or click to select</span>
+          <span class="drop-hint">Play Activity, plus Daily Tracks for artist names</span>
         {/if}
       </div>
     {/if}
@@ -389,11 +394,18 @@
         <summary>How to export from Apple Music</summary>
         <p>
           Go to <a href="https://privacy.apple.com/" target="_blank" rel="noopener">privacy.apple.com</a>,
-          request a copy of your data (Apple Media Services), and once ready, upload the
-          <code>Apple_Media_Services/Apple Music Activity/Apple Music Play Activity.csv</code> file.
-          It's the large one (often tens of MB) — not
-          <code>Apple Music - Play History Daily Tracks.csv</code>, which only has daily
-          totals and no per-play timestamps.
+          request a copy of your data (Apple Media Services), and once ready, open
+          <code>Apple_Media_Services/Apple Music Activity/</code> and select <strong>both</strong>:
+        </p>
+        <p>
+          <code>Apple Music Play Activity.csv</code> — the large one, one row per play.
+          This is what's actually imported.
+        </p>
+        <p>
+          <code>Apple Music - Play History Daily Tracks.csv</code> — optional but recommended.
+          Apple's current exports no longer include artist names in the file above, so this
+          one is used to fill them in. Without it, plays whose artist can't be worked out
+          are skipped.
         </p>
       </details>
     {/if}

@@ -89,9 +89,24 @@ export interface ListenBrainzRecord {
   };
 }
 
+/**
+ * A row of `Apple Music Play Activity.csv`.
+ *
+ * Column names differ across export generations, so nearly everything is
+ * optional: current exports use `Song Name` and have dropped `Artist Name`
+ * entirely, while older ones use `Content Name` and do carry an artist. Read
+ * these through the helpers in `apple-music.ts` rather than directly.
+ */
 export interface AppleMusicRecord {
-  'Content Name': string;
-  'Artist Name': string;
+  /** Track title in current exports. */
+  'Song Name'?: string;
+  /** Track title in pre-~2021 exports. */
+  'Content Name'?: string;
+  /** Absent from current exports; present in older ones. */
+  'Artist Name'?: string;
+  /** Artist of the browsed container — rarely set, and not always the track's. */
+  'Container Artist Name'?: string;
+  'Album Name'?: string;
   'Event End Timestamp'?: string;
   'Event Start Timestamp'?: string;
   'Play Duration Milliseconds'?: string;

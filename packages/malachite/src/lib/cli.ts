@@ -15,7 +15,11 @@ import {
 import { parseLastFmCsv, convertToPlayRecord, fetchLastFmToTempFile } from '../lib/csv.js';
 import * as fs from 'fs';
 import { parseSpotifyJson, convertSpotifyToPlayRecord } from '../lib/spotify.js';
-import { parseAppleMusicCsv, convertAppleMusicToPlayRecord } from '../lib/apple-music.js';
+import {
+  parseAppleMusicCsv,
+  parseAppleMusicDailyTracksCsv,
+  convertAppleMusicRecords,
+} from '../lib/apple-music.js';
 import { parseYouTubeMusicJson, convertYouTubeMusicToPlayRecord } from '../lib/youtube-music.js';
 import { parseListenBrainzJson, convertListenBrainzToPlayRecord } from '../lib/listenbrainz.js';
 import { parseCombinedExports } from '../lib/merge.js';
@@ -67,7 +71,11 @@ ${'\x1b[1m'}AUTHENTICATION:${'\x1b[0m'}
 ${'\x1b[1m'}INPUT:${'\x1b[0m'}
   -i, --input <path>             Path to Last.fm CSV export
   --spotify-input <path>         Path to Spotify JSON export
-  --apple-input <path>           Path to Apple Music CSV export
+  --apple-input <path>           Path to Apple Music CSV export ("Apple Music Play Activity.csv")
+  --apple-daily-tracks <path>    Path to "Apple Music - Play History Daily Tracks.csv".
+                                 Current Apple exports dropped the artist column;
+                                 this recovers artists. Without it, plays whose
+                                 artist can't be resolved are skipped.
   --youtube-input <path>         Path to YouTube Music JSON export
   --listenbrainz-input <path>    Path to ListenBrainz export (.zip, export
                                  directory, or .json/.jsonl file)
@@ -177,6 +185,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
     pds: { type: 'string' },
     'spotify-input': { type: 'string' },
     'apple-input': { type: 'string' },
+    'apple-daily-tracks': { type: 'string' },
     'youtube-input': { type: 'string' },
     'listenbrainz-input': { type: 'string' },
     'lastfm-user': { type: 'string' },
@@ -219,6 +228,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
       input: values.input || values.file,
       'spotify-input': values['spotify-input'] || values['spotify-file'],
       'apple-input': values['apple-input'],
+      'apple-daily-tracks': values['apple-daily-tracks'],
       'youtube-input': values['youtube-input'],
       'listenbrainz-input': values['listenbrainz-input'],
       'lastfm-user': values['lastfm-user'],
@@ -923,6 +933,7 @@ export async function runCLI(): Promise<void> {
         lastfm: args.input,
         spotify: args['spotify-input'],
         apple: args['apple-input'],
+        appleDailyTracks: args['apple-daily-tracks'],
         youtube: args['youtube-input'],
         listenbrainz: args['listenbrainz-input']
       }, cfg, isDebug);
@@ -936,7 +947,10 @@ export async function runCLI(): Promise<void> {
       log.info('Importing from Apple Music export...');
       const appleRecords = parseAppleMusicCsv(args.input!);
       rawRecordCount = appleRecords.length;
-      records = appleRecords.map(record => convertAppleMusicToPlayRecord(record, cfg, isDebug));
+      const appleArtists = args['apple-daily-tracks']
+        ? parseAppleMusicDailyTracksCsv(args['apple-daily-tracks'])
+        : undefined;
+      records = convertAppleMusicRecords(appleRecords, appleArtists);
     } else if (mode === 'youtube') {
       log.info('Importing from YouTube Music export...');
       const youtubeRecords = parseYouTubeMusicJson(args.input!);

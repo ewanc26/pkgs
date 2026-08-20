@@ -43,6 +43,7 @@ export interface CommandLineArgs {
   input?: string;
   'spotify-input'?: string;
   'apple-input'?: string;
+  'apple-daily-tracks'?: string;
   'youtube-input'?: string;
   'listenbrainz-input'?: string;
 

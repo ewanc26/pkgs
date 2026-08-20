@@ -16,8 +16,28 @@ export type { AppleMusicRecord };
  */
 export const APPLE_MUSIC_EXPECTED_FILE = 'Apple Music Play Activity.csv';
 
-/** Columns `convertAppleMusicToPlayRecord` reads. Used to sanity-check the upload. */
-const REQUIRED_COLUMNS = ['Content Name', 'Artist Name'] as const;
+/** The companion file that can supply the artists Play Activity no longer carries. */
+export const APPLE_MUSIC_DAILY_TRACKS_FILE = 'Apple Music - Play History Daily Tracks.csv';
+
+/**
+ * Column holding the track title, oldest name first.
+ *
+ * Apple renamed this between export generations: pre-~2021 exports call it
+ * `Content Name`, current ones `Song Name`. Accept either so a fresh export and
+ * an archived one both import.
+ */
+const TITLE_COLUMNS = ['Content Name', 'Song Name'] as const;
+
+/**
+ * Columns that may hold an artist, best first.
+ *
+ * Current exports (143 columns, verified against a Jan 2026 export) dropped the
+ * per-row `Artist Name` entirely. `Container Artist Name` survives but is the
+ * artist *page you browsed from*, populated on a fraction of a percent of rows
+ * and not necessarily the track's credit — so it's a last resort, not a
+ * substitute. See `APPLE_MUSIC_DAILY_TRACKS_FILE` for the real recovery path.
+ */
+const ARTIST_COLUMNS = ['Artist Name', 'Container Artist Name'] as const;
 
 /**
  * Thrown when a CSV parses fine but clearly isn't the Play Activity export —
@@ -25,10 +45,7 @@ const REQUIRED_COLUMNS = ['Content Name', 'Artist Name'] as const;
  * which of Apple's many CSVs they were supposed to pick.
  */
 export class AppleMusicSchemaError extends Error {
-  constructor(
-    public readonly foundColumns: string[],
-    public readonly missingColumns: string[]
-  ) {
+  constructor(public readonly foundColumns: string[]) {
     // Show what we did find, not just what's absent — if the columns look like
     // one long run-together string it's a delimiter problem rather than the
     // wrong file, and that's impossible to tell from "missing X" alone.
@@ -38,14 +55,73 @@ export class AppleMusicSchemaError extends Error {
       : '(none)';
 
     super(
-      `This CSV is missing the ${missingColumns.map((c) => `"${c}"`).join(' and ')} ` +
-        `column(s) that Apple Music play history needs. ` +
+      `This CSV has no track-title column (${TITLE_COLUMNS.map((c) => `"${c}"`).join(' or ')}), ` +
+        `so it isn't an Apple Music play history export. ` +
         `Found instead: ${preview}. ` +
         `Upload "${APPLE_MUSIC_EXPECTED_FILE}" from Apple_Media_Services/Apple Music Activity/ ` +
-        `(the large one with per-play rows), not "Apple Music - Play History Daily Tracks.csv".`
+        `— the large one with one row per play.`
     );
     this.name = 'AppleMusicSchemaError';
   }
+}
+
+/** Read a column by trying each candidate name in order. */
+function firstNonEmpty(r: AppleMusicRecord, columns: readonly string[]): string | undefined {
+  for (const c of columns) {
+    const v = (r as unknown as Record<string, string | undefined>)[c];
+    if (v && v.trim()) return v.trim();
+  }
+  return undefined;
+}
+
+/** The track title for a row, under whichever column name this export uses. */
+export function appleMusicTrackName(r: AppleMusicRecord): string | undefined {
+  return firstNonEmpty(r, TITLE_COLUMNS);
+}
+
+/**
+ * Normalises a title for cross-file matching: case, whitespace, and the
+ * `- Single`/`- EP` suffixes Apple appends inconsistently between the two files.
+ */
+function titleKey(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/\s*-\s*(single|ep)$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Build a title → artist lookup from `Apple Music - Play History Daily Tracks.csv`.
+ *
+ * That file has no per-play timestamps (so it can't drive the import on its own)
+ * but it does carry `Track Description` as `Artist - Title`, which is the only
+ * artist information in the whole export once Apple dropped `Artist Name`. The
+ * two files share no join key, so this matches on normalised title — good enough
+ * in practice, and a wrong artist is no worse than the `Unknown` it replaces.
+ */
+export function parseDailyTracksArtistMap(rows: Array<Record<string, string>>): Map<string, string> {
+  const map = new Map<string, string>();
+
+  for (const row of rows) {
+    const description = row['Track Description']?.trim();
+    if (!description) continue;
+
+    // `Artist - Title`. Split on the first separator: artists contain " - "
+    // far less often than titles do (remixes, live versions, subtitles).
+    const sep = description.indexOf(' - ');
+    if (sep <= 0) continue;
+
+    const artist = description.slice(0, sep).trim();
+    const title = description.slice(sep + 3).trim();
+    if (!artist || !title) continue;
+
+    // First writer wins; later duplicates are the same song played again.
+    const key = titleKey(title);
+    if (!map.has(key)) map.set(key, artist);
+  }
+
+  return map;
 }
 
 /**
@@ -62,14 +138,16 @@ export function parseAppleMusicCsvContent(records: AppleMusicRecord[]): AppleMus
     // trim shouldn't read as "wrong file".
     const columns = Object.keys(records[0] as unknown as Record<string, unknown>);
     const normalised = new Set(columns.map((c) => c.replace(/^﻿/, '').trim()));
-    const missing = REQUIRED_COLUMNS.filter((c) => !normalised.has(c));
-    if (missing.length > 0) {
-      throw new AppleMusicSchemaError(columns, [...missing]);
+    if (!TITLE_COLUMNS.some((c) => normalised.has(c))) {
+      throw new AppleMusicSchemaError(columns);
     }
   }
 
+  // Artist is deliberately *not* required here — current exports don't carry one,
+  // and it's recovered later from the Daily Tracks file. A row still needs a
+  // title and a timestamp to be a play at all.
   return records.filter(
-    (r) => r['Content Name'] && r['Artist Name'] && (r['Event End Timestamp'] || r['Event Start Timestamp'])
+    (r) => appleMusicTrackName(r) && (r['Event End Timestamp'] || r['Event Start Timestamp'])
   );
 }
 
@@ -78,11 +156,22 @@ export function parseAppleMusicCsvContent(records: AppleMusicRecord[]): AppleMus
  *
  * @param clientAgent  The `submissionClientAgent` string for this runtime.
  */
-export function convertAppleMusicToPlayRecord(r: AppleMusicRecord, clientAgent: string): PlayRecord {
-  const artists: PlayRecord['artists'] = [];
-  if (r['Artist Name']) {
-    artists.push({ artistName: r['Artist Name'] });
-  }
+export function convertAppleMusicToPlayRecord(
+  r: AppleMusicRecord,
+  clientAgent: string,
+  artistLookup?: Map<string, string>
+): PlayRecord | null {
+  const trackName = appleMusicTrackName(r);
+  if (!trackName) return null;
+
+  // In-row artist first, then the Daily Tracks lookup. If neither has one we
+  // skip the row rather than writing "Unknown Artist" — these records land in
+  // someone's public repo permanently, and a play with no artist is closer to
+  // noise than data.
+  const artistName = firstNonEmpty(r, ARTIST_COLUMNS) ?? artistLookup?.get(titleKey(trackName));
+  if (!artistName) return null;
+
+  const artists: PlayRecord['artists'] = [{ artistName }];
 
   // Use End Timestamp, fallback to Start Timestamp
   let playedTime = r['Event End Timestamp'] || r['Event Start Timestamp'] || new Date().toISOString();
@@ -105,7 +194,7 @@ export function convertAppleMusicToPlayRecord(r: AppleMusicRecord, clientAgent: 
 
   const record: PlayRecord = {
     $type: RECORD_TYPE,
-    trackName: r['Content Name'] ?? 'Unknown Track',
+    trackName,
     artists,
     playedTime,
     submissionClientAgent: clientAgent,
