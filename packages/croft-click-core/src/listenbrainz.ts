@@ -125,7 +125,10 @@ export function parseListenBrainzArchive(bytes: Uint8Array): ListenBrainzRecord[
  *
  * @param clientAgent  The `submissionClientAgent` string for this runtime.
  */
-export function convertListenBrainzToPlayRecord(r: ListenBrainzRecord, clientAgent: string): PlayRecord {
+export function convertListenBrainzToPlayRecord(
+  r: ListenBrainzRecord,
+  clientAgent: string
+): PlayRecord | null {
   const { track_name: trackName, artist_name: artistName, release_name: releaseName, mbid_mapping, additional_info } = r.track_metadata;
 
   // MusicBrainz IDs arrive as bare UUIDs, but the lexicon declares every MbId
@@ -133,7 +136,7 @@ export function convertListenBrainzToPlayRecord(r: ListenBrainzRecord, clientAge
   // PDS reject the whole batch with `invalid format: Uri`, so normalise here
   // and drop anything that isn't a recognisable UUID.
   const mappedArtists = mbid_mapping?.artists;
-  const artists: PlayRecord['artists'] =
+  const artists: PlayRecord['artists'] | undefined =
     mappedArtists && mappedArtists.length > 0
       ? mappedArtists.map((a) => {
           const artistMbId = normalizeMusicBrainzId(a.artist_mbid);
@@ -142,7 +145,13 @@ export function convertListenBrainzToPlayRecord(r: ListenBrainzRecord, clientAge
             ...(artistMbId ? { artistMbId } : {}),
           };
         })
-      : [{ artistName: artistName || 'Unknown Artist' }];
+      : // No mapping and no bare artist name: leave `artists` off rather than
+        // writing "Unknown Artist". The lexicon requires only `trackName`, and
+        // a fabricated name is both untrue and invisible to MusicBrainz
+        // enrichment later, since the field would look already-populated.
+        artistName
+        ? [{ artistName }]
+        : undefined;
 
   const recordingMbId = normalizeMusicBrainzId(
     mbid_mapping?.recording_mbid ?? additional_info?.recording_mbid,
@@ -151,11 +160,16 @@ export function convertListenBrainzToPlayRecord(r: ListenBrainzRecord, clientAge
     mbid_mapping?.release_mbid ?? additional_info?.release_mbid,
   );
 
+  // `trackName` is the one field the lexicon requires, and a listen without it
+  // says nothing at all — unlike a missing artist, where the title and time are
+  // still real. Drop it rather than invent "Unknown Track".
+  if (!trackName) return null;
+
   // ListenBrainz timestamps are Unix seconds, not milliseconds.
   const record: PlayRecord = {
     $type: RECORD_TYPE,
-    trackName: trackName || 'Unknown Track',
-    artists,
+    trackName,
+    ...(artists ? { artists } : {}),
     playedTime: new Date(r.listened_at * 1000).toISOString(),
     submissionClientAgent: clientAgent,
     musicServiceUri: additional_info?.music_service

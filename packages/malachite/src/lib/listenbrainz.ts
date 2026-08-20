@@ -78,6 +78,6 @@ export function convertListenBrainzToPlayRecord(
   record: ListenBrainzRecord,
   _configOrUnused?: unknown,
   _debug?: boolean
-): PlayRecord {
+): PlayRecord | null {
   return coreConvert(record, CLI_AGENT);
 }

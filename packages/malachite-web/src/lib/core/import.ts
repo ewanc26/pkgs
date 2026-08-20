@@ -12,7 +12,13 @@ import type { ImportMode, LogEntry, PlayRecord } from '$lib/types.js';
 import { CLIENT_AGENT } from '../config.js';
 import { parseLastFmFile, convertToPlayRecord } from './csv.js';
 import { parseSpotifyFiles, convertSpotifyToPlayRecord } from './spotify.js';
-import { parseAppleMusicFile, convertAppleMusicToPlayRecord } from './apple-music.js';
+import {
+  parseAppleMusicFile,
+  parseAppleMusicDailyTracksFile,
+  splitAppleMusicFiles,
+  convertAppleMusicRecords,
+} from './apple-music.js';
+import { enrichWithMusicBrainz } from '@ewanc26/croft-click-core';
 import { parseYouTubeMusicFiles, convertYouTubeMusicToPlayRecord } from './youtube-music.js';
 import { parseListenBrainzFiles, convertListenBrainzToPlayRecord } from './listenbrainz.js';
 import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '@ewanc26/croft-click-core';
@@ -32,10 +38,23 @@ export type { PublishProgress };
 
 import { loadRecordsCache, saveRecordsCache } from './web-cache.js';
 
+/**
+ * MusicBrainz rejects or throttles clients that don't identify themselves with
+ * a contactable User-Agent, so this must stay specific and reachable.
+ * https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting
+ */
+const MUSICBRAINZ_USER_AGENT = `${CLIENT_AGENT} ( https://github.com/ewanc26/pkgs )`;
+
 export interface ImportOptions {
   dryRun: boolean;
   reverseOrder: boolean;
   fresh: boolean;
+  /**
+   * Look missing artists up on MusicBrainz before publishing. Off by default:
+   * it's rate-limited to one request per second, so a large gap list takes
+   * hours, and the import works fine without it.
+   */
+  enrichFromMusicBrainz?: boolean;
 }
 
 export interface ImportResult {
@@ -50,6 +69,89 @@ export interface ImportCallbacks {
   isCancelled: () => boolean;
 }
 
+/**
+ * Load Apple Music plays from the uploaded CSV(s).
+ *
+ * Current Apple exports have no artist column. Plays whose artist can't be
+ * resolved from the optional daily-tracks companion still import, just without
+ * one — and the count is logged, since a quietly incomplete import is what made
+ * this hard to diagnose in the first place.
+ */
+async function loadAppleMusic(
+  appleFiles: File[],
+  onLog: (level: LogEntry['level'], message: string) => void
+): Promise<PlayRecord[]> {
+  const { playActivity, dailyTracks } = await splitAppleMusicFiles(appleFiles);
+  if (!playActivity) return [];
+
+  const artistLookup = dailyTracks ? await parseAppleMusicDailyTracksFile(dailyTracks) : undefined;
+  if (artistLookup) {
+    onLog('info', `Apple Music: recovered ${artistLookup.size.toLocaleString()} artist names from ${dailyTracks!.name}`);
+  }
+
+  const raw = await parseAppleMusicFile(playActivity);
+  const { records, withoutArtist } = convertAppleMusicRecords(raw, artistLookup);
+  onLog('info', `Apple Music: ${records.length.toLocaleString()} plays`);
+
+  if (withoutArtist > 0) {
+    onLog(
+      'warn',
+      `${withoutArtist.toLocaleString()} of ${records.length.toLocaleString()} play(s) have no ` +
+        `artist name. Apple's current export omits the artist column — also select ` +
+        `"Apple Music - Play History Daily Tracks.csv" from the same folder to fill them in.`
+    );
+  }
+
+  return records;
+}
+
+/**
+ * Fill in missing artists from MusicBrainz.
+ *
+ * MusicBrainz allows one request per second, so this is opt-in and paced
+ * accordingly — an hour per ~3,600 gaps. Failures are per-record and silent by
+ * design: a record that can't be matched is passed through untouched.
+ */
+async function enrichRecords(
+  records: PlayRecord[],
+  onLog: (level: LogEntry['level'], message: string) => void,
+  signal: AbortSignal
+): Promise<PlayRecord[]> {
+  const gaps = records.filter((r) => !r.artists?.length).length;
+  if (gaps === 0) return records;
+
+  onLog('section', '── MusicBrainz ──────────────────────────────────────');
+  onLog(
+    'info',
+    `Looking up ${gaps.toLocaleString()} play(s) with no artist. MusicBrainz allows one ` +
+      `request per second, so this takes about ${formatDuration(gaps)}.`
+  );
+
+  let lastLogged = 0;
+  const { records: enrichedRecords, enriched } = await enrichWithMusicBrainz(records, {
+    userAgent: MUSICBRAINZ_USER_AGENT,
+    signal,
+    onProgress: ({ processed, total }) => {
+      // One line every 50 records; per-record logging would flood the view.
+      if (processed - lastLogged >= 50 || processed === total) {
+        lastLogged = processed;
+        onLog('progress', `  ${processed.toLocaleString()}/${total.toLocaleString()} checked…`);
+      }
+    },
+  });
+
+  onLog('success', `Filled in ${enriched.toLocaleString()} artist name(s) from MusicBrainz`);
+  return enrichedRecords;
+}
+
+/** Rough human-readable duration for a one-request-per-second job. */
+function formatDuration(requests: number): string {
+  const seconds = Math.ceil(requests * 1.1);
+  if (seconds < 90) return `${seconds}s`;
+  if (seconds < 5400) return `${Math.round(seconds / 60)} min`;
+  return `${(seconds / 3600).toFixed(1)} hours`;
+}
+
 export async function runImport(
   client: Client,
   mode: ImportMode,
@@ -58,7 +160,7 @@ export async function runImport(
   appleFiles: File[],
   youtubeFiles: File[],
   listenbrainzFiles: File[],
-  { dryRun, reverseOrder, fresh }: ImportOptions,
+  { dryRun, reverseOrder, fresh, enrichFromMusicBrainz }: ImportOptions,
   { onLog, onProgress, isCancelled }: ImportCallbacks,
   /** Number of records to skip when resuming a previous import. */
   startIndex = 0,
@@ -183,9 +285,7 @@ export async function runImport(
       }
 
       if (appleFiles.length > 0) {
-        const amRaw = await parseAppleMusicFile(appleFiles[0]);
-        onLog('info', `Apple Music: ${amRaw.length.toLocaleString()} plays`);
-        appleRecords = amRaw.map(r => convertAppleMusicToPlayRecord(r, CLIENT_AGENT));
+        appleRecords = await loadAppleMusic(appleFiles, onLog);
       }
 
       if (youtubeFiles.length > 0) {
@@ -197,7 +297,7 @@ export async function runImport(
       if (listenbrainzFiles.length > 0) {
         const lbRaw = await parseListenBrainzFiles(listenbrainzFiles);
         onLog('info', `ListenBrainz: ${lbRaw.length.toLocaleString()} listens`);
-        listenbrainzRecords = lbRaw.map(r => convertListenBrainzToPlayRecord(r, CLIENT_AGENT));
+        listenbrainzRecords = lbRaw.map(r => convertListenBrainzToPlayRecord(r, CLIENT_AGENT)).filter((x): x is PlayRecord => x !== null);
       }
 
       const { merged, stats } = mergePlayRecords(lastfmRecords, spotifyRecords, appleRecords, youtubeRecords, listenbrainzRecords);
@@ -208,8 +308,7 @@ export async function runImport(
       records = spRaw.map((r) => convertSpotifyToPlayRecord(r, CLIENT_AGENT));
       onLog('success', `Loaded ${records.length.toLocaleString()} Spotify records`);
     } else if (mode === 'apple') {
-      const amRaw = await parseAppleMusicFile(appleFiles[0]);
-      records = amRaw.map((r) => convertAppleMusicToPlayRecord(r, CLIENT_AGENT));
+      records = await loadAppleMusic(appleFiles, onLog);
       onLog('success', `Loaded ${records.length.toLocaleString()} Apple Music records`);
     } else if (mode === 'youtube') {
       const ytRaw = await parseYouTubeMusicFiles(youtubeFiles);
@@ -217,12 +316,17 @@ export async function runImport(
       onLog('success', `Loaded ${records.length.toLocaleString()} YouTube Music records`);
     } else if (mode === 'listenbrainz') {
       const lbRaw = await parseListenBrainzFiles(listenbrainzFiles);
-      records = lbRaw.map((r) => convertListenBrainzToPlayRecord(r, CLIENT_AGENT));
+      records = lbRaw.map((r) => convertListenBrainzToPlayRecord(r, CLIENT_AGENT)).filter((x): x is PlayRecord => x !== null);
       onLog('success', `Loaded ${records.length.toLocaleString()} ListenBrainz records`);
     } else {
       const lfRaw = await parseLastFmFile(lastfmFiles[0]);
       records = lfRaw.map((r) => convertToPlayRecord(r, CLIENT_AGENT));
       onLog('success', `Loaded ${records.length.toLocaleString()} Last.fm records`);
+    }
+
+    // Enrich before dedupe/sync so filled-in artists participate in matching.
+    if (enrichFromMusicBrainz) {
+      records = await enrichRecords(records, onLog, ac.signal);
     }
 
     if (mode !== 'combined') {

@@ -122,7 +122,7 @@ export async function fetchAllRecords(
  * Create a unique key for a play record based on its essential properties.
  */
 export function createRecordKey(record: PlayRecord): string {
-  const artist = (record.artists[0]?.artistName ?? '').toLowerCase().trim();
+  const artist = (record.artists?.[0]?.artistName ?? '').toLowerCase().trim();
   const track = record.trackName.toLowerCase().trim();
   return `${artist}|||${track}|||${record.playedTime}`;
 }
@@ -131,7 +131,7 @@ export function createRecordKey(record: PlayRecord): string {
  * Create a fuzzy unique key for a play record, rounding the timestamp.
  */
 export function createFuzzyRecordKey(record: PlayRecord): string {
-  const artist = (record.artists[0]?.artistName ?? '').toLowerCase().trim();
+  const artist = (record.artists?.[0]?.artistName ?? '').toLowerCase().trim();
   const track = record.trackName.toLowerCase().trim();
   const date = new Date(record.playedTime);
   // Round to nearest minute
@@ -188,7 +188,7 @@ export function filterNewRecords(
     const exampleCount = Math.min(3, duplicates.length);
     log.debug('Examples of existing records (skipped):');
     duplicates.slice(0, exampleCount).forEach((record, i) => {
-      log.debug(`  ${i + 1}. ${record.artists[0]?.artistName} - ${record.trackName}`);
+      log.debug(`  ${i + 1}. ${record.artists?.[0]?.artistName} - ${record.trackName}`);
       log.debug(`     ${formatDate(record.playedTime, true)}`);
     });
     if (duplicates.length > exampleCount) {
@@ -295,7 +295,7 @@ export async function removeDuplicates(
   for (let i = 0; i < exampleCount; i++) {
     const group = duplicateGroups[i];
     const firstRecord = group.records[0].value;
-    console.log(`  ${i + 1}. ${firstRecord.artists[0]?.artistName} - ${firstRecord.trackName}`);
+    console.log(`  ${i + 1}. ${firstRecord.artists?.[0]?.artistName} - ${firstRecord.trackName}`);
     console.log(`     ${formatDate(firstRecord.playedTime, true)} · ${group.records.length - 1} duplicate(s)`);
   }
   if (duplicateGroups.length > exampleCount) {

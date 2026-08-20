@@ -22,13 +22,21 @@ export interface PlayRecordArtist {
 export interface PlayRecord {
   $type: string;
   trackName: string;
-  artists: PlayRecordArtist[];
+  /**
+   * Optional, matching the lexicon — `fm.teal.feed.play` requires only
+   * `trackName`. Omitted rather than guessed when a source doesn't tell us who
+   * the artist is (current Apple Music exports don't), since an absent field is
+   * honest where a placeholder name would be fabrication.
+   */
+  artists?: PlayRecordArtist[];
   playedTime: string;
   submissionClientAgent: string;
   musicServiceUri: string;
   releaseName?: string;
   releaseMbId?: string;
   recordingMbId?: string;
+  /** ISRC of the recording, per the lexicon. Set by MusicBrainz enrichment. */
+  isrc?: string;
   originUri?: string;
 }
 
@@ -89,9 +97,24 @@ export interface ListenBrainzRecord {
   };
 }
 
+/**
+ * A row of `Apple Music Play Activity.csv`.
+ *
+ * Column names differ across export generations, so nearly everything is
+ * optional: current exports use `Song Name` and have dropped `Artist Name`
+ * entirely, while older ones use `Content Name` and do carry an artist. Read
+ * these through the helpers in `apple-music.ts` rather than directly.
+ */
 export interface AppleMusicRecord {
-  'Content Name': string;
-  'Artist Name': string;
+  /** Track title in current exports. */
+  'Song Name'?: string;
+  /** Track title in pre-~2021 exports. */
+  'Content Name'?: string;
+  /** Absent from current exports; present in older ones. */
+  'Artist Name'?: string;
+  /** Artist of the browsed container — rarely set, and not always the track's. */
+  'Container Artist Name'?: string;
+  'Album Name'?: string;
   'Event End Timestamp'?: string;
   'Event Start Timestamp'?: string;
   'Play Duration Milliseconds'?: string;
