@@ -23,27 +23,29 @@ export function parseYouTubeMusicJsonContent(records: YouTubeMusicRecord[]): You
  *
  * @param clientAgent  The `submissionClientAgent` string for this runtime.
  */
-export function convertYouTubeMusicToPlayRecord(r: YouTubeMusicRecord, clientAgent: string): PlayRecord | null {
-  // Takeout puts the artist in the first subtitle, but sometimes that's a bare
-  // channel URL instead of a name. Either way, an unusable value means we leave
-  // `artists` off rather than inventing one — a placeholder would also hide the
-  // record from MusicBrainz enrichment, which looks for a missing artist.
-  const subtitle = r.subtitles?.[0]?.name;
-  const artistName = subtitle && !subtitle.includes('music.youtube.com') ? subtitle : undefined;
-  const artists: PlayRecord['artists'] | undefined = artistName ? [{ artistName }] : undefined;
+export function convertYouTubeMusicToPlayRecord(r: YouTubeMusicRecord, clientAgent: string): PlayRecord {
+  const artists: PlayRecord['artists'] = [];
+  
+  // Extract artist from the first subtitle
+  const artistName = r.subtitles && r.subtitles.length > 0 ? r.subtitles[0].name : 'Unknown Artist';
+  
+  // Filter out the typical Google format where subtitle is just artist URL, though Takeout puts artist names there
+  if (artistName !== 'Unknown Artist' && !artistName.includes('music.youtube.com')) {
+     artists.push({ artistName });
+  } else {
+     artists.push({ artistName: 'Unknown Artist' });
+  }
 
   // Strip "Watched " prefix from title
-  let trackName = r.title ?? '';
+  let trackName = r.title || 'Unknown Track';
   if (trackName.startsWith('Watched ')) {
     trackName = trackName.substring(8);
   }
-  // `trackName` is the lexicon's only required field.
-  if (!trackName) return null;
 
   const record: PlayRecord = {
     $type: RECORD_TYPE,
     trackName,
-    ...(artists ? { artists } : {}),
+    artists,
     playedTime: r.time,
     submissionClientAgent: clientAgent,
     musicServiceUri: 'https://music.youtube.com/',

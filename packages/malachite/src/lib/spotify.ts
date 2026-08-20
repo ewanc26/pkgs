@@ -83,26 +83,25 @@ export function parseSpotifyJson(filePathOrDir: string): SpotifyRecord[] {
 /**
  * Convert Spotify record to ATProto play record
  */
-export function convertSpotifyToPlayRecord(spotifyRecord: SpotifyRecord, config: Config, debug = false): PlayRecord | null {
+export function convertSpotifyToPlayRecord(spotifyRecord: SpotifyRecord, config: Config, debug = false): PlayRecord {
   const { RECORD_TYPE } = config;
-
-  // Podcast episodes and local files arrive with no track metadata. `trackName`
-  // is the lexicon's only required field, and a play without one says nothing.
-  const trackName = spotifyRecord.master_metadata_track_name;
-  if (!trackName) return null;
 
   // Spotify timestamp is already in ISO 8601 format
   const playedTime = spotifyRecord.ts;
 
-  const artistName = spotifyRecord.master_metadata_album_artist_name;
+  // Build artists array
+  const artists: PlayRecord['artists'] = [];
+  if (spotifyRecord.master_metadata_album_artist_name) {
+    artists.push({
+      artistName: spotifyRecord.master_metadata_album_artist_name,
+    });
+  }
 
   // Build the play record
   const playRecord: PlayRecord = {
     $type: RECORD_TYPE,
-    trackName,
-    // Omitted when unknown rather than given a placeholder name, which would
-    // also make the record invisible to MusicBrainz enrichment.
-    ...(artistName ? { artists: [{ artistName }] } : {}),
+    trackName: spotifyRecord.master_metadata_track_name || 'Unknown Track',
+    artists,
     playedTime,
     submissionClientAgent: buildClientAgent(debug),
     musicServiceUri: 'https://open.spotify.com/',

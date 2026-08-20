@@ -281,7 +281,7 @@ export async function runImport(
       if (spotifyFiles.length > 0) {
         const spRaw = await parseSpotifyFiles(spotifyFiles);
         onLog('info', `Spotify: ${spRaw.length.toLocaleString()} tracks`);
-        spotifyRecords = spRaw.map(r => convertSpotifyToPlayRecord(r, CLIENT_AGENT)).filter((x): x is PlayRecord => x !== null);
+        spotifyRecords = spRaw.map(r => convertSpotifyToPlayRecord(r, CLIENT_AGENT));
       }
 
       if (appleFiles.length > 0) {
@@ -291,7 +291,7 @@ export async function runImport(
       if (youtubeFiles.length > 0) {
         const ytRaw = await parseYouTubeMusicFiles(youtubeFiles);
         onLog('info', `YouTube Music: ${ytRaw.length.toLocaleString()} plays`);
-        youtubeRecords = ytRaw.map(r => convertYouTubeMusicToPlayRecord(r, CLIENT_AGENT)).filter((x): x is PlayRecord => x !== null);
+        youtubeRecords = ytRaw.map(r => convertYouTubeMusicToPlayRecord(r, CLIENT_AGENT));
       }
 
       if (listenbrainzFiles.length > 0) {
@@ -305,14 +305,14 @@ export async function runImport(
       onLog('success', `Merged: ${records.length.toLocaleString()} unique records (${stats.duplicatesRemoved} duplicates removed)`);
     } else if (mode === 'spotify') {
       const spRaw = await parseSpotifyFiles(spotifyFiles);
-      records = spRaw.map((r) => convertSpotifyToPlayRecord(r, CLIENT_AGENT)).filter((x): x is PlayRecord => x !== null);
+      records = spRaw.map((r) => convertSpotifyToPlayRecord(r, CLIENT_AGENT));
       onLog('success', `Loaded ${records.length.toLocaleString()} Spotify records`);
     } else if (mode === 'apple') {
       records = await loadAppleMusic(appleFiles, onLog);
       onLog('success', `Loaded ${records.length.toLocaleString()} Apple Music records`);
     } else if (mode === 'youtube') {
       const ytRaw = await parseYouTubeMusicFiles(youtubeFiles);
-      records = ytRaw.map((r) => convertYouTubeMusicToPlayRecord(r, CLIENT_AGENT)).filter((x): x is PlayRecord => x !== null);
+      records = ytRaw.map((r) => convertYouTubeMusicToPlayRecord(r, CLIENT_AGENT));
       onLog('success', `Loaded ${records.length.toLocaleString()} YouTube Music records`);
     } else if (mode === 'listenbrainz') {
       const lbRaw = await parseListenBrainzFiles(listenbrainzFiles);
