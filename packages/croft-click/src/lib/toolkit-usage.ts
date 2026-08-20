@@ -70,13 +70,13 @@ export const TOOL_META: Record<string, ToolMeta> = {
   "click.croft.tools.opal": {
     slug: "opal",
     name: "Opal",
-    accent: "#a7f3d0",
+    accent: "#67e8f9",
     metricLabel: "posts imported",
   },
   "click.croft.tools.tourmaline": {
     slug: "tourmaline",
     name: "Tourmaline",
-    accent: "#4ade80",
+    accent: "#fb7185",
     metricLabel: "scrobbles analysed",
   },
 };
