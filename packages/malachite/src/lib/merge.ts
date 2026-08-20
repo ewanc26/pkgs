@@ -10,7 +10,11 @@ import type { MergeStats } from '@ewanc26/croft-click-core';
 import { mergePlayRecords } from '@ewanc26/croft-click-core';
 import { parseLastFmCsv, convertToPlayRecord } from './csv.js';
 import { parseSpotifyJson, convertSpotifyToPlayRecord } from './spotify.js';
-import { parseAppleMusicCsv, convertAppleMusicToPlayRecord } from './apple-music.js';
+import {
+  parseAppleMusicCsv,
+  parseAppleMusicDailyTracksCsv,
+  convertAppleMusicRecords,
+} from './apple-music.js';
 import { parseYouTubeMusicJson, convertYouTubeMusicToPlayRecord } from './youtube-music.js';
 import { parseListenBrainzJson, convertListenBrainzToPlayRecord } from './listenbrainz.js';
 import { formatDate } from '../utils/helpers.js';
@@ -44,7 +48,7 @@ function displayMergeStats(stats: MergeStats, merged: PlayRecord[]): void {
  * Parse and merge exports from any combination of supported sources.
  */
 export function parseCombinedExports(
-  paths: { lastfm?: string, spotify?: string, apple?: string, youtube?: string, listenbrainz?: string },
+  paths: { lastfm?: string, spotify?: string, apple?: string, appleDailyTracks?: string, youtube?: string, listenbrainz?: string },
   config: Config,
   debug = false
 ): PlayRecord[] {
@@ -72,7 +76,10 @@ export function parseCombinedExports(
   if (paths.apple) {
     log.info('Parsing Apple Music export...');
     const appleCsvRecords = parseAppleMusicCsv(paths.apple);
-    appleRecords = appleCsvRecords.map(r => convertAppleMusicToPlayRecord(r, config, debug));
+    const appleArtists = paths.appleDailyTracks
+      ? parseAppleMusicDailyTracksCsv(paths.appleDailyTracks)
+      : undefined;
+    appleRecords = convertAppleMusicRecords(appleCsvRecords, appleArtists);
   }
 
   if (paths.youtube) {
@@ -84,7 +91,7 @@ export function parseCombinedExports(
   if (paths.listenbrainz) {
     log.info('Parsing ListenBrainz export...');
     const listenbrainzJsonRecords = parseListenBrainzJson(paths.listenbrainz);
-    listenbrainzRecords = listenbrainzJsonRecords.map(r => convertListenBrainzToPlayRecord(r, config, debug));
+    listenbrainzRecords = listenbrainzJsonRecords.map(r => convertListenBrainzToPlayRecord(r, config, debug)).filter((r): r is PlayRecord => r !== null);
   }
 
   log.info('Merging all exports...');

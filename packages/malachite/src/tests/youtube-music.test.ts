@@ -99,7 +99,7 @@ describe('YouTube Music Record Conversion', () => {
     const playRecord = convertYouTubeMusicToPlayRecord(youtubeRecord, mockConfig);
 
     assert.strictEqual(playRecord.trackName, 'Test Track');
-    assert.strictEqual(playRecord.artists[0].artistName, 'Test Artist');
+    assert.strictEqual(playRecord.artists?.[0].artistName, 'Test Artist');
     assert.strictEqual(playRecord.playedTime, '2021-06-15T20:00:00Z');
     assert.strictEqual(playRecord.musicServiceUri, 'https://music.youtube.com/');
     assert.strictEqual(playRecord.originUri, 'https://music.youtube.com/watch?v=123');

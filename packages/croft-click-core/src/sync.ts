@@ -22,7 +22,7 @@ export interface DedupGroup {
 }
 
 export function recordKey(r: PlayRecord): string {
-  const artist = (r.artists[0]?.artistName ?? '').toLowerCase().trim();
+  const artist = (r.artists?.[0]?.artistName ?? '').toLowerCase().trim();
   return `${artist}|||${r.trackName.toLowerCase().trim()}|||${r.playedTime}`;
 }
 

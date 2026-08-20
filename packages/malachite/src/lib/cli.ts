@@ -15,10 +15,15 @@ import {
 import { parseLastFmCsv, convertToPlayRecord, fetchLastFmToTempFile } from '../lib/csv.js';
 import * as fs from 'fs';
 import { parseSpotifyJson, convertSpotifyToPlayRecord } from '../lib/spotify.js';
-import { parseAppleMusicCsv, convertAppleMusicToPlayRecord } from '../lib/apple-music.js';
+import {
+  parseAppleMusicCsv,
+  parseAppleMusicDailyTracksCsv,
+  convertAppleMusicRecords,
+} from '../lib/apple-music.js';
 import { parseYouTubeMusicJson, convertYouTubeMusicToPlayRecord } from '../lib/youtube-music.js';
 import { parseListenBrainzJson, convertListenBrainzToPlayRecord } from '../lib/listenbrainz.js';
 import { parseCombinedExports } from '../lib/merge.js';
+import { enrichWithMusicBrainz } from '@ewanc26/croft-click-core';
 import { publishRecordsWithApplyWrites } from './publisher.js';
 import { prompt, confirm, menu, promptWithValidation, validateFilePath, isNonInteractive } from '../utils/input.js';
 import { sortRecords } from '../utils/helpers.js';
@@ -67,7 +72,15 @@ ${'\x1b[1m'}AUTHENTICATION:${'\x1b[0m'}
 ${'\x1b[1m'}INPUT:${'\x1b[0m'}
   -i, --input <path>             Path to Last.fm CSV export
   --spotify-input <path>         Path to Spotify JSON export
-  --apple-input <path>           Path to Apple Music CSV export
+  --apple-input <path>           Path to Apple Music CSV export ("Apple Music Play Activity.csv")
+  --apple-daily-tracks <path>    Path to "Apple Music - Play History Daily Tracks.csv".
+                                 Current Apple exports dropped the artist column;
+                                 this fills artists back in. Without it, plays
+                                 still import, just without an artist name.
+  --enrich                       Look missing artist names up on MusicBrainz.
+                                 Rate-limited to one lookup per second, so a
+                                 large import can take hours. Records that can't
+                                 be matched are left untouched, never dropped.
   --youtube-input <path>         Path to YouTube Music JSON export
   --listenbrainz-input <path>    Path to ListenBrainz export (.zip, export
                                  directory, or .json/.jsonl file)
@@ -177,6 +190,8 @@ export function parseCommandLineArgs(): CommandLineArgs {
     pds: { type: 'string' },
     'spotify-input': { type: 'string' },
     'apple-input': { type: 'string' },
+    'apple-daily-tracks': { type: 'string' },
+    'enrich': { type: 'boolean' },
     'youtube-input': { type: 'string' },
     'listenbrainz-input': { type: 'string' },
     'lastfm-user': { type: 'string' },
@@ -219,6 +234,8 @@ export function parseCommandLineArgs(): CommandLineArgs {
       input: values.input || values.file,
       'spotify-input': values['spotify-input'] || values['spotify-file'],
       'apple-input': values['apple-input'],
+      'apple-daily-tracks': values['apple-daily-tracks'],
+      enrich: values.enrich,
       'youtube-input': values['youtube-input'],
       'listenbrainz-input': values['listenbrainz-input'],
       'lastfm-user': values['lastfm-user'],
@@ -923,6 +940,7 @@ export async function runCLI(): Promise<void> {
         lastfm: args.input,
         spotify: args['spotify-input'],
         apple: args['apple-input'],
+        appleDailyTracks: args['apple-daily-tracks'],
         youtube: args['youtube-input'],
         listenbrainz: args['listenbrainz-input']
       }, cfg, isDebug);
@@ -936,7 +954,10 @@ export async function runCLI(): Promise<void> {
       log.info('Importing from Apple Music export...');
       const appleRecords = parseAppleMusicCsv(args.input!);
       rawRecordCount = appleRecords.length;
-      records = appleRecords.map(record => convertAppleMusicToPlayRecord(record, cfg, isDebug));
+      const appleArtists = args['apple-daily-tracks']
+        ? parseAppleMusicDailyTracksCsv(args['apple-daily-tracks'])
+        : undefined;
+      records = convertAppleMusicRecords(appleRecords, appleArtists);
     } else if (mode === 'youtube') {
       log.info('Importing from YouTube Music export...');
       const youtubeRecords = parseYouTubeMusicJson(args.input!);
@@ -946,7 +967,7 @@ export async function runCLI(): Promise<void> {
       log.info('Importing from ListenBrainz export...');
       const listenbrainzRecords = parseListenBrainzJson(args.input!);
       rawRecordCount = listenbrainzRecords.length;
-      records = listenbrainzRecords.map(record => convertListenBrainzToPlayRecord(record, cfg, isDebug));
+      records = listenbrainzRecords.map(record => convertListenBrainzToPlayRecord(record, cfg, isDebug)).filter((r): r is PlayRecord => r !== null);
     } else {
       log.info('Importing from Last.fm CSV export...');
       const csvRecords = parseLastFmCsv(args.input!);
@@ -955,6 +976,32 @@ export async function runCLI(): Promise<void> {
     }
 
     log.success(`Loaded ${formatLocaleNumber(rawRecordCount)} records`);
+
+    // Enrich before dedupe/sync so filled-in artists take part in matching.
+    if (args.enrich) {
+      const gaps = records.filter(r => !r.artists?.length).length;
+      if (gaps === 0) {
+        log.info('Every record already has an artist — nothing to look up.');
+      } else {
+        log.section('MusicBrainz');
+        log.info(
+          `Looking up ${formatLocaleNumber(gaps)} record(s) with no artist. ` +
+          `MusicBrainz allows one request per second, so this will take a while.`
+        );
+        let lastLogged = 0;
+        const result = await enrichWithMusicBrainz(records, {
+          userAgent: `malachite/v${VERSION} ( https://github.com/ewanc26/pkgs )`,
+          onProgress: ({ processed, total }) => {
+            if (processed - lastLogged >= 50 || processed === total) {
+              lastLogged = processed;
+              log.info(`  ${formatLocaleNumber(processed)}/${formatLocaleNumber(total)} checked...`);
+            }
+          },
+        });
+        records = result.records;
+        log.success(`Filled in ${formatLocaleNumber(result.enriched)} artist name(s)`);
+      }
+    }
 
     const dedupResult = deduplicateInputRecords(records);
     records = dedupResult.unique;

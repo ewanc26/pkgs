@@ -24,7 +24,7 @@ function toNorm(r: PlayRecord, source: Source): NormalizedRecord {
   return {
     original: r,
     normalizedTrack: normalizeString(r.trackName),
-    normalizedArtist: normalizeString(r.artists[0]?.artistName ?? ''),
+    normalizedArtist: normalizeString(r.artists?.[0]?.artistName ?? ''),
     timestamp: new Date(r.playedTime).getTime(),
     source,
   };
@@ -39,7 +39,7 @@ function areDuplicates(a: NormalizedRecord, b: NormalizedRecord): boolean {
 }
 
 function hasMbIds(n: NormalizedRecord): boolean {
-  return !!(n.original.recordingMbId || n.original.releaseMbId || n.original.artists[0]?.artistMbId);
+  return !!(n.original.recordingMbId || n.original.releaseMbId || n.original.artists?.[0]?.artistMbId);
 }
 
 function betterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayRecord {
@@ -143,7 +143,7 @@ export function deduplicateInputRecords(
   const seen = new Map<string, PlayRecord>();
   let dups = 0;
   for (const r of records) {
-    const key = `${(r.artists[0]?.artistName ?? '').toLowerCase()}|||${r.trackName.toLowerCase()}|||${r.playedTime}`;
+    const key = `${(r.artists?.[0]?.artistName ?? '').toLowerCase()}|||${r.trackName.toLowerCase()}|||${r.playedTime}`;
     if (!seen.has(key)) seen.set(key, r);
     else dups++;
   }

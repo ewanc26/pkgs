@@ -207,8 +207,8 @@ describe('Last.fm Record Conversion', () => {
     const playRecord = convertToPlayRecord(csvRecord, mockConfig);
 
     assert.strictEqual(playRecord.trackName, 'Test Track');
-    assert.strictEqual(playRecord.artists[0].artistName, 'Test Artist');
-    assert.strictEqual(playRecord.artists[0].artistMbId, 'mbid:89ad4ac3-39f7-470e-963a-56509c546377');
+    assert.strictEqual(playRecord.artists?.[0].artistName, 'Test Artist');
+    assert.strictEqual(playRecord.artists?.[0].artistMbId, 'mbid:89ad4ac3-39f7-470e-963a-56509c546377');
     assert.strictEqual(playRecord.releaseName, 'Test Album');
     assert.strictEqual(playRecord.releaseMbId, 'mbid:d87e52c5-bb8d-4da8-b941-9f4928627dc8');
     assert.strictEqual(playRecord.recordingMbId, 'mbid:b3a5364c-8282-4a61-a5db-3dbead027def');
@@ -228,8 +228,8 @@ describe('Last.fm Record Conversion', () => {
     const playRecord = convertToPlayRecord(csvRecord, mockConfig);
 
     assert.strictEqual(playRecord.trackName, 'Test Track');
-    assert.strictEqual(playRecord.artists[0].artistName, 'Test Artist');
-    assert.ok(!playRecord.artists[0].artistMbId);
+    assert.strictEqual(playRecord.artists?.[0].artistName, 'Test Artist');
+    assert.ok(!playRecord.artists?.[0].artistMbId);
     assert.strictEqual(playRecord.releaseName, 'Test Album');
     assert.ok(!playRecord.releaseMbId);
     assert.ok(!playRecord.recordingMbId);
