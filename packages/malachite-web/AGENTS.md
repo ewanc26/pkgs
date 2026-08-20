@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Purpose
-`@ewanc26/malachite-web` is the SvelteKit web frontend for Malachite — a browser-based interface for importing Last.fm and Spotify listening history into AT Protocol, deployed at `malachite.croft.click`.
+`@ewanc26/malachite-web` is the SvelteKit web frontend for Malachite — a browser-based interface for importing your music listening history into AT Protocol, deployed at `malachite.croft.click`.
 
 ## Architectural Concepts
 - **SvelteKit Application**: Browser-side OAuth via `@atproto/oauth-client-browser`; delegates all import logic to the `@ewanc26/malachite` workspace package.
