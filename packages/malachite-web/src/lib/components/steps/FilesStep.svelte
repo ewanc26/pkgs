@@ -388,9 +388,12 @@
       <details>
         <summary>How to export from Apple Music</summary>
         <p>
-          Go to <a href="https://privacy.apple.com/" target="_blank" rel="noopener">privacy.apple.com</a>, 
-          request a copy of your data (Apple Media Services), and once ready, upload the 
-          <code>Apple_Media_Services/Apple Music Activity/Apple Music - Play History Daily.csv</code> file.
+          Go to <a href="https://privacy.apple.com/" target="_blank" rel="noopener">privacy.apple.com</a>,
+          request a copy of your data (Apple Media Services), and once ready, upload the
+          <code>Apple_Media_Services/Apple Music Activity/Apple Music Play Activity.csv</code> file.
+          It's the large one (often tens of MB) — not
+          <code>Apple Music - Play History Daily Tracks.csv</code>, which only has daily
+          totals and no per-play timestamps.
         </p>
       </details>
     {/if}
