@@ -35,7 +35,7 @@
 <div class="stats-card">
 	<div class="card-header">
 		<div class="title-group">
-			<BarChart3 size={14} color="#4ade80" />
+			<BarChart3 size={14} color="var(--accent)" />
 			<span class="label">TOOLKIT USAGE</span>
 		</div>
 		<button
@@ -188,7 +188,7 @@
 	.total-count {
 		font-size: 2.25rem;
 		font-weight: 700;
-		color: #4ade80;
+		color: var(--accent);
 		font-variant-numeric: tabular-nums;
 		letter-spacing: -0.02em;
 	}
@@ -323,7 +323,7 @@
 	.loading-fill {
 		width: 30%;
 		height: 100%;
-		background: #4ade80;
+		background: var(--accent);
 		animation: loading-slide 1.5s infinite ease-in-out;
 	}
 
@@ -371,7 +371,7 @@
 	}
 
 	:global(.header-icon) {
-		color: #4ade80;
+		color: var(--accent);
 	}
 
 	:global(.spin) {

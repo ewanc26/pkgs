@@ -46,7 +46,7 @@ export const coreProjects: Project[] = [
 		heading: 'Microblog → Bluesky',
 		description:
 			'Convert your posts from Twitter, Mastodon, Threads, and Nostr to AT Protocol Bluesky posts. Original timestamps preserved.',
-		accent: '#a7f3d0',
+		accent: '#67e8f9',
 		logo: '/opal.svg'
 	}
 ];
@@ -69,7 +69,7 @@ export const extraProjects: Project[] = [
 		heading: 'Teal.fm scrobble analyser',
 		description:
 			'Analyse your Teal.fm listening history. Personality archetypes, genre profiles, mood mapping, and share-to-Bluesky.',
-		accent: '#4ade80',
+		accent: '#fb7185',
 		logo: '/tourmaline.svg'
 	},
 	{
