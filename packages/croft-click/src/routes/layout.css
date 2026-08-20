@@ -12,6 +12,10 @@
 	--border: #44403c;
 	--text: #fafaf9;
 	--muted: #a8a29e;
+
+	/* Site accent. ProjectCard overrides --accent per-card via inline style. */
+	--accent: #4ade80;
+	--accent-glow: rgba(74, 222, 128, 0.14);
 }
 
 * {
