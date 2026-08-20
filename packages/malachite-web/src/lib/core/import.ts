@@ -75,15 +75,15 @@ async function loadAppleMusic(
   }
 
   const raw = await parseAppleMusicFile(playActivity);
-  const { records, skipped } = convertAppleMusicRecords(raw, artistLookup);
+  const { records, withoutArtist } = convertAppleMusicRecords(raw, artistLookup);
   onLog('info', `Apple Music: ${records.length.toLocaleString()} plays`);
 
-  if (skipped > 0) {
+  if (withoutArtist > 0) {
     onLog(
       'warn',
-      `Skipped ${skipped.toLocaleString()} play(s) with no artist name. Apple's current export ` +
-        `omits the artist column — also select "Apple Music - Play History Daily Tracks.csv" ` +
-        `from the same folder to recover them.`
+      `${withoutArtist.toLocaleString()} of ${records.length.toLocaleString()} play(s) have no ` +
+        `artist name. Apple's current export omits the artist column — also select ` +
+        `"Apple Music - Play History Daily Tracks.csv" from the same folder to fill them in.`
     );
   }
 

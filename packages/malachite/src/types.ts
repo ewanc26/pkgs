@@ -21,7 +21,8 @@ export interface PlayRecordArtist {
 export interface PlayRecord {
   $type: string;
   trackName: string;
-  artists: PlayRecordArtist[];
+  /** Optional, matching the lexicon — see the note in croft-click-core's types. */
+  artists?: PlayRecordArtist[];
   playedTime: string;
   submissionClientAgent: string;
   musicServiceUri: string;

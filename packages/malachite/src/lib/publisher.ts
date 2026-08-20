@@ -355,7 +355,7 @@ export async function publishRecordsWithApplyWrites(
         // Show sample of failed records
         const sampleSize = Math.min(3, batch.length);
         batch.slice(0, sampleSize).forEach((record) => {
-          log.debug(`   Failed: ${record.trackName} by ${record.artists[0]?.artistName}`);
+          log.debug(`   Failed: ${record.trackName} by ${record.artists?.[0]?.artistName}`);
         });
         if (batch.length > sampleSize) {
           log.debug(`   ... and ${batch.length - sampleSize} more records failed`);
@@ -434,7 +434,7 @@ function handleDryRun(
 
   for (let i = 0; i < previewCount; i++) {
     const record = records[i];
-    const artistName = record.artists[0]?.artistName || 'Unknown Artist';
+    const artistName = record.artists?.[0]?.artistName || 'Unknown Artist';
     
     log.raw(`${i + 1}. ${artistName} - ${record.trackName}`);
     if (record.releaseName) {
@@ -445,7 +445,7 @@ function handleDryRun(
     log.raw(`   URL: ${record.originUri ?? '(none)'}`);
     
     const mbids: string[] = [];
-    if (record.artists[0]?.artistMbId) mbids.push(`Artist: ${record.artists[0].artistMbId}`);
+    if (record.artists?.[0]?.artistMbId) mbids.push(`Artist: ${record.artists?.[0].artistMbId}`);
     if (record.recordingMbId) mbids.push(`Track: ${record.recordingMbId}`);
     if (record.releaseMbId) mbids.push(`Album: ${record.releaseMbId}`);
     

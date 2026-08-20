@@ -202,7 +202,7 @@ describe('Spotify Record Conversion', () => {
     const playRecord = convertSpotifyToPlayRecord(spotifyRecord, mockConfig);
 
     assert.strictEqual(playRecord.trackName, 'Test Track');
-    assert.strictEqual(playRecord.artists[0].artistName, 'Test Artist');
+    assert.strictEqual(playRecord.artists?.[0].artistName, 'Test Artist');
     assert.strictEqual(playRecord.releaseName, 'Test Album');
     assert.strictEqual(playRecord.playedTime, '2021-06-15T20:00:00Z');
     assert.strictEqual(playRecord.musicServiceUri, 'https://open.spotify.com/');

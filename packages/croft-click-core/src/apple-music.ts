@@ -164,14 +164,14 @@ export function convertAppleMusicToPlayRecord(
   const trackName = appleMusicTrackName(r);
   if (!trackName) return null;
 
-  // In-row artist first, then the Daily Tracks lookup. If neither has one we
-  // skip the row rather than writing "Unknown Artist" — these records land in
-  // someone's public repo permanently, and a play with no artist is closer to
-  // noise than data.
+  // In-row artist first (older exports), then the Daily Tracks lookup. When
+  // neither knows, `artists` is left off entirely: the lexicon requires only
+  // `trackName`, and the play itself is real — dropping it would lose genuine
+  // history, while inventing "Unknown Artist" would put a fabricated name in
+  // someone's public repo. An absent field says "unknown" honestly and leaves
+  // room to fill in later.
   const artistName = firstNonEmpty(r, ARTIST_COLUMNS) ?? artistLookup?.get(titleKey(trackName));
-  if (!artistName) return null;
-
-  const artists: PlayRecord['artists'] = [{ artistName }];
+  const artists: PlayRecord['artists'] | undefined = artistName ? [{ artistName }] : undefined;
 
   // Use End Timestamp, fallback to Start Timestamp
   let playedTime = r['Event End Timestamp'] || r['Event Start Timestamp'] || new Date().toISOString();
@@ -195,11 +195,13 @@ export function convertAppleMusicToPlayRecord(
   const record: PlayRecord = {
     $type: RECORD_TYPE,
     trackName,
-    artists,
     playedTime,
     submissionClientAgent: clientAgent,
     musicServiceUri: 'https://music.apple.com/',
   };
+
+  // Only set when known, so the key is absent rather than null/empty on the wire.
+  if (artists) record.artists = artists;
 
   return record;
 }

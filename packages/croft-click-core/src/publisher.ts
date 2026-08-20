@@ -73,7 +73,7 @@ export async function publishRecords(
   if (dryRun) {
     onLog('info', `[DRY RUN] Would publish ${total.toLocaleString()} records`);
     records.slice(0, 5).forEach((r, i) => {
-      onLog('info', `  ${i + 1}. ${r.artists[0]?.artistName} -- ${r.trackName} (${r.playedTime.slice(0, 10)})`);
+      onLog('info', `  ${i + 1}. ${r.artists?.[0]?.artistName} -- ${r.trackName} (${r.playedTime.slice(0, 10)})`);
     });
     if (total > 5) onLog('info', `  ...and ${total - 5} more`);
     return { successCount: total, errorCount: 0, cancelled: false };

@@ -55,27 +55,30 @@ export function convertAppleMusicToPlayRecord(
 }
 
 /**
- * Convert a batch of rows, dropping any whose artist couldn't be resolved and
- * saying so — silently importing fewer plays than the file contains is exactly
- * the failure mode that made this hard to diagnose in the first place.
+ * Convert a batch of rows, reporting how many ended up without an artist.
+ *
+ * Those plays are still imported — the lexicon requires only `trackName`, and
+ * the listen genuinely happened — but the count is worth surfacing so a mostly
+ * artist-less import doesn't come as a surprise later.
  */
 export function convertAppleMusicRecords(
   records: AppleMusicRecord[],
   artistLookup?: Map<string, string>
 ): PlayRecord[] {
-  const converted = records.map((r) => coreConvert(r, CLI_AGENT, artistLookup));
-  const kept = converted.filter((r): r is PlayRecord => r !== null);
-  const skipped = converted.length - kept.length;
+  const converted = records
+    .map((r) => coreConvert(r, CLI_AGENT, artistLookup))
+    .filter((r): r is PlayRecord => r !== null);
 
-  if (skipped > 0) {
+  const withoutArtist = converted.filter((r) => !r.artists?.length).length;
+  if (withoutArtist > 0) {
     console.log(
-      `⚠ Skipped ${skipped} play(s) with no artist name. Current Apple exports omit ` +
-        `the artist column; pass --apple-daily-tracks "${APPLE_MUSIC_DAILY_TRACKS_FILE}" ` +
-        `from the same folder to recover them.\n`
+      `⚠ ${withoutArtist} of ${converted.length} play(s) have no artist name. Current Apple ` +
+        `exports omit the artist column; pass --apple-daily-tracks ` +
+        `"${APPLE_MUSIC_DAILY_TRACKS_FILE}" from the same folder to fill them in.\n`
     );
   }
 
-  return kept;
+  return converted;
 }
 
 /**

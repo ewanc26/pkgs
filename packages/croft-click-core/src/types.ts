@@ -22,7 +22,13 @@ export interface PlayRecordArtist {
 export interface PlayRecord {
   $type: string;
   trackName: string;
-  artists: PlayRecordArtist[];
+  /**
+   * Optional, matching the lexicon — `fm.teal.feed.play` requires only
+   * `trackName`. Omitted rather than guessed when a source doesn't tell us who
+   * the artist is (current Apple Music exports don't), since an absent field is
+   * honest where a placeholder name would be fabrication.
+   */
+  artists?: PlayRecordArtist[];
   playedTime: string;
   submissionClientAgent: string;
   musicServiceUri: string;

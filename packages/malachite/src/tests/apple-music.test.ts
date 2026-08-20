@@ -52,10 +52,10 @@ describe('Apple Music CSV Parsing', () => {
   });
 
   it('should filter out records with no title or no timestamp', () => {
-    // A missing artist is no longer disqualifying at parse time — current
-    // exports have no artist column at all, so it's resolved (or the row
-    // dropped) during conversion instead. Title and timestamp are still
-    // required, since without them a row isn't a play.
+    // A missing artist is not disqualifying — current exports have no artist
+    // column at all, so it's resolved during conversion or simply left unset.
+    // Title and timestamp are still required, since without them a row isn't
+    // a play.
     const csvData = `"Artist Name","Content Name","Event End Timestamp"
 "Artist One","Track One","2021-06-15T20:00:00Z"
 "","Track Two","2021-06-15T20:05:00Z"
@@ -112,7 +112,7 @@ describe('Apple Music Record Conversion', () => {
 
     assert.ok(playRecord);
     assert.strictEqual(playRecord.trackName, 'Test Track');
-    assert.strictEqual(playRecord.artists[0].artistName, 'Test Artist');
+    assert.strictEqual(playRecord.artists?.[0].artistName, 'Test Artist');
     assert.strictEqual(playRecord.playedTime, '2021-06-15T20:00:00.000Z');
     assert.strictEqual(playRecord.musicServiceUri, 'https://music.apple.com/');
   });
@@ -130,18 +130,20 @@ describe('Apple Music Record Conversion', () => {
 
     assert.ok(playRecord);
     assert.strictEqual(playRecord.trackName, 'Modern Track');
-    assert.strictEqual(playRecord.artists[0].artistName, 'Container Artist');
+    assert.strictEqual(playRecord.artists?.[0].artistName, 'Container Artist');
   });
 
-  it('should skip a play whose artist cannot be resolved', () => {
-    // No artist anywhere and no lookup — better dropped than written to the
-    // user's repo as "Unknown Artist".
+  it('should keep a play whose artist is unknown, omitting artists', () => {
+    // fm.teal.feed.play requires only trackName, so the play is still imported.
+    // The field is left off rather than filled with a fabricated name.
     const playRecord = convertAppleMusicToPlayRecord(
       { 'Song Name': 'Orphan Track', 'Event End Timestamp': '2026-01-02T03:04:05Z' },
       mockConfig
     );
 
-    assert.strictEqual(playRecord, null);
+    assert.ok(playRecord);
+    assert.strictEqual(playRecord.trackName, 'Orphan Track');
+    assert.ok(!('artists' in playRecord));
   });
 
   it('should recover the artist from the daily-tracks lookup', () => {
@@ -157,7 +159,7 @@ describe('Apple Music Record Conversion', () => {
     );
 
     assert.ok(playRecord);
-    assert.strictEqual(playRecord.artists[0].artistName, 'Recovered Artist');
+    assert.strictEqual(playRecord.artists?.[0].artistName, 'Recovered Artist');
   });
 });
 
