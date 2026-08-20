@@ -41,7 +41,7 @@
 	}
 
 	.dot-green {
-		background: #4ade80;
+		background: var(--accent);
 	}
 
 	.chrome-url {
