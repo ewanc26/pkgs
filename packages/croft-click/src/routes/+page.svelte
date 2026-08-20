@@ -10,6 +10,7 @@
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import PairingGraph from '$lib/components/PairingGraph.svelte';
+	import SupportBand from '$lib/components/SupportBand.svelte';
 </script>
 
 <main>
@@ -37,6 +38,8 @@
 	</section>
 
 	<PairingGraph />
+
+	<SupportBand />
 
 	<Footer />
 </main>
