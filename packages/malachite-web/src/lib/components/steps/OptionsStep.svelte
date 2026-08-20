@@ -7,6 +7,7 @@
     dryRun       = $bindable(false),
     reverseOrder = $bindable(false),
     fresh        = $bindable(false),
+    enrichFromMusicBrainz = $bindable(false),
     onstartimport,
     onback,
   }: {
@@ -14,6 +15,7 @@
     dryRun: boolean;
     reverseOrder: boolean;
     fresh: boolean;
+    enrichFromMusicBrainz: boolean;
     onstartimport: () => void;
     onback: () => void;
   } = $props();
@@ -61,6 +63,26 @@
           type="button"
           aria-label="Toggle reverse order"
           aria-pressed={reverseOrder}
+        >
+          <span class="toggle-thumb"></span>
+        </button>
+      </div>
+
+      <div class="option-row">
+        <div class="option-info">
+          <span class="option-name">Look up missing artists</span>
+          <span class="option-desc">
+            Fill in artist names from MusicBrainz. Apple Music exports no longer include them.
+            Limited to one lookup per second, so this can add hours to a large import.
+          </span>
+        </div>
+        <button
+          class="toggle"
+          class:on={enrichFromMusicBrainz}
+          onclick={() => (enrichFromMusicBrainz = !enrichFromMusicBrainz)}
+          type="button"
+          aria-label="Toggle MusicBrainz artist lookup"
+          aria-pressed={enrichFromMusicBrainz}
         >
           <span class="toggle-thumb"></span>
         </button>

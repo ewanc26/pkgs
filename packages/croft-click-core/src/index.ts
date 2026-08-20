@@ -27,6 +27,7 @@ export {
 } from './listenbrainz.js';
 export * from './mbid.js';
 export * from './merge.js';
+export * from './musicbrainz.js';
 export * from './proactive-rate-pacer.js';
 export * from './polish.js';
 export * from './publisher.js';

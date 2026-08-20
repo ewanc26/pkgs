@@ -78,6 +78,7 @@ const UNMAPPED: ListenBrainzRecord = {
 describe('ListenBrainz MusicBrainz ID conversion', () => {
   it('emits MBIDs as mbid: URIs, not bare UUIDs', () => {
     const record = convertListenBrainzToPlayRecord(MAPPED, AGENT);
+    assert.ok(record);
 
     assert.strictEqual(record.releaseMbId, 'mbid:167fe8d9-402e-431b-964e-adae7d483675');
     assert.strictEqual(record.recordingMbId, 'mbid:1acda0b9-4e9a-429d-90a5-89f1daa16291');
@@ -86,6 +87,7 @@ describe('ListenBrainz MusicBrainz ID conversion', () => {
 
   it('omits a null release_mbid rather than emitting an invalid value', () => {
     const record = convertListenBrainzToPlayRecord(PARTIALLY_MAPPED, AGENT);
+    assert.ok(record);
 
     assert.ok(!('releaseMbId' in record), 'releaseMbId should be absent');
     assert.strictEqual(record.recordingMbId, 'mbid:83913e5d-d726-4619-9768-657a980687a6');
@@ -95,6 +97,7 @@ describe('ListenBrainz MusicBrainz ID conversion', () => {
 
   it('handles a null mbid_mapping without inventing MBID fields', () => {
     const record = convertListenBrainzToPlayRecord(UNMAPPED, AGENT);
+    assert.ok(record);
 
     assert.strictEqual(record.trackName, '次回、ひたぎクラブ');
     assert.strictEqual(record.artists?.[0].artistName, '物語シリーズ');
@@ -116,6 +119,7 @@ describe('ListenBrainz MusicBrainz ID conversion', () => {
 
   it('keeps the rest of the record intact', () => {
     const record = convertListenBrainzToPlayRecord(MAPPED, AGENT);
+    assert.ok(record);
 
     assert.strictEqual(record.trackName, 'Delete');
     assert.strictEqual(record.releaseName, 'I Love My Computer');

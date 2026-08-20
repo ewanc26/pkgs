@@ -22,16 +22,20 @@ export function parseSpotifyJsonContent(records: SpotifyRecord[]): SpotifyRecord
  *
  * @param clientAgent  The `submissionClientAgent` string for this runtime.
  */
-export function convertSpotifyToPlayRecord(r: SpotifyRecord, clientAgent: string): PlayRecord {
-  const artists: PlayRecord['artists'] = [];
-  if (r.master_metadata_album_artist_name) {
-    artists.push({ artistName: r.master_metadata_album_artist_name });
-  }
+export function convertSpotifyToPlayRecord(r: SpotifyRecord, clientAgent: string): PlayRecord | null {
+  // Podcast episodes and local files come through with no track metadata; the
+  // lexicon requires `trackName`, and a play with no title says nothing.
+  const trackName = r.master_metadata_track_name;
+  if (!trackName) return null;
+
+  const artistName = r.master_metadata_album_artist_name;
 
   const record: PlayRecord = {
     $type: RECORD_TYPE,
-    trackName: r.master_metadata_track_name ?? 'Unknown Track',
-    artists,
+    trackName,
+    // Left off when unknown rather than filled with a placeholder, so
+    // MusicBrainz enrichment can still see it as a gap to fill.
+    ...(artistName ? { artists: [{ artistName }] } : {}),
     playedTime: r.ts,
     submissionClientAgent: clientAgent,
     musicServiceUri: 'https://open.spotify.com/',

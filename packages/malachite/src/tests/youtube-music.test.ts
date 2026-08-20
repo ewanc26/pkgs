@@ -97,6 +97,7 @@ describe('YouTube Music Record Conversion', () => {
     };
 
     const playRecord = convertYouTubeMusicToPlayRecord(youtubeRecord, mockConfig);
+    assert.ok(playRecord);
 
     assert.strictEqual(playRecord.trackName, 'Test Track');
     assert.strictEqual(playRecord.artists?.[0].artistName, 'Test Artist');

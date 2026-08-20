@@ -200,6 +200,7 @@ describe('Spotify Record Conversion', () => {
     });
 
     const playRecord = convertSpotifyToPlayRecord(spotifyRecord, mockConfig);
+    assert.ok(playRecord);
 
     assert.strictEqual(playRecord.trackName, 'Test Track');
     assert.strictEqual(playRecord.artists?.[0].artistName, 'Test Artist');
@@ -218,6 +219,7 @@ describe('Spotify Record Conversion', () => {
     });
 
     const playRecord = convertSpotifyToPlayRecord(spotifyRecord, mockConfig);
+    assert.ok(playRecord);
 
     assert.strictEqual(
       playRecord.originUri,
@@ -233,6 +235,7 @@ describe('Spotify Record Conversion', () => {
     });
 
     const playRecord = convertSpotifyToPlayRecord(spotifyRecord, mockConfig);
+    assert.ok(playRecord);
 
     assert.strictEqual(playRecord.trackName, 'Track');
     assert.strictEqual(playRecord.originUri, undefined);
@@ -247,21 +250,23 @@ describe('Spotify Record Conversion', () => {
     });
 
     const playRecord = convertSpotifyToPlayRecord(spotifyRecord, mockConfig);
+    assert.ok(playRecord);
 
     assert.strictEqual(playRecord.trackName, 'Track');
     assert.ok(!playRecord.releaseName);
   });
 
-  it('should handle null track name', () => {
+  it('should skip a play with no track name', () => {
+    // Podcast episodes and local files land here. trackName is the lexicon's
+    // one required field, so the play is dropped rather than published as
+    // "Unknown Track".
     const spotifyRecord = createSpotifyRecord({
       master_metadata_track_name: null,
       master_metadata_album_artist_name: 'Artist',
       spotify_track_uri: 'spotify:track:123',
     });
 
-    const playRecord = convertSpotifyToPlayRecord(spotifyRecord, mockConfig);
-
-    assert.strictEqual(playRecord.trackName, 'Unknown Track');
+    assert.strictEqual(convertSpotifyToPlayRecord(spotifyRecord, mockConfig), null);
   });
 
   it('should set correct record type', () => {
@@ -272,6 +277,7 @@ describe('Spotify Record Conversion', () => {
     });
 
     const playRecord = convertSpotifyToPlayRecord(spotifyRecord, mockConfig);
+    assert.ok(playRecord);
 
     assert.strictEqual(playRecord.$type, mockConfig.RECORD_TYPE);
   });
@@ -284,6 +290,7 @@ describe('Spotify Record Conversion', () => {
     });
 
     const playRecord = convertSpotifyToPlayRecord(spotifyRecord, mockConfig);
+    assert.ok(playRecord);
 
     assert.ok(playRecord.submissionClientAgent);
     assert.match(playRecord.submissionClientAgent, /malachite/i);
