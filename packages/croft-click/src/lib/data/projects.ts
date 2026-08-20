@@ -16,7 +16,7 @@ export const coreProjects: Project[] = [
 		heading: 'Instagram → Grain & Spark',
 		description:
 			'Import your photos, stories, and videos from an Instagram data export. Original timestamps preserved, duplicates skipped.',
-		accent: '#fb923c',
+		accent: '#e65733',
 		logo: '/jasper.svg'
 	},
 	{
@@ -26,7 +26,7 @@ export const coreProjects: Project[] = [
 		heading: 'Last.fm, Spotify, Apple, YT Music & ListenBrainz scrobbles → Teal',
 		description:
 			'Import your listening history from Last.fm, Spotify, Apple Music, YouTube Music, and ListenBrainz. Smart deduplication and sync support.',
-		accent: '#3fb968',
+		accent: '#21ca81',
 		logo: '/malachite.svg'
 	},
 	{
@@ -36,7 +36,7 @@ export const coreProjects: Project[] = [
 		heading: 'standard.site → Markdown',
 		description:
 			'Convert ATProto richtext-block documents from Leaflet, Pckt, and Offprint to Markdown in your browser.',
-		accent: '#c4b5fd',
+		accent: '#bd73e8',
 		logo: '/bismuth.svg'
 	},
 	{
@@ -46,7 +46,7 @@ export const coreProjects: Project[] = [
 		heading: 'Microblog → Bluesky',
 		description:
 			'Convert your posts from Twitter, Mastodon, Threads, and Nostr to AT Protocol Bluesky posts. Original timestamps preserved.',
-		accent: '#67e8f9',
+		accent: '#84ddeb',
 		logo: '/opal.svg'
 	}
 ];
@@ -59,7 +59,7 @@ export const extraProjects: Project[] = [
 		heading: 'DIDs → deterministic forms',
 		description:
 			'Observe and collect stable geometric specimens derived locally from decentralised identifiers.',
-		accent: '#d5673f',
+		accent: '#79c841',
 		logo: '/hasharium.svg'
 	},
 	{
@@ -69,7 +69,7 @@ export const extraProjects: Project[] = [
 		heading: 'Teal.fm scrobble analyser',
 		description:
 			'Analyse your Teal.fm listening history. Personality archetypes, genre profiles, mood mapping, and share-to-Bluesky.',
-		accent: '#fb7185',
+		accent: '#e94984',
 		logo: '/tourmaline.svg'
 	},
 	{
@@ -79,7 +79,7 @@ export const extraProjects: Project[] = [
 		heading: 'Changelog',
 		description:
 			'What changed, when, and why. An automated devlog published to AT Protocol via Sequoia.',
-		accent: '#e2a93b',
+		accent: '#ddb43c',
 		logo: '/devlog.svg'
 	}
 ];

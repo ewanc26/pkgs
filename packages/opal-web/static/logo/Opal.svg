@@ -2,12 +2,12 @@
   <defs>
     <!-- Opalescent play-of-color gradient -->
     <linearGradient id="opalPlay" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff66ff" /> <!-- Violet/magenta fire -->
-      <stop offset="20%" stop-color="#33e7ff" /> <!-- Cyan fire -->
-      <stop offset="40%" stop-color="#33e7ff" /> <!-- Green fire -->
-      <stop offset="60%" stop-color="#ff66ff" /> <!-- Yellow fire -->
-      <stop offset="80%" stop-color="#ff33ff" /> <!-- Orange fire -->
-      <stop offset="100%" stop-color="#ff66ff" /> <!-- Loop violet -->
+      <stop offset="0%" stop-color="#ff66e5" /> <!-- Violet/magenta fire -->
+      <stop offset="20%" stop-color="#33e4ff" /> <!-- Cyan fire -->
+      <stop offset="40%" stop-color="#33e4ff" /> <!-- Green fire -->
+      <stop offset="60%" stop-color="#ff66e5" /> <!-- Yellow fire -->
+      <stop offset="80%" stop-color="#ff33dd" /> <!-- Orange fire -->
+      <stop offset="100%" stop-color="#ff66e5" /> <!-- Loop violet -->
     </linearGradient>
 
     <!-- Clip path to keep interior elements inside -->
@@ -17,7 +17,7 @@
   </defs>
 
   <!-- BACKGROUND: Dark potch (matrix) base -->
-  <circle cx="250" cy="250" r="220" fill="#080008" />
+  <circle cx="250" cy="250" r="220" fill="#080007" />
 
   <!-- INTERIOR ELEMENTS (RILLS and PATTERNS) -->
   <g clip-path="url(#innerClip)">
@@ -25,24 +25,24 @@
 
     <!-- Set 1: Center-Left origin -->
     <g stroke="none">
-      <circle cx="130" cy="160" r="240.0" fill="none" stroke="#ff66ff" stroke-width="6.0" opacity="0.3" />
-      <circle cx="130" cy="160" r="213.3" fill="none" stroke="#66edff" stroke-width="6.0" opacity="0.2" />
-      <circle cx="130" cy="160" r="186.7" fill="none" stroke="#33e7ff" stroke-width="6.0" opacity="0.15" />
-      <circle cx="130" cy="160" r="160.0" fill="none" stroke="#ff66ff" stroke-width="6.0" opacity="0.1" />
+      <circle cx="130" cy="160" r="240.0" fill="none" stroke="#ff66e5" stroke-width="6.0" opacity="0.3" />
+      <circle cx="130" cy="160" r="213.3" fill="none" stroke="#66ebff" stroke-width="6.0" opacity="0.2" />
+      <circle cx="130" cy="160" r="186.7" fill="none" stroke="#33e4ff" stroke-width="6.0" opacity="0.15" />
+      <circle cx="130" cy="160" r="160.0" fill="none" stroke="#ff66e5" stroke-width="6.0" opacity="0.1" />
     </g>
 
     <!-- Set 2: Bottom-Center origin -->
     <g stroke="none">
-      <circle cx="250" cy="480" r="180.0" fill="none" stroke="#ff66ff" stroke-width="6.0" opacity="0.3" />
-      <circle cx="250" cy="480" r="128.6" fill="none" stroke="#66edff" stroke-width="6.0" opacity="0.2" />
-      <circle cx="250" cy="480" r="77.1" fill="none" stroke="#33e7ff" stroke-width="6.0" opacity="0.1" />
+      <circle cx="250" cy="480" r="180.0" fill="none" stroke="#ff66e5" stroke-width="6.0" opacity="0.3" />
+      <circle cx="250" cy="480" r="128.6" fill="none" stroke="#66ebff" stroke-width="6.0" opacity="0.2" />
+      <circle cx="250" cy="480" r="77.1" fill="none" stroke="#33e4ff" stroke-width="6.0" opacity="0.1" />
     </g>
 
     <!-- Set 3: Center-Right origin -->
     <g stroke="none">
-      <circle cx="380" cy="320" r="260.0" fill="none" stroke="#ff66ff" stroke-width="6.0" opacity="0.3" />
-      <circle cx="380" cy="320" r="212.7" fill="none" stroke="#66edff" stroke-width="6.0" opacity="0.2" />
-      <circle cx="380" cy="320" r="165.5" fill="none" stroke="#33e7ff" stroke-width="6.0" opacity="0.15" />
+      <circle cx="380" cy="320" r="260.0" fill="none" stroke="#ff66e5" stroke-width="6.0" opacity="0.3" />
+      <circle cx="380" cy="320" r="212.7" fill="none" stroke="#66ebff" stroke-width="6.0" opacity="0.2" />
+      <circle cx="380" cy="320" r="165.5" fill="none" stroke="#33e4ff" stroke-width="6.0" opacity="0.15" />
     </g>
   </g>
 
@@ -55,7 +55,7 @@
         opacity="0.9" />
 
   <!-- CENTRAL NODE: Intense Opal Fire -->
-  <circle cx="250" cy="250" r="16" fill="#080008" stroke="url(#opalPlay)" stroke-width="4" />
+  <circle cx="250" cy="250" r="16" fill="#080007" stroke="url(#opalPlay)" stroke-width="4" />
   <circle cx="250" cy="250" r="8" fill="url(#opalPlay)" />
 
   <!-- OUTER RING and DASHED BORDER -->
@@ -65,28 +65,28 @@
   <!-- PERIMETER NODE POINTS with individual fire flashes -->
   <!-- Top Node (Purple Fire) -->
   <g>
-    <circle cx="250" cy="30" r="10" fill="#080008" stroke="#ffffff" stroke-width="3" />
-    <circle cx="250" cy="30" r="5" fill="#ff66ff" />
+    <circle cx="250" cy="30" r="10" fill="#080007" stroke="#ffffff" stroke-width="3" />
+    <circle cx="250" cy="30" r="5" fill="#ff66e5" />
   </g>
   <!-- Bottom-Right Node (Cyan Fire) -->
   <g>
-    <circle cx="379.3" cy="428" r="10" fill="#080008" stroke="#ffffff" stroke-width="3" />
-    <circle cx="379.3" cy="428" r="5" fill="#33e7ff" />
+    <circle cx="379.3" cy="428" r="10" fill="#080007" stroke="#ffffff" stroke-width="3" />
+    <circle cx="379.3" cy="428" r="5" fill="#33e4ff" />
   </g>
   <!-- Mid-Left Node (Green Fire) -->
   <g>
-    <circle cx="40.8" cy="182" r="10" fill="#080008" stroke="#ffffff" stroke-width="3" />
-    <circle cx="40.8" cy="182" r="5" fill="#33e7ff" />
+    <circle cx="40.8" cy="182" r="10" fill="#080007" stroke="#ffffff" stroke-width="3" />
+    <circle cx="40.8" cy="182" r="5" fill="#33e4ff" />
   </g>
   <!-- Mid-Right Node (Yellow Fire) -->
   <g>
-    <circle cx="459.2" cy="182" r="10" fill="#080008" stroke="#ffffff" stroke-width="3" />
-    <circle cx="459.2" cy="182" r="5" fill="#ff66ff" />
+    <circle cx="459.2" cy="182" r="10" fill="#080007" stroke="#ffffff" stroke-width="3" />
+    <circle cx="459.2" cy="182" r="5" fill="#ff66e5" />
   </g>
   <!-- Bottom-Left Node (Orange Fire) -->
   <g>
-    <circle cx="120.7" cy="428" r="10" fill="#080008" stroke="#ffffff" stroke-width="3" />
-    <circle cx="120.7" cy="428" r="5" fill="#ff33ff" />
+    <circle cx="120.7" cy="428" r="10" fill="#080007" stroke="#ffffff" stroke-width="3" />
+    <circle cx="120.7" cy="428" r="5" fill="#ff33dd" />
   </g>
 
 </svg>

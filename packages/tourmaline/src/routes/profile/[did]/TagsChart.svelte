@@ -18,7 +18,7 @@
 				{
 					label: mode === 'scrobbles' ? 'Scrobbles' : 'Artists',
 					data: top.map((t) => t.weight),
-					backgroundColor: '#fb7185'
+					backgroundColor: '#fb71a4'
 				}
 			]
 		},
@@ -34,7 +34,7 @@
 					grid: { color: 'rgba(255,255,255,0.05)' }
 				},
 				y: {
-					ticks: { color: '#e5e7eb', font: { size: 11 } },
+					ticks: { color: '#e5ebe8', font: { size: 11 } },
 					grid: { display: false }
 				}
 			}

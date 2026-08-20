@@ -14,7 +14,7 @@
 		const maxWeight = top[0]?.weight ?? 1;
 
 		// Tourmaline palette: green for bars
-	const BAR_COLOUR = '#fb7185';
+	const BAR_COLOUR = '#fb71a4';
 		// Show fewer genres on small screens
 		const isMobile = canvas.clientWidth < 400;
 		const display = isMobile ? top.slice(0, 8) : top;
@@ -59,7 +59,7 @@
 						grid: { color: 'rgba(255,255,255,0.05)' }
 					},
 					y: {
-						ticks: { color: '#e5e7eb', font: { size: 11 } },
+						ticks: { color: '#e5ebe8', font: { size: 11 } },
 						grid: { display: false }
 					}
 				}

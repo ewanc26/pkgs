@@ -6,15 +6,15 @@
 @import 'tailwindcss';
 
 :root {
-	--bg: #0a0a1a;
-	--surface: #141428;
-	--surface-2: #1e1e3a;
-	--border: #2d2d5e;
-	--border-subtle: #22224a;
-	--accent: #c4b5fd;
-	--accent-bright: #ddd6fe;
-	--accent-dim: #818cf8;
-	--accent-glow: rgba(196, 181, 253, 0.14);
+	--bg: #0d070f;
+	--surface: #150d19;
+	--surface-2: #1e1523;
+	--border: #34253c;
+	--border-subtle: #261c2c;
+	--accent: #bd73e8;
+	--accent-bright: #d8acf1;
+	--accent-dim: #9824db;
+	--accent-glow: rgba(189, 115, 232, 0.14);
 	--text: #e0e7ff;
 	--text-muted: #b4b8d4;
 	--text-dim: #8b8fb0;
