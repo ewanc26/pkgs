@@ -79,7 +79,7 @@
 			</nav>
 		{/if}
 		{#if supportUrl}
-			<a href={supportUrl} target="_blank" rel="noopener" class="support-link">
+			<a href={supportUrl} target="_blank" rel="noopener" class="support-link" aria-label="Support">
 				<Heart size={12} /> <span class="support-label">Support</span>
 			</a>
 		{/if}
