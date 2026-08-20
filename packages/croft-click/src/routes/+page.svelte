@@ -21,6 +21,10 @@
 		<ToolkitStatsCard />
 	</div>
 
+	<div class="section-header">
+		<span class="section-label">TOOLS</span>
+	</div>
+
 	<section class="projects">
 		{#each coreProjects as project}
 			<ProjectCard {project} />
@@ -96,6 +100,10 @@
 		width: 100%;
 		max-width: 72rem;
 		margin: 1.5rem 0 1.25rem;
+	}
+
+	.section-header:first-of-type {
+		margin-top: 0;
 	}
 
 	.section-header::before,

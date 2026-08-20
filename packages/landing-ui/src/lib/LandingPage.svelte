@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { ArrowRight, Heart, ArrowUpRight } from '@lucide/svelte';
 	import SupportSection from './SupportSection.svelte';
+	import SectionHeading from './SectionHeading.svelte';
 
 type FeatureIcon = import('svelte').Component | string;
 
@@ -35,6 +36,10 @@ interface Feature {
 		githubUrl?: string;
 		features: Feature[];
 		steps: Step[];
+		/** Heading above the feature grid. Set '' to hide. */
+		featuresHeading?: string;
+		/** Heading above the steps list. */
+		stepsHeading?: string;
 		siblings?: Sibling[];
 		/** Heading above the sibling-project grid. */
 		siblingsHeading?: string;
@@ -64,6 +69,8 @@ interface Feature {
 		githubUrl,
 		features,
 		steps,
+		featuresHeading = 'What it does',
+		stepsHeading = 'How it works',
 		siblings = [],
 		siblingsHeading = 'More tools like this one',
 		siblingsSub = 'Same idea, different platform — all free and open source.',
@@ -115,7 +122,11 @@ interface Feature {
 
 	<!-- ── Features ───────────────────────────────────────────────────────────── -->
 	{#if features.length}
-		<section class="features">
+		<section class="features-section">
+			{#if featuresHeading}
+				<SectionHeading index="01" title={featuresHeading} />
+			{/if}
+			<div class="features">
 			{#each features as feature}
 				<div class="feature-card">
 				<span class="feature-icon">
@@ -129,13 +140,14 @@ interface Feature {
 					<p>{feature.description}</p>
 				</div>
 			{/each}
+			</div>
 		</section>
 	{/if}
 
 	<!-- ── How it works ───────────────────────────────────────────────────────── -->
 	{#if steps.length}
 		<section class="how">
-			<h2>How it works</h2>
+			<SectionHeading index="02" title={stepsHeading} />
 			<ol class="steps-list">
 				{#each steps as step, i}
 					<li>
@@ -168,8 +180,7 @@ interface Feature {
 	<!-- ── More tools ──────────────────────────────────────────────────────── -->
 	{#if siblings.length}
 		<section class="siblings">
-			<h2>{siblingsHeading}</h2>
-			<p class="siblings-sub">{siblingsSub}</p>
+			<SectionHeading index="03" title={siblingsHeading} sub={siblingsSub} />
 			<div class="siblings-grid">
 				{#each siblings as sibling}
 					<a href={sibling.url} class="sibling-card">
@@ -202,7 +213,7 @@ interface Feature {
 
 <style>
 	main {
-		max-width: 720px;
+		max-width: 880px;
 		margin: 0 auto;
 		padding: 4rem 1.5rem 5rem;
 	}
@@ -244,12 +255,17 @@ interface Feature {
 	}
 
 	.eyebrow {
-		font-size: 0.75rem;
+		display: inline-block;
+		font-size: 0.7rem;
 		font-family: 'JetBrains Mono', monospace;
 		color: var(--accent);
-		letter-spacing: 0.08em;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		margin: 0 0 1.25rem;
+		margin: 0 0 1.5rem;
+		padding: 0.3rem 0.7rem;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--accent) 7%, transparent);
 	}
 
 	h1 {
@@ -308,11 +324,14 @@ interface Feature {
 	}
 
 	/* ── Features ─────────────────────────────────────────────────────── */
+	.features-section {
+		margin-bottom: 4rem;
+	}
+
 	.features {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 		gap: 0.75rem;
-		margin-bottom: 4rem;
 	}
 
 	.feature-card {
@@ -326,11 +345,19 @@ interface Feature {
 		box-shadow:
 			0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
 			0 16px 32px -24px rgba(0, 0, 0, 0.5);
-		transition: border-color 0.2s ease;
+		transition:
+			border-color 0.2s ease,
+			transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	.feature-card:hover {
-		border-color: var(--border-subtle, var(--border));
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+		transform: translateY(-2px);
+	}
+
+	.feature-card:hover .feature-icon {
+		background: color-mix(in srgb, var(--accent) 18%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
 	}
 
 	.feature-icon {
@@ -338,8 +365,14 @@ interface Feature {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 32px;
-		height: 32px;
+		width: 34px;
+		height: 34px;
+		border-radius: 9px;
+		background: color-mix(in srgb, var(--accent) 10%, transparent);
+		border: 1px solid var(--border);
+		transition:
+			background 0.2s ease,
+			border-color 0.2s ease;
 	}
 
 	.feature-image {
@@ -386,18 +419,35 @@ interface Feature {
 	}
 
 	.steps-list li {
+		position: relative;
 		display: flex;
 		gap: 1.25rem;
 		align-items: flex-start;
-		padding: 1.25rem 0;
-		border-bottom: 1px solid var(--border);
+		padding: 1.1rem 0;
 	}
 
-	.steps-list li:last-child {
-		border-bottom: none;
+	/* Continuous rail threading the step markers together. */
+	.steps-list li::before {
+		content: '';
+		position: absolute;
+		left: 13.5px;
+		top: 0;
+		bottom: 0;
+		width: 1px;
+		background: var(--border);
+	}
+
+	.steps-list li:first-child::before {
+		top: 1.1rem;
+	}
+
+	.steps-list li:last-child::before {
+		bottom: calc(100% - 1.1rem - 28px);
 	}
 
 	.step-num {
+		position: relative;
+		z-index: 1;
 		width: 28px;
 		height: 28px;
 		border-radius: 50%;
@@ -471,16 +521,6 @@ interface Feature {
 		margin-bottom: 3rem;
 	}
 
-	.siblings h2 {
-		margin-bottom: 0.35rem;
-	}
-
-	.siblings-sub {
-		font-size: 0.825rem;
-		color: var(--muted);
-		margin: 0 0 1.25rem;
-	}
-
 	.siblings-more {
 		display: inline-flex;
 		align-items: center;
@@ -511,7 +551,7 @@ interface Feature {
 
 	.siblings-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 		gap: 0.75rem;
 	}
 
