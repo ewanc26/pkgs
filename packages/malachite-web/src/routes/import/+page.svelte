@@ -255,7 +255,7 @@
 	<title>Malachite — Import to Teal</title>
 	<meta
 		name="description"
-		content="Import your Last.fm and Spotify listening history into Teal on ATProto. Choose a mode, sign in, upload your export, and import."
+		content="Import your music listening history into Teal on ATProto. Choose a mode, sign in, upload your export, and import."
 	/>
 	<link rel="canonical" href="https://malachite.croft.click/import" />
 	<meta name="robots" content="noindex" />
@@ -266,7 +266,7 @@
 	<meta property="og:title" content="Malachite — Import to Teal" />
 	<meta
 		property="og:description"
-		content="Import your Last.fm and Spotify listening history into Teal on ATProto. Choose a mode, sign in, upload your export, and import."
+		content="Import your music listening history into Teal on ATProto. Choose a mode, sign in, upload your export, and import."
 	/>
 
 	<!-- Twitter / X card -->
@@ -274,7 +274,7 @@
 	<meta name="twitter:title" content="Malachite — Import to Teal" />
 	<meta
 		name="twitter:description"
-		content="Import your Last.fm and Spotify listening history into Teal on ATProto. Choose a mode, sign in, upload your export, and import."
+		content="Import your music listening history into Teal on ATProto. Choose a mode, sign in, upload your export, and import."
 	/>
 </svelte:head>
 

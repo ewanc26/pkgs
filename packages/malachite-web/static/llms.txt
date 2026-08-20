@@ -1,6 +1,6 @@
 # Malachite
 
-> Import Last.fm and Spotify listening history to Teal on ATProto.
+> Import your music listening history to Teal on ATProto.
 
 Malachite is a free, open-source tool that imports listening history from Last.fm CSV exports and Spotify JSON exports to Teal (fm.teal.feed.play records on ATProto). It supports smart deduplication, sync mode to skip already-imported records, and automatic rate-limit handling. Available as both a browser-based web app and a Node.js CLI tool.
 
@@ -8,7 +8,7 @@ Malachite is a free, open-source tool that imports listening history from Last.f
 
 - lastfm: Import from a Last.fm CSV export
 - spotify: Import from a Spotify data export directory
-- combined: Merge Last.fm and Spotify sources
+- combined: Merge multiple sources
 - sync: Skip records already present on the PDS
 - deduplicate: Remove duplicate records from the Teal feed
 
