@@ -949,7 +949,7 @@ export async function runCLI(): Promise<void> {
       log.info('Importing from Spotify export...');
       const spotifyRecords = parseSpotifyJson(args.input!);
       rawRecordCount = spotifyRecords.length;
-      records = spotifyRecords.map(record => convertSpotifyToPlayRecord(record, cfg, isDebug));
+      records = spotifyRecords.map(record => convertSpotifyToPlayRecord(record, cfg, isDebug)).filter((r): r is PlayRecord => r !== null);
     } else if (mode === 'apple') {
       log.info('Importing from Apple Music export...');
       const appleRecords = parseAppleMusicCsv(args.input!);
@@ -962,7 +962,7 @@ export async function runCLI(): Promise<void> {
       log.info('Importing from YouTube Music export...');
       const youtubeRecords = parseYouTubeMusicJson(args.input!);
       rawRecordCount = youtubeRecords.length;
-      records = youtubeRecords.map(record => convertYouTubeMusicToPlayRecord(record, cfg, isDebug));
+      records = youtubeRecords.map(record => convertYouTubeMusicToPlayRecord(record, cfg, isDebug)).filter((r): r is PlayRecord => r !== null);
     } else if (mode === 'listenbrainz') {
       log.info('Importing from ListenBrainz export...');
       const listenbrainzRecords = parseListenBrainzJson(args.input!);
