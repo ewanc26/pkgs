@@ -25,10 +25,22 @@ const REQUIRED_COLUMNS = ['Content Name', 'Artist Name'] as const;
  * which of Apple's many CSVs they were supposed to pick.
  */
 export class AppleMusicSchemaError extends Error {
-  constructor(public readonly foundColumns: string[]) {
+  constructor(
+    public readonly foundColumns: string[],
+    public readonly missingColumns: string[]
+  ) {
+    // Show what we did find, not just what's absent — if the columns look like
+    // one long run-together string it's a delimiter problem rather than the
+    // wrong file, and that's impossible to tell from "missing X" alone.
+    const preview = foundColumns.length
+      ? foundColumns.slice(0, 8).map((c) => `"${c}"`).join(', ') +
+        (foundColumns.length > 8 ? `, …(${foundColumns.length} columns total)` : '')
+      : '(none)';
+
     super(
-      `This CSV doesn't look like an Apple Music play history export — it's missing the ` +
-        `${REQUIRED_COLUMNS.map((c) => `"${c}"`).join(' and ')} column(s). ` +
+      `This CSV is missing the ${missingColumns.map((c) => `"${c}"`).join(' and ')} ` +
+        `column(s) that Apple Music play history needs. ` +
+        `Found instead: ${preview}. ` +
         `Upload "${APPLE_MUSIC_EXPECTED_FILE}" from Apple_Media_Services/Apple Music Activity/ ` +
         `(the large one with per-play rows), not "Apple Music - Play History Daily Tracks.csv".`
     );
@@ -45,10 +57,14 @@ export class AppleMusicSchemaError extends Error {
 export function parseAppleMusicCsvContent(records: AppleMusicRecord[]): AppleMusicRecord[] {
   // An empty file has no headers to judge, so there's nothing to diagnose.
   if (records.length > 0) {
+    // Tolerate stray whitespace/BOM around header cells — Apple's exports have
+    // shipped both with and without a BOM, and a header that only differs by
+    // trim shouldn't read as "wrong file".
     const columns = Object.keys(records[0] as unknown as Record<string, unknown>);
-    const missing = REQUIRED_COLUMNS.filter((c) => !columns.includes(c));
+    const normalised = new Set(columns.map((c) => c.replace(/^﻿/, '').trim()));
+    const missing = REQUIRED_COLUMNS.filter((c) => !normalised.has(c));
     if (missing.length > 0) {
-      throw new AppleMusicSchemaError(columns);
+      throw new AppleMusicSchemaError(columns, [...missing]);
     }
   }
 
