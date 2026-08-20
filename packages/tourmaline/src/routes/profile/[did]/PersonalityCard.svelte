@@ -3,42 +3,10 @@
 	import type { ListenerProfile } from '$lib/types';
 	import type { PersonalityProfile } from '$lib/analysis/personality';
 	import { writeShareEnvelope } from '$lib/share/registry';
+	import { GENRE_COLORS, MOOD_COLORS } from '$lib/share/theme';
 
 	let { profile, displayName, personality }: { profile: ListenerProfile; displayName: string; personality: PersonalityProfile } = $props();
 
-	/** Genre bar colour per category (consistent across renders). */
-	const GENRE_COLORS: Record<string, string> = {
-		Metal: '#ef4444',
-		Rock: '#f97316',
-		Pop: '#eab308',
-		Electronic: '#22d3ee',
-		'Hip Hop': '#a855f7',
-		Jazz: '#f59e0b',
-		Classical: '#d4d4d8',
-		Folk: '#a3e635',
-		Country: '#fb923c',
-		'R&B': '#ec4899',
-		Blues: '#3b82f6',
-		Reggae: '#10b981',
-		Latin: '#f43f5e',
-		World: '#14b8a6',
-		Soundtrack: '#8b5cf6',
-		'New Age': '#67e8f9',
-		Punk: '#dc2626',
-		'Singer-Songwriter': '#fbbf24'
-	};
-
-	/** Mood dot colour. */
-	const MOOD_COLORS: Record<string, string> = {
-		Energetic: '#f97316',
-		Melancholic: '#6366f1',
-		Chill: '#22d3ee',
-		Happy: '#facc15',
-		Aggressive: '#ef4444',
-		Atmospheric: '#8b5cf6',
-		Nostalgic: '#f59e0b',
-		Dark: '#6b7280'
-	};
 
 	/** Top genres for bar chart (max 5). */
 	const topGenres = $derived(profile.genres.slice(0, 5));

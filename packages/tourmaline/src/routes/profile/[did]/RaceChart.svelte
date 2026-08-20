@@ -120,8 +120,8 @@
 				datasets: [
 					{
 						data,
-						backgroundColor: '#4ade80',
-						borderColor: '#22c55e',
+						backgroundColor: '#fb7185',
+						borderColor: '#e11d48',
 						borderWidth: 1
 					}
 				]

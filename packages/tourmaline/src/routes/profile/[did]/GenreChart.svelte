@@ -14,7 +14,7 @@
 		const maxWeight = top[0]?.weight ?? 1;
 
 		// Tourmaline palette: green for bars
-	const BAR_COLOUR = '#4ade80';
+	const BAR_COLOUR = '#fb7185';
 		// Show fewer genres on small screens
 		const isMobile = canvas.clientWidth < 400;
 		const display = isMobile ? top.slice(0, 8) : top;

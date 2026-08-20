@@ -43,10 +43,10 @@
 		const labels = dist.map((d) => String(d.scrobbles));
 		const data = dist.map((d) => d.days);
 		const bgColors = dist.map((d) =>
-			d.isEddington ? 'rgba(251,191,36,0.85)' : '#4ade80'
+			d.isEddington ? 'rgba(253,164,175,0.9)' : '#fb7185'
 		);
 		const borderColors = dist.map((d) =>
-			d.isEddington ? '#f59e0b' : '#22c55e'
+			d.isEddington ? '#fda4af' : '#e11d48'
 		);
 
 		if (chart) {

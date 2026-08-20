@@ -34,7 +34,7 @@
 				datasets: [
 					{
 						data,
-						borderColor: '#4ade80',
+						borderColor: '#fb7185',
 						backgroundColor: 'rgba(74,222,128,0.15)',
 						fill: true,
 						tension: 0.2,
