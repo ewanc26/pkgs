@@ -1,35 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
   <defs>
     <radialGradient id="bgGlow" cx="50%" cy="48%" r="45%">
-      <stop offset="0%" stop-color="#0a2e0a" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#030a03" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#0a2e19" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#030a06" stop-opacity="0"/>
     </radialGradient>
     <clipPath id="circleClip">
       <circle cx="250" cy="250" r="220"/>
     </clipPath>
     <!-- Tourmaline pleochroic gradient: green → pink → amber -->
     <linearGradient id="pleochroicGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fb7185"/>
-      <stop offset="50%" stop-color="#fda4af"/>
-      <stop offset="100%" stop-color="#e11d48"/>
+      <stop offset="0%" stop-color="#fb7186"/>
+      <stop offset="50%" stop-color="#fda4b1"/>
+      <stop offset="100%" stop-color="#e11d3a"/>
     </linearGradient>
     <!-- Crystal column gradient: green-pink zoning -->
     <linearGradient id="crystalZone1" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#4ade80" stop-opacity="0.7"/>
-      <stop offset="35%" stop-color="#86efac" stop-opacity="0.5"/>
-      <stop offset="50%" stop-color="#fda4af" stop-opacity="0.6"/>
-      <stop offset="65%" stop-color="#fb7185" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#e11d48" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#4ade88" stop-opacity="0.7"/>
+      <stop offset="35%" stop-color="#86efb2" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="#fda4b1" stop-opacity="0.6"/>
+      <stop offset="65%" stop-color="#fb7186" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#e11d3a" stop-opacity="0.3"/>
     </linearGradient>
     <linearGradient id="crystalZone2" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#fb7185" stop-opacity="0.5"/>
-      <stop offset="40%" stop-color="#fda4af" stop-opacity="0.4"/>
-      <stop offset="55%" stop-color="#fbbf24" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#f97316" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#fb7186" stop-opacity="0.5"/>
+      <stop offset="40%" stop-color="#fda4b1" stop-opacity="0.4"/>
+      <stop offset="55%" stop-color="#fb2444" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#f91638" stop-opacity="0.3"/>
     </linearGradient>
     <radialGradient id="centerGlow" cx="40%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#bbf7d0" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#1a0a12" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#bbf7d4" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#1a0a0c" stop-opacity="0"/>
     </radialGradient>
     <!-- Filters -->
     <filter id="crystalNoise" x="0%" y="0%" width="100%" height="100%">
@@ -53,17 +53,17 @@
   </defs>
 
   <!-- Background -->
-  <rect width="1600" height="900" fill="#030a03"/>
+  <rect width="1600" height="900" fill="#030a06"/>
   <rect width="1600" height="900" fill="url(#bgGlow)"/>
 
   <!-- Logo centred at (800, 390), 380×380 -->
   <svg x="610" y="200" width="380" height="380" viewBox="0 0 500 500">
     <!-- Base dark circle -->
-    <circle cx="250" cy="250" r="220" fill="#1a0a12"/>
+    <circle cx="250" cy="250" r="220" fill="#1a0a0c"/>
 
     <g clip-path="url(#circleClip)">
       <!-- Crystal texture layer -->
-      <rect x="0" y="0" width="500" height="500" fill="#1f0d14" filter="url(#crystalNoise)" opacity="0.4"/>
+      <rect x="0" y="0" width="500" height="500" fill="#1f0d10" filter="url(#crystalNoise)" opacity="0.4"/>
 
       <!-- Striated crystal columns — tourmaline's trigonal habit -->
       <!-- Main column (centre) -->
@@ -71,11 +71,11 @@
             fill="url(#crystalZone1)" filter="url(#striations)" opacity="0.5"/>
 
       <!-- Colour zoning bands within the crystal -->
-      <rect x="220" y="120" width="60" height="4" fill="#86efac" opacity="0.15" filter="url(#striations)"/>
-      <rect x="218" y="180" width="64" height="6" fill="#fda4af" opacity="0.2" filter="url(#striations)"/>
-      <rect x="215" y="250" width="70" height="5" fill="#fbbf24" opacity="0.15" filter="url(#striations)"/>
-      <rect x="218" y="320" width="64" height="4" fill="#fb7185" opacity="0.18" filter="url(#striations)"/>
-      <rect x="220" y="380" width="60" height="3" fill="#4ade80" opacity="0.12" filter="url(#striations)"/>
+      <rect x="220" y="120" width="60" height="4" fill="#86efb2" opacity="0.15" filter="url(#striations)"/>
+      <rect x="218" y="180" width="64" height="6" fill="#fda4b1" opacity="0.2" filter="url(#striations)"/>
+      <rect x="215" y="250" width="70" height="5" fill="#fb2444" opacity="0.15" filter="url(#striations)"/>
+      <rect x="218" y="320" width="64" height="4" fill="#fb7186" opacity="0.18" filter="url(#striations)"/>
+      <rect x="220" y="380" width="60" height="3" fill="#4ade88" opacity="0.12" filter="url(#striations)"/>
 
       <!-- Secondary crystal (left) -->
       <path d="M 120 100 L 135 100 L 150 100 L 150 130 L 155 130 L 155 160 L 158 160 L 158 190 L 160 190 L 160 220 L 160 250 L 160 280 L 158 280 L 158 310 L 155 310 L 155 340 L 150 340 L 150 370 L 135 370 L 120 370 L 120 340 L 115 340 L 115 310 L 112 310 L 112 280 L 110 280 L 110 250 L 110 220 L 112 220 L 112 190 L 115 190 L 115 160 L 120 160 L 120 130 Z"
@@ -83,32 +83,32 @@
 
       <!-- Small crystal (right) -->
       <path d="M 350 130 L 365 130 L 380 130 L 380 155 L 383 155 L 383 180 L 385 180 L 385 210 L 385 240 L 385 270 L 385 300 L 383 300 L 383 325 L 380 325 L 380 350 L 365 350 L 350 350 L 350 325 L 347 325 L 347 300 L 345 300 L 345 270 L 345 240 L 345 210 L 347 210 L 347 180 L 350 180 L 350 155 Z"
-            fill="#4ade80" filter="url(#striations)" opacity="0.2"/>
+            fill="#4ade88" filter="url(#striations)" opacity="0.2"/>
 
       <!-- Vertical striation lines — tourmaline's signature -->
-      <line x1="230" y1="80" x2="230" y2="430" stroke="#86efac" stroke-width="1" opacity="0.15"/>
-      <line x1="250" y1="65" x2="250" y2="440" stroke="#86efac" stroke-width="1.5" opacity="0.12"/>
-      <line x1="270" y1="80" x2="270" y2="430" stroke="#86efac" stroke-width="1" opacity="0.15"/>
-      <line x1="130" y1="110" x2="130" y2="370" stroke="#fda4af" stroke-width="0.8" opacity="0.1"/>
-      <line x1="145" y1="110" x2="145" y2="370" stroke="#fda4af" stroke-width="0.8" opacity="0.1"/>
-      <line x1="360" y1="140" x2="360" y2="355" stroke="#4ade80" stroke-width="0.7" opacity="0.08"/>
-      <line x1="372" y1="140" x2="372" y2="355" stroke="#4ade80" stroke-width="0.7" opacity="0.08"/>
+      <line x1="230" y1="80" x2="230" y2="430" stroke="#86efb2" stroke-width="1" opacity="0.15"/>
+      <line x1="250" y1="65" x2="250" y2="440" stroke="#86efb2" stroke-width="1.5" opacity="0.12"/>
+      <line x1="270" y1="80" x2="270" y2="430" stroke="#86efb2" stroke-width="1" opacity="0.15"/>
+      <line x1="130" y1="110" x2="130" y2="370" stroke="#fda4b1" stroke-width="0.8" opacity="0.1"/>
+      <line x1="145" y1="110" x2="145" y2="370" stroke="#fda4b1" stroke-width="0.8" opacity="0.1"/>
+      <line x1="360" y1="140" x2="360" y2="355" stroke="#4ade88" stroke-width="0.7" opacity="0.08"/>
+      <line x1="372" y1="140" x2="372" y2="355" stroke="#4ade88" stroke-width="0.7" opacity="0.08"/>
 
       <!-- Speckle layer -->
       <rect x="0" y="0" width="500" height="500" fill="#000" filter="url(#speckles)" opacity="0.25"/>
 
       <!-- Concentric ripple rings -->
-      <circle cx="130" cy="160" r="240.0" fill="none" stroke="#fb7185" stroke-width="8.0" opacity="0.25"/>
-      <circle cx="130" cy="160" r="213.333" fill="none" stroke="#e11d48" stroke-width="8.0" opacity="0.2"/>
-      <circle cx="130" cy="160" r="186.667" fill="none" stroke="#be123c" stroke-width="8.0" opacity="0.15"/>
-      <circle cx="130" cy="160" r="160.0" fill="none" stroke="#9f1239" stroke-width="8.0" opacity="0.1"/>
+      <circle cx="130" cy="160" r="240.0" fill="none" stroke="#fb7186" stroke-width="8.0" opacity="0.25"/>
+      <circle cx="130" cy="160" r="213.333" fill="none" stroke="#e11d3a" stroke-width="8.0" opacity="0.2"/>
+      <circle cx="130" cy="160" r="186.667" fill="none" stroke="#be122c" stroke-width="8.0" opacity="0.15"/>
+      <circle cx="130" cy="160" r="160.0" fill="none" stroke="#9f1227" stroke-width="8.0" opacity="0.1"/>
 
-      <circle cx="380" cy="320" r="260.0" fill="none" stroke="#fb7185" stroke-width="7.09" opacity="0.2"/>
-      <circle cx="380" cy="320" r="212.727" fill="none" stroke="#e11d48" stroke-width="7.09" opacity="0.15"/>
-      <circle cx="380" cy="320" r="165.455" fill="none" stroke="#fb7185" stroke-width="7.09" opacity="0.1"/>
+      <circle cx="380" cy="320" r="260.0" fill="none" stroke="#fb7186" stroke-width="7.09" opacity="0.2"/>
+      <circle cx="380" cy="320" r="212.727" fill="none" stroke="#e11d3a" stroke-width="7.09" opacity="0.15"/>
+      <circle cx="380" cy="320" r="165.455" fill="none" stroke="#fb7186" stroke-width="7.09" opacity="0.1"/>
 
-      <circle cx="250" cy="480" r="180.0" fill="none" stroke="#86efac" stroke-width="7.71" opacity="0.18"/>
-      <circle cx="250" cy="480" r="128.571" fill="none" stroke="#4ade80" stroke-width="7.71" opacity="0.12"/>
+      <circle cx="250" cy="480" r="180.0" fill="none" stroke="#86efb2" stroke-width="7.71" opacity="0.18"/>
+      <circle cx="250" cy="480" r="128.571" fill="none" stroke="#4ade88" stroke-width="7.71" opacity="0.12"/>
     </g>
 
     <!-- Center glow highlight -->
@@ -116,52 +116,52 @@
 
     <!-- Outer ring — green gradient -->
     <circle cx="250" cy="250" r="220" fill="none" stroke="url(#pleochroicGlow)" stroke-width="12"/>
-    <circle cx="250" cy="250" r="235" fill="none" stroke="#fb7185" stroke-width="3" stroke-dasharray="6, 8"/>
+    <circle cx="250" cy="250" r="235" fill="none" stroke="#fb7186" stroke-width="3" stroke-dasharray="6, 8"/>
 
     <!-- Stylized star -->
     <path d="M 250 35 L 379.3 428 L 40.8 182 L 459.2 182 L 120.7 428 Z"
           fill="none"
-          stroke="#fda4af"
+          stroke="#fda4b1"
           stroke-width="5"
           stroke-linejoin="round"
           opacity="0.6"/>
 
     <!-- Central crystal node -->
-    <circle cx="250" cy="250" r="18" fill="#1a0a12" stroke="#fb7185" stroke-width="4"/>
-    <circle cx="250" cy="250" r="8" fill="#4ade80" opacity="0.8"/>
-    <circle cx="250" cy="250" r="3" fill="#ffe4e6"/>
+    <circle cx="250" cy="250" r="18" fill="#1a0a0c" stroke="#fb7186" stroke-width="4"/>
+    <circle cx="250" cy="250" r="8" fill="#4ade88" opacity="0.8"/>
+    <circle cx="250" cy="250" r="3" fill="#ffe4e8"/>
 
     <!-- Star point nodes with inner mineral spots -->
     <g>
-      <circle cx="250" cy="35" r="12" fill="#1a0a12" stroke="#fda4af" stroke-width="3"/>
-      <circle cx="250" cy="35" r="4" fill="#4ade80" opacity="0.8"/>
+      <circle cx="250" cy="35" r="12" fill="#1a0a0c" stroke="#fda4b1" stroke-width="3"/>
+      <circle cx="250" cy="35" r="4" fill="#4ade88" opacity="0.8"/>
     </g>
     <g>
-      <circle cx="379.3" cy="428" r="12" fill="#1a0a12" stroke="#fda4af" stroke-width="3"/>
-      <circle cx="379.3" cy="428" r="4" fill="#fb7185" opacity="0.8"/>
+      <circle cx="379.3" cy="428" r="12" fill="#1a0a0c" stroke="#fda4b1" stroke-width="3"/>
+      <circle cx="379.3" cy="428" r="4" fill="#fb7186" opacity="0.8"/>
     </g>
     <g>
-      <circle cx="40.8" cy="182" r="12" fill="#1a0a12" stroke="#fda4af" stroke-width="3"/>
-      <circle cx="40.8" cy="182" r="4" fill="#86efac" opacity="0.8"/>
+      <circle cx="40.8" cy="182" r="12" fill="#1a0a0c" stroke="#fda4b1" stroke-width="3"/>
+      <circle cx="40.8" cy="182" r="4" fill="#86efb2" opacity="0.8"/>
     </g>
     <g>
-      <circle cx="459.2" cy="182" r="12" fill="#1a0a12" stroke="#fda4af" stroke-width="3"/>
-      <circle cx="459.2" cy="182" r="4" fill="#fbbf24" opacity="0.8"/>
+      <circle cx="459.2" cy="182" r="12" fill="#1a0a0c" stroke="#fda4b1" stroke-width="3"/>
+      <circle cx="459.2" cy="182" r="4" fill="#fb2444" opacity="0.8"/>
     </g>
     <g>
-      <circle cx="120.7" cy="428" r="12" fill="#1a0a12" stroke="#fda4af" stroke-width="3"/>
-      <circle cx="120.7" cy="428" r="4" fill="#f97316" opacity="0.8"/>
+      <circle cx="120.7" cy="428" r="12" fill="#1a0a0c" stroke="#fda4b1" stroke-width="3"/>
+      <circle cx="120.7" cy="428" r="4" fill="#f91638" opacity="0.8"/>
     </g>
   </svg>
 
   <!-- Name -->
   <text x="800" y="648" text-anchor="middle" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-        font-size="72" font-weight="700" letter-spacing="6" fill="#4ade80">tourmaline</text>
+        font-size="72" font-weight="700" letter-spacing="6" fill="#4ade88">tourmaline</text>
 
   <!-- Tagline -->
   <text x="800" y="706" text-anchor="middle" font-family="'SF Pro Text', 'Helvetica Neue', Arial, sans-serif"
-        font-size="28" font-weight="400" letter-spacing="2" fill="#fb7185">Teal.fm scrobble analyser</text>
+        font-size="28" font-weight="400" letter-spacing="2" fill="#fb7186">Teal.fm scrobble analyser</text>
 
   <!-- Subtle rule -->
-  <line x1="680" y1="722" x2="920" y2="722" stroke="#0a2e0a" stroke-width="1"/>
+  <line x1="680" y1="722" x2="920" y2="722" stroke="#0a2e19" stroke-width="1"/>
 </svg>
