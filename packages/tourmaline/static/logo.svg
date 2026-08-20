@@ -4,11 +4,11 @@
       <circle cx="250" cy="250" r="220" />
     </clipPath>
 
-    <!-- Tourmaline gradient: green → pink pleochroism -->
+    <!-- Tourmaline gradient: rose → green pleochroism -->
     <linearGradient id="pleochroicGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#22c55e" />
-      <stop offset="50%" stop-color="#a3e635" />
-      <stop offset="100%" stop-color="#16a34a" />
+      <stop offset="0%" stop-color="#fb7185" />
+      <stop offset="50%" stop-color="#fda4af" />
+      <stop offset="100%" stop-color="#e11d48" />
     </linearGradient>
 
     <!-- Crystal column gradient: green-pink zoning -->
@@ -62,11 +62,11 @@
   </defs>
 
   <!-- Base dark circle -->
-  <circle cx="250" cy="250" r="220" fill="#0a1a0a" />
+  <circle cx="250" cy="250" r="220" fill="#1a0a12" />
 
   <g clip-path="url(#circleClip)">
     <!-- Crystal texture layer -->
-    <rect x="0" y="0" width="500" height="500" fill="#0d1f0d" filter="url(#crystalNoise)" opacity="0.4" />
+    <rect x="0" y="0" width="500" height="500" fill="#1f0d14" filter="url(#crystalNoise)" opacity="0.4" />
 
     <!-- Stiated crystal columns — tourmaline's trigonal habit -->
     <!-- Main column (centre) -->
@@ -101,10 +101,10 @@
     <rect x="0" y="0" width="500" height="500" fill="#000" filter="url(#speckles)" opacity="0.25" />
 
     <!-- Concentric ripple rings (shared language with Malachite/Bismuth/Jasper) -->
-    <circle cx="130" cy="160" r="240.0" fill="none" stroke="#22c55e" stroke-width="8.0" opacity="0.25" />
-    <circle cx="130" cy="160" r="213.333" fill="none" stroke="#16a34a" stroke-width="8.0" opacity="0.2" />
-    <circle cx="130" cy="160" r="186.667" fill="none" stroke="#15803d" stroke-width="8.0" opacity="0.15" />
-    <circle cx="130" cy="160" r="160.0" fill="none" stroke="#0d6b30" stroke-width="8.0" opacity="0.1" />
+    <circle cx="130" cy="160" r="240.0" fill="none" stroke="#fb7185" stroke-width="8.0" opacity="0.25" />
+    <circle cx="130" cy="160" r="213.333" fill="none" stroke="#e11d48" stroke-width="8.0" opacity="0.2" />
+    <circle cx="130" cy="160" r="186.667" fill="none" stroke="#be123c" stroke-width="8.0" opacity="0.15" />
+    <circle cx="130" cy="160" r="160.0" fill="none" stroke="#9f1239" stroke-width="8.0" opacity="0.1" />
 
     <circle cx="380" cy="320" r="260.0" fill="none" stroke="#fb7185" stroke-width="7.09" opacity="0.2" />
     <circle cx="380" cy="320" r="212.727" fill="none" stroke="#e11d48" stroke-width="7.09" opacity="0.15" />
@@ -119,40 +119,40 @@
 
   <!-- Outer ring — green gradient -->
   <circle cx="250" cy="250" r="220" fill="none" stroke="url(#pleochroicGlow)" stroke-width="12" />
-  <circle cx="250" cy="250" r="235" fill="none" stroke="#22c55e" stroke-width="3" stroke-dasharray="6, 8" />
+  <circle cx="250" cy="250" r="235" fill="none" stroke="#fb7185" stroke-width="3" stroke-dasharray="6, 8" />
 
   <!-- Stylized star — same language as Malachite/Bismuth/Jasper -->
   <path d="M 250 35 L 379.3 428 L 40.8 182 L 459.2 182 L 120.7 428 Z"
         fill="none"
-        stroke="#a3e635"
+        stroke="#fda4af"
         stroke-width="5"
         stroke-linejoin="round"
         opacity="0.6" />
 
   <!-- Central crystal node -->
-  <circle cx="250" cy="250" r="18" fill="#0a1a0a" stroke="#22c55e" stroke-width="4" />
-  <circle cx="250" cy="250" r="8" fill="#4ade80" opacity="0.8" />
-  <circle cx="250" cy="250" r="3" fill="#dcfce7" />
+  <circle cx="250" cy="250" r="18" fill="#1a0a12" stroke="#fb7185" stroke-width="4" />
+  <circle cx="250" cy="250" r="8" fill="#fb7185" opacity="0.8" />
+  <circle cx="250" cy="250" r="3" fill="#ffe4e6" />
 
   <!-- Star point nodes with inner mineral spots -->
   <g>
-    <circle cx="250" cy="35" r="12" fill="#0a1a0a" stroke="#a3e635" stroke-width="3" />
-    <circle cx="250" cy="35" r="4" fill="#4ade80" opacity="0.8" />
+    <circle cx="250" cy="35" r="12" fill="#1a0a12" stroke="#fda4af" stroke-width="3" />
+    <circle cx="250" cy="35" r="4" fill="#fda4af" opacity="0.8" />
   </g>
   <g>
-    <circle cx="379.3" cy="428" r="12" fill="#0a1a0a" stroke="#a3e635" stroke-width="3" />
+    <circle cx="379.3" cy="428" r="12" fill="#1a0a12" stroke="#fda4af" stroke-width="3" />
     <circle cx="379.3" cy="428" r="4" fill="#fb7185" opacity="0.8" />
   </g>
   <g>
-    <circle cx="40.8" cy="182" r="12" fill="#0a1a0a" stroke="#a3e635" stroke-width="3" />
+    <circle cx="40.8" cy="182" r="12" fill="#1a0a12" stroke="#fda4af" stroke-width="3" />
     <circle cx="40.8" cy="182" r="4" fill="#86efac" opacity="0.8" />
   </g>
   <g>
-    <circle cx="459.2" cy="182" r="12" fill="#0a1a0a" stroke="#a3e635" stroke-width="3" />
+    <circle cx="459.2" cy="182" r="12" fill="#1a0a12" stroke="#fda4af" stroke-width="3" />
     <circle cx="459.2" cy="182" r="4" fill="#fbbf24" opacity="0.8" />
   </g>
   <g>
-    <circle cx="120.7" cy="428" r="12" fill="#0a1a0a" stroke="#a3e635" stroke-width="3" />
+    <circle cx="120.7" cy="428" r="12" fill="#1a0a12" stroke="#fda4af" stroke-width="3" />
     <circle cx="120.7" cy="428" r="4" fill="#f97316" opacity="0.8" />
   </g>
 </svg>

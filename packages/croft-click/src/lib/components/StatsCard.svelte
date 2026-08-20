@@ -253,7 +253,7 @@
 	}
 
 	.stat-value.highlight {
-		color: #4ade80;
+		color: var(--accent);
 	}
 
 	.stat-label {
@@ -317,7 +317,7 @@
 	}
 
 	.count.highlight {
-		color: #4ade80;
+		color: var(--accent);
 	}
 
 	.sep {
@@ -341,8 +341,8 @@
 	}
 
 	.footer a:hover {
-		color: #4ade80;
-		text-decoration-color: #4ade80;
+		color: var(--accent);
+		text-decoration-color: var(--accent);
 	}
 
 	.loading-state {
@@ -366,7 +366,7 @@
 	.loading-fill {
 		width: 30%;
 		height: 100%;
-		background: #4ade80;
+		background: var(--accent);
 		animation: loading-slide 1.5s infinite ease-in-out;
 	}
 
@@ -407,7 +407,7 @@
 	}
 
 	:global(.activity-icon) {
-		color: #4ade80;
+		color: var(--accent);
 	}
 
 	:global(.spin) {
