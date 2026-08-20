@@ -12,7 +12,12 @@ import type { ImportMode, LogEntry, PlayRecord } from '$lib/types.js';
 import { CLIENT_AGENT } from '../config.js';
 import { parseLastFmFile, convertToPlayRecord } from './csv.js';
 import { parseSpotifyFiles, convertSpotifyToPlayRecord } from './spotify.js';
-import { parseAppleMusicFile, convertAppleMusicToPlayRecord } from './apple-music.js';
+import {
+  parseAppleMusicFile,
+  parseAppleMusicDailyTracksFile,
+  splitAppleMusicFiles,
+  convertAppleMusicRecords,
+} from './apple-music.js';
 import { parseYouTubeMusicFiles, convertYouTubeMusicToPlayRecord } from './youtube-music.js';
 import { parseListenBrainzFiles, convertListenBrainzToPlayRecord } from './listenbrainz.js';
 import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '@ewanc26/croft-click-core';
@@ -48,6 +53,41 @@ export interface ImportCallbacks {
   onLog: (level: LogEntry['level'], message: string) => void;
   onProgress: (p: PublishProgress) => void;
   isCancelled: () => boolean;
+}
+
+/**
+ * Load Apple Music plays from the uploaded CSV(s).
+ *
+ * Current Apple exports have no artist column, so plays whose artist can't be
+ * resolved from the optional daily-tracks companion are dropped — and said so
+ * out loud, since a quietly smaller import is what made this hard to diagnose.
+ */
+async function loadAppleMusic(
+  appleFiles: File[],
+  onLog: (level: LogEntry['level'], message: string) => void
+): Promise<PlayRecord[]> {
+  const { playActivity, dailyTracks } = await splitAppleMusicFiles(appleFiles);
+  if (!playActivity) return [];
+
+  const artistLookup = dailyTracks ? await parseAppleMusicDailyTracksFile(dailyTracks) : undefined;
+  if (artistLookup) {
+    onLog('info', `Apple Music: recovered ${artistLookup.size.toLocaleString()} artist names from ${dailyTracks!.name}`);
+  }
+
+  const raw = await parseAppleMusicFile(playActivity);
+  const { records, skipped } = convertAppleMusicRecords(raw, artistLookup);
+  onLog('info', `Apple Music: ${records.length.toLocaleString()} plays`);
+
+  if (skipped > 0) {
+    onLog(
+      'warn',
+      `Skipped ${skipped.toLocaleString()} play(s) with no artist name. Apple's current export ` +
+        `omits the artist column — also select "Apple Music - Play History Daily Tracks.csv" ` +
+        `from the same folder to recover them.`
+    );
+  }
+
+  return records;
 }
 
 export async function runImport(
@@ -183,9 +223,7 @@ export async function runImport(
       }
 
       if (appleFiles.length > 0) {
-        const amRaw = await parseAppleMusicFile(appleFiles[0]);
-        onLog('info', `Apple Music: ${amRaw.length.toLocaleString()} plays`);
-        appleRecords = amRaw.map(r => convertAppleMusicToPlayRecord(r, CLIENT_AGENT));
+        appleRecords = await loadAppleMusic(appleFiles, onLog);
       }
 
       if (youtubeFiles.length > 0) {
@@ -208,8 +246,7 @@ export async function runImport(
       records = spRaw.map((r) => convertSpotifyToPlayRecord(r, CLIENT_AGENT));
       onLog('success', `Loaded ${records.length.toLocaleString()} Spotify records`);
     } else if (mode === 'apple') {
-      const amRaw = await parseAppleMusicFile(appleFiles[0]);
-      records = amRaw.map((r) => convertAppleMusicToPlayRecord(r, CLIENT_AGENT));
+      records = await loadAppleMusic(appleFiles, onLog);
       onLog('success', `Loaded ${records.length.toLocaleString()} Apple Music records`);
     } else if (mode === 'youtube') {
       const ytRaw = await parseYouTubeMusicFiles(youtubeFiles);

@@ -7,6 +7,7 @@ import {
   parseAppleMusicCsv,
   convertAppleMusicToPlayRecord,
 } from '../lib/apple-music.js';
+import { parseDailyTracksArtistMap } from '@ewanc26/croft-click-core';
 import type { Config } from '../types.js';
 
 const mockConfig: Config = {
@@ -50,7 +51,11 @@ describe('Apple Music CSV Parsing', () => {
     assert.strictEqual(records[0]['Artist Name'], 'Artist One');
   });
 
-  it('should filter out invalid records', () => {
+  it('should filter out records with no title or no timestamp', () => {
+    // A missing artist is no longer disqualifying at parse time — current
+    // exports have no artist column at all, so it's resolved (or the row
+    // dropped) during conversion instead. Title and timestamp are still
+    // required, since without them a row isn't a play.
     const csvData = `"Artist Name","Content Name","Event End Timestamp"
 "Artist One","Track One","2021-06-15T20:00:00Z"
 "","Track Two","2021-06-15T20:05:00Z"
@@ -61,8 +66,10 @@ describe('Apple Music CSV Parsing', () => {
     fs.writeFileSync(filePath, csvData);
 
     const records = parseAppleMusicCsv(filePath);
-    assert.strictEqual(records.length, 1);
-    assert.strictEqual(records[0]['Content Name'], 'Track One');
+    assert.deepStrictEqual(
+      records.map((r) => r['Content Name']),
+      ['Track One', 'Track Two']
+    );
   });
 
   it('should reject the daily-totals CSV with a message naming the right file', () => {
@@ -103,9 +110,80 @@ describe('Apple Music Record Conversion', () => {
 
     const playRecord = convertAppleMusicToPlayRecord(appleRecord, mockConfig);
 
+    assert.ok(playRecord);
     assert.strictEqual(playRecord.trackName, 'Test Track');
     assert.strictEqual(playRecord.artists[0].artistName, 'Test Artist');
     assert.strictEqual(playRecord.playedTime, '2021-06-15T20:00:00.000Z');
     assert.strictEqual(playRecord.musicServiceUri, 'https://music.apple.com/');
+  });
+
+  it('should read the modern "Song Name" column', () => {
+    // Current exports renamed Content Name -> Song Name and dropped Artist Name.
+    const playRecord = convertAppleMusicToPlayRecord(
+      {
+        'Song Name': 'Modern Track',
+        'Container Artist Name': 'Container Artist',
+        'Event End Timestamp': '2026-01-02T03:04:05Z',
+      },
+      mockConfig
+    );
+
+    assert.ok(playRecord);
+    assert.strictEqual(playRecord.trackName, 'Modern Track');
+    assert.strictEqual(playRecord.artists[0].artistName, 'Container Artist');
+  });
+
+  it('should skip a play whose artist cannot be resolved', () => {
+    // No artist anywhere and no lookup — better dropped than written to the
+    // user's repo as "Unknown Artist".
+    const playRecord = convertAppleMusicToPlayRecord(
+      { 'Song Name': 'Orphan Track', 'Event End Timestamp': '2026-01-02T03:04:05Z' },
+      mockConfig
+    );
+
+    assert.strictEqual(playRecord, null);
+  });
+
+  it('should recover the artist from the daily-tracks lookup', () => {
+    const lookup = parseDailyTracksArtistMap([
+      { 'Track Description': 'Recovered Artist - Orphan Track', 'Play Count': '3' },
+    ]);
+
+    const playRecord = convertAppleMusicToPlayRecord(
+      { 'Song Name': 'Orphan Track', 'Event End Timestamp': '2026-01-02T03:04:05Z' },
+      mockConfig,
+      false,
+      lookup
+    );
+
+    assert.ok(playRecord);
+    assert.strictEqual(playRecord.artists[0].artistName, 'Recovered Artist');
+  });
+});
+
+describe('Apple Music Daily Tracks artist lookup', () => {
+  it('should split "Artist - Title" on the first separator', () => {
+    const map = parseDailyTracksArtistMap([
+      { 'Track Description': 'Artist - Song - Live Version' },
+    ]);
+
+    // Title keeps the rest, so a hyphenated title still resolves.
+    assert.strictEqual(map.get('song - live version'), 'Artist');
+  });
+
+  it('should match titles regardless of case and the "- Single" suffix', () => {
+    const map = parseDailyTracksArtistMap([{ 'Track Description': 'Artist - Stargirl' }]);
+
+    assert.strictEqual(map.get('stargirl'), 'Artist');
+  });
+
+  it('should ignore rows with no usable description', () => {
+    const map = parseDailyTracksArtistMap([
+      { 'Track Description': '' },
+      { 'Track Description': 'NoSeparatorHere' },
+      { 'Play Count': '1' },
+    ]);
+
+    assert.strictEqual(map.size, 0);
   });
 });
