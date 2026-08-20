@@ -200,11 +200,11 @@
 	}
 
 	.square.bg-dim {
-		background-color: #8f1734;
+		background-color: #8f1743;
 	}
 
 	.square.bg-low {
-		background-color: #c81e43;
+		background-color: #c81e5c;
 	}
 
 	.square.bg-med {

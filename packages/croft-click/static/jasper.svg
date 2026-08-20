@@ -34,36 +34,36 @@
 
     <!-- Mineral band gradient -->
     <linearGradient id="bandGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8b4913" stop-opacity="0.7"/>
-      <stop offset="25%" stop-color="#cd7f3f" stop-opacity="0.9"/>
-      <stop offset="50%" stop-color="#d26f1e" stop-opacity="0.6"/>
-      <stop offset="75%" stop-color="#a0612d" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#8b4913" stop-opacity="0.7"/>
+      <stop offset="0%" stop-color="#8b2b13" stop-opacity="0.7"/>
+      <stop offset="25%" stop-color="#cd5b3f" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#d2421e" stop-opacity="0.6"/>
+      <stop offset="75%" stop-color="#a0442d" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#8b2b13" stop-opacity="0.7"/>
     </linearGradient>
 
     <linearGradient id="bandGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#cd8f5c" stop-opacity="0.5"/>
-      <stop offset="50%" stop-color="#b8590b" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#d26f1e" stop-opacity="0.4"/>
+      <stop offset="0%" stop-color="#cd735c" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="#b82e0b" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#d2421e" stop-opacity="0.4"/>
     </linearGradient>
 
     <radialGradient id="centerGlow" cx="40%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#e8bf9e" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#1a1008" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#e8ad9e" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#1a0c08" stop-opacity="0"/>
     </radialGradient>
 
     <linearGradient id="redGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#cd8f5c" />
-      <stop offset="100%" stop-color="#8b3f00" />
+      <stop offset="0%" stop-color="#cd735c" />
+      <stop offset="100%" stop-color="#8b1c00" />
     </linearGradient>
   </defs>
 
   <!-- Base dark circle -->
-  <circle cx="250" cy="250" r="220" fill="#1a1008" />
+  <circle cx="250" cy="250" r="220" fill="#1a0c08" />
 
   <g clip-path="url(#circleClip)">
     <!-- Stone texture layer -->
-    <rect x="0" y="0" width="500" height="500" fill="#2a1c10" filter="url(#stoneNoise)" opacity="0.4"/>
+    <rect x="0" y="0" width="500" height="500" fill="#2a1510" filter="url(#stoneNoise)" opacity="0.4"/>
 
     <!-- Flowing mineral bands - organic curved paths -->
     <path d="M -50 180 Q 100 120, 250 200 T 550 150"
@@ -71,46 +71,46 @@
     <path d="M -30 280 Q 150 220, 300 300 T 580 250"
           fill="none" stroke="url(#bandGradient2)" stroke-width="45" filter="url(#swirlBands)" opacity="0.5"/>
     <path d="M -40 350 Q 80 300, 200 380 T 560 340"
-          fill="none" stroke="#b8590b" stroke-width="35" filter="url(#swirlBands)" opacity="0.4"/>
+          fill="none" stroke="#b82e0b" stroke-width="35" filter="url(#swirlBands)" opacity="0.4"/>
     <path d="M -20 420 Q 120 380, 280 450 T 540 400"
-          fill="none" stroke="#a0612d" stroke-width="28" filter="url(#swirlBands)" opacity="0.35"/>
+          fill="none" stroke="#a0442d" stroke-width="28" filter="url(#swirlBands)" opacity="0.35"/>
 
     <!-- Orbicular jasper patterns - circular mineral deposits -->
-    <circle cx="150" cy="200" r="70" fill="none" stroke="#d26f1e" stroke-width="3" opacity="0.5"/>
-    <circle cx="150" cy="200" r="55" fill="none" stroke="#cd7f3f" stroke-width="2" opacity="0.4"/>
-    <circle cx="150" cy="200" r="40" fill="none" stroke="#deae87" stroke-width="2" opacity="0.3"/>
-    <circle cx="150" cy="200" r="25" fill="#d2ac8c" opacity="0.25"/>
-    <circle cx="150" cy="200" r="10" fill="#f4a360" opacity="0.3"/>
+    <circle cx="150" cy="200" r="70" fill="none" stroke="#d2421e" stroke-width="3" opacity="0.5"/>
+    <circle cx="150" cy="200" r="55" fill="none" stroke="#cd5b3f" stroke-width="2" opacity="0.4"/>
+    <circle cx="150" cy="200" r="40" fill="none" stroke="#de9887" stroke-width="2" opacity="0.3"/>
+    <circle cx="150" cy="200" r="25" fill="#d29a8c" opacity="0.25"/>
+    <circle cx="150" cy="200" r="10" fill="#f47e60" opacity="0.3"/>
 
-    <circle cx="340" cy="280" r="55" fill="none" stroke="#cd7f3f" stroke-width="2.5" opacity="0.45"/>
-    <circle cx="340" cy="280" r="42" fill="none" stroke="#d2ac8c" stroke-width="2" opacity="0.35"/>
-    <circle cx="340" cy="280" r="28" fill="none" stroke="#deae87" stroke-width="1.5" opacity="0.3"/>
-    <circle cx="340" cy="280" r="15" fill="#d26f1e" opacity="0.2"/>
+    <circle cx="340" cy="280" r="55" fill="none" stroke="#cd5b3f" stroke-width="2.5" opacity="0.45"/>
+    <circle cx="340" cy="280" r="42" fill="none" stroke="#d29a8c" stroke-width="2" opacity="0.35"/>
+    <circle cx="340" cy="280" r="28" fill="none" stroke="#de9887" stroke-width="1.5" opacity="0.3"/>
+    <circle cx="340" cy="280" r="15" fill="#d2421e" opacity="0.2"/>
 
-    <circle cx="220" cy="380" r="45" fill="none" stroke="#b8590b" stroke-width="2" opacity="0.4"/>
-    <circle cx="220" cy="380" r="32" fill="none" stroke="#da7420" stroke-width="1.5" opacity="0.3"/>
-    <circle cx="220" cy="380" r="18" fill="#cd7f3f" opacity="0.15"/>
+    <circle cx="220" cy="380" r="45" fill="none" stroke="#b82e0b" stroke-width="2" opacity="0.4"/>
+    <circle cx="220" cy="380" r="32" fill="none" stroke="#da4520" stroke-width="1.5" opacity="0.3"/>
+    <circle cx="220" cy="380" r="18" fill="#cd5b3f" opacity="0.15"/>
 
     <!-- Speckle layer -->
     <rect x="0" y="0" width="500" height="500" fill="#000" filter="url(#speckles)" opacity="0.3"/>
 
     <!-- Secondary organic inclusions -->
-    <ellipse cx="380" cy="180" rx="35" ry="25" fill="#a0612d" filter="url(#swirlBands)" opacity="0.35"/>
-    <ellipse cx="100" cy="320" rx="45" ry="30" fill="#8b4913" filter="url(#swirlBands)" opacity="0.3"/>
-    <ellipse cx="280" cy="120" rx="25" ry="40" fill="#b8590b" filter="url(#swirlBands)" opacity="0.25"/>
+    <ellipse cx="380" cy="180" rx="35" ry="25" fill="#a0442d" filter="url(#swirlBands)" opacity="0.35"/>
+    <ellipse cx="100" cy="320" rx="45" ry="30" fill="#8b2b13" filter="url(#swirlBands)" opacity="0.3"/>
+    <ellipse cx="280" cy="120" rx="25" ry="40" fill="#b82e0b" filter="url(#swirlBands)" opacity="0.25"/>
 
     <!-- Concentric ripple rings (preserved from original) -->
-    <circle cx="130" cy="160" r="240.0" fill="none" stroke="#cd8f5c" stroke-width="8.0" opacity="0.3"/>
-    <circle cx="130" cy="160" r="213.33333333333334" fill="none" stroke="#b8733a" stroke-width="8.0" opacity="0.25"/>
-    <circle cx="130" cy="160" r="186.66666666666666" fill="none" stroke="#a8632a" stroke-width="8.0" opacity="0.2"/>
-    <circle cx="130" cy="160" r="160.0" fill="none" stroke="#783600" stroke-width="8.0" opacity="0.15"/>
+    <circle cx="130" cy="160" r="240.0" fill="none" stroke="#cd735c" stroke-width="8.0" opacity="0.3"/>
+    <circle cx="130" cy="160" r="213.33333333333334" fill="none" stroke="#b8533a" stroke-width="8.0" opacity="0.25"/>
+    <circle cx="130" cy="160" r="186.66666666666666" fill="none" stroke="#a8432a" stroke-width="8.0" opacity="0.2"/>
+    <circle cx="130" cy="160" r="160.0" fill="none" stroke="#781800" stroke-width="8.0" opacity="0.15"/>
 
-    <circle cx="380" cy="320" r="260.0" fill="none" stroke="#b8733a" stroke-width="7.0909" opacity="0.25"/>
-    <circle cx="380" cy="320" r="212.72727272727272" fill="none" stroke="#88430a" stroke-width="7.0909" opacity="0.2"/>
-    <circle cx="380" cy="320" r="165.45454545454547" fill="none" stroke="#cd8f5c" stroke-width="7.0909" opacity="0.15"/>
+    <circle cx="380" cy="320" r="260.0" fill="none" stroke="#b8533a" stroke-width="7.0909" opacity="0.25"/>
+    <circle cx="380" cy="320" r="212.72727272727272" fill="none" stroke="#88230a" stroke-width="7.0909" opacity="0.2"/>
+    <circle cx="380" cy="320" r="165.45454545454547" fill="none" stroke="#cd735c" stroke-width="7.0909" opacity="0.15"/>
 
-    <circle cx="250" cy="480" r="180.0" fill="none" stroke="#783600" stroke-width="7.7143" opacity="0.2"/>
-    <circle cx="250" cy="480" r="128.57142857142856" fill="none" stroke="#cd8f5c" stroke-width="7.7143" opacity="0.15"/>
+    <circle cx="250" cy="480" r="180.0" fill="none" stroke="#781800" stroke-width="7.7143" opacity="0.2"/>
+    <circle cx="250" cy="480" r="128.57142857142856" fill="none" stroke="#cd735c" stroke-width="7.7143" opacity="0.15"/>
   </g>
 
   <!-- Center glow highlight -->
@@ -118,41 +118,41 @@
 
   <!-- Outer ring -->
   <circle cx="250" cy="250" r="220" fill="none" stroke="url(#redGlow)" stroke-width="12" />
-  <circle cx="250" cy="250" r="235" fill="none" stroke="#cd8f5c" stroke-width="3" stroke-dasharray="6, 8" />
+  <circle cx="250" cy="250" r="235" fill="none" stroke="#cd735c" stroke-width="3" stroke-dasharray="6, 8" />
 
   <!-- Stylized star - more organic -->
   <path d="M 250 35 L 372 418 L 48 190 L 452 190 L 128 418 Z"
         fill="none"
-        stroke="#ffb77c"
+        stroke="#ff967c"
         stroke-width="5"
         stroke-linejoin="round"
         opacity="0.6"
         filter="url(#swirlBands)"/>
 
   <!-- Central crystal formation -->
-  <circle cx="250" cy="250" r="18" fill="#1a1008" stroke="#cd8f5c" stroke-width="4" />
-  <circle cx="250" cy="250" r="8" fill="#da7420" opacity="0.8"/>
-  <circle cx="250" cy="250" r="3" fill="#ffd6b5"/>
+  <circle cx="250" cy="250" r="18" fill="#1a0c08" stroke="#cd735c" stroke-width="4" />
+  <circle cx="250" cy="250" r="8" fill="#da4520" opacity="0.8"/>
+  <circle cx="250" cy="250" r="3" fill="#ffc4b5"/>
 
   <!-- Star point nodes with inner mineral spots -->
   <g>
-    <circle cx="250" cy="35" r="12" fill="#1a1008" stroke="#ffb77c" stroke-width="3" />
-    <circle cx="250" cy="35" r="4" fill="#d26f1e" opacity="0.8"/>
+    <circle cx="250" cy="35" r="12" fill="#1a0c08" stroke="#ff967c" stroke-width="3" />
+    <circle cx="250" cy="35" r="4" fill="#d2421e" opacity="0.8"/>
   </g>
   <g>
-    <circle cx="372" cy="418" r="12" fill="#1a1008" stroke="#ffb77c" stroke-width="3" />
-    <circle cx="372" cy="418" r="4" fill="#b8590b" opacity="0.8"/>
+    <circle cx="372" cy="418" r="12" fill="#1a0c08" stroke="#ff967c" stroke-width="3" />
+    <circle cx="372" cy="418" r="4" fill="#b82e0b" opacity="0.8"/>
   </g>
   <g>
-    <circle cx="48" cy="190" r="12" fill="#1a1008" stroke="#ffb77c" stroke-width="3" />
-    <circle cx="48" cy="190" r="4" fill="#cd7f3f" opacity="0.8"/>
+    <circle cx="48" cy="190" r="12" fill="#1a0c08" stroke="#ff967c" stroke-width="3" />
+    <circle cx="48" cy="190" r="4" fill="#cd5b3f" opacity="0.8"/>
   </g>
   <g>
-    <circle cx="452" cy="190" r="12" fill="#1a1008" stroke="#ffb77c" stroke-width="3" />
-    <circle cx="452" cy="190" r="4" fill="#a0612d" opacity="0.8"/>
+    <circle cx="452" cy="190" r="12" fill="#1a0c08" stroke="#ff967c" stroke-width="3" />
+    <circle cx="452" cy="190" r="4" fill="#a0442d" opacity="0.8"/>
   </g>
   <g>
-    <circle cx="128" cy="418" r="12" fill="#1a1008" stroke="#ffb77c" stroke-width="3" />
-    <circle cx="128" cy="418" r="4" fill="#8b4913" opacity="0.8"/>
+    <circle cx="128" cy="418" r="12" fill="#1a0c08" stroke="#ff967c" stroke-width="3" />
+    <circle cx="128" cy="418" r="4" fill="#8b2b13" opacity="0.8"/>
   </g>
 </svg>

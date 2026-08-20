@@ -51,7 +51,7 @@
 						max: 100,
 						ticks: { color: '#9ca3af', backdropColor: 'transparent', font: { size: 10 } },
 						grid: { color: 'rgba(255,255,255,0.1)' },
-						pointLabels: { color: '#e5e7eb', font: { size: isMobile ? 9 : 11 } },
+						pointLabels: { color: '#e5ebe8', font: { size: isMobile ? 9 : 11 } },
 						angleLines: { color: 'rgba(255,255,255,0.1)' }
 					}
 				}

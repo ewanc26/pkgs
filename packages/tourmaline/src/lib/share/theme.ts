@@ -6,43 +6,43 @@
  */
 import { INTER_WOFF2, JETBRAINS_MONO_WOFF2 } from "./fonts/embedded-fonts";
 
-export const BG = "#0f0a0c";
-export const SURFACE = "#170f12";
-export const BORDER = "#2b1a20";
-export const ACCENT = "#fb7185";
+export const BG = "#0f070a";
+export const SURFACE = "#190d12";
+export const BORDER = "#3c252d";
+export const ACCENT = "#e94984";
 export const TEXT = "#e5e7eb";
 export const MUTED = "#9ca3af";
 export const DIM = "#6b7280";
 
 export const GENRE_COLORS: Record<string, string> = {
-  Metal: "#ef9fab",
-  Rock: "#a8e6c2",
-  Pop: "#ec8b99",
-  Electronic: "#96e1b5",
-  "Hip Hop": "#e97788",
-  Jazz: "#84dba9",
-  Classical: "#e66377",
-  Folk: "#73d69c",
-  Country: "#e25066",
-  "R&B": "#61d190",
-  Blues: "#df3c54",
-  Reggae: "#4fcc83",
-  Latin: "#dc2843",
-  World: "#3dc777",
-  Soundtrack: "#cc213b",
-  "New Age": "#35b86c",
-  Punk: "#b81e35",
-  "Singer-Songwriter": "#30a661",
+  Metal: "#f09dbc",
+  Rock: "#a6e7cb",
+  Pop: "#ed89ae",
+  Electronic: "#94e3c1",
+  "Hip Hop": "#ea75a0",
+  Jazz: "#82deb6",
+  Classical: "#e76193",
+  Folk: "#70d9ab",
+  Country: "#e44e85",
+  "R&B": "#5ed4a1",
+  Blues: "#e13a77",
+  Reggae: "#4ccf96",
+  Latin: "#df2669",
+  World: "#3acb8c",
+  Soundtrack: "#ce1f5f",
+  "New Age": "#32bb80",
+  Punk: "#ba1c56",
+  "Singer-Songwriter": "#2da973",
 };
 
 export const MOOD_COLORS: Record<string, string> = {
-  Energetic: "#ee96a3",
-  Melancholic: "#a0e3bc",
-  Chill: "#e76a7d",
-  Happy: "#79d8a0",
-  Aggressive: "#e03e56",
-  Atmospheric: "#51cd85",
-  Nostalgic: "#ca213a",
+  Energetic: "#ef95b6",
+  Melancholic: "#9ee5c7",
+  Chill: "#e86897",
+  Happy: "#76dbaf",
+  Aggressive: "#e23c79",
+  Atmospheric: "#4ed097",
+  Nostalgic: "#cc1e5e",
   Dark: "#6b7280",
 };
 

@@ -10,11 +10,11 @@
 	// Palette for up to 6 genres — matches the tourmaline accent family
 	const COLOURS = [
 		'var(--accent)',
-		'#a0e3bc', // green, light
-		'#e25066', // rose, mid
-		'#61d190', // green, mid
-		'#c11f38', // rose, deep
-		'#32ae66'  // green, deep
+		'#a0e3c6', // green, light
+		'#e25086', // rose, mid
+		'#61d1a0', // green, mid
+		'#c11f5a', // rose, deep
+		'#32ae78'  // green, deep
 	];
 
 	// Collect all genre names that appear, sorted by total weight

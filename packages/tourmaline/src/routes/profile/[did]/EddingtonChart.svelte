@@ -43,10 +43,10 @@
 		const labels = dist.map((d) => String(d.scrobbles));
 		const data = dist.map((d) => d.days);
 		const bgColors = dist.map((d) =>
-			d.isEddington ? 'rgba(253,164,175,0.9)' : '#fb7185'
+			d.isEddington ? 'rgba(253,164,175,0.9)' : '#fb71a4'
 		);
 		const borderColors = dist.map((d) =>
-			d.isEddington ? '#fda4af' : '#e11d48'
+			d.isEddington ? '#fda4c5' : '#e11d65'
 		);
 
 		if (chart) {
@@ -97,7 +97,7 @@
 				scales: {
 					x: {
 						ticks: {
-							color: '#e5e7eb',
+							color: '#e5ebe8',
 							font: { size: 10 },
 							maxRotation: 0,
 							// Always show the Eddington bar label; thin out the rest
