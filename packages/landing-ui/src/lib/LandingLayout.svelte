@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { ExternalLink } from '@lucide/svelte';
+	import { ExternalLink, Heart } from '@lucide/svelte';
 
 	interface NavLink {
 		label: string;
@@ -17,6 +17,10 @@
 		footerTagline: string;
 		footerSourceUrl: string;
 		footerAboutUrl?: string;
+		/** Support hub link. Set to '' to hide the support links entirely. */
+		supportUrl?: string;
+		/** Directory of sibling tools. Set to '' to hide. */
+		directoryUrl?: string;
 		webVersion?: string;
 		cliVersion?: string;
 		children: Snippet;
@@ -31,6 +35,8 @@
 		footerTagline,
 		footerSourceUrl,
 		footerAboutUrl = '/about',
+		supportUrl = 'https://ewancroft.uk/support',
+		directoryUrl = 'https://croft.click',
 		webVersion,
 		cliVersion,
 		children
@@ -72,6 +78,11 @@
 				{/each}
 			</nav>
 		{/if}
+		{#if supportUrl}
+			<a href={supportUrl} target="_blank" rel="noopener" class="support-link">
+				<Heart size={12} /> <span class="support-label">Support</span>
+			</a>
+		{/if}
 		{#if webVersion && cliVersion}
 			<div class="version-strip">
 				<span>web v{webVersion}</span>
@@ -95,7 +106,20 @@
 		</a>
 		<span class="sep">|</span>
 		<a href={footerAboutUrl}>Privacy</a>
+		{#if directoryUrl}
+			<span class="sep">|</span>
+			<a href={directoryUrl} target="_blank" rel="noopener">More tools</a>
+		{/if}
+		{#if supportUrl}
+			<span class="sep">|</span>
+			<a href={supportUrl} target="_blank" rel="noopener" class="footer-support">
+				<Heart size={10} /> Support
+			</a>
+		{/if}
 	</div>
+	{#if supportUrl}
+		<span class="footer-note">Free and open source — kept going by people who chip in.</span>
+	{/if}
 	<span class="footer-copyright">(c) {year} Ewan Croft | AGPL-3.0</span>
 </footer>
 
@@ -170,6 +194,32 @@
 	.nav-links a:hover {
 		color: var(--accent);
 	}
+	.support-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.75rem;
+		color: var(--muted);
+		text-decoration: none;
+		padding: 0.25rem 0.55rem;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		transition:
+			color 0.15s,
+			border-color 0.15s;
+	}
+	.support-link:hover {
+		color: var(--accent);
+		border-color: var(--accent);
+	}
+	.support-label {
+		display: none;
+	}
+	@media (min-width: 480px) {
+		.support-label {
+			display: inline;
+		}
+	}
 	.version-strip {
 		font-size: 0.7rem;
 		font-family: 'JetBrains Mono', monospace;
@@ -209,6 +259,16 @@
 	}
 	footer a:hover {
 		color: var(--accent);
+	}
+	.footer-support {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+	.footer-note {
+		font-size: 0.65rem;
+		color: var(--muted);
+		opacity: 0.75;
 	}
 	.footer-copyright {
 		font-size: 0.65rem;

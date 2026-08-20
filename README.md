@@ -27,12 +27,26 @@ Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/p
 | [`nix-config-tools`](./packages/nix-config-tools)                  | Nix config management tools (Rust)                                   |
 | [`llm-analyser`](./packages/llm-analyser)                          | `.docx` analysis with Ollama (Python)                                |
 
+## Try the tools
+
+Several of these packages ship as free, browser-based apps — no accounts, no tracking, nothing leaves your machine except to your own PDS. They live at **[croft.click](https://croft.click)**:
+
+| Tool                                              | What it does                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------ |
+| [Malachite](https://malachite.croft.click)        | Import Last.fm and Spotify listening history into Teal              |
+| [Opal](https://opal.croft.click)                  | Convert Twitter, Mastodon, Threads, and Nostr posts to Bluesky      |
+| [Jasper](https://jasper.croft.click)              | Import Instagram photos, stories, and videos to Grain or Spark      |
+| [Bismuth](https://bismuth.croft.click)            | Convert ATProto richtext-block documents to Markdown                |
+| [Tourmaline](https://tourmaline.croft.click)      | Analyse your Teal.fm scrobbles and find your listener archetype     |
+
 ## Support
 
-If you find this project useful, consider supporting its development:
+All of this is free and open source, built and maintained in my spare time. If any of it is useful to you, a one-off tip or a monthly sponsorship keeps it going:
 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/ewancroft)
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-30363D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/ewanc26)
+
+Not up for that? Starring the repo, filing a good bug report, or pointing someone at [croft.click](https://croft.click) helps just as much.
 
 ## Licence
 

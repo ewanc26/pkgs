@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { ArrowRight, Heart } from '@lucide/svelte';
+	import { ArrowRight, Heart, ArrowUpRight } from '@lucide/svelte';
+	import SupportSection from './SupportSection.svelte';
 
 type FeatureIcon = import('svelte').Component | string;
 
@@ -35,6 +36,16 @@ interface Feature {
 		features: Feature[];
 		steps: Step[];
 		siblings?: Sibling[];
+		/** Heading above the sibling-project grid. */
+		siblingsHeading?: string;
+		/** One-line framing for the sibling-project grid. */
+		siblingsSub?: string;
+		/** Link to the full tool directory, shown under the sibling grid. */
+		directoryUrl?: string;
+		/** Set false to hide the support section on this page. */
+		showSupport?: boolean;
+		kofiUrl?: string;
+		sponsorsUrl?: string;
 		heroAction?: Snippet;
 		ctaAction?: Snippet;
 		children?: Snippet;
@@ -54,6 +65,12 @@ interface Feature {
 		features,
 		steps,
 		siblings = [],
+		siblingsHeading = 'More tools like this one',
+		siblingsSub = 'Same idea, different platform — all free and open source.',
+		directoryUrl = 'https://croft.click',
+		showSupport = true,
+		kofiUrl,
+		sponsorsUrl,
 		heroAction,
 		ctaAction,
 		children
@@ -151,16 +168,30 @@ interface Feature {
 	<!-- ── More tools ──────────────────────────────────────────────────────── -->
 	{#if siblings.length}
 		<section class="siblings">
-			<h2>More tools</h2>
+			<h2>{siblingsHeading}</h2>
+			<p class="siblings-sub">{siblingsSub}</p>
 			<div class="siblings-grid">
 				{#each siblings as sibling}
 					<a href={sibling.url} class="sibling-card">
-						<strong>{sibling.name}</strong>
+						<span class="sibling-head">
+							<strong>{sibling.name}</strong>
+							<ArrowUpRight size={14} />
+						</span>
 						<p>{sibling.description}</p>
 					</a>
 				{/each}
 			</div>
+			{#if directoryUrl}
+				<a href={directoryUrl} class="siblings-more">
+					See the whole toolkit <ArrowRight size={13} />
+				</a>
+			{/if}
 		</section>
+	{/if}
+
+	<!-- ── Support ───────────────────────────────────────────────── -->
+	{#if showSupport}
+		<SupportSection {name} {githubUrl} {kofiUrl} {sponsorsUrl} />
 	{/if}
 
 	<!-- ── Extra content ─────────────────────────────────────────────────────── -->
@@ -438,6 +469,44 @@ interface Feature {
 	/* ── More tools ──────────────────────────────────────────────────────────── */
 	.siblings {
 		margin-bottom: 3rem;
+	}
+
+	.siblings h2 {
+		margin-bottom: 0.35rem;
+	}
+
+	.siblings-sub {
+		font-size: 0.825rem;
+		color: var(--muted);
+		margin: 0 0 1.25rem;
+	}
+
+	.siblings-more {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		margin-top: 1rem;
+		font-size: 0.8rem;
+		color: var(--muted);
+		text-decoration: none;
+		transition: color 0.15s ease;
+	}
+
+	.siblings-more:hover {
+		color: var(--accent);
+		text-decoration: none;
+	}
+
+	.sibling-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		color: var(--muted);
+	}
+
+	.sibling-card:hover .sibling-head {
+		color: var(--accent);
 	}
 
 	.siblings-grid {

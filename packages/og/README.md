@@ -140,6 +140,20 @@ Create SvelteKit GET handler.
 
 Build OG image URL with query parameters.
 
+## Related projects
+
+Other packages in this monorepo:
+
+- [`@ewanc26/noise`](../noise) — Deterministic value-noise generation.
+- [`@ewanc26/ui`](../ui) — Svelte UI component library.
+- [`@ewanc26/utils`](../utils) — Shared utility functions, zero runtime dependencies.
+
+Also worth a look: [croft.click](https://croft.click) — free, browser-based tools for moving your data onto the AT Protocol.
+
+## Support
+
+This is free and open source, built and maintained in my spare time. If it's useful to you, a [one-off tip on Ko-fi](https://ko-fi.com/ewancroft) or a [monthly sponsorship](https://github.com/sponsors/ewanc26) helps keep it maintained. A star on the repo or a mention to someone who'd use it helps just as much.
+
 ## License
 
 AGPL-3.0-only
