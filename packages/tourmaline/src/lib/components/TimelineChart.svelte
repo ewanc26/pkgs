@@ -11,7 +11,7 @@
       datasets: [{
         label: 'Scrobbles per year',
         data: Object.values(stats.years),
-        backgroundColor: '#4ade80'
+        backgroundColor: '#fb7185'
       }]
     },
     options: {

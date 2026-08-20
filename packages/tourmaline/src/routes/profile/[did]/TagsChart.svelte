@@ -18,7 +18,7 @@
 				{
 					label: mode === 'scrobbles' ? 'Scrobbles' : 'Artists',
 					data: top.map((t) => t.weight),
-					backgroundColor: '#4ade80'
+					backgroundColor: '#fb7185'
 				}
 			]
 		},
