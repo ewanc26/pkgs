@@ -404,8 +404,8 @@
         <p>
           <code>Apple Music - Play History Daily Tracks.csv</code> — optional but recommended.
           Apple's current exports no longer include artist names in the file above, so this
-          one is used to fill them in. Without it, plays whose artist can't be worked out
-          are skipped.
+          one is used to fill them in. Without it your plays still import, just without
+          artist names.
         </p>
       </details>
     {/if}

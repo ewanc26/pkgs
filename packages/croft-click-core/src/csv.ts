@@ -3,7 +3,7 @@
  * No Node.js deps; file I/O is the caller's responsibility.
  */
 
-import type { LastFmCsvRecord, PlayRecord } from './types.js';
+import type { LastFmCsvRecord, PlayRecord, PlayRecordArtist } from './types.js';
 import { RECORD_TYPE } from './config.js';
 import { normalizeMusicBrainzId } from './mbid.js';
 
@@ -126,7 +126,7 @@ export function convertToPlayRecord(csv: LastFmCsvRecord, clientAgent: string): 
 
   const artists: PlayRecord['artists'] = [];
   if (csv.artist) {
-    const a: PlayRecord['artists'][0] = { artistName: csv.artist };
+    const a: PlayRecordArtist = { artistName: csv.artist };
     const artistMbId = normalizeMusicBrainzId(csv.artist_mbid);
     if (artistMbId) a.artistMbId = artistMbId;
     artists.push(a);

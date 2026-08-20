@@ -13,19 +13,21 @@ import { CLIENT_AGENT } from '../config.js';
 export { parseAppleMusicCsvContent, convertAppleMusicToPlayRecord, parseDailyTracksArtistMap };
 
 /**
- * Convert rows, dropping any whose artist couldn't be resolved.
+ * Convert rows, reporting how many ended up with no artist name.
  *
- * Returns the skipped count so the caller can say why the import is smaller
- * than the file — current Apple exports carry no artist column, so without the
- * daily-tracks companion file this can be most of them.
+ * Those plays are still imported — the lexicon requires only `trackName` — but
+ * the count is surfaced because without the daily-tracks companion file it can
+ * be most of them, and that shouldn't be a silent outcome.
  */
 export function convertAppleMusicRecords(
   records: AppleMusicRecord[],
   artistLookup?: Map<string, string>
-): { records: PlayRecord[]; skipped: number } {
-  const converted = records.map((r) => convertAppleMusicToPlayRecord(r, CLIENT_AGENT, artistLookup));
-  const kept = converted.filter((r): r is PlayRecord => r !== null);
-  return { records: kept, skipped: converted.length - kept.length };
+): { records: PlayRecord[]; withoutArtist: number } {
+  const converted = records
+    .map((r) => convertAppleMusicToPlayRecord(r, CLIENT_AGENT, artistLookup))
+    .filter((r): r is PlayRecord => r !== null);
+
+  return { records: converted, withoutArtist: converted.filter((r) => !r.artists?.length).length };
 }
 
 /**

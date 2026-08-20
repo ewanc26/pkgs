@@ -74,8 +74,8 @@ ${'\x1b[1m'}INPUT:${'\x1b[0m'}
   --apple-input <path>           Path to Apple Music CSV export ("Apple Music Play Activity.csv")
   --apple-daily-tracks <path>    Path to "Apple Music - Play History Daily Tracks.csv".
                                  Current Apple exports dropped the artist column;
-                                 this recovers artists. Without it, plays whose
-                                 artist can't be resolved are skipped.
+                                 this fills artists back in. Without it, plays
+                                 still import, just without an artist name.
   --youtube-input <path>         Path to YouTube Music JSON export
   --listenbrainz-input <path>    Path to ListenBrainz export (.zip, export
                                  directory, or .json/.jsonl file)
