@@ -52,31 +52,31 @@ export const TOOL_META: Record<string, ToolMeta> = {
   "click.croft.tools.malachite": {
     slug: "malachite",
     name: "Malachite",
-    accent: "#3fb968",
+    accent: "#21ca81",
     metricLabel: "records imported",
   },
   "click.croft.tools.jasper": {
     slug: "jasper",
     name: "Jasper",
-    accent: "#fb923c",
+    accent: "#e65733",
     metricLabel: "photos imported",
   },
   "click.croft.tools.bismuth": {
     slug: "bismuth",
     name: "Bismuth",
-    accent: "#c4b5fd",
+    accent: "#bd73e8",
     metricLabel: "docs converted",
   },
   "click.croft.tools.opal": {
     slug: "opal",
     name: "Opal",
-    accent: "#67e8f9",
+    accent: "#84ddeb",
     metricLabel: "posts imported",
   },
   "click.croft.tools.tourmaline": {
     slug: "tourmaline",
     name: "Tourmaline",
-    accent: "#fb7185",
+    accent: "#e94984",
     metricLabel: "scrobbles analysed",
   },
 };
