@@ -1,12 +1,17 @@
 {
   "name": "@ewanc26/malachite",
   "version": "0.18.0",
-  "description": "Import Last.fm and Spotify listening history to ATProto with intelligent deduplication and rate limiting",
+  "description": "Import your music listening history to AT Protocol from Last.fm, Spotify, Apple Music, YouTube Music, or ListenBrainz, with deduplication and rate limiting",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
   "type": "module",
   "keywords": [
     "lastfm",
+    "spotify",
+    "apple-music",
+    "youtube-music",
+    "listenbrainz",
+    "scrobble",
     "atproto",
     "bluesky",
     "import",

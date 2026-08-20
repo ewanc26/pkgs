@@ -49,7 +49,7 @@
 		{ icon: Sparkles, title: 'Polish', description: 'Migrate legacy fm.teal.alpha scrobbles into the current fm.teal.feed.play collection.' }
 	]}
 	steps={[
-		{ title: 'Choose a mode', description: 'Pick Last.fm, Spotify, combined, sync, deduplicate, or polish.' },
+		{ title: 'Choose a mode', description: 'Pick a music service, or combined, sync, deduplicate, or polish.' },
 		{ title: 'Sign in with ATProto', description: 'Use your Bluesky handle and an app password. Nothing is stored.' },
 		{ title: 'Upload your export', description: 'Drop in your CSV or JSON files — everything is processed locally in your browser.' },
 		{ title: 'Import', description: 'Malachite publishes your records to your PDS with automatic rate-limit handling.' }
@@ -66,7 +66,7 @@
 	{/snippet}
 
 	{#snippet sub()}
-		Malachite imports your Last.fm scrobbles and Spotify plays into
+		Malachite imports your listening history into
 		<a href="https://teal.fm" target="_blank" rel="noopener">Teal</a>
 		— so your music data stays with you, not the streaming platforms.
 	{/snippet}

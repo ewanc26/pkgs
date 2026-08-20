@@ -55,7 +55,7 @@
 		{ title: 'Import', description: 'Jasper uploads your photos to Grain or Spark with their original timestamps preserved.' }
 	]}
 	siblings={[
-		{ name: 'Malachite', url: 'https://malachite.croft.click', description: 'Import Last.fm and Spotify listening history into Teal.' },
+		{ name: 'Malachite', url: 'https://malachite.croft.click', description: 'Import your music listening history into Teal.' },
 		{ name: 'Opal', url: 'https://opal.croft.click', description: 'Convert Twitter, Mastodon, Threads, and Nostr posts to Bluesky.' },
 		{ name: 'Bismuth', url: 'https://bismuth.croft.click', description: 'Convert ATProto richtext-block documents to Markdown.' },
 		{ name: 'Tourmaline', url: 'https://tourmaline.croft.click', description: 'Analyse your Teal.fm scrobbles and discover your listener archetype.' }
