@@ -333,14 +333,19 @@ export async function publishRecordsWithApplyWrites(
         // critical fix.  Previously we only called updateFromHeaders when
         // headers were present, meaning a headerless 429 left state untouched
         // and waitForPermit returned immediately, sending another request.
+        rl.refund(batchPoints); // this reservation was never actually sent
         rl.handleRateLimitHit(errHeaders ? normalizeHeaders(errHeaders) : undefined);
 
         // Now waitForPermit will block until the window resets.
         await rl.waitForPermit(batchPoints);
         continue;
-        
+
       } else {
-        // Non-retryable error (already retried by retryWithBackoff)
+        // Non-retryable error (already retried by retryWithBackoff) — the
+        // batch never actually cost quota, so return the reservation rather
+        // than letting failed batches drain the local ledger and cause
+        // waitForPermit to block on phantom rate limiting later.
+        rl.refund(batchPoints);
         errorCount += batch.length;
         
         // Determine if this was a retryable error that exhausted retries

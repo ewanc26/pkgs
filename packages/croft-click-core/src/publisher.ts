@@ -292,10 +292,12 @@ export async function publishRecords(
             typeof e?.response?.headers?.forEach === 'function'
               ? (() => { const o: Record<string, string> = {}; e.response.headers.forEach((v: string, k: string) => { o[k] = v; }); return o; })()
               : (e?.response?.headers ?? e?.headers ?? {});
+          rl.refund(batchPoints); // this reservation was never actually sent
           rl.handleRateLimitHit(normalizeHeaders(rawErrHeaders));
           await rl.waitForPermit(batchPoints, isCancelled);
           continue; // retry same batch
         }
+        rl.refund(batchPoints); // batch failed before actually costing any quota
         errorCount += batch.length;
         onLog('error', `Batch ${batchCounter} failed: ${e?.message ?? e}`);
         i += batch.length;
