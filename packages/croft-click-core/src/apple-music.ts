@@ -40,6 +40,14 @@ const TITLE_COLUMNS = ['Content Name', 'Song Name'] as const;
 const ARTIST_COLUMNS = ['Artist Name', 'Container Artist Name'] as const;
 
 /**
+ * Columns that may hold the album/release title, best first. Present on most
+ * current rows even though `Artist Name` is gone, and worth carrying through:
+ * it's what lets `--enrich` disambiguate a MusicBrainz title search instead of
+ * matching on track title alone.
+ */
+const ALBUM_COLUMNS = ['Album Name', 'Container Album Name'] as const;
+
+/**
  * Thrown when a CSV parses fine but clearly isn't the Play Activity export —
  * without this the import just reports "0 records" and leaves the user guessing
  * which of Apple's many CSVs they were supposed to pick.
@@ -172,6 +180,7 @@ export function convertAppleMusicToPlayRecord(
   // room to fill in later.
   const artistName = firstNonEmpty(r, ARTIST_COLUMNS) ?? artistLookup?.get(titleKey(trackName));
   const artists: PlayRecord['artists'] | undefined = artistName ? [{ artistName }] : undefined;
+  const releaseName = firstNonEmpty(r, ALBUM_COLUMNS);
 
   // Use End Timestamp, fallback to Start Timestamp
   let playedTime = r['Event End Timestamp'] || r['Event Start Timestamp'] || new Date().toISOString();
@@ -202,6 +211,7 @@ export function convertAppleMusicToPlayRecord(
 
   // Only set when known, so the key is absent rather than null/empty on the wire.
   if (artists) record.artists = artists;
+  if (releaseName) record.releaseName = releaseName;
 
   return record;
 }
