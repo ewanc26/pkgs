@@ -9,6 +9,16 @@
   const isListenBrainzFile = (f: File) =>
     LB_EXTENSIONS.some((ext) => f.name.toLowerCase().endsWith(ext));
 
+  /**
+   * Android's file picker filters by MIME type, not extension, and third-party
+   * apps (e.g. lastfmstats.com's exporter) often tag a CSV with something other
+   * than `text/csv` — `text/plain`, `application/octet-stream`, or nothing at
+   * all — which makes it disappear from the picker entirely under a bare
+   * `.csv` accept. List every MIME a CSV plausibly shows up as.
+   */
+  const CSV_ACCEPT = '.csv,text/csv,text/comma-separated-values,text/plain,application/csv,application/vnd.ms-excel,application/octet-stream';
+  const isCsvFile = (f: File) => f.name.toLowerCase().endsWith('.csv');
+
   let {
     lastfmFiles  = $bindable<File[]>([]),
     spotifyFiles = $bindable<File[]>([]),
@@ -78,16 +88,16 @@
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (type === 'lf') {
       lfDragging  = false;
-      lastfmFiles = files.filter((f) => f.name.endsWith('.csv'));
+      lastfmFiles = files.filter(isCsvFile);
     } else if (type === 'sp') {
       spDragging   = false;
-      spotifyFiles = files.filter((f) => f.name.endsWith('.json'));
+      spotifyFiles = files.filter((f) => f.name.toLowerCase().endsWith('.json'));
     } else if (type === 'am') {
       amDragging  = false;
-      appleFiles  = files.filter((f) => f.name.endsWith('.csv'));
+      appleFiles  = files.filter(isCsvFile);
     } else if (type === 'yt') {
       ytDragging   = false;
-      youtubeFiles = files.filter((f) => f.name.endsWith('.json'));
+      youtubeFiles = files.filter((f) => f.name.toLowerCase().endsWith('.json'));
     } else if (type === 'lb') {
       lbDragging   = false;
       listenbrainzFiles = files.filter(isListenBrainzFile);
@@ -128,7 +138,7 @@
         <input
           id="lfInput"
           type="file"
-          accept=".csv"
+          accept={CSV_ACCEPT}
           hidden
           onchange={(e) => { lastfmFiles = Array.from((e.target as HTMLInputElement).files ?? []); }}
         />
@@ -201,7 +211,7 @@
         <input
           id="amInput"
           type="file"
-          accept=".csv"
+          accept={CSV_ACCEPT}
           multiple
           hidden
           onchange={(e) => { appleFiles = Array.from((e.target as HTMLInputElement).files ?? []); }}
