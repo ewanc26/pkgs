@@ -174,4 +174,18 @@ export class RateLimiter {
 
     if (this.state) this.state.remaining = Math.max(0, this.state.remaining - pointsNeeded);
   }
+
+  /**
+   * Returns a reservation made by `waitForPermit` that was never actually
+   * spent — e.g. the request it was reserved for failed for a reason
+   * unrelated to rate limiting (validation error, network failure) rather
+   * than being sent and accepted or rejected by the server. Without this,
+   * failed batches permanently drain the local quota ledger even though the
+   * server's real quota was untouched, eventually causing `waitForPermit` to
+   * block on phantom rate limiting.
+   */
+  refund(points: number): void {
+    if (!this.state) return;
+    this.state.remaining = Math.min(this.state.limit, this.state.remaining + points);
+  }
 }

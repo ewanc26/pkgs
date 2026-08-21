@@ -725,6 +725,28 @@ export class RateLimiter {
   }
 
   /**
+   * Return a reservation made by `waitForPermit`/`reserveQuota` that was
+   * never actually spent — e.g. the batch it was reserved for failed for a
+   * reason unrelated to rate limiting (validation error, network failure)
+   * rather than being sent and accepted or rejected by the server. Without
+   * this, failed batches permanently drain the persisted quota state even
+   * though the server's real quota was untouched, eventually causing
+   * `waitForPermit` to block on phantom rate limiting.
+   *
+   * @param points Number of points to return to `remaining`.
+   */
+  refund(points: number): void {
+    const state = this.readState();
+    if (!state) return;
+
+    state.remaining = Math.min(state.limit, state.remaining + points);
+    state.updatedAt = Math.floor(Date.now() / 1000);
+    this.writeState(state);
+
+    log.debug(`[RateLimiter] ↩️  Refunded ${points} points, ${state.remaining} remaining`);
+  }
+
+  /**
    * Wait for a permit with the given number of points.
    * Combines reserveQuota and waitForReset - loops until permit granted.
    * 
