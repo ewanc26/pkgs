@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/malachite",
-  "version": "0.19.1",
+  "version": "0.19.2",
   "description": "Import your music listening history to AT Protocol from Last.fm, Spotify, Apple Music, YouTube Music, or ListenBrainz, with deduplication and rate limiting",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
