@@ -2,7 +2,7 @@ import type { Client } from '@atproto/lex'
 import { formatDuration, formatDate } from '../utils/helpers.js';
 import { isImportCancelled } from '../utils/killswitch.js';
 import { RateLimiter } from '../utils/rate-limiter.js';
-import { DynamicBatchCalculator, ProactiveRatePacer, retryWithBackoff, isRetryableError, isRateLimitError, normalizeHeaders } from '@ewanc26/croft-click-core';
+import { DynamicBatchCalculator, ProactiveRatePacer, retryWithBackoff, isRetryableError, isRateLimitError, normalizeHeaders, normalizeMusicBrainzId } from '@ewanc26/croft-click-core';
 import { formatLocaleNumber } from '../utils/platform.js';
 import { generateTIDFromISO } from '../utils/tid.js';
 import type { PlayRecord, Config, PublishResult } from '../types.js';
@@ -38,6 +38,46 @@ import { com } from '@bsky/sdk/lexicons'
  * Batch 50 records → wait 135s → steady state at 4000 points
  * Never hits 750-point headroom threshold!
  */
+/**
+ * Last-chance guard before a record reaches the PDS: re-run every MusicBrainz
+ * ID through `normalizeMusicBrainzId` and drop anything that still doesn't
+ * resolve to a valid `mbid:<uuid>` URI. Catches values that slipped past
+ * normalisation upstream, so one bad ID can't fail the whole batch with
+ * `invalid format: Uri` (see pkgs#51).
+ */
+function sanitizeMbidFields(record: PlayRecord): PlayRecord {
+  const sanitized: PlayRecord = { ...record };
+
+  const recordingMbId = normalizeMusicBrainzId(record.recordingMbId);
+  if (record.recordingMbId && !recordingMbId) {
+    log.warn(`⚠️  Dropping invalid recordingMbId "${record.recordingMbId}" from "${record.trackName}"`);
+  }
+  if (recordingMbId) sanitized.recordingMbId = recordingMbId;
+  else delete sanitized.recordingMbId;
+
+  const releaseMbId = normalizeMusicBrainzId(record.releaseMbId);
+  if (record.releaseMbId && !releaseMbId) {
+    log.warn(`⚠️  Dropping invalid releaseMbId "${record.releaseMbId}" from "${record.trackName}"`);
+  }
+  if (releaseMbId) sanitized.releaseMbId = releaseMbId;
+  else delete sanitized.releaseMbId;
+
+  if (record.artists) {
+    sanitized.artists = record.artists.map((artist) => {
+      const artistMbId = normalizeMusicBrainzId(artist.artistMbId);
+      if (artist.artistMbId && !artistMbId) {
+        log.warn(`⚠️  Dropping invalid artistMbId "${artist.artistMbId}" for "${artist.artistName}"`);
+      }
+      const sanitizedArtist = { ...artist };
+      if (artistMbId) sanitizedArtist.artistMbId = artistMbId;
+      else delete sanitizedArtist.artistMbId;
+      return sanitizedArtist;
+    });
+  }
+
+  return sanitized;
+}
+
 export async function publishRecordsWithApplyWrites(
   client: Client | null,
   records: PlayRecord[],
@@ -181,12 +221,15 @@ export async function publishRecordsWithApplyWrites(
     const batchStartTime = Date.now();
 
     // Build writes array
-    const writes = batch.map((record) => ({
-      $type: 'com.atproto.repo.applyWrites#create',
-      collection: RECORD_TYPE,
-      rkey: generateTIDFromISO(record.playedTime, 'inject:playlist'),
-      value: record,
-    }));
+    const writes = batch.map((record) => {
+      const sanitizedRecord = sanitizeMbidFields(record);
+      return {
+        $type: 'com.atproto.repo.applyWrites#create',
+        collection: RECORD_TYPE,
+        rkey: generateTIDFromISO(record.playedTime, 'inject:playlist'),
+        value: sanitizedRecord,
+      };
+    });
 
     // Reserve quota
     const batchPoints = batch.length * POINTS_PER_RECORD;
