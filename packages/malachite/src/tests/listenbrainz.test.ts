@@ -17,6 +17,7 @@ import {
   parseListenBrainzArchive,
   parseListenBrainzJsonContents,
   isListenBrainzDataFile,
+  sanitizePlayRecordMusicBrainzIds,
 } from '@ewanc26/croft-click-core';
 import type { ListenBrainzRecord } from '@ewanc26/croft-click-core';
 
@@ -83,6 +84,28 @@ describe('ListenBrainz MusicBrainz ID conversion', () => {
     assert.strictEqual(record.releaseMbId, 'mbid:167fe8d9-402e-431b-964e-adae7d483675');
     assert.strictEqual(record.recordingMbId, 'mbid:1acda0b9-4e9a-429d-90a5-89f1daa16291');
     assert.strictEqual(record.artists?.[0].artistMbId, 'mbid:6897b46a-9236-4480-9ed7-300f6b85d62f');
+  });
+
+  it('sanitises the reporter\'s bare recording MBID at the shared publish boundary', () => {
+    const converted = convertListenBrainzToPlayRecord(PARTIALLY_MAPPED, AGENT);
+    assert.ok(converted);
+
+    // Recreate the stale web conversion output reported in #51. The shared
+    // publisher must repair it even when an upstream path missed normalisation.
+    const staleWebRecord = {
+      ...converted,
+      recordingMbId: '83913e5d-d726-4619-9768-657a980687a6',
+      releaseMbId: 'not-a-mbid',
+      artists: converted.artists?.map((artist, index) =>
+        index === 0 ? { ...artist, artistMbId: '6897b46a-9236-4480-9ed7-300f6b85d62f' } : artist,
+      ),
+    };
+
+    const record = sanitizePlayRecordMusicBrainzIds(staleWebRecord);
+    assert.strictEqual(record.recordingMbId, 'mbid:83913e5d-d726-4619-9768-657a980687a6');
+    assert.ok(!('releaseMbId' in record), 'invalid releaseMbId should be absent');
+    assert.strictEqual(record.artists?.[0].artistMbId, 'mbid:6897b46a-9236-4480-9ed7-300f6b85d62f');
+    assert.strictEqual(staleWebRecord.recordingMbId, '83913e5d-d726-4619-9768-657a980687a6');
   });
 
   it('omits a null release_mbid rather than emitting an invalid value', () => {

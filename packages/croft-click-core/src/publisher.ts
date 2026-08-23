@@ -18,6 +18,7 @@ import { DynamicBatchCalculator } from './dynamic-batch-calculator.js';
 import { retryWithBackoff } from './retry-helper.js';
 import { generateTIDFromISO } from './tid.js';
 import { normalizeHeaders, isRateLimitError } from './rate-limit-headers.js';
+import { sanitizePlayRecordMusicBrainzIds } from './mbid.js';
 
 export interface PublishProgress {
   batchIndex: number;
@@ -172,7 +173,7 @@ export async function publishRecords(
         $type: 'com.atproto.repo.applyWrites#create',
         collection: RECORD_TYPE,
         rkey: generateTIDFromISO(record.playedTime, context),
-        value: record,
+        value: sanitizePlayRecordMusicBrainzIds(record),
       }));
 
       const batchPoints = batch.length * POINTS_PER_RECORD;
