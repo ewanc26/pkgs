@@ -127,6 +127,21 @@ describe('MusicBrainz enrichment', () => {
     assert.strictEqual(records[0].artists?.[0].artistName, 'Someone Else');
   });
 
+  it('should report progress against records that actually need enrichment', async () => {
+    const { impl, calls } = stubFetch(RECORDING);
+    const withArtist: PlayRecord = { ...base, artists: [{ artistName: 'Already Known' }] };
+    const progress: Array<{ processed: number; enriched: number; total: number }> = [];
+
+    await enrichWithMusicBrainz([withArtist, base], {
+      userAgent: AGENT,
+      fetchImpl: impl,
+      onProgress: (p) => progress.push(p),
+    });
+
+    assert.strictEqual(calls.length, 1);
+    assert.deepStrictEqual(progress, [{ processed: 1, enriched: 1, total: 1 }]);
+  });
+
   it('should never drop a record when nothing matches', async () => {
     const { impl } = stubFetch({ recordings: [] });
 
