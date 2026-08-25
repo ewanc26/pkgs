@@ -36,8 +36,24 @@ export function normalizeMusicBrainzId(value: string | undefined | null): string
  * publisher through several browser and CLI paths. Keeping this guard in the
  * shared publishing boundary prevents one bare or malformed identifier from
  * causing the PDS to reject an entire applyWrites batch.
+ *
+ * Apple imports have one additional invariant: never publish a play with no
+ * artist. Current Apple exports omit artist names, so they must be recovered by
+ * the Daily Tracks companion, Apple's catalogue, or MusicBrainz first. Failing
+ * closed here guarantees Malachite cannot create new Apple artist gaps even if
+ * a caller forgets to run enrichment.
  */
 export function sanitizePlayRecordMusicBrainzIds(record: PlayRecord): PlayRecord {
+  if (
+    record.musicServiceUri.toLowerCase().includes('music.apple.com') &&
+    !record.artists?.some((artist) => artist.artistName?.trim())
+  ) {
+    throw new Error(
+      `Refusing to publish Apple Music play without an artist: "${record.trackName}" ` +
+      `(${record.playedTime}). Re-run with artist enrichment enabled.`
+    );
+  }
+
   const sanitized: PlayRecord = { ...record };
 
   const recordingMbId = normalizeMusicBrainzId(record.recordingMbId);
