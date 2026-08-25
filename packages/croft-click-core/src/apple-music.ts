@@ -4,6 +4,7 @@
  */
 
 import type { AppleMusicRecord, PlayRecord } from './types.js';
+import type { AppleCatalogHint } from './apple-catalog.js';
 import { RECORD_TYPE } from './config.js';
 
 export type { AppleMusicRecord };
@@ -31,20 +32,14 @@ const TITLE_COLUMNS = ['Content Name', 'Song Name'] as const;
 /**
  * Columns that may hold an artist, best first.
  *
- * Current exports (143 columns, verified against a Jan 2026 export) dropped the
- * per-row `Artist Name` entirely. `Container Artist Name` survives but is the
- * artist *page you browsed from*, populated on a fraction of a percent of rows
- * and not necessarily the track's credit — so it's a last resort, not a
- * substitute. See `APPLE_MUSIC_DAILY_TRACKS_FILE` for the real recovery path.
+ * Current exports dropped the per-row `Artist Name` entirely. `Container Artist
+ * Name` survives but is the artist page the user browsed from, populated only
+ * occasionally, so the Daily Tracks file and catalogue enrichment remain the
+ * normal recovery paths.
  */
 const ARTIST_COLUMNS = ['Artist Name', 'Container Artist Name'] as const;
 
-/**
- * Columns that may hold the album/release title, best first. Present on most
- * current rows even though `Artist Name` is gone, and worth carrying through:
- * it's what lets `--enrich` disambiguate a MusicBrainz title search instead of
- * matching on track title alone.
- */
+/** Columns that may hold the album/release title, best first. */
 const ALBUM_COLUMNS = ['Album Name', 'Container Album Name'] as const;
 
 /**
@@ -54,9 +49,6 @@ const ALBUM_COLUMNS = ['Album Name', 'Container Album Name'] as const;
  */
 export class AppleMusicSchemaError extends Error {
   constructor(public readonly foundColumns: string[]) {
-    // Show what we did find, not just what's absent — if the columns look like
-    // one long run-together string it's a delimiter problem rather than the
-    // wrong file, and that's impossible to tell from "missing X" alone.
     const preview = foundColumns.length
       ? foundColumns.slice(0, 8).map((c) => `"${c}"`).join(', ') +
         (foundColumns.length > 8 ? `, …(${foundColumns.length} columns total)` : '')
@@ -89,10 +81,11 @@ export function appleMusicTrackName(r: AppleMusicRecord): string | undefined {
 
 /**
  * Normalises a title for cross-file matching: case, whitespace, and the
- * `- Single`/`- EP` suffixes Apple appends inconsistently between the two files.
+ * `- Single`/`- EP` suffixes Apple appends inconsistently between files.
  */
 function titleKey(title: string): string {
   return title
+    .normalize('NFKC')
     .toLowerCase()
     .replace(/\s*-\s*(single|ep)$/i, '')
     .replace(/\s+/g, ' ')
@@ -102,21 +95,18 @@ function titleKey(title: string): string {
 /**
  * Build a title → artist lookup from `Apple Music - Play History Daily Tracks.csv`.
  *
- * That file has no per-play timestamps (so it can't drive the import on its own)
- * but it does carry `Track Description` as `Artist - Title`, which is the only
- * artist information in the whole export once Apple dropped `Artist Name`. The
- * two files share no join key, so this matches on normalised title — good enough
- * in practice, and a wrong artist is no worse than the `Unknown` it replaces.
+ * The files share no stable join key, so title matching is necessarily a
+ * fallback. Only titles that map to exactly one artist are accepted; an
+ * ambiguous title is deliberately left for catalogue enrichment instead of
+ * silently assigning the first artist encountered.
  */
 export function parseDailyTracksArtistMap(rows: Array<Record<string, string>>): Map<string, string> {
-  const map = new Map<string, string>();
+  const candidates = new Map<string, Set<string>>();
 
   for (const row of rows) {
     const description = row['Track Description']?.trim();
     if (!description) continue;
 
-    // `Artist - Title`. Split on the first separator: artists contain " - "
-    // far less often than titles do (remixes, live versions, subtitles).
     const sep = description.indexOf(' - ');
     if (sep <= 0) continue;
 
@@ -124,26 +114,51 @@ export function parseDailyTracksArtistMap(rows: Array<Record<string, string>>): 
     const title = description.slice(sep + 3).trim();
     if (!artist || !title) continue;
 
-    // First writer wins; later duplicates are the same song played again.
     const key = titleKey(title);
-    if (!map.has(key)) map.set(key, artist);
+    const artists = candidates.get(key) ?? new Set<string>();
+    artists.add(artist);
+    candidates.set(key, artists);
   }
 
+  const map = new Map<string, string>();
+  for (const [key, artists] of candidates) {
+    if (artists.size === 1) map.set(key, artists.values().next().value!);
+  }
   return map;
 }
 
 /**
- * Filter raw Apple Music records, keeping only played tracks (has title, artist, and timestamp).
+ * Build source-only hints used to validate an Apple catalogue search result.
+ * These hints never become part of the published ATProto record.
+ */
+export function appleCatalogHintFromAppleMusicRecord(r: AppleMusicRecord): AppleCatalogHint {
+  const rawDuration = r['Media Duration In Milliseconds'] || r['Play Duration Milliseconds'];
+  const duration = rawDuration ? Number(rawDuration) : NaN;
+  const country = r['ISO Country']?.trim().toUpperCase();
+
+  return {
+    ...(Number.isFinite(duration) && duration > 0 ? { durationMs: duration } : {}),
+    ...(country && /^[A-Z]{2}$/.test(country) ? { country } : {}),
+  };
+}
+
+/** Current exports contain zero-duration radio/metadata rows alongside tracks. */
+function isNonTrackMetadataRow(r: AppleMusicRecord): boolean {
+  const itemType = r['Item Type']?.trim();
+  const duration = Number(r['Media Duration In Milliseconds']);
+  return Boolean(itemType && itemType !== 'ITUNES_STORE_CONTENT' && Number.isFinite(duration) && duration === 0);
+}
+
+/**
+ * Filter raw Apple Music records, keeping only actual played tracks.
  *
- * Throws `AppleMusicSchemaError` if the rows don't carry the expected columns at
- * all, which means the wrong CSV from the export was picked.
+ * Artist is deliberately not required here — current exports don't carry one,
+ * and it is recovered later. Zero-duration radio/metadata events are excluded;
+ * otherwise they can masquerade as song rows simply because Apple populated
+ * `Song Name` on the event.
  */
 export function parseAppleMusicCsvContent(records: AppleMusicRecord[]): AppleMusicRecord[] {
-  // An empty file has no headers to judge, so there's nothing to diagnose.
   if (records.length > 0) {
-    // Tolerate stray whitespace/BOM around header cells — Apple's exports have
-    // shipped both with and without a BOM, and a header that only differs by
-    // trim shouldn't read as "wrong file".
     const columns = Object.keys(records[0] as unknown as Record<string, unknown>);
     const normalised = new Set(columns.map((c) => c.replace(/^﻿/, '').trim()));
     if (!TITLE_COLUMNS.some((c) => normalised.has(c))) {
@@ -151,11 +166,11 @@ export function parseAppleMusicCsvContent(records: AppleMusicRecord[]): AppleMus
     }
   }
 
-  // Artist is deliberately *not* required here — current exports don't carry one,
-  // and it's recovered later from the Daily Tracks file. A row still needs a
-  // title and a timestamp to be a play at all.
   return records.filter(
-    (r) => appleMusicTrackName(r) && (r['Event End Timestamp'] || r['Event Start Timestamp'])
+    (r) =>
+      appleMusicTrackName(r) &&
+      (r['Event End Timestamp'] || r['Event Start Timestamp']) &&
+      !isNonTrackMetadataRow(r)
   );
 }
 
@@ -172,28 +187,20 @@ export function convertAppleMusicToPlayRecord(
   const trackName = appleMusicTrackName(r);
   if (!trackName) return null;
 
-  // In-row artist first (older exports), then the Daily Tracks lookup. When
-  // neither knows, `artists` is left off entirely: the lexicon requires only
-  // `trackName`, and the play itself is real — dropping it would lose genuine
-  // history, while inventing "Unknown Artist" would put a fabricated name in
-  // someone's public repo. An absent field says "unknown" honestly and leaves
-  // room to fill in later.
   const artistName = firstNonEmpty(r, ARTIST_COLUMNS) ?? artistLookup?.get(titleKey(trackName));
   const artists: PlayRecord['artists'] | undefined = artistName ? [{ artistName }] : undefined;
   const releaseName = firstNonEmpty(r, ALBUM_COLUMNS);
 
-  // Use End Timestamp, fallback to Start Timestamp
+  // Use End Timestamp, fallback to Start Timestamp.
   let playedTime = r['Event End Timestamp'] || r['Event Start Timestamp'] || new Date().toISOString();
-  
-  // Basic ISO format cleanup if necessary (sometimes "Z" is missing or space instead of T)
+
   if (!playedTime.includes('T')) {
     playedTime = playedTime.replace(' ', 'T');
   }
   if (!playedTime.endsWith('Z') && !playedTime.includes('+') && !playedTime.includes('-')) {
     playedTime += 'Z';
   }
-  
-  // Verify it's valid
+
   const dt = new Date(playedTime);
   if (isNaN(dt.getTime())) {
     playedTime = new Date().toISOString();
@@ -209,7 +216,6 @@ export function convertAppleMusicToPlayRecord(
     musicServiceUri: 'https://music.apple.com/',
   };
 
-  // Only set when known, so the key is absent rather than null/empty on the wire.
   if (artists) record.artists = artists;
   if (releaseName) record.releaseName = releaseName;
 
