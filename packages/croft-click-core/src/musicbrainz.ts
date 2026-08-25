@@ -6,8 +6,9 @@
  * remaining gaps then fall back to MusicBrainz. Other sources continue to use
  * MusicBrainz directly.
  *
- * Lookups remain best-effort; publication has a separate guard that prevents an
- * unresolved Apple row from being written with a missing artist.
+ * For Apple-origin records, an explicitly enriched import is strict: if neither
+ * source can identify an artist, enrichment fails before the caller can publish
+ * an incomplete play.
  */
 
 import type { PlayRecord } from './types.js';
@@ -210,6 +211,13 @@ export interface EnrichOptions extends MusicBrainzOptions {
   /** Override only for deterministic tests. */
   appleCatalogRequestIntervalMs?: number;
   /**
+   * Permit unresolved Apple artists after enrichment. Off by default: normal
+   * Malachite imports must either resolve every Apple artist or abort before
+   * publication. This exists only for callers that explicitly want best-effort
+   * metadata analysis without publishing.
+   */
+  allowUnresolvedApple?: boolean;
+  /**
    * Also look up records that already have an artist, to add missing MBIDs.
    * Off by default: it means a network round trip for nearly every record.
    */
@@ -226,9 +234,32 @@ function isAppleArtistGap(record: PlayRecord): boolean {
   return record.musicServiceUri.toLowerCase().includes('music.apple.com') && !record.artists?.length;
 }
 
+export class UnresolvedAppleArtistsError extends Error {
+  readonly count: number;
+  readonly sampleTitles: string[];
+
+  constructor(records: PlayRecord[]) {
+    const uniqueTitles = [...new Set(records.map((record) => record.trackName))];
+    const sampleTitles = uniqueTitles.slice(0, 5);
+    const suffix = uniqueTitles.length > sampleTitles.length ? ', …' : '';
+    super(
+      `Could not resolve an artist for ${records.length.toLocaleString()} Apple Music play(s) ` +
+        `after Apple catalogue and MusicBrainz lookup. Nothing was published. ` +
+        `Unresolved title(s): ${sampleTitles.join(', ')}${suffix}`,
+    );
+    this.name = 'UnresolvedAppleArtistsError';
+    this.count = records.length;
+    this.sampleTitles = sampleTitles;
+  }
+}
+
 /**
  * Fill missing metadata, preferring Apple's own catalogue for Apple-origin rows
  * before falling back to MusicBrainz.
+ *
+ * Apple artist gaps are strict by default. This function runs before publishing
+ * in both Malachite runtimes, so throwing here guarantees that `--enrich` never
+ * writes a partially artist-less Apple import.
  */
 export async function enrichWithMusicBrainz(
   records: PlayRecord[],
@@ -251,7 +282,7 @@ export async function enrichWithMusicBrainz(
     const appleResult = await enrichWithAppleCatalog(working, undefined, {
       fetchImpl: opts.appleCatalogFetchImpl,
       signal: opts.signal,
-      onProgress: opts.onAppleCatalogProgress,
+      onProgress: opts.onAppleCatalogProgress ?? opts.onProgress,
       requestIntervalMs: opts.appleCatalogRequestIntervalMs,
     });
     working = appleResult.records;
@@ -302,11 +333,16 @@ export async function enrichWithMusicBrainz(
     opts.onProgress?.({ processed, enriched: musicBrainzEnriched, total: totalLookups });
   }
 
+  const unresolvedAppleRecords = out.filter(isAppleArtistGap);
+  if (unresolvedAppleRecords.length > 0 && !opts.allowUnresolvedApple) {
+    throw new UnresolvedAppleArtistsError(unresolvedAppleRecords);
+  }
+
   return {
     records: out,
     enriched: appleEnriched + musicBrainzEnriched,
     appleEnriched,
     musicBrainzEnriched,
-    unresolvedApple: out.filter(isAppleArtistGap).length,
+    unresolvedApple: unresolvedAppleRecords.length,
   };
 }
