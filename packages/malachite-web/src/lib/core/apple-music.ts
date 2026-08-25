@@ -2,41 +2,32 @@
  * Apple Music CSV — web layer.
  * Re-exports the shared core logic and adds a browser File API loader.
  */
-import type { AppleMusicRecord, PlayRecord, AppleCatalogHint } from '@ewanc26/croft-click-core';
+import type { AppleMusicRecord, PlayRecord } from '@ewanc26/croft-click-core';
 import {
   parseAppleMusicCsvContent,
   convertAppleMusicToPlayRecord,
   parseDailyTracksArtistMap,
-  appleCatalogHintFromAppleMusicRecord,
-  appleCatalogHintKey,
 } from '@ewanc26/croft-click-core';
 import { CLIENT_AGENT } from '../config.js';
 
 export { parseAppleMusicCsvContent, convertAppleMusicToPlayRecord, parseDailyTracksArtistMap };
 
 /**
- * Convert rows while retaining source-only hints used to validate Apple
- * catalogue matches. The hint map is separate from the ATProto records, so
- * media duration/country never leak into the published lexicon object.
+ * Convert rows, reporting how many still need artist enrichment. Source-only
+ * duration/country hints are registered by the shared converter and never become
+ * enumerable properties on the published record.
  */
 export function convertAppleMusicRecords(
   records: AppleMusicRecord[],
   artistLookup?: Map<string, string>
-): { records: PlayRecord[]; withoutArtist: number; hints: Map<string, AppleCatalogHint> } {
-  const converted: PlayRecord[] = [];
-  const hints = new Map<string, AppleCatalogHint>();
-
-  for (const source of records) {
-    const record = convertAppleMusicToPlayRecord(source, CLIENT_AGENT, artistLookup);
-    if (!record) continue;
-    converted.push(record);
-    hints.set(appleCatalogHintKey(record), appleCatalogHintFromAppleMusicRecord(source));
-  }
+): { records: PlayRecord[]; withoutArtist: number } {
+  const converted = records
+    .map((record) => convertAppleMusicToPlayRecord(record, CLIENT_AGENT, artistLookup))
+    .filter((record): record is PlayRecord => record !== null);
 
   return {
     records: converted,
-    withoutArtist: converted.filter((r) => !r.artists?.length).length,
-    hints,
+    withoutArtist: converted.filter((record) => !record.artists?.length).length,
   };
 }
 
