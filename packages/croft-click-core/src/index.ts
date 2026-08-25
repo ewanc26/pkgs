@@ -10,6 +10,7 @@
  * so we only pull the functions from spotify.ts to avoid a duplicate export.
  */
 
+export * from './apple-catalog.js';
 export * from './apple-music.js';
 export * from './archive.js';
 export * from './auth.js';
