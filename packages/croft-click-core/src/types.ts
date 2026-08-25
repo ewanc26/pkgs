@@ -118,6 +118,14 @@ export interface AppleMusicRecord {
   'Event End Timestamp'?: string;
   'Event Start Timestamp'?: string;
   'Play Duration Milliseconds'?: string;
+  /** Full catalogue media duration; useful for disambiguating same-title songs. */
+  'Media Duration In Milliseconds'?: string;
+  /** Current exports expose the store territory as a two-letter country code. */
+  'ISO Country'?: string;
+  /** Distinguishes real catalogue items from radio/metadata stream rows. */
+  'Item Type'?: string;
+  'Media Type'?: string;
+  'Event Type'?: string;
 }
 
 export interface YouTubeMusicSubtitle {
