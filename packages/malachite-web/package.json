@@ -1,7 +1,7 @@
 {
   "name": "@ewanc26/malachite-web",
-  "version": "0.9.1",
-  "description": "Web frontend for Malachite \u2014 import your music listening history to AT Protocol",
+  "version": "0.9.2",
+  "description": "Web frontend for Malachite — import your music listening history to AT Protocol",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
   "private": true,
