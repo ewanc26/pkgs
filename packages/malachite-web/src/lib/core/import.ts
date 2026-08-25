@@ -123,7 +123,7 @@ async function enrichRecords(
   onLog('section', '── MusicBrainz ──────────────────────────────────────');
   onLog(
     'info',
-    `Looking up ${gaps.toLocaleString()} play(s) with no artist. MusicBrainz allows one ` +
+    `Looking up ${gaps.toLocaleString()} new play(s) with no artist. MusicBrainz allows one ` +
       `request per second, so this takes about ${formatDuration(gaps)}.`
   );
 
@@ -132,10 +132,10 @@ async function enrichRecords(
     userAgent: MUSICBRAINZ_USER_AGENT,
     signal,
     onProgress: ({ processed, total }) => {
-      // One line every 50 records; per-record logging would flood the view.
+      // One line every 50 lookups; per-record logging would flood the view.
       if (processed - lastLogged >= 50 || processed === total) {
         lastLogged = processed;
-        onLog('progress', `  ${processed.toLocaleString()}/${total.toLocaleString()} checked…`);
+        onLog('progress', `  ${processed.toLocaleString()}/${total.toLocaleString()} looked up…`);
       }
     },
   });
@@ -324,11 +324,8 @@ export async function runImport(
       onLog('success', `Loaded ${records.length.toLocaleString()} Last.fm records`);
     }
 
-    // Enrich before dedupe/sync so filled-in artists participate in matching.
-    if (enrichFromMusicBrainz) {
-      records = await enrichRecords(records, onLog, ac.signal);
-    }
-
+    // Remove exact duplicates from the input before any network enrichment.
+    // Combined mode already deduplicates while merging its source arrays.
     if (mode !== 'combined') {
       const { unique, duplicates: inputDups } = deduplicateInputRecords(records);
       records = unique;
@@ -336,6 +333,8 @@ export async function runImport(
     }
 
     // ── Sync check (CAR primary; applyWrites fallback) ───────────────────────
+    // Check the PDS before MusicBrainz: enrichment is deliberately slow, and
+    // there is no reason to enrich a play that is already in Teal.
     onLog('section', '── Sync Check ───────────────────────────────────────');
     onLog('info', 'Fetching existing records via CAR export…');
     let existing: Map<string, ExistingRecord> = new Map();
@@ -389,6 +388,22 @@ export async function runImport(
       onLog('success', '✓ Nothing to import — all records already exist in Teal!');
       return { success: 0, errors: 0, cancelled: false };
     }
+
+    // Only genuinely new artist gaps reach MusicBrainz. This preserves the
+    // existing CAR-failure fallback while avoiding hours of redundant lookups
+    // during normal imports.
+    if (enrichFromMusicBrainz) {
+      records = await enrichRecords(records, onLog, ac.signal);
+
+      // Enrichment can make formerly-distinct incomplete input rows converge on
+      // the same artist/track/timestamp key, so do one final local dedupe pass.
+      const { unique, duplicates: enrichedDups } = deduplicateInputRecords(records);
+      records = unique;
+      if (enrichedDups > 0) {
+        onLog('warn', `Removed ${enrichedDups.toLocaleString()} duplicate(s) after MusicBrainz enrichment`);
+      }
+    }
+
     if (mode !== 'combined') records = sortRecords(records, reverseOrder);
 
     // ── Resume support ──────────────────────────────────────────────────────
