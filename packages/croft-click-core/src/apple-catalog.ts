@@ -1,0 +1,281 @@
+/**
+ * Apple/iTunes Store catalogue lookup for filling gaps in Apple Music exports.
+ *
+ * Current Apple Music Play Activity exports omit the per-play artist name, and
+ * the companion Daily Tracks export can lag several days behind Play Activity.
+ * The public iTunes Search API gives us a source-native fallback without an
+ * Apple developer token. Matching is deliberately conservative: title alone is
+ * never enough when the source gives us a duration or album to validate.
+ */
+
+import type { PlayRecord } from './types.js';
+
+const SEARCH_ENDPOINT = 'https://itunes.apple.com/search';
+const DEFAULT_REQUEST_INTERVAL_MS = 3_100;
+const MAX_DURATION_DELTA_MS = 5_000;
+
+export interface AppleCatalogHint {
+  /** Full media duration from Play Activity, not the duration actually played. */
+  durationMs?: number;
+  /** ISO 3166-1 alpha-2 storefront/country, e.g. GB. */
+  country?: string;
+}
+
+export interface AppleCatalogMatch {
+  artistName: string;
+  trackName: string;
+  albumName?: string;
+  trackId?: number;
+}
+
+export interface AppleCatalogProgress {
+  processed: number;
+  enriched: number;
+  total: number;
+}
+
+export interface AppleCatalogOptions {
+  fetchImpl?: typeof fetch;
+  signal?: AbortSignal;
+  onProgress?: (progress: AppleCatalogProgress) => void;
+  /** Override only for deterministic tests. */
+  requestIntervalMs?: number;
+}
+
+interface ITunesSearchResult {
+  kind?: string;
+  artistName?: string;
+  trackName?: string;
+  collectionName?: string;
+  trackTimeMillis?: number;
+  trackId?: number;
+}
+
+interface ITunesSearchResponse {
+  results?: ITunesSearchResult[];
+}
+
+function normalize(value: string | undefined): string {
+  return (value ?? '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function releaseKey(value: string | undefined): string {
+  return normalize(value).replace(/\s*-\s*(single|ep)$/i, '').trim();
+}
+
+/**
+ * Apple sometimes omits a trailing treatment descriptor in Play Activity while
+ * the catalogue keeps it, e.g. `Blis` vs `Blis (Sleep)`. Prefix compatibility
+ * is only accepted alongside a strong album or duration match below.
+ */
+function titleCompatibility(source: string, candidate: string): 'exact' | 'suffix' | null {
+  const a = normalize(source);
+  const b = normalize(candidate);
+  if (!a || !b) return null;
+  if (a === b) return 'exact';
+  if (b.startsWith(`${a} (`) || a.startsWith(`${b} (`)) return 'suffix';
+  return null;
+}
+
+function lookupKey(record: PlayRecord, hint: AppleCatalogHint | undefined): string {
+  return JSON.stringify([
+    normalize(record.trackName),
+    releaseKey(record.releaseName),
+    hint?.durationMs ?? null,
+    (hint?.country ?? 'US').toUpperCase(),
+  ]);
+}
+
+/** Stable key used to carry raw Apple hints through local/PDS deduplication. */
+export function appleCatalogHintKey(record: Pick<PlayRecord, 'trackName' | 'playedTime'>): string {
+  return JSON.stringify([normalize(record.trackName), record.playedTime]);
+}
+
+function scoreCandidate(
+  record: PlayRecord,
+  hint: AppleCatalogHint | undefined,
+  candidate: ITunesSearchResult,
+): number | null {
+  if (candidate.kind && candidate.kind !== 'song') return null;
+  if (!candidate.artistName || !candidate.trackName) return null;
+
+  const titleMatch = titleCompatibility(record.trackName, candidate.trackName);
+  if (!titleMatch) return null;
+
+  const sourceAlbum = releaseKey(record.releaseName);
+  const candidateAlbum = releaseKey(candidate.collectionName);
+  const albumMatches = Boolean(sourceAlbum && candidateAlbum && sourceAlbum === candidateAlbum);
+
+  const sourceDuration = hint?.durationMs;
+  const candidateDuration = candidate.trackTimeMillis;
+  const durationDelta =
+    sourceDuration && candidateDuration
+      ? Math.abs(sourceDuration - candidateDuration)
+      : undefined;
+  const durationMatches = durationDelta !== undefined && durationDelta <= MAX_DURATION_DELTA_MS;
+
+  // A suffix-only title (e.g. source `Blis`, catalogue `Blis (Sleep)`) needs a
+  // corroborating album or duration. An exact generic title with no album also
+  // needs duration so we don't turn `Come Back` into the wrong artist.
+  if (titleMatch === 'suffix' && !albumMatches && !durationMatches) return null;
+  if (!sourceAlbum && sourceDuration && !durationMatches) return null;
+  if (sourceAlbum && !albumMatches && sourceDuration && !durationMatches) return null;
+  if (!sourceAlbum && !sourceDuration && titleMatch !== 'exact') return null;
+
+  let score = titleMatch === 'exact' ? 100 : 70;
+  if (albumMatches) score += 50;
+  if (durationMatches && durationDelta !== undefined) {
+    score += durationDelta <= 1_000 ? 50 : 40;
+  }
+  return score;
+}
+
+export class AppleCatalogClient {
+  private readonly fetchImpl: typeof fetch;
+  private readonly requestIntervalMs: number;
+  private readonly cache = new Map<string, AppleCatalogMatch | null>();
+  private nextSlot = Promise.resolve();
+
+  constructor(opts: AppleCatalogOptions = {}) {
+    this.fetchImpl = opts.fetchImpl ?? globalThis.fetch.bind(globalThis);
+    this.requestIntervalMs = opts.requestIntervalMs ?? DEFAULT_REQUEST_INTERVAL_MS;
+  }
+
+  private async waitForSlot(): Promise<void> {
+    if (this.requestIntervalMs <= 0) return;
+    const mine = this.nextSlot.then(
+      () => new Promise<void>((resolve) => setTimeout(resolve, this.requestIntervalMs)),
+    );
+    this.nextSlot = mine;
+    await mine;
+  }
+
+  async lookup(
+    record: PlayRecord,
+    hint: AppleCatalogHint | undefined,
+    signal?: AbortSignal,
+  ): Promise<AppleCatalogMatch | null> {
+    const key = lookupKey(record, hint);
+    if (this.cache.has(key)) return this.cache.get(key)!;
+
+    const country = (hint?.country ?? 'US').toLowerCase();
+    const params = new URLSearchParams({
+      term: record.trackName,
+      country,
+      media: 'music',
+      entity: 'song',
+      attribute: 'songTerm',
+      limit: '25',
+    });
+
+    let match: AppleCatalogMatch | null = null;
+    try {
+      await this.waitForSlot();
+      signal?.throwIfAborted();
+
+      const response = await this.fetchImpl(`${SEARCH_ENDPOINT}?${params.toString()}`, {
+        headers: { Accept: 'application/json' },
+        signal,
+      });
+      if (!response.ok) {
+        this.cache.set(key, null);
+        return null;
+      }
+
+      const body = (await response.json()) as ITunesSearchResponse;
+      const scored = (body.results ?? [])
+        .map((candidate) => ({ candidate, score: scoreCandidate(record, hint, candidate) }))
+        .filter((entry): entry is { candidate: ITunesSearchResult; score: number } => entry.score !== null)
+        .sort((a, b) => b.score - a.score);
+
+      const top = scored[0];
+      if (top) {
+        // A tied best score with different artists is genuinely ambiguous. Do
+        // not guess; MusicBrainz gets a chance next and the importer ultimately
+        // refuses to publish an unresolved artist.
+        const tiedArtists = new Set(
+          scored
+            .filter((entry) => entry.score === top.score)
+            .map((entry) => normalize(entry.candidate.artistName)),
+        );
+        if (tiedArtists.size === 1) {
+          match = {
+            artistName: top.candidate.artistName!,
+            trackName: top.candidate.trackName!,
+            albumName: top.candidate.collectionName,
+            trackId: top.candidate.trackId,
+          };
+        }
+      }
+    } catch {
+      match = null;
+    }
+
+    this.cache.set(key, match);
+    return match;
+  }
+}
+
+/**
+ * Fill missing Apple-origin artists using Apple's public catalogue.
+ *
+ * Repeated plays sharing the same title/album/duration are looked up once and
+ * the result is applied to every matching play. Existing artist data is never
+ * overwritten.
+ */
+export async function enrichWithAppleCatalog(
+  records: PlayRecord[],
+  hints: Map<string, AppleCatalogHint>,
+  opts: AppleCatalogOptions = {},
+): Promise<{ records: PlayRecord[]; enriched: number; unresolved: number }> {
+  const client = new AppleCatalogClient(opts);
+  const out = [...records];
+  const groups = new Map<string, { indices: number[]; record: PlayRecord; hint?: AppleCatalogHint }>();
+
+  for (const [index, record] of records.entries()) {
+    if (record.artists?.length) continue;
+    const hint = hints.get(appleCatalogHintKey(record));
+    if (!hint) continue;
+
+    const key = lookupKey(record, hint);
+    const existing = groups.get(key);
+    if (existing) existing.indices.push(index);
+    else groups.set(key, { indices: [index], record, hint });
+  }
+
+  let processed = 0;
+  let enriched = 0;
+  const total = groups.size;
+
+  for (const group of groups.values()) {
+    const match = await client.lookup(group.record, group.hint, opts.signal);
+    processed++;
+
+    if (match) {
+      for (const index of group.indices) {
+        const record = out[index]!;
+        const next: PlayRecord = {
+          ...record,
+          artists: [{ artistName: match.artistName }],
+        };
+        if (!next.releaseName && match.albumName) next.releaseName = match.albumName;
+        out[index] = next;
+        enriched += 1;
+      }
+    }
+
+    opts.onProgress?.({ processed, enriched, total });
+  }
+
+  return {
+    records: out,
+    enriched,
+    unresolved: out.filter((record) => !record.artists?.length).length,
+  };
+}
