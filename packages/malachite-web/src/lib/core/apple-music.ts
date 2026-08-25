@@ -2,32 +2,42 @@
  * Apple Music CSV — web layer.
  * Re-exports the shared core logic and adds a browser File API loader.
  */
-import type { AppleMusicRecord, PlayRecord } from '@ewanc26/croft-click-core';
+import type { AppleMusicRecord, PlayRecord, AppleCatalogHint } from '@ewanc26/croft-click-core';
 import {
   parseAppleMusicCsvContent,
   convertAppleMusicToPlayRecord,
   parseDailyTracksArtistMap,
+  appleCatalogHintFromAppleMusicRecord,
+  appleCatalogHintKey,
 } from '@ewanc26/croft-click-core';
 import { CLIENT_AGENT } from '../config.js';
 
 export { parseAppleMusicCsvContent, convertAppleMusicToPlayRecord, parseDailyTracksArtistMap };
 
 /**
- * Convert rows, reporting how many ended up with no artist name.
- *
- * Those plays are still imported — the lexicon requires only `trackName` — but
- * the count is surfaced because without the daily-tracks companion file it can
- * be most of them, and that shouldn't be a silent outcome.
+ * Convert rows while retaining source-only hints used to validate Apple
+ * catalogue matches. The hint map is separate from the ATProto records, so
+ * media duration/country never leak into the published lexicon object.
  */
 export function convertAppleMusicRecords(
   records: AppleMusicRecord[],
   artistLookup?: Map<string, string>
-): { records: PlayRecord[]; withoutArtist: number } {
-  const converted = records
-    .map((r) => convertAppleMusicToPlayRecord(r, CLIENT_AGENT, artistLookup))
-    .filter((r): r is PlayRecord => r !== null);
+): { records: PlayRecord[]; withoutArtist: number; hints: Map<string, AppleCatalogHint> } {
+  const converted: PlayRecord[] = [];
+  const hints = new Map<string, AppleCatalogHint>();
 
-  return { records: converted, withoutArtist: converted.filter((r) => !r.artists?.length).length };
+  for (const source of records) {
+    const record = convertAppleMusicToPlayRecord(source, CLIENT_AGENT, artistLookup);
+    if (!record) continue;
+    converted.push(record);
+    hints.set(appleCatalogHintKey(record), appleCatalogHintFromAppleMusicRecord(source));
+  }
+
+  return {
+    records: converted,
+    withoutArtist: converted.filter((r) => !r.artists?.length).length,
+    hints,
+  };
 }
 
 /**
@@ -71,18 +81,13 @@ function parseCSV(content: string, delimiter: string): Record<string, string>[] 
 /** Read a browser File object and parse it as an Apple Music CSV export. */
 export async function parseAppleMusicFile(file: File): Promise<AppleMusicRecord[]> {
   let text = await file.text();
-  // Strip BOM
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-  
-  // Apple Music CSV usually uses comma
+
   const raw = parseCSV(text, ',');
   return parseAppleMusicCsvContent(raw as unknown as AppleMusicRecord[]);
 }
 
-/**
- * Read `Apple Music - Play History Daily Tracks.csv` and build the title → artist
- * lookup that current Play Activity exports need.
- */
+/** Read the Daily Tracks companion and build its unambiguous title → artist map. */
 export async function parseAppleMusicDailyTracksFile(file: File): Promise<Map<string, string>> {
   let text = await file.text();
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
@@ -91,11 +96,8 @@ export async function parseAppleMusicDailyTracksFile(file: File): Promise<Map<st
 }
 
 /**
- * Sort the uploaded Apple CSVs into the play-activity file and the optional
- * daily-tracks companion.
- *
- * Identified by columns rather than filename: people rename downloads, and
- * localised exports don't necessarily keep the English names.
+ * Sort uploaded Apple CSVs into the play-activity file and optional daily-tracks
+ * companion, using columns rather than filenames.
  */
 export async function splitAppleMusicFiles(
   files: File[]
@@ -103,8 +105,6 @@ export async function splitAppleMusicFiles(
   const out: { playActivity?: File; dailyTracks?: File } = {};
 
   for (const file of files) {
-    // Only the header is needed to tell them apart, and these files can be
-    // tens of MB — read a slice rather than the whole thing.
     let head = await file.slice(0, 64 * 1024).text();
     if (head.charCodeAt(0) === 0xfeff) head = head.slice(1);
     const header = head.split(/\r?\n/, 1)[0] ?? '';
@@ -116,8 +116,6 @@ export async function splitAppleMusicFiles(
     }
   }
 
-  // Nothing recognisable: fall back to the first file so the schema error from
-  // the parser explains the problem, rather than a vague "no file" here.
   out.playActivity ??= files.find((f) => f !== out.dailyTracks);
   return out;
 }
