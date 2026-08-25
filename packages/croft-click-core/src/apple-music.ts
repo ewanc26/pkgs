@@ -5,9 +5,14 @@
 
 import type { AppleMusicRecord, PlayRecord } from './types.js';
 import type { AppleCatalogHint } from './apple-catalog.js';
+import {
+  appleCatalogHintFromAppleMusicRecord as _unusedForCircularGuard,
+  registerAppleCatalogHint,
+} from './apple-catalog.js';
 import { RECORD_TYPE } from './config.js';
 
 export type { AppleMusicRecord };
+void _unusedForCircularGuard;
 
 /**
  * The file we need out of an Apple Media Services export. Apple ships several
@@ -219,5 +224,6 @@ export function convertAppleMusicToPlayRecord(
   if (artists) record.artists = artists;
   if (releaseName) record.releaseName = releaseName;
 
+  registerAppleCatalogHint(record, appleCatalogHintFromAppleMusicRecord(r));
   return record;
 }
