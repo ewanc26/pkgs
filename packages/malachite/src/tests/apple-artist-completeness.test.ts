@@ -8,6 +8,7 @@ import {
   parseDailyTracksArtistMap,
   sanitizePlayRecordMusicBrainzIds,
   type AppleMusicRecord,
+  type PlayRecord,
 } from '@ewanc26/croft-click-core';
 
 function appleSearchResponse(results: Array<Record<string, unknown>>) {
@@ -32,7 +33,7 @@ describe('Apple artist completeness', () => {
     const records = [
       convertAppleMusicToPlayRecord(source('2026-08-21T01:00:00Z'), 'test/1'),
       convertAppleMusicToPlayRecord(source('2026-08-22T01:00:00Z'), 'test/1'),
-    ].filter((record): record is NonNullable<typeof record> => record !== null);
+    ].filter((record): record is PlayRecord => record !== null);
 
     const appleCalls: string[] = [];
     const appleFetch = (async (url: string | URL) => {
