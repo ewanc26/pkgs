@@ -1,5 +1,6 @@
 import type { Client } from '@atproto/lex'
 import type { PlayRecord, Config } from '../types.js';
+import { filterNewRecords as filterNewRecordsCore } from '@ewanc26/croft-click-core';
 import { fetchRepoViaCARWithClient } from '../utils/car-fetch.js';
 import { formatDate, formatDateRange } from '../utils/helpers.js';
 import * as ui from '../utils/ui.js';
@@ -168,16 +169,9 @@ export function filterNewRecords(
 ): PlayRecord[] {
   log.section('Identifying New Records');
 
-  const newRecords: PlayRecord[] = [];
-  const duplicates: PlayRecord[] = [];
-
-  for (const record of lastfmRecords) {
-    if (existingRecords.has(createRecordKey(record))) {
-      duplicates.push(record);
-    } else {
-      newRecords.push(record);
-    }
-  }
+  const newRecords = filterNewRecordsCore(lastfmRecords, existingRecords);
+  const newRecordSet = new Set(newRecords);
+  const duplicates = lastfmRecords.filter((record) => !newRecordSet.has(record));
 
   log.info(`Total: ${lastfmRecords.length.toLocaleString()} records`);
   log.info(`Existing: ${duplicates.length.toLocaleString()} already in Teal`);
