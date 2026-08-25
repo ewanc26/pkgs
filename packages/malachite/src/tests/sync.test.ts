@@ -10,7 +10,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { createRecordKey, deduplicateInputRecords } from '../lib/sync.js';
+import { createRecordKey, deduplicateInputRecords, filterNewRecords } from '../lib/sync.js';
 import type { PlayRecord } from '../types.js';
 
 describe('Record Key Generation', () => {
@@ -338,5 +338,56 @@ describe('Record Deduplication', () => {
 
     assert.strictEqual(result.unique.length, 1);
     assert.strictEqual(result.duplicates, 1);
+  });
+});
+
+describe('Existing Record Filtering', () => {
+  const base: PlayRecord = {
+    $type: 'fm.teal.feed.play',
+    trackName: 'Synthetic Song',
+    playedTime: '2026-08-01T12:34:56.000Z',
+    submissionClientAgent: 'test',
+    musicServiceUri: 'https://music.apple.com/',
+  };
+
+  it('should skip an artist-less row when a richer copy already exists', () => {
+    const existingValue: PlayRecord = {
+      ...base,
+      artists: [{ artistName: 'Synthetic Artist' }],
+    };
+    const existing = new Map([
+      [createRecordKey(existingValue), { uri: 'at://did:example:alice/fm.teal.feed.play/1', cid: 'bafytest', value: existingValue }],
+    ]);
+
+    assert.deepStrictEqual(filterNewRecords([{ ...base }], existing), []);
+  });
+
+  it('should skip a richer row when the existing copy is missing its artist', () => {
+    const existingValue: PlayRecord = { ...base };
+    const incoming: PlayRecord = {
+      ...base,
+      artists: [{ artistName: 'Synthetic Artist' }],
+    };
+    const existing = new Map([
+      [createRecordKey(existingValue), { uri: 'at://did:example:alice/fm.teal.feed.play/1', cid: 'bafytest', value: existingValue }],
+    ]);
+
+    assert.deepStrictEqual(filterNewRecords([incoming], existing), []);
+  });
+
+  it('should preserve same-title same-time rows when both known artists differ', () => {
+    const existingValue: PlayRecord = {
+      ...base,
+      artists: [{ artistName: 'Artist One' }],
+    };
+    const incoming: PlayRecord = {
+      ...base,
+      artists: [{ artistName: 'Artist Two' }],
+    };
+    const existing = new Map([
+      [createRecordKey(existingValue), { uri: 'at://did:example:alice/fm.teal.feed.play/1', cid: 'bafytest', value: existingValue }],
+    ]);
+
+    assert.deepStrictEqual(filterNewRecords([incoming], existing), [incoming]);
   });
 });
