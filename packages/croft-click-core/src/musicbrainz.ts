@@ -72,7 +72,7 @@ function buildQuery(q: MusicBrainzQuery): string {
 }
 
 function cacheKey(q: MusicBrainzQuery): string {
-  return [q.isrc ?? '', q.track, q.artist ?? '', q.release ?? ''].join('\u0000').toLowerCase();
+  return JSON.stringify([q.isrc ?? '', q.track, q.artist ?? '', q.release ?? '']).toLowerCase();
 }
 
 interface MbArtistCredit {
