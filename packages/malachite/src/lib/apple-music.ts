@@ -6,12 +6,14 @@
 import * as fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import type { PlayRecord } from '../types.js';
-import type { AppleMusicRecord } from '@ewanc26/croft-click-core';
+import type { AppleMusicRecord, AppleCatalogHint } from '@ewanc26/croft-click-core';
 import {
   parseAppleMusicCsvContent,
   convertAppleMusicToPlayRecord as coreConvert,
   parseDailyTracksArtistMap,
   APPLE_MUSIC_DAILY_TRACKS_FILE,
+  appleCatalogHintFromAppleMusicRecord,
+  appleCatalogHintKey,
 } from '@ewanc26/croft-click-core';
 import { VERSION } from '../config.js';
 
@@ -20,17 +22,12 @@ export type { AppleMusicRecord };
 
 const CLI_AGENT = `malachite/v${VERSION}`;
 
-/**
- * Read an Apple Music CSV file from disk and return parsed records.
- */
+/** Read an Apple Music CSV file from disk and return parsed track rows. */
 export function parseAppleMusicCsv(filePath: string): AppleMusicRecord[] {
   console.log(`Reading Apple Music export: ${filePath}`);
   const content = fs.readFileSync(filePath, 'utf-8');
-  
-  // Apple Music exports might have a BOM
   const cleanContent = content.charCodeAt(0) === 0xfeff ? content.slice(1) : content;
 
-  // Use csv-parse/sync to robustly handle quoted newlines
   const rawRecords = parse(cleanContent, {
     columns: true,
     skip_empty_lines: true,
@@ -38,13 +35,11 @@ export function parseAppleMusicCsv(filePath: string): AppleMusicRecord[] {
   }) as AppleMusicRecord[];
 
   const records = parseAppleMusicCsvContent(rawRecords);
-  console.log(`✓ Parsed ${records.length} valid playback records (filtered non-music/invalid records)\n`);
+  console.log(`✓ Parsed ${records.length} valid playback records (filtered non-track/invalid records)\n`);
   return records;
 }
 
-/**
- * Convert a parsed Apple Music CSV record to an ATProto play record.
- */
+/** Convert a parsed Apple Music CSV record to an ATProto play record. */
 export function convertAppleMusicToPlayRecord(
   record: AppleMusicRecord,
   _configOrUnused?: unknown,
@@ -55,35 +50,46 @@ export function convertAppleMusicToPlayRecord(
 }
 
 /**
- * Convert a batch of rows, reporting how many ended up without an artist.
- *
- * Those plays are still imported — the lexicon requires only `trackName`, and
- * the listen genuinely happened — but the count is worth surfacing so a mostly
- * artist-less import doesn't come as a surprise later.
+ * Convert Apple rows while retaining source-only catalogue hints in a sidecar
+ * map. The hints are keyed by track + exact play timestamp, survive local/PDS
+ * filtering, and never become properties of the published ATProto record.
  */
-export function convertAppleMusicRecords(
+export function convertAppleMusicRecordsWithHints(
   records: AppleMusicRecord[],
   artistLookup?: Map<string, string>
-): PlayRecord[] {
-  const converted = records
-    .map((r) => coreConvert(r, CLI_AGENT, artistLookup))
-    .filter((r): r is PlayRecord => r !== null);
+): { records: PlayRecord[]; hints: Map<string, AppleCatalogHint> } {
+  const converted: PlayRecord[] = [];
+  const hints = new Map<string, AppleCatalogHint>();
+
+  for (const source of records) {
+    const record = coreConvert(source, CLI_AGENT, artistLookup);
+    if (!record) continue;
+    converted.push(record);
+    hints.set(appleCatalogHintKey(record), appleCatalogHintFromAppleMusicRecord(source));
+  }
 
   const withoutArtist = converted.filter((r) => !r.artists?.length).length;
   if (withoutArtist > 0) {
     console.log(
-      `⚠ ${withoutArtist} of ${converted.length} play(s) have no artist name. Current Apple ` +
-        `exports omit the artist column; pass --apple-daily-tracks ` +
-        `"${APPLE_MUSIC_DAILY_TRACKS_FILE}" from the same folder to fill them in.\n`
+      `⚠ ${withoutArtist} of ${converted.length} play(s) still need an artist. ` +
+        `Pass --enrich to resolve them against Apple's catalogue and MusicBrainz before publishing.\n`
     );
   }
 
-  return converted;
+  return { records: converted, hints };
+}
+
+/** Backwards-compatible convenience wrapper. */
+export function convertAppleMusicRecords(
+  records: AppleMusicRecord[],
+  artistLookup?: Map<string, string>
+): PlayRecord[] {
+  return convertAppleMusicRecordsWithHints(records, artistLookup).records;
 }
 
 /**
  * Read `Apple Music - Play History Daily Tracks.csv` and build the title → artist
- * lookup that current Play Activity exports need (they no longer carry an artist).
+ * lookup that current Play Activity exports need.
  */
 export function parseAppleMusicDailyTracksCsv(filePath: string): Map<string, string> {
   console.log(`Reading Apple Music daily tracks: ${filePath}`);
@@ -97,6 +103,6 @@ export function parseAppleMusicDailyTracksCsv(filePath: string): Map<string, str
   }) as Array<Record<string, string>>;
 
   const map = parseDailyTracksArtistMap(rows);
-  console.log(`✓ Recovered ${map.size} artist names\n`);
+  console.log(`✓ Recovered ${map.size} unambiguous artist names\n`);
   return map;
 }
