@@ -69,6 +69,13 @@ export async function publishRecords(
   context = 'publish'
 ): Promise<{ successCount: number; errorCount: number; cancelled: boolean }> {
   const { onProgress, onLog, isCancelled } = callbacks;
+
+  // Preflight every record before dry-run output or the first write. The shared
+  // sanitizer also enforces the Apple-import invariant that a play may not be
+  // published without a real artist, so a late bad row cannot leave a partially
+  // completed import behind.
+  records.forEach((record) => { sanitizePlayRecordMusicBrainzIds(record); });
+
   const total = records.length;
 
   if (dryRun) {
