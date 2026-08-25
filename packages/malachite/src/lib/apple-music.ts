@@ -6,13 +6,11 @@
 import * as fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import type { PlayRecord } from '../types.js';
-import type { AppleMusicRecord, AppleCatalogHint } from '@ewanc26/croft-click-core';
+import type { AppleMusicRecord } from '@ewanc26/croft-click-core';
 import {
   parseAppleMusicCsvContent,
   convertAppleMusicToPlayRecord as coreConvert,
   parseDailyTracksArtistMap,
-  appleCatalogHintFromAppleMusicRecord,
-  appleCatalogHintKey,
 } from '@ewanc26/croft-click-core';
 import { VERSION } from '../config.js';
 
@@ -48,26 +46,16 @@ export function convertAppleMusicToPlayRecord(
   return coreConvert(record, CLI_AGENT, artistLookup);
 }
 
-/**
- * Convert Apple rows while retaining source-only catalogue hints in a sidecar
- * map. The hints are keyed by track + exact play timestamp, survive local/PDS
- * filtering, and never become properties of the published ATProto record.
- */
-export function convertAppleMusicRecordsWithHints(
+/** Convert all Apple rows; source-only catalogue hints are registered in core. */
+export function convertAppleMusicRecords(
   records: AppleMusicRecord[],
   artistLookup?: Map<string, string>
-): { records: PlayRecord[]; hints: Map<string, AppleCatalogHint> } {
-  const converted: PlayRecord[] = [];
-  const hints = new Map<string, AppleCatalogHint>();
+): PlayRecord[] {
+  const converted = records
+    .map((record) => coreConvert(record, CLI_AGENT, artistLookup))
+    .filter((record): record is PlayRecord => record !== null);
 
-  for (const source of records) {
-    const record = coreConvert(source, CLI_AGENT, artistLookup);
-    if (!record) continue;
-    converted.push(record);
-    hints.set(appleCatalogHintKey(record), appleCatalogHintFromAppleMusicRecord(source));
-  }
-
-  const withoutArtist = converted.filter((r) => !r.artists?.length).length;
+  const withoutArtist = converted.filter((record) => !record.artists?.length).length;
   if (withoutArtist > 0) {
     console.log(
       `⚠ ${withoutArtist} of ${converted.length} play(s) still need an artist. ` +
@@ -75,15 +63,7 @@ export function convertAppleMusicRecordsWithHints(
     );
   }
 
-  return { records: converted, hints };
-}
-
-/** Backwards-compatible convenience wrapper. */
-export function convertAppleMusicRecords(
-  records: AppleMusicRecord[],
-  artistLookup?: Map<string, string>
-): PlayRecord[] {
-  return convertAppleMusicRecordsWithHints(records, artistLookup).records;
+  return converted;
 }
 
 /**
