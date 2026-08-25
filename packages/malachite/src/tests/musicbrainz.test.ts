@@ -1,6 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { MusicBrainzClient, enrichWithMusicBrainz } from '@ewanc26/croft-click-core';
+import {
+  MusicBrainzClient,
+  enrichWithMusicBrainz,
+  UnresolvedAppleArtistsError,
+} from '@ewanc26/croft-click-core';
 import type { PlayRecord } from '@ewanc26/croft-click-core';
 
 const AGENT = 'malachite-test/0 ( https://example.invalid )';
@@ -43,7 +47,6 @@ describe('MusicBrainz client', () => {
 
     assert.ok(match);
     assert.strictEqual(match.artists[0].artistName, 'The Weeknd');
-    // Bare UUIDs from the API must come back as the lexicon's mbid: URI form.
     assert.strictEqual(match.artists[0].artistMbId, 'mbid:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
     assert.strictEqual(match.recordingMbId, 'mbid:11111111-2222-3333-4444-555555555555');
     assert.strictEqual(match.releaseMbId, 'mbid:99999999-8888-7777-6666-555555555555');
@@ -121,7 +124,6 @@ describe('MusicBrainz enrichment', () => {
       fetchImpl: impl,
     });
 
-    // No lookup at all, and the export's own data is preserved.
     assert.strictEqual(calls.length, 0);
     assert.strictEqual(enriched, 0);
     assert.strictEqual(records[0].artists?.[0].artistName, 'Someone Else');
@@ -142,10 +144,14 @@ describe('MusicBrainz enrichment', () => {
     assert.deepStrictEqual(progress, [{ processed: 1, enriched: 1, total: 1 }]);
   });
 
-  it('should never drop a record when nothing matches', async () => {
+  it('should keep best-effort behaviour for non-Apple records when nothing matches', async () => {
     const { impl } = stubFetch({ recordings: [] });
+    const nonApple: PlayRecord = {
+      ...base,
+      musicServiceUri: 'https://listenbrainz.org/',
+    };
 
-    const { records, enriched } = await enrichWithMusicBrainz([base], {
+    const { records, enriched } = await enrichWithMusicBrainz([nonApple], {
       userAgent: AGENT,
       fetchImpl: impl,
     });
@@ -154,5 +160,23 @@ describe('MusicBrainz enrichment', () => {
     assert.strictEqual(records.length, 1);
     assert.strictEqual(records[0].trackName, 'stargirl');
     assert.ok(!records[0].artists);
+  });
+
+  it('should abort an enriched Apple import if an artist remains unresolved', async () => {
+    const { impl } = stubFetch({ recordings: [] });
+
+    await assert.rejects(
+      enrichWithMusicBrainz([base], {
+        userAgent: AGENT,
+        fetchImpl: impl,
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof UnresolvedAppleArtistsError);
+        assert.strictEqual(error.count, 1);
+        assert.deepStrictEqual(error.sampleTitles, ['stargirl']);
+        assert.match(error.message, /Nothing was published/);
+        return true;
+      },
+    );
   });
 });
