@@ -5,14 +5,10 @@
 
 import type { AppleMusicRecord, PlayRecord } from './types.js';
 import type { AppleCatalogHint } from './apple-catalog.js';
-import {
-  appleCatalogHintFromAppleMusicRecord as _unusedForCircularGuard,
-  registerAppleCatalogHint,
-} from './apple-catalog.js';
+import { registerAppleCatalogHint } from './apple-catalog.js';
 import { RECORD_TYPE } from './config.js';
 
 export type { AppleMusicRecord };
-void _unusedForCircularGuard;
 
 /**
  * The file we need out of an Apple Media Services export. Apple ships several
@@ -196,7 +192,6 @@ export function convertAppleMusicToPlayRecord(
   const artists: PlayRecord['artists'] | undefined = artistName ? [{ artistName }] : undefined;
   const releaseName = firstNonEmpty(r, ALBUM_COLUMNS);
 
-  // Use End Timestamp, fallback to Start Timestamp.
   let playedTime = r['Event End Timestamp'] || r['Event Start Timestamp'] || new Date().toISOString();
 
   if (!playedTime.includes('T')) {
