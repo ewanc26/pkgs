@@ -10,6 +10,8 @@ import {
   type AppleMusicRecord,
   type PlayRecord,
 } from '@ewanc26/croft-click-core';
+import config from '../config.js';
+import { publishRecordsWithApplyWrites } from '../lib/publisher.js';
 
 function appleSearchResponse(results: Array<Record<string, unknown>>) {
   return {
@@ -166,5 +168,27 @@ describe('Apple artist completeness', () => {
     });
 
     assert.strictEqual(sanitized.artists?.[0]?.artistName, 'Real Artist');
+  });
+
+  it('should preflight the entire CLI import before dry-run or any write', async () => {
+    const valid: PlayRecord = {
+      $type: 'fm.teal.feed.play',
+      trackName: 'Resolved Song',
+      artists: [{ artistName: 'Real Artist' }],
+      playedTime: '2026-08-20T12:00:00.000Z',
+      submissionClientAgent: 'test',
+      musicServiceUri: 'https://music.apple.com/',
+    };
+    const unresolved: PlayRecord = {
+      ...valid,
+      trackName: 'Late Unresolved Song',
+      playedTime: '2026-08-20T12:05:00.000Z',
+      artists: undefined,
+    };
+
+    await assert.rejects(
+      publishRecordsWithApplyWrites(null, [valid, unresolved], 0, 0, config, true),
+      /Refusing to publish Apple Music play without an artist/,
+    );
   });
 });
