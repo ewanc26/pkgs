@@ -55,6 +55,20 @@ interface ITunesSearchResponse {
   results?: ITunesSearchResult[];
 }
 
+/**
+ * Source-only lookup hints travel with the in-memory PlayRecord object without
+ * becoming enumerable properties that could leak into an ATProto write.
+ */
+const hintsByRecord = new WeakMap<PlayRecord, AppleCatalogHint>();
+
+export function registerAppleCatalogHint(record: PlayRecord, hint: AppleCatalogHint): void {
+  hintsByRecord.set(record, hint);
+}
+
+export function getAppleCatalogHint(record: PlayRecord): AppleCatalogHint | undefined {
+  return hintsByRecord.get(record);
+}
+
 function normalize(value: string | undefined): string {
   return (value ?? '')
     .normalize('NFKC')
@@ -92,7 +106,7 @@ function lookupKey(record: PlayRecord, hint: AppleCatalogHint | undefined): stri
   ]);
 }
 
-/** Stable key used to carry raw Apple hints through local/PDS deduplication. */
+/** Stable key used by callers that explicitly keep a sidecar map. */
 export function appleCatalogHintKey(record: Pick<PlayRecord, 'trackName' | 'playedTime'>): string {
   return JSON.stringify([normalize(record.trackName), record.playedTime]);
 }
@@ -227,11 +241,12 @@ export class AppleCatalogClient {
  *
  * Repeated plays sharing the same title/album/duration are looked up once and
  * the result is applied to every matching play. Existing artist data is never
- * overwritten.
+ * overwritten. Callers may pass an explicit sidecar map; otherwise the hidden
+ * per-record hints registered during Apple conversion are used.
  */
 export async function enrichWithAppleCatalog(
   records: PlayRecord[],
-  hints: Map<string, AppleCatalogHint>,
+  hints: Map<string, AppleCatalogHint> | undefined,
   opts: AppleCatalogOptions = {},
 ): Promise<{ records: PlayRecord[]; enriched: number; unresolved: number }> {
   const client = new AppleCatalogClient(opts);
@@ -240,7 +255,9 @@ export async function enrichWithAppleCatalog(
 
   for (const [index, record] of records.entries()) {
     if (record.artists?.length) continue;
-    const hint = hints.get(appleCatalogHintKey(record));
+    if (!record.musicServiceUri.toLowerCase().includes('music.apple.com')) continue;
+
+    const hint = hints?.get(appleCatalogHintKey(record)) ?? getAppleCatalogHint(record);
     if (!hint) continue;
 
     const key = lookupKey(record, hint);
@@ -276,6 +293,8 @@ export async function enrichWithAppleCatalog(
   return {
     records: out,
     enriched,
-    unresolved: out.filter((record) => !record.artists?.length).length,
+    unresolved: out.filter(
+      (record) => record.musicServiceUri.toLowerCase().includes('music.apple.com') && !record.artists?.length,
+    ).length,
   };
 }
