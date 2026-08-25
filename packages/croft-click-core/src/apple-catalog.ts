@@ -106,6 +106,13 @@ function lookupKey(record: PlayRecord, hint: AppleCatalogHint | undefined): stri
   ]);
 }
 
+function searchKey(record: PlayRecord, hint: AppleCatalogHint | undefined): string {
+  return JSON.stringify([
+    normalize(record.trackName),
+    (hint?.country ?? 'US').toUpperCase(),
+  ]);
+}
+
 /** Stable key used by callers that explicitly keep a sidecar map. */
 export function appleCatalogHintKey(record: Pick<PlayRecord, 'trackName' | 'playedTime'>): string {
   return JSON.stringify([normalize(record.trackName), record.playedTime]);
@@ -134,12 +141,13 @@ function scoreCandidate(
       : undefined;
   const durationMatches = durationDelta !== undefined && durationDelta <= MAX_DURATION_DELTA_MS;
 
-  // A suffix-only title (e.g. source `Blis`, catalogue `Blis (Sleep)`) needs a
-  // corroborating album or duration. An exact generic title with no album also
-  // needs duration so we don't turn `Come Back` into the wrong artist.
+  // Never accept a weaker title match without corroboration. If Apple gave us
+  // an album or media duration, at least one of those must agree with the
+  // catalogue candidate. This is what prevents common titles such as `Canyon`,
+  // `Astral`, or `succession` from resolving to an unrelated popular song.
   if (titleMatch === 'suffix' && !albumMatches && !durationMatches) return null;
+  if (sourceAlbum && !albumMatches && !durationMatches) return null;
   if (!sourceAlbum && sourceDuration && !durationMatches) return null;
-  if (sourceAlbum && !albumMatches && sourceDuration && !durationMatches) return null;
   if (!sourceAlbum && !sourceDuration && titleMatch !== 'exact') return null;
 
   let score = titleMatch === 'exact' ? 100 : 70;
@@ -154,6 +162,8 @@ export class AppleCatalogClient {
   private readonly fetchImpl: typeof fetch;
   private readonly requestIntervalMs: number;
   private readonly cache = new Map<string, AppleCatalogMatch | null>();
+  /** Search responses are cached by title + storefront, then rescored locally. */
+  private readonly searchCache = new Map<string, ITunesSearchResult[]>();
   private nextSlot = Promise.resolve();
 
   constructor(opts: AppleCatalogOptions = {}) {
@@ -170,13 +180,14 @@ export class AppleCatalogClient {
     await mine;
   }
 
-  async lookup(
+  private async search(
     record: PlayRecord,
     hint: AppleCatalogHint | undefined,
     signal?: AbortSignal,
-  ): Promise<AppleCatalogMatch | null> {
-    const key = lookupKey(record, hint);
-    if (this.cache.has(key)) return this.cache.get(key)!;
+  ): Promise<ITunesSearchResult[]> {
+    const key = searchKey(record, hint);
+    const cached = this.searchCache.get(key);
+    if (cached) return cached;
 
     const country = (hint?.country ?? 'US').toLowerCase();
     const params = new URLSearchParams({
@@ -188,22 +199,33 @@ export class AppleCatalogClient {
       limit: '25',
     });
 
+    await this.waitForSlot();
+    signal?.throwIfAborted();
+
+    const response = await this.fetchImpl(`${SEARCH_ENDPOINT}?${params.toString()}`, {
+      headers: { Accept: 'application/json' },
+      signal,
+    });
+    if (!response.ok) return [];
+
+    const body = (await response.json()) as ITunesSearchResponse;
+    const results = body.results ?? [];
+    this.searchCache.set(key, results);
+    return results;
+  }
+
+  async lookup(
+    record: PlayRecord,
+    hint: AppleCatalogHint | undefined,
+    signal?: AbortSignal,
+  ): Promise<AppleCatalogMatch | null> {
+    const key = lookupKey(record, hint);
+    if (this.cache.has(key)) return this.cache.get(key)!;
+
     let match: AppleCatalogMatch | null = null;
     try {
-      await this.waitForSlot();
-      signal?.throwIfAborted();
-
-      const response = await this.fetchImpl(`${SEARCH_ENDPOINT}?${params.toString()}`, {
-        headers: { Accept: 'application/json' },
-        signal,
-      });
-      if (!response.ok) {
-        this.cache.set(key, null);
-        return null;
-      }
-
-      const body = (await response.json()) as ITunesSearchResponse;
-      const scored = (body.results ?? [])
+      const candidates = await this.search(record, hint, signal);
+      const scored = candidates
         .map((candidate) => ({ candidate, score: scoreCandidate(record, hint, candidate) }))
         .filter((entry): entry is { candidate: ITunesSearchResult; score: number } => entry.score !== null)
         .sort((a, b) => b.score - a.score);
