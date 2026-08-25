@@ -26,6 +26,14 @@ export function recordKey(r: PlayRecord): string {
   return `${artist}|||${r.trackName.toLowerCase().trim()}|||${r.playedTime}`;
 }
 
+function trackTimeKey(r: PlayRecord): string {
+  return `${r.trackName.toLowerCase().trim()}|||${r.playedTime}`;
+}
+
+function firstArtist(r: PlayRecord): string {
+  return (r.artists?.[0]?.artistName ?? '').toLowerCase().trim();
+}
+
 /** In-session memory cache — avoids re-fetching within the same process/page. */
 const sessionCache = new Map<string, Map<string, ExistingRecord>>();
 
@@ -85,11 +93,40 @@ export async function fetchExistingRecords(
   return map;
 }
 
+/**
+ * Filter out records that already exist in Teal.
+ *
+ * Exact artist + track + timestamp matches remain the primary key. When either
+ * side lacks an artist, fall back to track + exact timestamp so an incomplete
+ * import row is still recognised as the same listening event as a richer
+ * existing record. If both sides have artists and they disagree, keep the new
+ * record rather than collapsing potentially distinct songs with the same title.
+ */
 export function filterNewRecords(
   records: PlayRecord[],
   existing: Map<string, ExistingRecord>
 ): PlayRecord[] {
-  return records.filter((r) => !existing.has(recordKey(r)));
+  const byTrackTime = new Map<string, ExistingRecord[]>();
+  for (const existingRecord of existing.values()) {
+    const key = trackTimeKey(existingRecord.value);
+    const group = byTrackTime.get(key);
+    if (group) group.push(existingRecord);
+    else byTrackTime.set(key, [existingRecord]);
+  }
+
+  return records.filter((record) => {
+    if (existing.has(recordKey(record))) return false;
+
+    const candidates = byTrackTime.get(trackTimeKey(record));
+    if (!candidates?.length) return true;
+
+    const artist = firstArtist(record);
+    if (!artist) return false;
+
+    // If the incoming row has an artist but an existing copy does not, it is
+    // still the same event. When both artists are known and differ, preserve it.
+    return !candidates.some((candidate) => !firstArtist(candidate.value));
+  });
 }
 
 export async function fetchAllRecordsForDedup(
