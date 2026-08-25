@@ -2,7 +2,7 @@ import type { Client } from '@atproto/lex'
 import { formatDuration, formatDate } from '../utils/helpers.js';
 import { isImportCancelled } from '../utils/killswitch.js';
 import { RateLimiter } from '../utils/rate-limiter.js';
-import { DynamicBatchCalculator, ProactiveRatePacer, retryWithBackoff, isRetryableError, isRateLimitError, normalizeHeaders, normalizeMusicBrainzId } from '@ewanc26/croft-click-core';
+import { DynamicBatchCalculator, ProactiveRatePacer, retryWithBackoff, isRetryableError, isRateLimitError, normalizeHeaders, normalizeMusicBrainzId, sanitizePlayRecordMusicBrainzIds } from '@ewanc26/croft-click-core';
 import { formatLocaleNumber } from '../utils/platform.js';
 import { generateTIDFromISO } from '../utils/tid.js';
 import type { PlayRecord, Config, PublishResult } from '../types.js';
@@ -39,14 +39,14 @@ import { com } from '@bsky/sdk/lexicons'
  * Never hits 750-point headroom threshold!
  */
 /**
- * Last-chance guard before a record reaches the PDS: re-run every MusicBrainz
- * ID through `normalizeMusicBrainzId` and drop anything that still doesn't
- * resolve to a valid `mbid:<uuid>` URI. Catches values that slipped past
- * normalisation upstream, so one bad ID can't fail the whole batch with
- * `invalid format: Uri` (see pkgs#51).
+ * Last-chance guard before a record reaches the PDS: enforce the shared Apple
+ * artist invariant, then re-run every MusicBrainz ID through
+ * `normalizeMusicBrainzId` and drop anything that still doesn't resolve to a
+ * valid `mbid:<uuid>` URI. Keeping the CLI diagnostics here preserves useful
+ * warnings while sharing the same publication contract as the web publisher.
  */
 function sanitizeMbidFields(record: PlayRecord): PlayRecord {
-  const sanitized: PlayRecord = { ...record };
+  const sanitized = sanitizePlayRecordMusicBrainzIds(record);
 
   const recordingMbId = normalizeMusicBrainzId(record.recordingMbId);
   if (record.recordingMbId && !recordingMbId) {
@@ -90,6 +90,11 @@ export async function publishRecordsWithApplyWrites(
 ): Promise<PublishResult> {
   const { RECORD_TYPE } = config;
   const totalRecords = records.length;
+
+  // Preflight the entire import before dry-run output or the first write. This
+  // prevents a late unresolved Apple row from being discovered only after
+  // earlier batches have already landed.
+  records.forEach((record) => { sanitizeMbidFields(record); });
 
   if (dryRun) {
     return handleDryRun(records, config, syncMode);
