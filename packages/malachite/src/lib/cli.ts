@@ -977,32 +977,7 @@ export async function runCLI(): Promise<void> {
 
     log.success(`Loaded ${formatLocaleNumber(rawRecordCount)} records`);
 
-    // Enrich before dedupe/sync so filled-in artists take part in matching.
-    if (args.enrich) {
-      const gaps = records.filter(r => !r.artists?.length).length;
-      if (gaps === 0) {
-        log.info('Every record already has an artist — nothing to look up.');
-      } else {
-        log.section('MusicBrainz');
-        log.info(
-          `Looking up ${formatLocaleNumber(gaps)} record(s) with no artist. ` +
-          `MusicBrainz allows one request per second, so this will take a while.`
-        );
-        let lastLogged = 0;
-        const result = await enrichWithMusicBrainz(records, {
-          userAgent: `malachite/v${VERSION} ( https://github.com/ewanc26/pkgs )`,
-          onProgress: ({ processed, total }) => {
-            if (processed - lastLogged >= 50 || processed === total) {
-              lastLogged = processed;
-              log.info(`  ${formatLocaleNumber(processed)}/${formatLocaleNumber(total)} checked...`);
-            }
-          },
-        });
-        records = result.records;
-        log.success(`Filled in ${formatLocaleNumber(result.enriched)} artist name(s)`);
-      }
-    }
-
+    // Remove exact duplicates from the input before any network enrichment.
     const dedupResult = deduplicateInputRecords(records);
     records = dedupResult.unique;
     if (dedupResult.duplicates > 0) {
@@ -1052,6 +1027,41 @@ export async function runCLI(): Promise<void> {
       } else {
         log.info(`${records.length.toLocaleString()} record(s) queued (deduplication skipped — CAR unavailable)`);
         log.blank();
+      }
+    }
+
+    // Only genuinely new artist gaps reach MusicBrainz. If CAR lookup failed,
+    // this preserves the previous fallback and enriches the locally-deduped input.
+    if (args.enrich) {
+      const gaps = records.filter(r => !r.artists?.length).length;
+      if (gaps === 0) {
+        log.info('Every new record already has an artist — nothing to look up.');
+      } else {
+        log.section('MusicBrainz');
+        log.info(
+          `Looking up ${formatLocaleNumber(gaps)} new record(s) with no artist. ` +
+          `MusicBrainz allows one request per second, so this will take a while.`
+        );
+        let lastLogged = 0;
+        const result = await enrichWithMusicBrainz(records, {
+          userAgent: `malachite/v${VERSION} ( https://github.com/ewanc26/pkgs )`,
+          onProgress: ({ processed, total }) => {
+            if (processed - lastLogged >= 50 || processed === total) {
+              lastLogged = processed;
+              log.info(`  ${formatLocaleNumber(processed)}/${formatLocaleNumber(total)} looked up...`);
+            }
+          },
+        });
+        records = result.records;
+        log.success(`Filled in ${formatLocaleNumber(result.enriched)} artist name(s)`);
+
+        // Filling an artist can cause two formerly-incomplete rows to converge
+        // on the same final key, so remove those locally before publication.
+        const enrichedDedup = deduplicateInputRecords(records);
+        records = enrichedDedup.unique;
+        if (enrichedDedup.duplicates > 0) {
+          log.warn(`Removed ${formatLocaleNumber(enrichedDedup.duplicates)} duplicate(s) after MusicBrainz enrichment`);
+        }
       }
     }
 
