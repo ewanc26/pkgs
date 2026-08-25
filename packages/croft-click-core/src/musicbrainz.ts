@@ -1,17 +1,20 @@
 /**
- * MusicBrainz lookup — environment-agnostic.
+ * Music metadata enrichment — environment-agnostic.
  *
- * Fills in what an export left out. Apple's current Play Activity CSV has no
- * artist column at all, and several sources carry a track title with no
- * MusicBrainz identifiers, so a title (plus whatever else is known) is searched
- * against MusicBrainz to recover the artist credit and MBIDs.
+ * Missing Apple artists are first resolved against Apple's own public catalogue
+ * using source-only duration/country hints retained during CSV conversion. Any
+ * remaining gaps then fall back to MusicBrainz. Other sources continue to use
+ * MusicBrainz directly.
  *
- * Everything here is best-effort: a lookup that fails, times out, or matches
- * nothing leaves the record exactly as it was. Enrichment must never lose a
- * play or fail an import.
+ * Lookups remain best-effort; publication has a separate guard that prevents an
+ * unresolved Apple row from being written with a missing artist.
  */
 
 import type { PlayRecord } from './types.js';
+import {
+  enrichWithAppleCatalog,
+  type AppleCatalogProgress,
+} from './apple-catalog.js';
 import { normalizeMusicBrainzId } from './mbid.js';
 
 /**
@@ -63,7 +66,6 @@ function escapeLucene(value: string): string {
 
 function buildQuery(q: MusicBrainzQuery): string {
   const parts: string[] = [];
-  // ISRC alone is an exact identifier — when present it outranks fuzzy text.
   if (q.isrc) parts.push(`isrc:"${escapeLucene(q.isrc)}"`);
   if (q.track) parts.push(`recording:"${escapeLucene(q.track)}"`);
   if (q.artist) parts.push(`artist:"${escapeLucene(q.artist)}"`);
@@ -94,19 +96,12 @@ interface MbRecording {
   releases?: MbRelease[];
 }
 
-/**
- * A MusicBrainz client that respects the service's rate limit across calls.
- *
- * Hold one instance for a whole import: the spacing and the cache are both
- * per-instance, so a fresh client per lookup would breach the rate limit and
- * re-fetch everything.
- */
+/** A MusicBrainz client that respects the service's rate limit across calls. */
 export class MusicBrainzClient {
   private readonly userAgent: string;
   private readonly minScore: number;
   private readonly fetchImpl: typeof fetch;
   private readonly cache = new Map<string, MusicBrainzMatch | null>();
-  /** Resolves when the next request is allowed to go out. */
   private nextSlot = Promise.resolve();
 
   constructor(opts: MusicBrainzOptions) {
@@ -115,15 +110,10 @@ export class MusicBrainzClient {
     this.fetchImpl = opts.fetchImpl ?? globalThis.fetch.bind(globalThis);
   }
 
-  /** Number of distinct queries answered from cache rather than the network. */
   get cachedQueryCount(): number {
     return this.cache.size;
   }
 
-  /**
-   * Serialise requests one-per-interval. Chaining onto a shared promise keeps
-   * the spacing correct even when callers fire lookups concurrently.
-   */
   private async waitForSlot(): Promise<void> {
     const mine = this.nextSlot.then(
       () => new Promise<void>((resolve) => setTimeout(resolve, MIN_REQUEST_INTERVAL_MS))
@@ -132,11 +122,6 @@ export class MusicBrainzClient {
     await mine;
   }
 
-  /**
-   * Look up one recording. Returns `null` when nothing matched confidently, and
-   * also when the request failed — callers treat both the same way (leave the
-   * record alone), and an import must not die because MusicBrainz was down.
-   */
   async lookup(query: MusicBrainzQuery, signal?: AbortSignal): Promise<MusicBrainzMatch | null> {
     if (!query.track?.trim()) return null;
 
@@ -156,8 +141,6 @@ export class MusicBrainzClient {
         signal,
       });
 
-      // 503 is MusicBrainz's "slow down". One retry after a full interval; if
-      // it's still unhappy, give up on this row rather than stalling the import.
       if (res.status === 503) {
         await this.waitForSlot();
         const retry = await this.fetchImpl(url, {
@@ -169,7 +152,6 @@ export class MusicBrainzClient {
         match = this.pickMatch(await res.json());
       }
     } catch {
-      // Network error, abort, or malformed JSON — all mean "no enrichment".
       match = null;
     }
 
@@ -211,7 +193,7 @@ export class MusicBrainzClient {
 export interface EnrichProgress {
   /** MusicBrainz enrichment candidates processed so far. */
   processed: number;
-  /** Records that needed a lookup and got one. */
+  /** Records MusicBrainz successfully enriched. */
   enriched: number;
   /** Total records that require MusicBrainz enrichment. */
   total: number;
@@ -219,10 +201,17 @@ export interface EnrichProgress {
 
 export interface EnrichOptions extends MusicBrainzOptions {
   onProgress?: (p: EnrichProgress) => void;
+  /** Progress for the Apple-catalogue stage that runs before MusicBrainz. */
+  onAppleCatalogProgress?: (p: AppleCatalogProgress) => void;
+  /** Disable Apple-native enrichment, primarily for isolated MusicBrainz tests. */
+  appleCatalog?: boolean;
+  /** Separate fetch stub so MusicBrainz test doubles aren't sent Apple requests. */
+  appleCatalogFetchImpl?: typeof fetch;
+  /** Override only for deterministic tests. */
+  appleCatalogRequestIntervalMs?: number;
   /**
    * Also look up records that already have an artist, to add missing MBIDs.
-   * Off by default: it means a network round trip for nearly every record,
-   * which at one request per second is hours for a large import.
+   * Off by default: it means a network round trip for nearly every record.
    */
   includeRecordsWithArtists?: boolean;
 }
@@ -233,24 +222,49 @@ function needsLookup(record: PlayRecord, includeRecordsWithArtists: boolean | un
   return needsArtist || Boolean(includeRecordsWithArtists && needsIds);
 }
 
+function isAppleArtistGap(record: PlayRecord): boolean {
+  return record.musicServiceUri.toLowerCase().includes('music.apple.com') && !record.artists?.length;
+}
+
 /**
- * Fill in missing artists (and MBIDs) from MusicBrainz.
- *
- * Returns new records; the input is not mutated. Records that can't be matched
- * come back unchanged, so this is always safe to run — the worst case is that
- * nothing improves.
+ * Fill missing metadata, preferring Apple's own catalogue for Apple-origin rows
+ * before falling back to MusicBrainz.
  */
 export async function enrichWithMusicBrainz(
   records: PlayRecord[],
   opts: EnrichOptions
-): Promise<{ records: PlayRecord[]; enriched: number }> {
+): Promise<{
+  records: PlayRecord[];
+  enriched: number;
+  appleEnriched: number;
+  musicBrainzEnriched: number;
+  unresolvedApple: number;
+}> {
+  let working = records;
+  let appleEnriched = 0;
+
+  const hasAppleGaps = working.some(isAppleArtistGap);
+  // Existing MusicBrainz tests inject one protocol-specific fetch stub. Unless
+  // a separate Apple stub is supplied, keep those tests isolated from Apple.
+  const canUseAppleFetch = !opts.fetchImpl || Boolean(opts.appleCatalogFetchImpl);
+  if (opts.appleCatalog !== false && hasAppleGaps && canUseAppleFetch) {
+    const appleResult = await enrichWithAppleCatalog(working, undefined, {
+      fetchImpl: opts.appleCatalogFetchImpl,
+      signal: opts.signal,
+      onProgress: opts.onAppleCatalogProgress,
+      requestIntervalMs: opts.appleCatalogRequestIntervalMs,
+    });
+    working = appleResult.records;
+    appleEnriched = appleResult.enriched;
+  }
+
   const client = new MusicBrainzClient(opts);
   const out: PlayRecord[] = [];
-  const totalLookups = records.filter((record) => needsLookup(record, opts.includeRecordsWithArtists)).length;
+  const totalLookups = working.filter((record) => needsLookup(record, opts.includeRecordsWithArtists)).length;
   let processed = 0;
-  let enriched = 0;
+  let musicBrainzEnriched = 0;
 
-  for (const record of records) {
+  for (const record of working) {
     const needsArtist = !record.artists?.length;
     const needsIds = !record.recordingMbId || !record.artists?.[0]?.artistMbId;
 
@@ -272,12 +286,10 @@ export async function enrichWithMusicBrainz(
 
     if (!match) {
       out.push(record);
-      opts.onProgress?.({ processed, enriched, total: totalLookups });
+      opts.onProgress?.({ processed, enriched: musicBrainzEnriched, total: totalLookups });
       continue;
     }
 
-    // Never overwrite what the export already told us — MusicBrainz is filling
-    // gaps, not correcting the source.
     const next: PlayRecord = { ...record };
     if (needsArtist) next.artists = match.artists;
     if (!next.recordingMbId && match.recordingMbId) next.recordingMbId = match.recordingMbId;
@@ -286,9 +298,15 @@ export async function enrichWithMusicBrainz(
     if (!next.isrc && match.isrc) next.isrc = match.isrc;
 
     out.push(next);
-    enriched++;
-    opts.onProgress?.({ processed, enriched, total: totalLookups });
+    musicBrainzEnriched++;
+    opts.onProgress?.({ processed, enriched: musicBrainzEnriched, total: totalLookups });
   }
 
-  return { records: out, enriched };
+  return {
+    records: out,
+    enriched: appleEnriched + musicBrainzEnriched,
+    appleEnriched,
+    musicBrainzEnriched,
+    unresolvedApple: out.filter(isAppleArtistGap).length,
+  };
 }
