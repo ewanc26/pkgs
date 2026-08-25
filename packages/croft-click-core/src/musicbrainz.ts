@@ -209,11 +209,11 @@ export class MusicBrainzClient {
 }
 
 export interface EnrichProgress {
-  /** MusicBrainz lookups completed so far. */
+  /** MusicBrainz enrichment candidates processed so far. */
   processed: number;
   /** Records that needed a lookup and got one. */
   enriched: number;
-  /** Total MusicBrainz lookups required for this batch. */
+  /** Total records that require MusicBrainz enrichment. */
   total: number;
 }
 
