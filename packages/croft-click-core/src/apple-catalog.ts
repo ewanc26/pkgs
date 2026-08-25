@@ -187,7 +187,7 @@ export class AppleCatalogClient {
   ): Promise<ITunesSearchResult[]> {
     const key = searchKey(record, hint);
     const cached = this.searchCache.get(key);
-    if (cached) return cached;
+    if (cached !== undefined) return cached;
 
     const country = (hint?.country ?? 'US').toLowerCase();
     const params = new URLSearchParams({
@@ -206,7 +206,10 @@ export class AppleCatalogClient {
       headers: { Accept: 'application/json' },
       signal,
     });
-    if (!response.ok) return [];
+    if (!response.ok) {
+      this.searchCache.set(key, []);
+      return [];
+    }
 
     const body = (await response.json()) as ITunesSearchResponse;
     const results = body.results ?? [];
