@@ -72,8 +72,8 @@
         <div class="option-info">
           <span class="option-name">Look up missing artists</span>
           <span class="option-desc">
-            Fill in artist names from MusicBrainz. Apple Music exports no longer include them.
-            Limited to one lookup per second, so this can add hours to a large import.
+            Resolve Apple Music gaps against Apple's catalogue first, then use MusicBrainz for anything still unresolved.
+            Existing Teal records are skipped before lookup, and Apple rows without a verified artist are never published.
           </span>
         </div>
         <button
@@ -81,7 +81,7 @@
           class:on={enrichFromMusicBrainz}
           onclick={() => (enrichFromMusicBrainz = !enrichFromMusicBrainz)}
           type="button"
-          aria-label="Toggle MusicBrainz artist lookup"
+          aria-label="Toggle artist lookup"
           aria-pressed={enrichFromMusicBrainz}
         >
           <span class="toggle-thumb"></span>
@@ -171,6 +171,7 @@
     transition: transform 0.2s, background 0.2s;
   }
 
+  .toggle.on { background: var(--accent); border-color: var(--accent); }
   .toggle.on .toggle-thumb { transform: translateX(18px); background: #000; }
 
   .polish-note { margin-bottom: 0.5rem; }
