@@ -2,7 +2,7 @@
  * CAR export fetcher for ATProto repos — environment-agnostic.
  *
  * Calls com.atproto.sync.getRepo (sync namespace) which sits on a separate,
- * far more generous rate-limit envelope from the AppView.  One HTTP request
+ * far more generous rate-limit envelope from the AppView. One HTTP request
  * downloads the entire repo as a CARv1 file; records are parsed locally.
  *
  * Dependencies: @ipld/car  @ipld/dag-cbor  multiformats
@@ -38,54 +38,63 @@ function cidStr(cid: CID): string {
   return cid.toString();
 }
 
-async function buildBlockMap(reader: CarReader): Promise<Map<string, Uint8Array>> {
-  const blocks = new Map<string, Uint8Array>();
-  for await (const { cid, bytes } of reader.blocks()) {
-    blocks.set(cidStr(cid), bytes);
-  }
-  return blocks;
-}
+const textDecoder = new TextDecoder();
 
+/**
+ * Walk an ATProto MST once and emit records belonging to any requested
+ * collection. CarReader already maintains a CID → block index internally, so
+ * use reader.get() directly rather than building a second Map containing every
+ * block in the repository. That matters for large repos where the duplicate
+ * index can consume hundreds of megabytes of function memory.
+ *
+ * MST key-prefix compaction is local to each node, so previousKey deliberately
+ * resets to an empty string for every recursive invocation.
+ */
 async function walkMST(
   rootCid: CID,
-  blocks: Map<string, Uint8Array>,
-  collection: string,
-  onRecord: (rkey: string, cid: string, value: unknown) => void,
-  prevKey = '',
-): Promise<string> {
-  const nodeBytes = blocks.get(cidStr(rootCid));
-  if (!nodeBytes) return prevKey;
+  reader: CarReader,
+  collections: ReadonlySet<string>,
+  onRecord: (collection: string, rkey: string, cid: string, value: unknown) => void,
+): Promise<void> {
+  const nodeBlock = await reader.get(rootCid);
+  if (!nodeBlock) return;
 
-  const node = dagCbor.decode(nodeBytes) as MSTNode;
-  let currentKey = prevKey;
+  const node = dagCbor.decode(nodeBlock.bytes) as MSTNode;
 
   if (node.l) {
-    currentKey = await walkMST(node.l, blocks, collection, onRecord, currentKey);
+    await walkMST(node.l, reader, collections, onRecord);
   }
 
+  let previousKey = '';
   for (const entry of node.e ?? []) {
-    const fullKey = currentKey.slice(0, entry.p) + new TextDecoder().decode(entry.k);
-    currentKey = fullKey;
+    const fullKey = previousKey.slice(0, entry.p) + textDecoder.decode(entry.k);
+    previousKey = fullKey;
 
-    const collPrefix = collection + '/';
-    if (fullKey.startsWith(collPrefix)) {
-      const rkey = fullKey.slice(collPrefix.length);
-      const valBytes = blocks.get(cidStr(entry.v));
-      if (valBytes) {
+    const separator = fullKey.indexOf('/');
+    if (separator > 0) {
+      const collection = fullKey.slice(0, separator);
+      if (collections.has(collection)) {
+        const rkey = fullKey.slice(separator + 1);
         try {
-          onRecord(rkey, cidStr(entry.v), dagCbor.decode(valBytes));
+          const valueBlock = await reader.get(entry.v);
+          if (valueBlock) {
+            onRecord(
+              collection,
+              rkey,
+              cidStr(entry.v),
+              dagCbor.decode(valueBlock.bytes),
+            );
+          }
         } catch {
-          // malformed block — skip silently
+          // Malformed record block — skip it without aborting the whole repo.
         }
       }
     }
 
     if (entry.t) {
-      currentKey = await walkMST(entry.t, blocks, collection, onRecord, currentKey);
+      await walkMST(entry.t, reader, collections, onRecord);
     }
   }
-
-  return currentKey;
 }
 
 // ─── public API ──────────────────────────────────────────────────────────────
@@ -114,20 +123,30 @@ export interface CARRecord {
 }
 
 /**
- * Fetch a user's entire ATProto repo as a CAR file and extract all records
- * from `collection`.
+ * Fetch a user's entire ATProto repo as a CAR file and extract records from
+ * every requested collection in a single download and MST traversal.
+ *
+ * This is preferable to calling fetchRepoViaCAR once per collection because
+ * com.atproto.sync.getRepo always returns the whole repository. Parallel calls
+ * therefore duplicate the entire CAR body and its in-memory index.
  *
  * @param token   Optional Bearer token — some PDS instances require auth on
  *                com.atproto.sync.getRepo even though the spec marks it public.
  * @param signal  Optional AbortSignal — cancels the download mid-flight.
  */
-export async function fetchRepoViaCAR(
+export async function fetchRepoCollectionsViaCAR(
   pdsUrl: string,
   did: string,
-  collection: string,
+  collections: readonly string[],
   signal?: AbortSignal,
   token?: string,
-): Promise<CARRecord[]> {
+): Promise<Map<string, CARRecord[]>> {
+  const uniqueCollections = [...new Set(collections)];
+  const empty = new Map<string, CARRecord[]>(
+    uniqueCollections.map((collection) => [collection, []]),
+  );
+  if (uniqueCollections.length === 0) return empty;
+
   const url = `${pdsUrl.replace(/\/$/, '')}/xrpc/com.atproto.sync.getRepo?did=${encodeURIComponent(did)}`;
 
   const headers: Record<string, string> = { Accept: 'application/vnd.ipld.car' };
@@ -142,29 +161,82 @@ export async function fetchRepoViaCAR(
     throw new Error(`CAR fetch failed: ${response.status} ${response.statusText}`);
   }
 
-  return parseCAR(new Uint8Array(await response.arrayBuffer()), did, collection);
+  return parseCARCollections(
+    new Uint8Array(await response.arrayBuffer()),
+    did,
+    uniqueCollections,
+  );
 }
 
-/** Decode a CARv1 repo export and extract every record in `collection`. */
-async function parseCAR(carBytes: Uint8Array, did: string, collection: string): Promise<CARRecord[]> {
+/**
+ * Fetch a user's entire ATProto repo as a CAR file and extract all records
+ * from `collection`.
+ *
+ * @param token   Optional Bearer token — some PDS instances require auth on
+ *                com.atproto.sync.getRepo even though the spec marks it public.
+ * @param signal  Optional AbortSignal — cancels the download mid-flight.
+ */
+export async function fetchRepoViaCAR(
+  pdsUrl: string,
+  did: string,
+  collection: string,
+  signal?: AbortSignal,
+  token?: string,
+): Promise<CARRecord[]> {
+  const records = await fetchRepoCollectionsViaCAR(
+    pdsUrl,
+    did,
+    [collection],
+    signal,
+    token,
+  );
+  return records.get(collection) ?? [];
+}
+
+/** Decode a CARv1 repo export and extract every requested collection. */
+async function parseCARCollections(
+  carBytes: Uint8Array,
+  did: string,
+  collections: readonly string[],
+): Promise<Map<string, CARRecord[]>> {
+  const uniqueCollections = [...new Set(collections)];
+  const results = new Map<string, CARRecord[]>(
+    uniqueCollections.map((collection) => [collection, []]),
+  );
+  if (uniqueCollections.length === 0) return results;
+
   const reader = await CarReader.fromBytes(carBytes);
-  const blocks = await buildBlockMap(reader);
 
   const [rootCid] = await reader.getRoots();
   if (!rootCid) throw new Error('CAR file has no roots');
 
-  const commitBytes = blocks.get(cidStr(rootCid));
-  if (!commitBytes) throw new Error('Commit block missing from CAR');
+  const commitBlock = await reader.get(rootCid);
+  if (!commitBlock) throw new Error('Commit block missing from CAR');
 
-  const commit = dagCbor.decode(commitBytes) as RepoCommit;
+  const commit = dagCbor.decode(commitBlock.bytes) as RepoCommit;
   if (!commit.data) throw new Error('Commit has no MST root CID');
 
-  const results: CARRecord[] = [];
-  await walkMST(commit.data, blocks, collection, (rkey, cid, value) => {
-    results.push({ rkey, uri: `at://${did}/${collection}/${rkey}`, cid, value });
+  const collectionSet = new Set(uniqueCollections);
+  await walkMST(commit.data, reader, collectionSet, (collection, rkey, cid, value) => {
+    results.get(collection)?.push({
+      rkey,
+      uri: `at://${did}/${collection}/${rkey}`,
+      cid,
+      value,
+    });
   });
 
   return results;
+}
+
+/** Decode a CARv1 repo export and extract every record in `collection`. */
+async function parseCAR(
+  carBytes: Uint8Array,
+  did: string,
+  collection: string,
+): Promise<CARRecord[]> {
+  const records = await parseCARCollections(carBytes, did, [collection]);
+  return records.get(collection) ?? [];
 }
 
 /**
