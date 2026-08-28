@@ -1,5 +1,5 @@
 import { TEAL_LEXICON, TEAL_LEGACY_LEXICON } from "@ewanc26/utils";
-import { fetchRepoViaCAR } from "@ewanc26/croft-click-core";
+import { fetchRepoCollectionsViaCAR } from "@ewanc26/croft-click-core";
 import type { TealScrobble } from "$lib/types";
 
 const TEAL_LEXICONS = [TEAL_LEGACY_LEXICON, TEAL_LEXICON] as const;
@@ -49,16 +49,21 @@ function serviceDomain(v: unknown): string | undefined {
   }
 }
 
-function deduplicationKey(record: { rkey: string; value: unknown }): string {
-  const value =
-    record.value && typeof record.value === "object"
+/**
+ * Compare a legacy/stable rkey collision without retaining a JSON copy of
+ * every record in memory. The namespace migration only changes $type, so
+ * normalise that field before comparing the two values.
+ */
+function sameMigratedRecordValue(a: unknown, b: unknown): boolean {
+  const normalise = (value: unknown): unknown =>
+    value && typeof value === "object"
       ? {
-          ...(record.value as Record<string, unknown>),
+          ...(value as Record<string, unknown>),
           $type: TEAL_LEXICON,
         }
-      : record.value;
+      : value;
 
-  return `${record.rkey}:${JSON.stringify(value)}`;
+  return JSON.stringify(normalise(a)) === JSON.stringify(normalise(b));
 }
 
 function parseScrobble(v: Record<string, unknown>): TealScrobble {
@@ -96,41 +101,70 @@ export interface ScrobbleBatchResult {
 }
 
 /**
- * Fetch both Teal play collections via the CAR export
+ * Fetch both Teal play collections from one CAR export
  * (`com.atproto.sync.getRepo`) and parse the records locally. Identical
  * alpha/stable records are counted once, preferring the stable collection.
  *
- * Replaces the previous listRecords pagination, which needed up to 25
- * AppView-ratelimited requests per 2,500 records and looped until done. The
- * sync namespace has its own far more generous envelope, so one request per
- * collection downloads the whole repo and the records are extracted with
- * Malachite's CAR MST walker. The response is intentionally one-shot: `cursor`
- * is always null and `done` always true, so the client loop exits after a
- * single call.
+ * getRepo always returns the whole repository, regardless of which collection
+ * Tourmaline wants. Fetching each Teal namespace separately therefore doubled
+ * the CAR body, parser index, and MST traversal in memory. Large listening
+ * repos can exceed a serverless function's memory limit that way, so both
+ * namespaces are extracted during one download and one walk.
+ *
+ * Deduplication also avoids storing a JSON serialisation of every record as a
+ * Map key. Record values are only compared when the same rkey exists in both
+ * namespaces, preserving the previous migration-deduplication semantics with a
+ * much smaller memory footprint.
+ *
+ * The response is intentionally one-shot: `cursor` is always null and `done`
+ * always true, so the client loop exits after a single call.
  */
 export async function fetchScrobbleBatch(
   pdsUrl: string,
   did: string,
 ): Promise<ScrobbleBatchResult> {
-  const [legacyRecords, stableRecords] = await Promise.all(
-    TEAL_LEXICONS.map((collection) => fetchRepoViaCAR(pdsUrl, did, collection)),
+  const recordsByCollection = await fetchRepoCollectionsViaCAR(
+    pdsUrl,
+    did,
+    TEAL_LEXICONS,
   );
-  const records = [...legacyRecords, ...stableRecords];
+  const legacyRecords = recordsByCollection.get(TEAL_LEGACY_LEXICON) ?? [];
+  const stableRecords = recordsByCollection.get(TEAL_LEXICON) ?? [];
 
-  const uniqueRecords = new Map<string, (typeof records)[number]>();
-  for (const record of records) {
-    const key = deduplicationKey(record);
-    const previous = uniqueRecords.get(key);
-    if (!previous || record.uri.includes(`/${TEAL_LEXICON}/`)) {
-      uniqueRecords.set(key, record);
-    }
-  }
-
+  // rkeys are unique within a collection. Keep only the stable lookup needed
+  // to detect namespace-migration duplicates rather than a second map keyed by
+  // `${rkey}:${JSON.stringify(record)}` for the entire listening history.
+  const stableByRkey = new Map(stableRecords.map((record) => [record.rkey, record]));
+  const consumedStableRkeys = new Set<string>();
   const scrobbles: TealScrobble[] = [];
-  for (const record of uniqueRecords.values()) {
+
+  const append = (record: (typeof stableRecords)[number]): void => {
     const value = record.value;
     if (value && typeof value === "object") {
       scrobbles.push(parseScrobble(value as Record<string, unknown>));
+    }
+  };
+
+  // Preserve the old ordering: legacy records appear first, but an identical
+  // stable migration replaces the legacy value at that position.
+  for (const legacyRecord of legacyRecords) {
+    const stableRecord = stableByRkey.get(legacyRecord.rkey);
+    if (
+      stableRecord &&
+      sameMigratedRecordValue(legacyRecord.value, stableRecord.value)
+    ) {
+      append(stableRecord);
+      consumedStableRkeys.add(stableRecord.rkey);
+    } else {
+      append(legacyRecord);
+    }
+  }
+
+  // Stable records that were not exact migrated duplicates retain their place
+  // after the legacy collection, matching the previous Map insertion order.
+  for (const stableRecord of stableRecords) {
+    if (!consumedStableRkeys.has(stableRecord.rkey)) {
+      append(stableRecord);
     }
   }
 
