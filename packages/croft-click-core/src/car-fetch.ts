@@ -8,7 +8,7 @@
  * Dependencies: @ipld/car  @ipld/dag-cbor  multiformats
  */
 
-import { CarReader } from '@ipld/car';
+import { CarBlockIterator } from '@ipld/car';
 import * as dagCbor from '@ipld/dag-cbor';
 import type { CID } from 'multiformats';
 
@@ -41,28 +41,50 @@ function cidStr(cid: CID): string {
 const textDecoder = new TextDecoder();
 
 /**
+ * Decode a CAR once into the single CID lookup needed by the MST walker.
+ *
+ * CarReader keeps both every decoded Block and a parallel string-key array,
+ * while its get() implementation performs a linear indexOf() lookup. That is
+ * fine for small archives but turns an MST walk over a large repo into O(n²).
+ * CarBlockIterator instead retains no per-block index of its own: we scan the
+ * archive once and build one Map whose Uint8Array values reference the decoded
+ * block bytes. This keeps random access O(1) without the two complete reader +
+ * map pairs Tourmaline previously created in parallel.
+ */
+async function buildBlockMap(
+  carBytes: Uint8Array,
+): Promise<{ roots: CID[]; blocks: Map<string, Uint8Array> }> {
+  const iterator = await CarBlockIterator.fromBytes(carBytes);
+  const roots = await iterator.getRoots();
+  const blocks = new Map<string, Uint8Array>();
+
+  for await (const { cid, bytes } of iterator) {
+    blocks.set(cidStr(cid), bytes);
+  }
+
+  return { roots, blocks };
+}
+
+/**
  * Walk an ATProto MST once and emit records belonging to any requested
- * collection. CarReader already maintains a CID → block index internally, so
- * use reader.get() directly rather than building a second Map containing every
- * block in the repository. That matters for large repos where the duplicate
- * index can consume hundreds of megabytes of function memory.
+ * collection.
  *
  * MST key-prefix compaction is local to each node, so previousKey deliberately
  * resets to an empty string for every recursive invocation.
  */
 async function walkMST(
   rootCid: CID,
-  reader: CarReader,
+  blocks: Map<string, Uint8Array>,
   collections: ReadonlySet<string>,
   onRecord: (collection: string, rkey: string, cid: string, value: unknown) => void,
 ): Promise<void> {
-  const nodeBlock = await reader.get(rootCid);
-  if (!nodeBlock) return;
+  const nodeBytes = blocks.get(cidStr(rootCid));
+  if (!nodeBytes) return;
 
-  const node = dagCbor.decode(nodeBlock.bytes) as MSTNode;
+  const node = dagCbor.decode(nodeBytes) as MSTNode;
 
   if (node.l) {
-    await walkMST(node.l, reader, collections, onRecord);
+    await walkMST(node.l, blocks, collections, onRecord);
   }
 
   let previousKey = '';
@@ -75,24 +97,24 @@ async function walkMST(
       const collection = fullKey.slice(0, separator);
       if (collections.has(collection)) {
         const rkey = fullKey.slice(separator + 1);
-        try {
-          const valueBlock = await reader.get(entry.v);
-          if (valueBlock) {
+        const valueBytes = blocks.get(cidStr(entry.v));
+        if (valueBytes) {
+          try {
             onRecord(
               collection,
               rkey,
               cidStr(entry.v),
-              dagCbor.decode(valueBlock.bytes),
+              dagCbor.decode(valueBytes),
             );
+          } catch {
+            // Malformed record block — skip it without aborting the whole repo.
           }
-        } catch {
-          // Malformed record block — skip it without aborting the whole repo.
         }
       }
     }
 
     if (entry.t) {
-      await walkMST(entry.t, reader, collections, onRecord);
+      await walkMST(entry.t, blocks, collections, onRecord);
     }
   }
 }
@@ -128,7 +150,7 @@ export interface CARRecord {
  *
  * This is preferable to calling fetchRepoViaCAR once per collection because
  * com.atproto.sync.getRepo always returns the whole repository. Parallel calls
- * therefore duplicate the entire CAR body and its in-memory index.
+ * therefore duplicate the entire CAR body and its in-memory parser/index state.
  *
  * @param token   Optional Bearer token — some PDS instances require auth on
  *                com.atproto.sync.getRepo even though the spec marks it public.
@@ -205,19 +227,19 @@ async function parseCARCollections(
   );
   if (uniqueCollections.length === 0) return results;
 
-  const reader = await CarReader.fromBytes(carBytes);
+  const { roots, blocks } = await buildBlockMap(carBytes);
 
-  const [rootCid] = await reader.getRoots();
+  const [rootCid] = roots;
   if (!rootCid) throw new Error('CAR file has no roots');
 
-  const commitBlock = await reader.get(rootCid);
-  if (!commitBlock) throw new Error('Commit block missing from CAR');
+  const commitBytes = blocks.get(cidStr(rootCid));
+  if (!commitBytes) throw new Error('Commit block missing from CAR');
 
-  const commit = dagCbor.decode(commitBlock.bytes) as RepoCommit;
+  const commit = dagCbor.decode(commitBytes) as RepoCommit;
   if (!commit.data) throw new Error('Commit has no MST root CID');
 
   const collectionSet = new Set(uniqueCollections);
-  await walkMST(commit.data, reader, collectionSet, (collection, rkey, cid, value) => {
+  await walkMST(commit.data, blocks, collectionSet, (collection, rkey, cid, value) => {
     results.get(collection)?.push({
       rkey,
       uri: `at://${did}/${collection}/${rkey}`,
