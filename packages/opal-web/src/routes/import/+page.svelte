@@ -7,6 +7,7 @@
 	import { initOAuth, signInWithOAuth } from '$lib/core/oauth.js';
 	import { parseExport, runImport } from '$lib/core/import.js';
 	import { ArrowLeft, ExternalLink } from '@lucide/svelte';
+	import { SupportSection } from '@ewanc26/landing-ui';
 
 	// ─── persistence keys ────────────────────────────────────────────────────────
 
@@ -386,6 +387,7 @@
 			</div>
 		{/key}
 	</div>
+	<SupportSection name="Opal" githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/opal" />
 
 	<footer>
 		<a href="/" class="inline-flex items-center gap-1"><ArrowLeft size={13} /> Home</a>
