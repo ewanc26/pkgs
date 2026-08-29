@@ -694,7 +694,9 @@
 			{/if}
 		</div>
 	{/if}
-	<SupportSection name="Bismuth" githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/bismuth" />
+	<div class="support-cta">
+		<SupportSection name="Bismuth" githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/bismuth" />
+	</div>
 </main>
 
 <style>
@@ -702,6 +704,10 @@
 		max-width: 680px;
 		margin: 0 auto;
 		padding: 3rem 1.5rem 5rem;
+	}
+
+	.support-cta {
+		margin-top: 4rem;
 	}
 
 	/* ── header ─────────────────────────────────────────────────────────────── */

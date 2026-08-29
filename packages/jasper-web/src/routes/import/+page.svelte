@@ -922,10 +922,12 @@
 			</div>
 		{/key}
 	</div>
-	<SupportSection
-		name="Jasper"
-		githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/jasper"
-	/>
+	<div class="support-cta">
+		<SupportSection
+			name="Jasper"
+			githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/jasper"
+		/>
+	</div>
 
 	<footer>
 		<a href="/" class="inline-flex items-center gap-1"><ArrowLeft size={14} /> Home</a>
@@ -1456,6 +1458,10 @@
 		font-size: 0.78rem;
 		color: var(--muted);
 		margin-top: 2rem;
+	}
+
+	.support-cta {
+		margin-top: 4rem;
 	}
 
 	footer a {

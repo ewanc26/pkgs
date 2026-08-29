@@ -374,10 +374,12 @@
 			</div>
 		{/key}
 	</div>
-	<SupportSection
-		name="Malachite"
-		githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/malachite"
-	/>
+	<div class="support-cta">
+		<SupportSection
+			name="Malachite"
+			githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/malachite"
+		/>
+	</div>
 	<footer>
 		<a href="/" class="inline-flex items-center gap-1"><ArrowLeft size={13} /> Home</a>
 		<span class="sep">·</span>
@@ -430,6 +432,10 @@
 		font-size: 0.78rem;
 		color: var(--muted);
 		margin-top: 2rem;
+	}
+
+	.support-cta {
+		margin-top: 4rem;
 	}
 
 	footer a {
