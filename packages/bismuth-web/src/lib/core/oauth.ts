@@ -4,7 +4,8 @@
  */
 
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser';
-import { Client } from '@atproto/lex'
+import type { Agent } from '@atproto/api';
+import { Client } from '@atproto/lex';
 
 const SCOPE = 'atproto repo:click.croft.toolkit.use';
 
@@ -31,11 +32,14 @@ function getClient(): Promise<BrowserOAuthClient> {
 /**
  * Call once on mount on the /convert page.
  */
-export async function initOAuth(): Promise<Client | null> {
+export async function initOAuth(): Promise<Agent | null> {
 	const client = await getClient();
 	const result = await client.init();
 	if (!result) return null;
-	return new Client(result.session);
+	// The Lex client exposes the generated `com.*` namespace at runtime. Keep
+	// it as the browser-safe runtime client while presenting the Agent surface
+	// used by this route for typed generated API calls.
+	return new Client(result.session) as unknown as Agent;
 }
 
 /**
