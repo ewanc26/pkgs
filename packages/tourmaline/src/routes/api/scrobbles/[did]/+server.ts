@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import { CARFetchUnauthorizedError } from "@ewanc26/croft-click-core";
 import { fetchScrobbleBatch } from "$lib/server/scrobbles";
-import { isValidDid, safeEndpoint } from "$lib/server/validate";
+import { isValidDid, safeCursor, safeEndpoint } from "$lib/server/validate";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = async ({ params, url }) => {
@@ -21,8 +21,14 @@ export const GET: RequestHandler = async ({ params, url }) => {
     );
   }
 
+  const rawCursor = url.searchParams.get("cursor");
+  const cursor = safeCursor(rawCursor);
+  if (rawCursor && !cursor) {
+    return json({ error: "Invalid cursor." }, { status: 400 });
+  }
+
   try {
-    const result = await fetchScrobbleBatch(pdsUrl, did);
+    const result = await fetchScrobbleBatch(pdsUrl, did, cursor);
 
     return json({
       scrobbles: result.scrobbles,

@@ -62,6 +62,48 @@ export function emptyResults(): ProfileResults {
 }
 
 /**
+ * CAR reads are already deduplicated server-side. The paginated fallback has
+ * to return one collection at a time, so collapse only exact legacy/stable
+ * migration pairs once all pages have reached the browser.
+ */
+function deduplicateFallbackScrobbles(
+  scrobbles: TealScrobble[],
+): TealScrobble[] {
+  const result: TealScrobble[] = [];
+  const legacyByKey = new Map<string, number>();
+
+  for (const scrobble of scrobbles) {
+    const {
+      _tourmalineRecordKey: key,
+      _tourmalineCollection: collection,
+      ...play
+    } = scrobble;
+    if (!key || !collection) {
+      result.push(play);
+      continue;
+    }
+
+    if (collection === "legacy") {
+      legacyByKey.set(key, result.length);
+      result.push(play);
+      continue;
+    }
+
+    const legacyIndex = legacyByKey.get(key);
+    if (
+      legacyIndex !== undefined &&
+      JSON.stringify(result[legacyIndex]) === JSON.stringify(play)
+    ) {
+      result[legacyIndex] = play;
+    } else {
+      result.push(play);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Compute a full ListenerProfile (and derived views) for one date range from
  * raw scrobbles + whatever artist enrichment is available so far. Pure —
  * safe to call repeatedly as enrichment fills in.
@@ -329,7 +371,7 @@ export async function loadProfile(
 ): Promise<LoadProfileResult> {
   const { onPhase, onFetchProgress, onEnrichProgress, onResults } = callbacks;
 
-  const allScrobbles: TealScrobble[] = [];
+  let allScrobbles: TealScrobble[] = [];
   let cursor: string | null = null;
   const artistInfos = new Map<string, ArtistInfo>();
   let results: ProfileResults = emptyResults();
@@ -360,6 +402,8 @@ export async function loadProfile(
   } finally {
     clearInterval(fetchTimer);
   }
+
+  allScrobbles = deduplicateFallbackScrobbles(allScrobbles);
 
   if (allScrobbles.length === 0) {
     onPhase?.("complete");

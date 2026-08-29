@@ -20,6 +20,9 @@ export interface TealScrobble {
   musicServiceBaseDomain?: string;
   trackDiscriminant?: string;
   releaseDiscriminant?: string;
+  /** Internal pagination metadata, removed before analytics run. */
+  _tourmalineRecordKey?: string;
+  _tourmalineCollection?: "legacy" | "stable";
 }
 
 export interface ArtistInfo {
