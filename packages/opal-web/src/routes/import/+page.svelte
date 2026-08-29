@@ -387,7 +387,9 @@
 			</div>
 		{/key}
 	</div>
-	<SupportSection name="Opal" githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/opal" />
+	<div class="support-cta">
+		<SupportSection name="Opal" githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/opal" />
+	</div>
 
 	<footer>
 		<a href="/" class="inline-flex items-center gap-1"><ArrowLeft size={13} /> Home</a>
@@ -618,6 +620,10 @@
 		font-size: 0.78rem;
 		color: var(--muted);
 		margin-top: 2rem;
+	}
+
+	.support-cta {
+		margin-top: 4rem;
 	}
 
 	footer a {
