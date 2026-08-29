@@ -39,6 +39,8 @@ async function buildRepoCar(
     value?: unknown;
     rawBytes?: Uint8Array;
   }>,
+  recordsBeforeMst = false,
+  commitLast = false,
 ): Promise<Uint8Array> {
   const recordEntries = await Promise.all(
     entries.map(async (entry) => {
@@ -81,9 +83,15 @@ async function buildRepoCar(
     for await (const chunk of out) chunks.push(chunk);
   })();
 
-  await writer.put(commitBlock);
-  await writer.put(mstBlock);
-  for (const entry of recordEntries) await writer.put(entry.block);
+  if (!commitLast) await writer.put(commitBlock);
+  if (recordsBeforeMst) {
+    for (const entry of recordEntries) await writer.put(entry.block);
+    await writer.put(mstBlock);
+  } else {
+    await writer.put(mstBlock);
+    for (const entry of recordEntries) await writer.put(entry.block);
+  }
+  if (commitLast) await writer.put(commitBlock);
   await writer.close();
   await collecting;
 
@@ -98,10 +106,24 @@ async function withCarFetch<T>(
   const requests: string[] = [];
   globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
     requests.push(String(input));
-    return new Response(car, {
+    const third = Math.ceil(car.length / 3);
+    const response = new Response(new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (let start = 0; start < car.length; start += third) {
+          controller.enqueue(car.slice(start, start + third));
+        }
+        controller.close();
+      },
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/vnd.ipld.car' },
     });
+    // The CAR fetcher must consume the response stream, never buffer the
+    // complete export through Response.arrayBuffer().
+    Object.defineProperty(response, 'arrayBuffer', {
+      value: async () => { throw new Error('arrayBuffer() must not be called'); },
+    });
+    return response;
   }) as typeof fetch;
 
   try {
@@ -159,6 +181,27 @@ describe('fetchRepoCollectionsViaCAR', () => {
 
       assert.strictEqual(records.get(STABLE)?.length, 1);
       assert.deepStrictEqual(records.get(STABLE)?.[0].value, validValue);
+    });
+  });
+
+  it('extracts requested records when the CAR emits records and its commit after the MST', async () => {
+    const value = {
+      $type: STABLE,
+      trackName: 'Out of order',
+      artists: [{ artistName: 'Streaming Artist' }],
+    };
+    const car = await buildRepoCar(
+      [
+        { collection: STABLE, rkey: '3laaa111', value },
+        { collection: 'app.bsky.feed.post', rkey: '3lbbb222', value: { $type: 'app.bsky.feed.post' } },
+      ],
+      true,
+      true,
+    );
+
+    await withCarFetch(car, async () => {
+      const records = await fetchRepoCollectionsViaCAR(PDS, DID, [STABLE]);
+      assert.deepStrictEqual(records.get(STABLE)?.map((record) => record.value), [value]);
     });
   });
 });

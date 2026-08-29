@@ -3,6 +3,7 @@ import { fetchRepoCollectionsViaCAR } from "@ewanc26/croft-click-core";
 import type { TealScrobble } from "$lib/types";
 
 const TEAL_LEXICONS = [TEAL_LEGACY_LEXICON, TEAL_LEXICON] as const;
+const CAR_FETCH_TIMEOUT_MS = 55_000;
 
 /**
  * Safely parse a playedTime value from an ATProto record.
@@ -228,7 +229,7 @@ export async function fetchScrobbleBatch(
   let recordsByCollection: Map<string, Awaited<ReturnType<typeof fetchRepoCollectionsViaCAR>> extends Map<string, infer T> ? T : never>;
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8_000);
+    const timeout = setTimeout(() => controller.abort(), CAR_FETCH_TIMEOUT_MS);
     try {
       recordsByCollection = await fetchRepoCollectionsViaCAR(pdsUrl, did, TEAL_LEXICONS, controller.signal);
     } finally {
