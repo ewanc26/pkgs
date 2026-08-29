@@ -394,7 +394,10 @@ export async function loadProfile(
 
       if (batch.error) throw new Error(batch.error);
 
-      allScrobbles.push(...batch.scrobbles);
+      // A CAR response can contain well over 100,000 records. Spreading that
+      // many arguments into push exhausts the JavaScript call stack, even
+      // though the array itself is otherwise safe to retain for analysis.
+      for (const scrobble of batch.scrobbles) allScrobbles.push(scrobble);
       onFetchProgress?.(allScrobbles.length, Math.floor((Date.now() - fetchStartTime) / 1000));
       cursor = batch.cursor;
       fetchDone = batch.done;

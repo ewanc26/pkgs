@@ -32,6 +32,15 @@ interface MSTNode {
   }>;
 }
 
+function isMSTNode(value: unknown): value is MSTNode {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    Array.isArray((value as Partial<MSTNode>).e) &&
+    Object.prototype.hasOwnProperty.call(value, 'l')
+  );
+}
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function cidStr(cid: CID): string {
@@ -40,83 +49,119 @@ function cidStr(cid: CID): string {
 
 const textDecoder = new TextDecoder();
 
-/**
- * Decode a CAR once into the single CID lookup needed by the MST walker.
- *
- * CarReader keeps both every decoded Block and a parallel string-key array,
- * while its get() implementation performs a linear indexOf() lookup. That is
- * fine for small archives but turns an MST walk over a large repo into O(n²).
- * CarBlockIterator instead retains no per-block index of its own: we scan the
- * archive once and build one Map whose Uint8Array values reference the decoded
- * block bytes. This keeps random access O(1) without the two complete reader +
- * map pairs Tourmaline previously created in parallel.
- */
-async function buildBlockMap(
-  carBytes: Uint8Array,
-): Promise<{ roots: CID[]; blocks: Map<string, Uint8Array> }> {
-  const iterator = await CarBlockIterator.fromBytes(carBytes);
-  const roots = await iterator.getRoots();
-  const blocks = new Map<string, Uint8Array>();
-
-  for await (const { cid, bytes } of iterator) {
-    blocks.set(cidStr(cid), bytes);
+/** Convert a Fetch response body to the AsyncIterable CAR expects. */
+async function* responseChunks(body: ReadableStream<Uint8Array>): AsyncIterable<Uint8Array> {
+  const reader = body.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      if (value) yield value;
+    }
+  } finally {
+    reader.releaseLock();
   }
-
-  return { roots, blocks };
 }
 
 /**
- * Walk an ATProto MST once and emit records belonging to any requested
- * collection.
+ * Extract selected collections while the CAR is being downloaded.
  *
- * MST key-prefix compaction is local to each node, so previousKey deliberately
- * resets to an empty string for every recursive invocation.
+ * PDS implementations may emit the commit, MST nodes, and record blocks in
+ * any order. We retain only decoded MST nodes plus records whose `$type` is a
+ * requested collection; every unrelated record block is discarded immediately
+ * instead of materialising the full repository CAR.
  */
-async function walkMST(
-  rootCid: CID,
-  blocks: Map<string, Uint8Array>,
-  collections: ReadonlySet<string>,
-  onRecord: (collection: string, rkey: string, cid: string, value: unknown) => void,
-): Promise<void> {
-  const nodeBytes = blocks.get(cidStr(rootCid));
-  if (!nodeBytes) return;
+async function parseCARCollectionsFromIterable(
+  chunks: AsyncIterable<Uint8Array>,
+  did: string,
+  collections: readonly string[],
+): Promise<Map<string, CARRecord[]>> {
+  const uniqueCollections = [...new Set(collections)];
+  const results = new Map<string, CARRecord[]>(
+    uniqueCollections.map((collection) => [collection, []]),
+  );
+  if (uniqueCollections.length === 0) return results;
 
-  const node = dagCbor.decode(nodeBytes) as MSTNode;
+  const iterator = await CarBlockIterator.fromIterable(chunks);
+  const [commitCid] = await iterator.getRoots();
+  if (!commitCid) throw new Error('CAR file has no roots');
 
-  if (node.l) {
-    await walkMST(node.l, blocks, collections, onRecord);
+  const mstNodes = new Map<string, MSTNode>();
+  const candidateValues = new Map<string, unknown>();
+  const collectionSet = new Set(uniqueCollections);
+  let mstRoot: CID | undefined;
+
+  const appendRecord = (
+    cid: string,
+    locations: Array<{ collection: string; rkey: string }>,
+    value: unknown,
+  ) => {
+    for (const { collection, rkey } of locations) {
+      results.get(collection)?.push({
+        rkey,
+        uri: `at://${did}/${collection}/${rkey}`,
+        cid,
+        value,
+      });
+    }
+  };
+
+  for await (const { cid, bytes } of iterator) {
+    const cidString = cidStr(cid);
+    try {
+      const value = dagCbor.decode(bytes);
+      if (cidString === cidStr(commitCid)) {
+        const commit = value as RepoCommit;
+        if (!commit.data) throw new Error('Commit has no MST root CID');
+        mstRoot = commit.data;
+      } else if (isMSTNode(value)) {
+        mstNodes.set(cidString, value);
+      } else if (
+        value &&
+        typeof value === 'object' &&
+        typeof (value as { $type?: unknown }).$type === 'string' &&
+        collectionSet.has((value as { $type: string }).$type)
+      ) {
+        candidateValues.set(cidString, value);
+      }
+    } catch {
+      // Malformed record block — skip it without aborting the whole repo.
+    }
   }
 
-  let previousKey = '';
-  for (const entry of node.e ?? []) {
-    const fullKey = previousKey.slice(0, entry.p) + textDecoder.decode(entry.k);
-    previousKey = fullKey;
+  if (!mstRoot) throw new Error('Commit block missing from CAR');
 
-    const separator = fullKey.indexOf('/');
-    if (separator > 0) {
-      const collection = fullKey.slice(0, separator);
-      if (collections.has(collection)) {
-        const rkey = fullKey.slice(separator + 1);
-        const valueBytes = blocks.get(cidStr(entry.v));
-        if (valueBytes) {
-          try {
-            onRecord(
-              collection,
-              rkey,
-              cidStr(entry.v),
-              dagCbor.decode(valueBytes),
-            );
-          } catch {
-            // Malformed record block — skip it without aborting the whole repo.
-          }
+  const pendingNodes = [mstRoot];
+  const visitedNodes = new Set<string>();
+  while (pendingNodes.length > 0) {
+    const nodeCid = pendingNodes.pop()!;
+    const nodeCidString = cidStr(nodeCid);
+    if (visitedNodes.has(nodeCidString)) continue;
+    visitedNodes.add(nodeCidString);
+
+    const node = mstNodes.get(nodeCidString);
+    if (!node) continue;
+    if (node.l) pendingNodes.push(node.l);
+
+    let previousKey = '';
+    for (const entry of node.e ?? []) {
+      const fullKey = previousKey.slice(0, entry.p) + textDecoder.decode(entry.k);
+      previousKey = fullKey;
+
+      const separator = fullKey.indexOf('/');
+      if (separator > 0) {
+        const collection = fullKey.slice(0, separator);
+        const value = candidateValues.get(cidStr(entry.v));
+        if (collectionSet.has(collection) && value !== undefined) {
+          appendRecord(cidStr(entry.v), [{ collection, rkey: fullKey.slice(separator + 1) }], value);
         }
       }
-    }
 
-    if (entry.t) {
-      await walkMST(entry.t, blocks, collections, onRecord);
+      if (entry.t) pendingNodes.push(entry.t);
     }
   }
+
+  return results;
 }
 
 // ─── public API ──────────────────────────────────────────────────────────────
@@ -183,11 +228,8 @@ export async function fetchRepoCollectionsViaCAR(
     throw new Error(`CAR fetch failed: ${response.status} ${response.statusText}`);
   }
 
-  return parseCARCollections(
-    new Uint8Array(await response.arrayBuffer()),
-    did,
-    uniqueCollections,
-  );
+  if (!response.body) throw new Error('CAR fetch returned an empty response body');
+  return parseCARCollectionsFromIterable(responseChunks(response.body), did, uniqueCollections);
 }
 
 /**
@@ -221,34 +263,11 @@ async function parseCARCollections(
   did: string,
   collections: readonly string[],
 ): Promise<Map<string, CARRecord[]>> {
-  const uniqueCollections = [...new Set(collections)];
-  const results = new Map<string, CARRecord[]>(
-    uniqueCollections.map((collection) => [collection, []]),
+  return parseCARCollectionsFromIterable(
+    (async function* () { yield carBytes; })(),
+    did,
+    collections,
   );
-  if (uniqueCollections.length === 0) return results;
-
-  const { roots, blocks } = await buildBlockMap(carBytes);
-
-  const [rootCid] = roots;
-  if (!rootCid) throw new Error('CAR file has no roots');
-
-  const commitBytes = blocks.get(cidStr(rootCid));
-  if (!commitBytes) throw new Error('Commit block missing from CAR');
-
-  const commit = dagCbor.decode(commitBytes) as RepoCommit;
-  if (!commit.data) throw new Error('Commit has no MST root CID');
-
-  const collectionSet = new Set(uniqueCollections);
-  await walkMST(commit.data, blocks, collectionSet, (collection, rkey, cid, value) => {
-    results.get(collection)?.push({
-      rkey,
-      uri: `at://${did}/${collection}/${rkey}`,
-      cid,
-      value,
-    });
-  });
-
-  return results;
 }
 
 /** Decode a CARv1 repo export and extract every record in `collection`. */
@@ -385,7 +404,13 @@ export async function fetchRepoViaCARWithClient(
   const response = await agent.fetchHandler(path, { headers, signal });
 
   if (response.ok) {
-    return parseCAR(new Uint8Array(await response.arrayBuffer()), repoDid, collection);
+    if (!response.body) throw new Error('CAR fetch returned an empty response body');
+    const records = await parseCARCollectionsFromIterable(
+      responseChunks(response.body),
+      repoDid,
+      [collection],
+    );
+    return records.get(collection) ?? [];
   }
 
   // com.atproto.sync.getRepo is public per spec, so a PDS that refuses our

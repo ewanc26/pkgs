@@ -4,6 +4,10 @@ import { fetchScrobbleBatch } from "$lib/server/scrobbles";
 import { isValidDid, safeCursor, safeEndpoint } from "$lib/server/validate";
 import type { RequestHandler } from "./$types";
 
+// Large PDS exports are streamed and parsed incrementally. Reserve a few
+// seconds below this budget for serialising the response to the browser.
+export const config = { maxDuration: 60 };
+
 export const GET: RequestHandler = async ({ params, url }) => {
   const did = decodeURIComponent(params.did);
 
