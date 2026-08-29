@@ -100,6 +100,104 @@ export interface ScrobbleBatchResult {
   done: boolean;
 }
 
+interface ListRecordsResponse {
+  records?: Array<{ uri: string; cid: string; value: unknown }>;
+  cursor?: string;
+}
+
+interface FallbackCursor {
+  collection: number;
+  cursor: string | null;
+}
+
+const FALLBACK_CURSOR_PREFIX = "fallback:";
+
+function encodeFallbackCursor(cursor: FallbackCursor): string {
+  return `${FALLBACK_CURSOR_PREFIX}${Buffer.from(JSON.stringify(cursor)).toString("base64url")}`;
+}
+
+function decodeFallbackCursor(cursor: string | null): FallbackCursor | null {
+  if (!cursor?.startsWith(FALLBACK_CURSOR_PREFIX)) return null;
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(
+        cursor.slice(FALLBACK_CURSOR_PREFIX.length),
+        "base64url",
+      ).toString(),
+    ) as Partial<FallbackCursor>;
+    const collection = parsed.collection;
+    if (
+      typeof collection !== "number" ||
+      !Number.isInteger(collection) ||
+      collection < 0 ||
+      collection >= TEAL_LEXICONS.length ||
+      (parsed.cursor !== null && typeof parsed.cursor !== "string")
+    ) {
+      return null;
+    }
+    return { collection, cursor: parsed.cursor ?? null };
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch one bounded listRecords page when a PDS cannot produce a CAR export. */
+async function fetchFallbackPage(
+  pdsUrl: string,
+  did: string,
+  state: FallbackCursor,
+): Promise<ScrobbleBatchResult> {
+  const collection = TEAL_LEXICONS[state.collection];
+  const params = new URLSearchParams({ repo: did, collection, limit: "100" });
+  if (state.cursor) params.set("cursor", state.cursor);
+
+  const response = await fetch(
+    `${pdsUrl.replace(/\/$/, "")}/xrpc/com.atproto.repo.listRecords?${params}`,
+  );
+  if (!response.ok) throw new Error(`listRecords failed: ${response.status}`);
+
+  const data = (await response.json()) as ListRecordsResponse;
+  const records = Array.isArray(data.records) ? data.records : [];
+  const source: "legacy" | "stable" =
+    state.collection === 0 ? "legacy" : "stable";
+  const scrobbles = records.flatMap((record) => {
+    if (!record?.value || typeof record.value !== "object") return [];
+    return [
+      {
+        ...parseScrobble(record.value as Record<string, unknown>),
+        _tourmalineRecordKey: record.uri.split("/").pop() ?? "",
+        _tourmalineCollection: source,
+      },
+    ];
+  });
+
+  const nextPageCursor = typeof data.cursor === "string" ? data.cursor : null;
+  if (nextPageCursor && records.length > 0) {
+    return {
+      scrobbles,
+      cursor: encodeFallbackCursor({
+        collection: state.collection,
+        cursor: nextPageCursor,
+      }),
+      done: false,
+    };
+  }
+
+  const nextCollection = state.collection + 1;
+  if (nextCollection < TEAL_LEXICONS.length) {
+    return {
+      scrobbles,
+      cursor: encodeFallbackCursor({
+        collection: nextCollection,
+        cursor: null,
+      }),
+      done: false,
+    };
+  }
+
+  return { scrobbles, cursor: null, done: true };
+}
+
 /**
  * Fetch both Teal play collections from one CAR export
  * (`com.atproto.sync.getRepo`) and parse the records locally. Identical
@@ -116,13 +214,17 @@ export interface ScrobbleBatchResult {
  * namespaces, preserving the previous migration-deduplication semantics with a
  * much smaller memory footprint.
  *
- * The response is intentionally one-shot: `cursor` is always null and `done`
- * always true, so the client loop exits after a single call.
+ * Successful CAR responses are one-shot. If the export is unavailable, the
+ * function instead returns bounded `listRecords` pages with an opaque cursor.
  */
 export async function fetchScrobbleBatch(
   pdsUrl: string,
   did: string,
+  cursor: string | null = null,
 ): Promise<ScrobbleBatchResult> {
+  const fallbackCursor = decodeFallbackCursor(cursor);
+  if (fallbackCursor) return fetchFallbackPage(pdsUrl, did, fallbackCursor);
+
   let recordsByCollection: Map<string, Awaited<ReturnType<typeof fetchRepoCollectionsViaCAR>> extends Map<string, infer T> ? T : never>;
   try {
     const controller = new AbortController();
@@ -137,25 +239,7 @@ export async function fetchScrobbleBatch(
     // within a serverless request. Fall back to the bounded public records
     // endpoint so those users still get a usable profile.
     console.warn("[tourmaline] CAR export unavailable; falling back to listRecords", error);
-    const pages = await Promise.all(
-      TEAL_LEXICONS.map(async (collection) => {
-        const params = new URLSearchParams({ repo: did, collection, limit: "100" });
-        const response = await fetch(
-          `${pdsUrl.replace(/\/$/, "")}/xrpc/com.atproto.repo.listRecords?${params}`,
-        );
-        if (!response.ok) throw new Error(`listRecords failed: ${response.status}`);
-        const data = (await response.json()) as {
-          records?: Array<{ uri: string; cid: string; value: unknown }>;
-        };
-        return (data.records ?? []).map((record) => ({
-          cid: record.cid,
-          value: record.value,
-          uri: record.uri,
-          rkey: record.uri.split("/").pop() ?? "",
-        }));
-      }),
-    );
-    recordsByCollection = new Map(TEAL_LEXICONS.map((collection, i) => [collection, pages[i]]));
+    return fetchFallbackPage(pdsUrl, did, { collection: 0, cursor: null });
   }
 
   const legacyRecords = recordsByCollection.get(TEAL_LEGACY_LEXICON) ?? [];
