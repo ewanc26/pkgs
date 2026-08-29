@@ -123,11 +123,41 @@ export async function fetchScrobbleBatch(
   pdsUrl: string,
   did: string,
 ): Promise<ScrobbleBatchResult> {
-  const recordsByCollection = await fetchRepoCollectionsViaCAR(
-    pdsUrl,
-    did,
-    TEAL_LEXICONS,
-  );
+  let recordsByCollection: Map<string, Awaited<ReturnType<typeof fetchRepoCollectionsViaCAR>> extends Map<string, infer T> ? T : never>;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    try {
+      recordsByCollection = await fetchRepoCollectionsViaCAR(pdsUrl, did, TEAL_LEXICONS, controller.signal);
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch (error) {
+    // Some PDSes have very large repos and cannot produce a complete CAR
+    // within a serverless request. Fall back to the bounded public records
+    // endpoint so those users still get a usable profile.
+    console.warn("[tourmaline] CAR export unavailable; falling back to listRecords", error);
+    const pages = await Promise.all(
+      TEAL_LEXICONS.map(async (collection) => {
+        const params = new URLSearchParams({ repo: did, collection, limit: "100" });
+        const response = await fetch(
+          `${pdsUrl.replace(/\/$/, "")}/xrpc/com.atproto.repo.listRecords?${params}`,
+        );
+        if (!response.ok) throw new Error(`listRecords failed: ${response.status}`);
+        const data = (await response.json()) as {
+          records?: Array<{ uri: string; cid: string; value: unknown }>;
+        };
+        return (data.records ?? []).map((record) => ({
+          cid: record.cid,
+          value: record.value,
+          uri: record.uri,
+          rkey: record.uri.split("/").pop() ?? "",
+        }));
+      }),
+    );
+    recordsByCollection = new Map(TEAL_LEXICONS.map((collection, i) => [collection, pages[i]]));
+  }
+
   const legacyRecords = recordsByCollection.get(TEAL_LEGACY_LEXICON) ?? [];
   const stableRecords = recordsByCollection.get(TEAL_LEXICON) ?? [];
 
