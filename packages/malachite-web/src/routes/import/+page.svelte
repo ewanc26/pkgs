@@ -13,9 +13,10 @@
 		loadImportState,
 		clearImportState,
 		saveResumeOffset,
-		loadResumeOffset,
+		loadResumeOffset
 	} from '$lib/core/web-cache.js';
 	import type { ImportMode, LogEntry } from '$lib/types.js';
+	import { SupportSection } from '@ewanc26/landing-ui';
 
 	import ModeStep from '$lib/components/steps/ModeStep.svelte';
 	import AuthStep from '$lib/components/steps/AuthStep.svelte';
@@ -64,7 +65,12 @@
 	let importError = $state<string | null>(null);
 
 	// ─── resume state ────────────────────────────────────────────────────────────
-	type SavedState = { mode: ImportMode; recordsProcessed: number; totalRecords: number; timestamp: number };
+	type SavedState = {
+		mode: ImportMode;
+		recordsProcessed: number;
+		totalRecords: number;
+		timestamp: number;
+	};
 	let savedImportState = $state<SavedState | null>(null);
 
 	// ─── derived ─────────────────────────────────────────────────────────────────
@@ -144,13 +150,13 @@
 								mode,
 								recordsProcessed: p.recordsProcessed,
 								totalRecords: p.totalRecords,
-								timestamp: Date.now(),
+								timestamp: Date.now()
 							});
 						}
 					},
 					isCancelled: () => cancelled
 				},
-				startIndex,
+				startIndex
 			);
 			// Import finished (or cancelled) — clear saved state so we don't
 			// prompt to resume next time.
@@ -300,8 +306,10 @@
 					<strong>{savedImportState.recordsProcessed.toLocaleString()}</strong>
 					of
 					<strong>{savedImportState.totalRecords.toLocaleString()}</strong>
-					records
-					({((savedImportState.recordsProcessed / savedImportState.totalRecords) * 100).toFixed(1)}%).
+					records ({(
+						(savedImportState.recordsProcessed / savedImportState.totalRecords) *
+						100
+					).toFixed(1)}%).
 				</p>
 				<p class="resume-detail">
 					To pick up where you left off, re-upload your export files and resume.
@@ -366,6 +374,10 @@
 			</div>
 		{/key}
 	</div>
+	<SupportSection
+		name="Malachite"
+		githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/malachite"
+	/>
 	<footer>
 		<a href="/" class="inline-flex items-center gap-1"><ArrowLeft size={13} /> Home</a>
 		<span class="sep">·</span>
@@ -374,7 +386,8 @@
 		<a
 			href="https://github.com/ewanc26/pkgs/tree/main/packages/malachite"
 			target="_blank"
-			rel="noopener" class="inline-flex items-center gap-1"><ExternalLink size={12} /> GitHub</a
+			rel="noopener"
+			class="inline-flex items-center gap-1"><ExternalLink size={12} /> GitHub</a
 		>
 	</footer>
 </main>

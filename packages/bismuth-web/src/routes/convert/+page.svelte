@@ -17,6 +17,7 @@
 		LogIn,
 		LogOut,
 	} from "@lucide/svelte";
+	import { SupportSection } from "@ewanc26/landing-ui";
 	import type { StandardDocument } from "@ewanc26/bismuth";
 	import { onMount } from "svelte";
 	import { initOAuth, signInWithOAuth } from "$lib/core/oauth";
@@ -693,6 +694,7 @@
 			{/if}
 		</div>
 	{/if}
+	<SupportSection name="Bismuth" githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/bismuth" />
 </main>
 
 <style>

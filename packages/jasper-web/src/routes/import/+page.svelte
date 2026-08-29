@@ -22,6 +22,7 @@
 		type Target
 	} from '@ewanc26/jasper/browser';
 	import logo from '$lib/assets/favicon.svg';
+	import { SupportSection } from '@ewanc26/landing-ui';
 	import { ZipWriter, BlobWriter, BlobReader } from '@zip.js/zip.js';
 	import {
 		Upload,
@@ -345,13 +346,13 @@
 			agent = await initOAuth();
 			if (agent) {
 				// Fetch profile record from PDS
-			const profileResult = (await agent.call(com.atproto.repo.getRecord.main as any, {
-				repo: agent.assertDid,
-				collection: 'app.bsky.actor.profile',
-				rkey: 'self'
-			})) as any;
+				const profileResult = (await agent.call(com.atproto.repo.getRecord.main as any, {
+					repo: agent.assertDid,
+					collection: 'app.bsky.actor.profile',
+					rkey: 'self'
+				})) as any;
 
-			const profileRecord = profileResult?.value as
+				const profileRecord = profileResult?.value as
 					| {
 							displayName?: string;
 							description?: string;
@@ -364,8 +365,8 @@
 
 				let avatarUrl = undefined;
 				const cid = (profileRecord?.avatar as { ref?: { $link?: string } } | undefined)?.ref?.$link;
-			if (cid && agent.assertDid) {
-				avatarUrl = `https://cdn.bsky.app/img/avatar/plain/${agent.assertDid}/${cid}@jpeg`;
+				if (cid && agent.assertDid) {
+					avatarUrl = `https://cdn.bsky.app/img/avatar/plain/${agent.assertDid}/${cid}@jpeg`;
 				}
 
 				profile = {
@@ -533,7 +534,9 @@
 							>
 								<Upload size={24} />
 								<span class="choice-title">Import Instagram export</span>
-								<span class="choice-desc">Upload a ZIP or extracted folder from your Instagram data export</span>
+								<span class="choice-desc"
+									>Upload a ZIP or extracted folder from your Instagram data export</span
+								>
 							</button>
 
 							<button
@@ -550,12 +553,10 @@
 							</button>
 						</div>
 						<div class="actions">
-						<button class="btn-secondary" onclick={handleSignOut}>
-						Sign out
-						</button>
+							<button class="btn-secondary" onclick={handleSignOut}> Sign out </button>
 						</div>
 					</div>
-											{:else if step === 2}
+				{:else if step === 2}
 					<div class="card-section">
 						<h2 class="section-title">Upload your export</h2>
 
@@ -563,7 +564,11 @@
 							<button
 								class="upload-mode-btn"
 								class:selected={uploadMode === 'zip'}
-								onclick={() => { uploadMode = 'zip'; file = null; zipError = null; }}
+								onclick={() => {
+									uploadMode = 'zip';
+									file = null;
+									zipError = null;
+								}}
 							>
 								<FileArchive size={20} />
 								<span>Upload ZIP file</span>
@@ -571,7 +576,11 @@
 							<button
 								class="upload-mode-btn"
 								class:selected={uploadMode === 'directory'}
-								onclick={() => { uploadMode = 'directory'; file = null; zipError = null; }}
+								onclick={() => {
+									uploadMode = 'directory';
+									file = null;
+									zipError = null;
+								}}
 							>
 								<FolderInput size={20} />
 								<span>Upload extracted folder</span>
@@ -580,11 +589,7 @@
 
 						{#if uploadMode === 'zip'}
 							<label class="file-drop">
-								<input
-									type="file"
-									accept=".zip,application/zip"
-									onchange={handleFileChange}
-								/>
+								<input type="file" accept=".zip,application/zip" onchange={handleFileChange} />
 								{#if file}
 									<span class="file-name">{file.name}</span>
 								{:else}
@@ -596,11 +601,7 @@
 							</label>
 						{:else}
 							<label class="file-drop">
-								<input
-									type="file"
-									webkitdirectory
-									onchange={handleDirectoryChange}
-								/>
+								<input type="file" webkitdirectory onchange={handleDirectoryChange} />
 								{#if creatingZip}
 									<span class="file-prompt">
 										<Loader2 class="spin" size={28} />
@@ -657,14 +658,27 @@
 
 						<div class="field">
 							<label class="field-label" for="total-limit">Total post limit (optional)</label>
-							<input id="total-limit" type="number" bind:value={totalLimit} min="1" placeholder="No limit" />
+							<input
+								id="total-limit"
+								type="number"
+								bind:value={totalLimit}
+								min="1"
+								placeholder="No limit"
+							/>
 							<span class="field-hint">Stop after this many posts. Leave empty for no limit.</span>
 						</div>
 
 						<div class="field">
 							<label class="field-label" for="alt-text">Alt text override (optional)</label>
-							<input id="alt-text" type="text" bind:value={altText} placeholder="Use captions as alt text" />
-							<span class="field-hint">Set the same alt text for all photos. Leave empty to use captions.</span>
+							<input
+								id="alt-text"
+								type="text"
+								bind:value={altText}
+								placeholder="Use captions as alt text"
+							/>
+							<span class="field-hint"
+								>Set the same alt text for all photos. Leave empty to use captions.</span
+							>
 						</div>
 
 						<label class="checkbox-line">
@@ -908,6 +922,10 @@
 			</div>
 		{/key}
 	</div>
+	<SupportSection
+		name="Jasper"
+		githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/jasper"
+	/>
 
 	<footer>
 		<a href="/" class="inline-flex items-center gap-1"><ArrowLeft size={14} /> Home</a>
