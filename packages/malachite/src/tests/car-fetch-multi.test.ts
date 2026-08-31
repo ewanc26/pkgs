@@ -4,7 +4,11 @@ import { CarWriter } from '@ipld/car';
 import * as dagCbor from '@ipld/dag-cbor';
 import { CID } from 'multiformats/cid';
 import { sha256 } from 'multiformats/hashes/sha2';
-import { fetchRepoCollectionsViaCAR } from '@ewanc26/croft-click-core';
+import {
+  fetchRepoCollectionsViaCAR,
+  iterateRepoCollectionsViaCAR,
+  type CARCollectionRecord,
+} from '@ewanc26/croft-click-core';
 
 const DID = 'did:plc:testtesttesttesttesttest';
 const PDS = 'https://pds.example.com';
@@ -107,21 +111,26 @@ async function withCarFetch<T>(
   globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
     requests.push(String(input));
     const third = Math.ceil(car.length / 3);
-    const response = new Response(new ReadableStream<Uint8Array>({
-      start(controller) {
-        for (let start = 0; start < car.length; start += third) {
-          controller.enqueue(car.slice(start, start + third));
-        }
-        controller.close();
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (let start = 0; start < car.length; start += third) {
+            controller.enqueue(car.slice(start, start + third));
+          }
+          controller.close();
+        },
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/vnd.ipld.car' },
       },
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/vnd.ipld.car' },
-    });
+    );
     // The CAR fetcher must consume the response stream, never buffer the
     // complete export through Response.arrayBuffer().
     Object.defineProperty(response, 'arrayBuffer', {
-      value: async () => { throw new Error('arrayBuffer() must not be called'); },
+      value: async () => {
+        throw new Error('arrayBuffer() must not be called');
+      },
     });
     return response;
   }) as typeof fetch;
@@ -134,6 +143,47 @@ async function withCarFetch<T>(
 }
 
 describe('fetchRepoCollectionsViaCAR', () => {
+  it('yields selected records with their collection without building a result map', async () => {
+    const legacyValue = {
+      $type: LEGACY,
+      trackName: 'Legacy stream',
+      artists: [{ artistName: 'Legacy Artist' }],
+    };
+    const stableValue = {
+      $type: STABLE,
+      trackName: 'Stable stream',
+      artists: [{ artistName: 'Stable Artist' }],
+    };
+    const car = await buildRepoCar(
+      [
+        { collection: LEGACY, rkey: '3laaa111', value: legacyValue },
+        { collection: STABLE, rkey: '3lbbb222', value: stableValue },
+      ],
+      true,
+      true,
+    );
+
+    await withCarFetch(car, async (requests) => {
+      const yielded: CARCollectionRecord[] = [];
+      for await (const entry of iterateRepoCollectionsViaCAR(PDS, DID, [LEGACY, STABLE])) {
+        yielded.push(entry);
+      }
+
+      assert.strictEqual(requests.length, 1);
+      assert.deepStrictEqual(
+        yielded.map(({ collection, record }) => ({
+          collection,
+          rkey: record.rkey,
+          value: record.value,
+        })),
+        [
+          { collection: LEGACY, rkey: '3laaa111', value: legacyValue },
+          { collection: STABLE, rkey: '3lbbb222', value: stableValue },
+        ],
+      );
+    });
+  });
+
   it('extracts multiple collections from one getRepo request', async () => {
     const legacyValue = {
       $type: LEGACY,
@@ -160,8 +210,14 @@ describe('fetchRepoCollectionsViaCAR', () => {
 
       assert.strictEqual(requests.length, 1);
       assert.ok(requests[0].startsWith(`${PDS}/xrpc/com.atproto.sync.getRepo?`));
-      assert.deepStrictEqual(records.get(LEGACY)?.map((r) => r.value), [legacyValue]);
-      assert.deepStrictEqual(records.get(STABLE)?.map((r) => r.value), [stableValue]);
+      assert.deepStrictEqual(
+        records.get(LEGACY)?.map((r) => r.value),
+        [legacyValue],
+      );
+      assert.deepStrictEqual(
+        records.get(STABLE)?.map((r) => r.value),
+        [stableValue],
+      );
     });
   });
 
@@ -172,7 +228,11 @@ describe('fetchRepoCollectionsViaCAR', () => {
       artists: [{ artistName: 'Valid Artist' }],
     };
     const car = await buildRepoCar([
-      { collection: STABLE, rkey: '3laaa111', rawBytes: new Uint8Array([0xff]) },
+      {
+        collection: STABLE,
+        rkey: '3laaa111',
+        rawBytes: new Uint8Array([0xff]),
+      },
       { collection: STABLE, rkey: '3lbbb222', value: validValue },
     ]);
 
@@ -193,7 +253,11 @@ describe('fetchRepoCollectionsViaCAR', () => {
     const car = await buildRepoCar(
       [
         { collection: STABLE, rkey: '3laaa111', value },
-        { collection: 'app.bsky.feed.post', rkey: '3lbbb222', value: { $type: 'app.bsky.feed.post' } },
+        {
+          collection: 'app.bsky.feed.post',
+          rkey: '3lbbb222',
+          value: { $type: 'app.bsky.feed.post' },
+        },
       ],
       true,
       true,
@@ -201,7 +265,10 @@ describe('fetchRepoCollectionsViaCAR', () => {
 
     await withCarFetch(car, async () => {
       const records = await fetchRepoCollectionsViaCAR(PDS, DID, [STABLE]);
-      assert.deepStrictEqual(records.get(STABLE)?.map((record) => record.value), [value]);
+      assert.deepStrictEqual(
+        records.get(STABLE)?.map((record) => record.value),
+        [value],
+      );
     });
   });
 });
