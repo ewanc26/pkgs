@@ -1,9 +1,10 @@
 import { TEAL_LEXICON, TEAL_LEGACY_LEXICON } from "@ewanc26/utils";
-import { fetchRepoCollectionsViaCAR } from "@ewanc26/croft-click-core";
+import { iterateRepoCollectionsViaCAR } from "@ewanc26/croft-click-core";
 import type { TealScrobble } from "$lib/types";
 
 const TEAL_LEXICONS = [TEAL_LEGACY_LEXICON, TEAL_LEXICON] as const;
 const CAR_FETCH_TIMEOUT_MS = 55_000;
+const STREAM_BATCH_SIZE = 250;
 
 /**
  * Safely parse a playedTime value from an ATProto record.
@@ -50,23 +51,6 @@ function serviceDomain(v: unknown): string | undefined {
   }
 }
 
-/**
- * Compare a legacy/stable rkey collision without retaining a JSON copy of
- * every record in memory. The namespace migration only changes $type, so
- * normalise that field before comparing the two values.
- */
-function sameMigratedRecordValue(a: unknown, b: unknown): boolean {
-  const normalise = (value: unknown): unknown =>
-    value && typeof value === "object"
-      ? {
-          ...(value as Record<string, unknown>),
-          $type: TEAL_LEXICON,
-        }
-      : value;
-
-  return JSON.stringify(normalise(a)) === JSON.stringify(normalise(b));
-}
-
 function parseScrobble(v: Record<string, unknown>): TealScrobble {
   const rawArtists = Array.isArray(v.artists) ? v.artists : [];
 
@@ -87,16 +71,25 @@ function parseScrobble(v: Record<string, unknown>): TealScrobble {
     originUrl: str(v.originUri, 2048) ?? str(v.originUrl, 2048),
     playedTime: parsePlayedTime(v.playedTime),
     submissionClientAgent: str(v.submissionClientAgent, 256),
-    musicServiceBaseDomain:
-      serviceDomain(v.musicServiceUri) ??
-      serviceDomain(v.musicServiceBaseDomain),
+    musicServiceBaseDomain: serviceDomain(v.musicServiceUri) ?? serviceDomain(v.musicServiceBaseDomain),
     trackDiscriminant: str(v.trackDiscriminant),
     releaseDiscriminant: str(v.releaseDiscriminant),
   };
 }
 
-export interface ScrobbleBatchResult {
+export type ScrobbleStreamEvent =
+  | {
+      type: "scrobbles";
+      collection: "legacy" | "stable";
+      rkeys: string[];
+      scrobbles: TealScrobble[];
+    }
+  | { type: "complete"; cursor: string | null; done: boolean };
+
+interface ScrobbleBatchResult {
   scrobbles: TealScrobble[];
+  rkeys: string[];
+  collection: "legacy" | "stable";
   cursor: string | null;
   done: boolean;
 }
@@ -121,10 +114,7 @@ function decodeFallbackCursor(cursor: string | null): FallbackCursor | null {
   if (!cursor?.startsWith(FALLBACK_CURSOR_PREFIX)) return null;
   try {
     const parsed = JSON.parse(
-      Buffer.from(
-        cursor.slice(FALLBACK_CURSOR_PREFIX.length),
-        "base64url",
-      ).toString(),
+      Buffer.from(cursor.slice(FALLBACK_CURSOR_PREFIX.length), "base64url").toString(),
     ) as Partial<FallbackCursor>;
     const collection = parsed.collection;
     if (
@@ -143,39 +133,31 @@ function decodeFallbackCursor(cursor: string | null): FallbackCursor | null {
 }
 
 /** Fetch one bounded listRecords page when a PDS cannot produce a CAR export. */
-async function fetchFallbackPage(
-  pdsUrl: string,
-  did: string,
-  state: FallbackCursor,
-): Promise<ScrobbleBatchResult> {
+async function fetchFallbackPage(pdsUrl: string, did: string, state: FallbackCursor): Promise<ScrobbleBatchResult> {
   const collection = TEAL_LEXICONS[state.collection];
   const params = new URLSearchParams({ repo: did, collection, limit: "100" });
   if (state.cursor) params.set("cursor", state.cursor);
 
-  const response = await fetch(
-    `${pdsUrl.replace(/\/$/, "")}/xrpc/com.atproto.repo.listRecords?${params}`,
-  );
+  const response = await fetch(`${pdsUrl.replace(/\/$/, "")}/xrpc/com.atproto.repo.listRecords?${params}`);
   if (!response.ok) throw new Error(`listRecords failed: ${response.status}`);
 
   const data = (await response.json()) as ListRecordsResponse;
   const records = Array.isArray(data.records) ? data.records : [];
-  const source: "legacy" | "stable" =
-    state.collection === 0 ? "legacy" : "stable";
-  const scrobbles = records.flatMap((record) => {
-    if (!record?.value || typeof record.value !== "object") return [];
-    return [
-      {
-        ...parseScrobble(record.value as Record<string, unknown>),
-        _tourmalineRecordKey: record.uri.split("/").pop() ?? "",
-        _tourmalineCollection: source,
-      },
-    ];
-  });
+  const source: "legacy" | "stable" = state.collection === 0 ? "legacy" : "stable";
+  const scrobbles: TealScrobble[] = [];
+  const rkeys: string[] = [];
+  for (const record of records) {
+    if (!record?.value || typeof record.value !== "object") continue;
+    scrobbles.push(parseScrobble(record.value as Record<string, unknown>));
+    rkeys.push(record.uri.split("/").pop() ?? "");
+  }
 
   const nextPageCursor = typeof data.cursor === "string" ? data.cursor : null;
   if (nextPageCursor && records.length > 0) {
     return {
       scrobbles,
+      rkeys,
+      collection: source,
       cursor: encodeFallbackCursor({
         collection: state.collection,
         cursor: nextPageCursor,
@@ -188,6 +170,8 @@ async function fetchFallbackPage(
   if (nextCollection < TEAL_LEXICONS.length) {
     return {
       scrobbles,
+      rkeys,
+      collection: source,
       cursor: encodeFallbackCursor({
         collection: nextCollection,
         cursor: null,
@@ -196,13 +180,18 @@ async function fetchFallbackPage(
     };
   }
 
-  return { scrobbles, cursor: null, done: true };
+  return {
+    scrobbles,
+    rkeys,
+    collection: source,
+    cursor: null,
+    done: true,
+  };
 }
 
 /**
  * Fetch both Teal play collections from one CAR export
- * (`com.atproto.sync.getRepo`) and parse the records locally. Identical
- * alpha/stable records are counted once, preferring the stable collection.
+ * (`com.atproto.sync.getRepo`) and parse the records locally.
  *
  * getRepo always returns the whole repository, regardless of which collection
  * Tourmaline wants. Fetching each Teal namespace separately therefore doubled
@@ -210,78 +199,112 @@ async function fetchFallbackPage(
  * repos can exceed a serverless function's memory limit that way, so both
  * namespaces are extracted during one download and one walk.
  *
- * Deduplication also avoids storing a JSON serialisation of every record as a
- * Map key. Record values are only compared when the same rkey exists in both
- * namespaces, preserving the previous migration-deduplication semantics with a
- * much smaller memory footprint.
+ * Collection/rkey metadata travels with each record so the browser can collapse
+ * exact legacy/stable migration duplicates after the complete stream arrives.
  *
- * Successful CAR responses are one-shot. If the export is unavailable, the
- * function instead returns bounded `listRecords` pages with an opaque cursor.
+ * Successful CAR responses are emitted in bounded batches so the API route can
+ * forward them without retaining or serialising one enormous response object.
+ * If the export is unavailable, the function emits one bounded `listRecords`
+ * page and an opaque cursor for the next browser request.
  */
-export async function fetchScrobbleBatch(
+export async function* streamScrobbleBatch(
   pdsUrl: string,
   did: string,
   cursor: string | null = null,
-): Promise<ScrobbleBatchResult> {
+): AsyncGenerator<ScrobbleStreamEvent> {
   const fallbackCursor = decodeFallbackCursor(cursor);
-  if (fallbackCursor) return fetchFallbackPage(pdsUrl, did, fallbackCursor);
-
-  let recordsByCollection: Map<string, Awaited<ReturnType<typeof fetchRepoCollectionsViaCAR>> extends Map<string, infer T> ? T : never>;
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), CAR_FETCH_TIMEOUT_MS);
-    try {
-      recordsByCollection = await fetchRepoCollectionsViaCAR(pdsUrl, did, TEAL_LEXICONS, controller.signal);
-    } finally {
-      clearTimeout(timeout);
+  if (fallbackCursor) {
+    const result = await fetchFallbackPage(pdsUrl, did, fallbackCursor);
+    if (result.scrobbles.length > 0) {
+      yield {
+        type: "scrobbles",
+        collection: result.collection,
+        rkeys: result.rkeys,
+        scrobbles: result.scrobbles,
+      };
     }
+    yield { type: "complete", cursor: result.cursor, done: result.done };
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), CAR_FETCH_TIMEOUT_MS);
+  let emitted = false;
+  try {
+    let batch: TealScrobble[] = [];
+    let rkeys: string[] = [];
+    let batchCollection: "legacy" | "stable" | null = null;
+    for await (const { collection, record } of iterateRepoCollectionsViaCAR(
+      pdsUrl,
+      did,
+      TEAL_LEXICONS,
+      controller.signal,
+    )) {
+      if (!record.value || typeof record.value !== "object") continue;
+
+      const source = collection === TEAL_LEGACY_LEXICON ? "legacy" : "stable";
+      if (batch.length > 0 && source !== batchCollection) {
+        emitted = true;
+        yield {
+          type: "scrobbles",
+          collection: batchCollection!,
+          rkeys,
+          scrobbles: batch,
+        };
+        batch = [];
+        rkeys = [];
+      }
+      batchCollection = source;
+
+      batch.push(parseScrobble(record.value as Record<string, unknown>));
+      rkeys.push(record.rkey);
+
+      if (batch.length >= STREAM_BATCH_SIZE) {
+        emitted = true;
+        yield {
+          type: "scrobbles",
+          collection: batchCollection,
+          rkeys,
+          scrobbles: batch,
+        };
+        batch = [];
+        rkeys = [];
+      }
+    }
+
+    if (batch.length > 0 && batchCollection) {
+      emitted = true;
+      yield {
+        type: "scrobbles",
+        collection: batchCollection,
+        rkeys,
+        scrobbles: batch,
+      };
+    }
+    yield { type: "complete", cursor: null, done: true };
+    return;
   } catch (error) {
+    if (emitted) throw error;
+
     // Some PDSes have very large repos and cannot produce a complete CAR
     // within a serverless request. Fall back to the bounded public records
     // endpoint so those users still get a usable profile.
     console.warn("[tourmaline] CAR export unavailable; falling back to listRecords", error);
-    return fetchFallbackPage(pdsUrl, did, { collection: 0, cursor: null });
-  }
-
-  const legacyRecords = recordsByCollection.get(TEAL_LEGACY_LEXICON) ?? [];
-  const stableRecords = recordsByCollection.get(TEAL_LEXICON) ?? [];
-
-  // rkeys are unique within a collection. Keep only the stable lookup needed
-  // to detect namespace-migration duplicates rather than a second map keyed by
-  // `${rkey}:${JSON.stringify(record)}` for the entire listening history.
-  const stableByRkey = new Map(stableRecords.map((record) => [record.rkey, record]));
-  const consumedStableRkeys = new Set<string>();
-  const scrobbles: TealScrobble[] = [];
-
-  const append = (record: (typeof stableRecords)[number]): void => {
-    const value = record.value;
-    if (value && typeof value === "object") {
-      scrobbles.push(parseScrobble(value as Record<string, unknown>));
+    const result = await fetchFallbackPage(pdsUrl, did, {
+      collection: 0,
+      cursor: null,
+    });
+    if (result.scrobbles.length > 0) {
+      yield {
+        type: "scrobbles",
+        collection: result.collection,
+        rkeys: result.rkeys,
+        scrobbles: result.scrobbles,
+      };
     }
-  };
-
-  // Preserve the old ordering: legacy records appear first, but an identical
-  // stable migration replaces the legacy value at that position.
-  for (const legacyRecord of legacyRecords) {
-    const stableRecord = stableByRkey.get(legacyRecord.rkey);
-    if (
-      stableRecord &&
-      sameMigratedRecordValue(legacyRecord.value, stableRecord.value)
-    ) {
-      append(stableRecord);
-      consumedStableRkeys.add(stableRecord.rkey);
-    } else {
-      append(legacyRecord);
-    }
+    yield { type: "complete", cursor: result.cursor, done: result.done };
+  } finally {
+    clearTimeout(timeout);
+    controller.abort();
   }
-
-  // Stable records that were not exact migrated duplicates retain their place
-  // after the legacy collection, matching the previous Map insertion order.
-  for (const stableRecord of stableRecords) {
-    if (!consumedStableRkeys.has(stableRecord.rkey)) {
-      append(stableRecord);
-    }
-  }
-
-  return { scrobbles, cursor: null, done: true };
 }

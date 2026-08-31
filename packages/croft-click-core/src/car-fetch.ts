@@ -25,10 +25,10 @@ interface RepoCommit {
 interface MSTNode {
   l: CID | null;
   e: Array<{
-    p: number;       // bytes of previous key to reuse as prefix
-    k: Uint8Array;   // key suffix bytes
-    v: CID;          // record CID
-    t: CID | null;   // right subtree CID
+    p: number; // bytes of previous key to reuse as prefix
+    k: Uint8Array; // key suffix bytes
+    v: CID; // record CID
+    t: CID | null; // right subtree CID
   }>;
 }
 
@@ -71,40 +71,32 @@ async function* responseChunks(body: ReadableStream<Uint8Array>): AsyncIterable<
  * requested collection; every unrelated record block is discarded immediately
  * instead of materialising the full repository CAR.
  */
-async function parseCARCollectionsFromIterable(
+interface PreparedCARCollections {
+  mstRoot: CID;
+  mstNodes: Map<string, MSTNode>;
+  candidateBlocks: Map<string, Uint8Array>;
+  collections: ReadonlySet<string>;
+}
+
+/**
+ * Read a CAR export once while retaining only the compact data needed for a
+ * later MST walk. Selected record blocks stay as CBOR bytes until they are
+ * yielded, avoiding a second in-memory copy of every decoded record.
+ */
+async function prepareCARCollectionsFromIterable(
   chunks: AsyncIterable<Uint8Array>,
-  did: string,
   collections: readonly string[],
-): Promise<Map<string, CARRecord[]>> {
+): Promise<PreparedCARCollections> {
   const uniqueCollections = [...new Set(collections)];
-  const results = new Map<string, CARRecord[]>(
-    uniqueCollections.map((collection) => [collection, []]),
-  );
-  if (uniqueCollections.length === 0) return results;
+  const collectionSet = new Set(uniqueCollections);
 
   const iterator = await CarBlockIterator.fromIterable(chunks);
   const [commitCid] = await iterator.getRoots();
   if (!commitCid) throw new Error('CAR file has no roots');
 
   const mstNodes = new Map<string, MSTNode>();
-  const candidateValues = new Map<string, unknown>();
-  const collectionSet = new Set(uniqueCollections);
+  const candidateBlocks = new Map<string, Uint8Array>();
   let mstRoot: CID | undefined;
-
-  const appendRecord = (
-    cid: string,
-    locations: Array<{ collection: string; rkey: string }>,
-    value: unknown,
-  ) => {
-    for (const { collection, rkey } of locations) {
-      results.get(collection)?.push({
-        rkey,
-        uri: `at://${did}/${collection}/${rkey}`,
-        cid,
-        value,
-      });
-    }
-  };
 
   for await (const { cid, bytes } of iterator) {
     const cidString = cidStr(cid);
@@ -122,7 +114,7 @@ async function parseCARCollectionsFromIterable(
         typeof (value as { $type?: unknown }).$type === 'string' &&
         collectionSet.has((value as { $type: string }).$type)
       ) {
-        candidateValues.set(cidString, value);
+        candidateBlocks.set(cidString, bytes);
       }
     } catch {
       // Malformed record block — skip it without aborting the whole repo.
@@ -131,34 +123,90 @@ async function parseCARCollectionsFromIterable(
 
   if (!mstRoot) throw new Error('Commit block missing from CAR');
 
-  const pendingNodes = [mstRoot];
-  const visitedNodes = new Set<string>();
-  while (pendingNodes.length > 0) {
-    const nodeCid = pendingNodes.pop()!;
-    const nodeCidString = cidStr(nodeCid);
-    if (visitedNodes.has(nodeCidString)) continue;
-    visitedNodes.add(nodeCidString);
+  return { mstRoot, mstNodes, candidateBlocks, collections: collectionSet };
+}
 
-    const node = mstNodes.get(nodeCidString);
-    if (!node) continue;
-    if (node.l) pendingNodes.push(node.l);
+export interface CARCollectionRecord {
+  collection: string;
+  record: CARRecord;
+}
 
-    let previousKey = '';
-    for (const entry of node.e ?? []) {
-      const fullKey = previousKey.slice(0, entry.p) + textDecoder.decode(entry.k);
-      previousKey = fullKey;
+/** Walk a prepared repo MST in key order and decode one selected record at a time. */
+function* iteratePreparedCARCollections(
+  prepared: PreparedCARCollections,
+  did: string,
+  nodeCid: CID = prepared.mstRoot,
+  visitedNodes = new Set<string>(),
+): Generator<CARCollectionRecord> {
+  const nodeCidString = cidStr(nodeCid);
+  if (visitedNodes.has(nodeCidString)) return;
+  visitedNodes.add(nodeCidString);
 
-      const separator = fullKey.indexOf('/');
-      if (separator > 0) {
-        const collection = fullKey.slice(0, separator);
-        const value = candidateValues.get(cidStr(entry.v));
-        if (collectionSet.has(collection) && value !== undefined) {
-          appendRecord(cidStr(entry.v), [{ collection, rkey: fullKey.slice(separator + 1) }], value);
+  const node = prepared.mstNodes.get(nodeCidString);
+  if (!node) return;
+
+  if (node.l) {
+    yield* iteratePreparedCARCollections(prepared, did, node.l, visitedNodes);
+  }
+
+  let previousKey = '';
+  for (const entry of node.e ?? []) {
+    const fullKey = previousKey.slice(0, entry.p) + textDecoder.decode(entry.k);
+    previousKey = fullKey;
+
+    const separator = fullKey.indexOf('/');
+    if (separator > 0) {
+      const collection = fullKey.slice(0, separator);
+      const cid = cidStr(entry.v);
+      const valueBytes = prepared.candidateBlocks.get(cid);
+      if (prepared.collections.has(collection) && valueBytes) {
+        try {
+          yield {
+            collection,
+            record: {
+              rkey: fullKey.slice(separator + 1),
+              uri: `at://${did}/${collection}/${fullKey.slice(separator + 1)}`,
+              cid,
+              value: dagCbor.decode(valueBytes),
+            },
+          };
+        } catch {
+          // Malformed selected record — skip it without aborting the repo.
         }
       }
-
-      if (entry.t) pendingNodes.push(entry.t);
     }
+
+    if (entry.t) {
+      yield* iteratePreparedCARCollections(prepared, did, entry.t, visitedNodes);
+    }
+  }
+}
+
+async function* iterateCARCollectionsFromIterable(
+  chunks: AsyncIterable<Uint8Array>,
+  did: string,
+  collections: readonly string[],
+): AsyncGenerator<CARCollectionRecord> {
+  const prepared = await prepareCARCollectionsFromIterable(chunks, collections);
+  yield* iteratePreparedCARCollections(prepared, did);
+}
+
+async function parseCARCollectionsFromIterable(
+  chunks: AsyncIterable<Uint8Array>,
+  did: string,
+  collections: readonly string[],
+): Promise<Map<string, CARRecord[]>> {
+  const uniqueCollections = [...new Set(collections)];
+  const results = new Map<string, CARRecord[]>(
+    uniqueCollections.map((collection) => [collection, []]),
+  );
+
+  for await (const { collection, record } of iterateCARCollectionsFromIterable(
+    chunks,
+    did,
+    uniqueCollections,
+  )) {
+    results.get(collection)?.push(record);
   }
 
   return results;
@@ -175,8 +223,8 @@ export class CARFetchUnauthorizedError extends Error {
   constructor(pdsUrl: string, did: string) {
     super(
       `CAR fetch returned 401 Unauthorized for ${did} at ${pdsUrl}. ` +
-      `The PDS requires authentication but a valid token could not be obtained. ` +
-      `Try signing out and back in to refresh your session.`
+        `The PDS requires authentication but a valid token could not be obtained. ` +
+        `Try signing out and back in to refresh your session.`,
     );
     this.name = 'CARFetchUnauthorizedError';
   }
@@ -187,6 +235,41 @@ export interface CARRecord {
   uri: string;
   cid: string;
   value: unknown;
+}
+
+/**
+ * Fetch a repo once and yield selected records one at a time after the CAR's
+ * MST has been indexed. Callers can stream each yielded record onward instead
+ * of retaining a complete decoded result set or one oversized JSON response.
+ */
+export async function* iterateRepoCollectionsViaCAR(
+  pdsUrl: string,
+  did: string,
+  collections: readonly string[],
+  signal?: AbortSignal,
+  token?: string,
+): AsyncGenerator<CARCollectionRecord> {
+  const uniqueCollections = [...new Set(collections)];
+  if (uniqueCollections.length === 0) return;
+
+  const url = `${pdsUrl.replace(/\/$/, '')}/xrpc/com.atproto.sync.getRepo?did=${encodeURIComponent(did)}`;
+
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.ipld.car',
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(url, { headers, signal });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new CARFetchUnauthorizedError(pdsUrl, did);
+    }
+    throw new Error(`CAR fetch failed: ${response.status} ${response.statusText}`);
+  }
+
+  if (!response.body) throw new Error('CAR fetch returned an empty response body');
+  yield* iterateCARCollectionsFromIterable(responseChunks(response.body), did, uniqueCollections);
 }
 
 /**
@@ -209,27 +292,19 @@ export async function fetchRepoCollectionsViaCAR(
   token?: string,
 ): Promise<Map<string, CARRecord[]>> {
   const uniqueCollections = [...new Set(collections)];
-  const empty = new Map<string, CARRecord[]>(
+  const results = new Map<string, CARRecord[]>(
     uniqueCollections.map((collection) => [collection, []]),
   );
-  if (uniqueCollections.length === 0) return empty;
-
-  const url = `${pdsUrl.replace(/\/$/, '')}/xrpc/com.atproto.sync.getRepo?did=${encodeURIComponent(did)}`;
-
-  const headers: Record<string, string> = { Accept: 'application/vnd.ipld.car' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const response = await fetch(url, { headers, signal });
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new CARFetchUnauthorizedError(pdsUrl, did);
-    }
-    throw new Error(`CAR fetch failed: ${response.status} ${response.statusText}`);
+  for await (const { collection, record } of iterateRepoCollectionsViaCAR(
+    pdsUrl,
+    did,
+    uniqueCollections,
+    signal,
+    token,
+  )) {
+    results.get(collection)?.push(record);
   }
-
-  if (!response.body) throw new Error('CAR fetch returned an empty response body');
-  return parseCARCollectionsFromIterable(responseChunks(response.body), did, uniqueCollections);
+  return results;
 }
 
 /**
@@ -247,13 +322,7 @@ export async function fetchRepoViaCAR(
   signal?: AbortSignal,
   token?: string,
 ): Promise<CARRecord[]> {
-  const records = await fetchRepoCollectionsViaCAR(
-    pdsUrl,
-    did,
-    [collection],
-    signal,
-    token,
-  );
+  const records = await fetchRepoCollectionsViaCAR(pdsUrl, did, [collection], signal, token);
   return records.get(collection) ?? [];
 }
 
@@ -264,7 +333,9 @@ async function parseCARCollections(
   collections: readonly string[],
 ): Promise<Map<string, CARRecord[]>> {
   return parseCARCollectionsFromIterable(
-    (async function* () { yield carBytes; })(),
+    (async function* () {
+      yield carBytes;
+    })(),
     did,
     collections,
   );
@@ -362,7 +433,10 @@ function pdsFromDidDoc(didDoc: unknown): string | undefined {
   for (const svc of services) {
     const s = svc as { id?: string; type?: string; serviceEndpoint?: unknown };
     const id = s?.id;
-    if ((id === '#atproto_pds' || id?.endsWith('#atproto_pds')) && typeof s.serviceEndpoint === 'string') {
+    if (
+      (id === '#atproto_pds' || id?.endsWith('#atproto_pds')) &&
+      typeof s.serviceEndpoint === 'string'
+    ) {
       return s.serviceEndpoint;
     }
   }
@@ -405,11 +479,9 @@ export async function fetchRepoViaCARWithClient(
 
   if (response.ok) {
     if (!response.body) throw new Error('CAR fetch returned an empty response body');
-    const records = await parseCARCollectionsFromIterable(
-      responseChunks(response.body),
-      repoDid,
-      [collection],
-    );
+    const records = await parseCARCollectionsFromIterable(responseChunks(response.body), repoDid, [
+      collection,
+    ]);
     return records.get(collection) ?? [];
   }
 
@@ -476,10 +548,10 @@ export async function getAgentToken(clientOrAgent: unknown): Promise<string | un
   if (jwt) return jwt as string;
 
   // Legacy OAuth agent: session manager exposes getTokens() (non-mutating read).
-  const sm = (a?.['sessionManager'] as any);
+  const sm = a?.['sessionManager'] as any;
   if (typeof sm?.getTokens === 'function') {
     try {
-      const tokens = await sm.getTokens() as { accessToken?: string } | null;
+      const tokens = (await sm.getTokens()) as { accessToken?: string } | null;
       if (tokens?.accessToken) return tokens.accessToken;
     } catch {
       // Token read failed — try a silent refresh before giving up.
@@ -490,7 +562,9 @@ export async function getAgentToken(clientOrAgent: unknown): Promise<string | un
     if (typeof sm?.refresh === 'function') {
       try {
         await sm.refresh();
-        const refreshed = await sm.getTokens() as { accessToken?: string } | null;
+        const refreshed = (await sm.getTokens()) as {
+          accessToken?: string;
+        } | null;
         if (refreshed?.accessToken) return refreshed.accessToken;
       } catch {
         // Refresh failed — fall through and return undefined.

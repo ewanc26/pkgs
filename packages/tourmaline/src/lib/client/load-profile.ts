@@ -20,11 +20,7 @@ import { calculateObscurity } from "$lib/analysis/obscurity";
 import { buildMoodProfile } from "$lib/analysis/mood";
 import { buildEraProfile } from "$lib/analysis/era";
 import { buildRemarkableDays } from "$lib/analysis/remarkable-days";
-import {
-  buildDiscoveredArtists,
-  buildDiscoveredTracks,
-  buildDiscoveredAlbums,
-} from "$lib/analysis/discovery";
+import { buildDiscoveredArtists, buildDiscoveredTracks, buildDiscoveredAlbums } from "$lib/analysis/discovery";
 import { buildListeningPhases } from "$lib/analysis/phases";
 import { deriveSessions, buildSessionStats } from "$lib/analysis/sessions";
 import { buildOnThisDay } from "$lib/analysis/on-this-day";
@@ -62,22 +58,16 @@ export function emptyResults(): ProfileResults {
 }
 
 /**
- * CAR reads are already deduplicated server-side. The paginated fallback has
- * to return one collection at a time, so collapse only exact legacy/stable
- * migration pairs once all pages have reached the browser.
+ * Both streamed CAR reads and the paginated fallback preserve collection/rkey
+ * metadata. Collapse only exact legacy/stable migration pairs once every
+ * record has reached the browser, then strip the transport-only fields.
  */
-function deduplicateFallbackScrobbles(
-  scrobbles: TealScrobble[],
-): TealScrobble[] {
+function deduplicateScrobbles(scrobbles: TealScrobble[]): TealScrobble[] {
   const result: TealScrobble[] = [];
   const legacyByKey = new Map<string, number>();
 
   for (const scrobble of scrobbles) {
-    const {
-      _tourmalineRecordKey: key,
-      _tourmalineCollection: collection,
-      ...play
-    } = scrobble;
+    const { _tourmalineRecordKey: key, _tourmalineCollection: collection, ...play } = scrobble;
     if (!key || !collection) {
       result.push(play);
       continue;
@@ -90,10 +80,7 @@ function deduplicateFallbackScrobbles(
     }
 
     const legacyIndex = legacyByKey.get(key);
-    if (
-      legacyIndex !== undefined &&
-      JSON.stringify(result[legacyIndex]) === JSON.stringify(play)
-    ) {
+    if (legacyIndex !== undefined && JSON.stringify(result[legacyIndex]) === JSON.stringify(play)) {
       result[legacyIndex] = play;
     } else {
       result.push(play);
@@ -194,16 +181,18 @@ export function computeProfile(
     .sort((a, b) => b.trackCount - a.trackCount)
     .slice(0, 10);
 
-  const goldenOldieArtists = topByAvgDate(data.artistTimestamps, data.artistPlayCounts, 5, 10, "oldest").map(
-    (e) => ({ name: e.key, avgDate: new Date(e.avgTimestamp).toISOString().slice(0, 10), count: e.count }),
+  const goldenOldieArtists = topByAvgDate(data.artistTimestamps, data.artistPlayCounts, 5, 10, "oldest").map((e) => ({
+    name: e.key,
+    avgDate: new Date(e.avgTimestamp).toISOString().slice(0, 10),
+    count: e.count,
+  }));
+  const latestDiscoveryArtists = topByAvgDate(data.artistTimestamps, data.artistPlayCounts, 5, 10, "newest").map(
+    (e) => ({
+      name: e.key,
+      avgDate: new Date(e.avgTimestamp).toISOString().slice(0, 10),
+      count: e.count,
+    }),
   );
-  const latestDiscoveryArtists = topByAvgDate(
-    data.artistTimestamps,
-    data.artistPlayCounts,
-    5,
-    10,
-    "newest",
-  ).map((e) => ({ name: e.key, avgDate: new Date(e.avgTimestamp).toISOString().slice(0, 10), count: e.count }));
 
   const rankHistory = buildRankHistory(data.monthlyArtistPlays);
   const { climbers: biggestClimbers, fallers: biggestFallers } = biggestMovers(rankHistory, 10);
@@ -213,9 +202,7 @@ export function computeProfile(
 
   const everyYear = buildEveryYearArtists(data.monthlyArtistPlays);
   const toRanked = (names: string[]) =>
-    names
-      .map((name) => ({ name, count: data.artistPlayCounts.get(name) ?? 0 }))
-      .sort((a, b) => b.count - a.count);
+    names.map((name) => ({ name, count: data.artistPlayCounts.get(name) ?? 0 })).sort((a, b) => b.count - a.count);
   const everyYearArtists = toRanked(everyYear.everyYear);
   const everyCompletedYearArtists = toRanked(everyYear.everyCompletedYear);
 
@@ -353,6 +340,134 @@ export interface LoadProfileResult {
   results: ProfileResults;
 }
 
+interface ScrobblePageResult {
+  cursor: string | null;
+  done: boolean;
+}
+
+const MAX_STREAM_LINE_CHARS = 1_000_000;
+
+async function responseError(response: Response): Promise<Error> {
+  const fallback = `Scrobble request failed (${response.status}).`;
+  try {
+    const body = (await response.clone().json()) as { error?: unknown };
+    return new Error(typeof body.error === "string" ? body.error : fallback);
+  } catch {
+    return new Error(fallback);
+  }
+}
+
+/** Consume one bounded JSON page or one NDJSON stream from the API. */
+async function readScrobblePage(
+  response: Response,
+  onScrobbles: (scrobbles: TealScrobble[]) => void,
+): Promise<ScrobblePageResult> {
+  if (!response.ok) throw await responseError(response);
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/x-ndjson")) {
+    const batch = (await response.json()) as {
+      error?: unknown;
+      scrobbles?: unknown;
+      cursor?: unknown;
+      done?: unknown;
+    };
+    if (typeof batch.error === "string") throw new Error(batch.error);
+    if (!Array.isArray(batch.scrobbles) || typeof batch.done !== "boolean") {
+      throw new Error("The scrobble API returned an invalid response.");
+    }
+    onScrobbles(batch.scrobbles as TealScrobble[]);
+    return {
+      cursor: typeof batch.cursor === "string" ? batch.cursor : null,
+      done: batch.done,
+    };
+  }
+
+  if (!response.body) {
+    throw new Error("The scrobble API returned an empty stream.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffered = "";
+  let completion: ScrobblePageResult | null = null;
+
+  const consumeLine = (line: string): void => {
+    if (!line) return;
+    const event = JSON.parse(line) as {
+      type?: unknown;
+      error?: unknown;
+      collection?: unknown;
+      rkeys?: unknown;
+      scrobbles?: unknown;
+      cursor?: unknown;
+      done?: unknown;
+    };
+
+    if (event.type === "ready") return;
+    if (event.type === "error") {
+      throw new Error(typeof event.error === "string" ? event.error : "The scrobble stream failed.");
+    }
+    if (
+      event.type === "scrobbles" &&
+      (event.collection === "legacy" || event.collection === "stable") &&
+      Array.isArray(event.rkeys) &&
+      Array.isArray(event.scrobbles) &&
+      event.rkeys.length === event.scrobbles.length &&
+      event.rkeys.every((rkey) => typeof rkey === "string")
+    ) {
+      const rkeys = event.rkeys as string[];
+      const collection = event.collection;
+      onScrobbles(
+        (event.scrobbles as TealScrobble[]).map((scrobble, index) => ({
+          ...scrobble,
+          _tourmalineRecordKey: rkeys[index],
+          _tourmalineCollection: collection,
+        })),
+      );
+      return;
+    }
+    if (event.type === "complete" && typeof event.done === "boolean") {
+      completion = {
+        cursor: typeof event.cursor === "string" ? event.cursor : null,
+        done: event.done,
+      };
+      return;
+    }
+    throw new Error("The scrobble stream returned an invalid event.");
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      buffered += decoder.decode(value, { stream: !done });
+
+      let newline = buffered.indexOf("\n");
+      while (newline >= 0) {
+        consumeLine(buffered.slice(0, newline));
+        buffered = buffered.slice(newline + 1);
+        newline = buffered.indexOf("\n");
+      }
+
+      if (buffered.length > MAX_STREAM_LINE_CHARS) {
+        throw new Error("The scrobble stream returned an oversized event.");
+      }
+      if (done) break;
+    }
+    consumeLine(buffered);
+  } catch (error) {
+    await reader.cancel().catch(() => undefined);
+    throw error;
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (!completion) {
+    throw new Error("The scrobble stream ended before completion.");
+  }
+  return completion;
+}
+
 /**
  * Fetch every scrobble for `did` from `pdsUrl`, compute profiles for all
  * date ranges, then progressively enrich artists and recompute. Mirrors the
@@ -390,23 +505,18 @@ export async function loadProfile(
       if (cursor) params.set("cursor", cursor);
 
       const res = await fetch(`/api/scrobbles/${encodeURIComponent(did)}?${params}`);
-      const batch = await res.json();
-
-      if (batch.error) throw new Error(batch.error);
-
-      // A CAR response can contain well over 100,000 records. Spreading that
-      // many arguments into push exhausts the JavaScript call stack, even
-      // though the array itself is otherwise safe to retain for analysis.
-      for (const scrobble of batch.scrobbles) allScrobbles.push(scrobble);
-      onFetchProgress?.(allScrobbles.length, Math.floor((Date.now() - fetchStartTime) / 1000));
-      cursor = batch.cursor;
-      fetchDone = batch.done;
+      const page = await readScrobblePage(res, (scrobbles) => {
+        for (const scrobble of scrobbles) allScrobbles.push(scrobble);
+        onFetchProgress?.(allScrobbles.length, Math.floor((Date.now() - fetchStartTime) / 1000));
+      });
+      cursor = page.cursor;
+      fetchDone = page.done;
     }
   } finally {
     clearInterval(fetchTimer);
   }
 
-  allScrobbles = deduplicateFallbackScrobbles(allScrobbles);
+  allScrobbles = deduplicateScrobbles(allScrobbles);
 
   if (allScrobbles.length === 0) {
     onPhase?.("complete");
