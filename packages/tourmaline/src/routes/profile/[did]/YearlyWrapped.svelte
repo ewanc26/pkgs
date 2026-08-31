@@ -5,14 +5,13 @@
 
 	let {
 		profile,
-		displayName = 'Listener'
-	}: { profile: ListenerProfile; displayName: string } = $props();
+		displayName = 'Listener',
+		rangeLabel = 'All time'
+	}: { profile: ListenerProfile; displayName: string; rangeLabel?: string } = $props();
 
 	let revealed = $state(false);
 	let copied = $state(false);
 	let containerEl: HTMLDivElement;
-
-	const year = new Date().getFullYear();
 
 	const hours = $derived(Math.floor(profile.totalMinutes / 60));
 	const topArtist = $derived(profile.topArtists[0]?.name ?? '—');
@@ -23,7 +22,7 @@
 
 	function buildShareText(): string {
 		const lines = [
-			`🎵 My ${year} listening on Tourmaline`,
+			`🎵 My ${rangeLabel.toLowerCase()} listening on Tourmaline`,
 			``,
 			`⏱ ${hours.toLocaleString()} hours listened`,
 			`🎤 Top artist: ${topArtist}`,
@@ -32,7 +31,7 @@
 			`🔀 ${profile.uniqueArtists.toLocaleString()} unique artists`,
 			`📊 Diversity score: ${profile.diversityScore}/100`,
 			``,
-			`tourmaline.ewancroft.uk/profile/${encodeURIComponent(profile.handle ?? profile.did)}`
+			`https://tourmaline.croft.click/profile/${encodeURIComponent(profile.handle ?? profile.did)}`
 		];
 		return lines.join('\n');
 	}
@@ -72,7 +71,7 @@
 		<!-- Background glow -->
 		<div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent"></div>
 
-		<p class="font-mono text-xs uppercase tracking-widest text-[var(--accent)]">{year} wrapped</p>
+		<p class="font-mono text-xs uppercase tracking-widest text-[var(--accent)]">{rangeLabel} listening</p>
 		<h2 class="mt-1 text-xl font-bold sm:text-2xl">{displayName}</h2>
 
 		<div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
