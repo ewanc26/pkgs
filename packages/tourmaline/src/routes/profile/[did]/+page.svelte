@@ -392,7 +392,11 @@
 			</div>
 
 			<div class="mt-8">
-				<YearlyWrapped profile={profile} displayName={bskyDisplayName ?? handle ?? did} />
+				<YearlyWrapped
+					profile={profile}
+					displayName={bskyDisplayName ?? handle ?? did}
+					rangeLabel={PRESET_LABELS[dateRange]}
+				/>
 			</div>
 
 		<!-- ── Taste tab ─────────────────────────────────── -->
