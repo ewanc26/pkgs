@@ -278,7 +278,7 @@
 								Upload your Nostr events JSON file.
 							{/if}
 						</p>
-						<div class="file-drop">
+						<label class="file-drop">
 							<input
 								type="file"
 								accept=".json,.js,.csv"
@@ -287,7 +287,8 @@
 									if (target.files?.[0]) handleFile(target.files[0]);
 								}}
 							/>
-						</div>
+							<span class="file-drop-prompt">Click to browse or drop your export file here</span>
+						</label>
 						{#if importError}
 							<p class="error">{importError}</p>
 						{/if}
@@ -479,18 +480,24 @@
 
 	.auth-form {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 0.5rem;
 		margin-bottom: 1rem;
 	}
 
+	.auth-form .btn-primary {
+		flex-shrink: 0;
+	}
+
 	.handle-input {
 		flex: 1;
+		min-width: 0;
 		padding: 0.5rem 0.75rem;
 		background: var(--surface-0);
 		border: 1px solid var(--border);
 		border-radius: 4px;
 		color: var(--text);
-		font-size: 0.9rem;
+		font-size: 1rem;
 	}
 
 	.handle-input:focus {
@@ -501,12 +508,15 @@
 	.step-actions {
 		display: flex;
 		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 0.5rem;
 		margin-top: 1.5rem;
 	}
 
 	.step-actions-right {
 		display: flex;
 		gap: 0.5rem;
+		flex-wrap: wrap;
 	}
 
 	.btn-primary {
@@ -534,11 +544,27 @@
 	}
 
 	.file-drop {
+		display: block;
 		border: 2px dashed var(--border);
 		border-radius: 4px;
 		padding: 2rem;
 		text-align: center;
 		margin-bottom: 1rem;
+		cursor: pointer;
+		transition: border-color 0.15s;
+	}
+
+	.file-drop:hover {
+		border-color: var(--accent);
+	}
+
+	.file-drop input {
+		display: none;
+	}
+
+	.file-drop-prompt {
+		color: var(--muted);
+		font-size: 0.85rem;
 	}
 
 	.post-list {
@@ -636,5 +662,33 @@
 	}
 	.sep {
 		margin: 0 0.4rem;
+	}
+
+	@media (max-width: 480px) {
+		main {
+			padding: 2rem 1rem 4rem;
+		}
+
+		.platform-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.auth-form .btn-primary {
+			width: 100%;
+		}
+
+		.step-actions-right {
+			width: 100%;
+			justify-content: flex-end;
+		}
+
+		.step-actions-right .btn-secondary,
+		.step-actions-right .btn-primary {
+			flex: 1;
+		}
+
+		.post-item {
+			font-size: 0.8rem;
+		}
 	}
 </style>
