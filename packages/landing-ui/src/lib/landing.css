@@ -34,6 +34,8 @@ body {
 	margin: 0;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
 }
 
 /* ── Tailwind token bridge ────────────────────────────────────────────────
@@ -254,7 +256,8 @@ a:hover {
 	border-radius: 6px;
 	padding: 0.625rem 0.75rem;
 	color: var(--text);
-	font-size: 0.9rem;
+	/* 16px floor: iOS Safari zooms the viewport on focus below this. */
+	font-size: 1rem;
 	font-family: 'JetBrains Mono', monospace;
 	transition: border-color 0.15s;
 	width: 100%;
@@ -402,5 +405,21 @@ details code {
 @media (max-width: 480px) {
 	.card-section {
 		padding: 1.25rem;
+	}
+	/* Keep form controls at or above 16px so iOS doesn't zoom on focus. */
+	.field input,
+	.field textarea {
+		font-size: 1rem;
+	}
+}
+
+/* ── reduced motion ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
 	}
 }

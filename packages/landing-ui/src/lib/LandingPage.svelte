@@ -595,6 +595,15 @@ interface Feature {
 	}
 
 	/* ── Responsive ───────────────────────────────────────────────────── */
+	@media (max-width: 640px) {
+		main {
+			padding: 2.5rem 1.25rem 4rem;
+		}
+		.features-section,
+		.how {
+			margin-bottom: 3rem;
+		}
+	}
 	@media (max-width: 480px) {
 		.hero {
 			padding: 1.5rem 0 2.5rem;
@@ -604,6 +613,11 @@ interface Feature {
 		}
 		.cta {
 			padding: 1.75rem 1.25rem;
+		}
+	}
+	@media (max-width: 360px) {
+		.features {
+			grid-template-columns: 1fr;
 		}
 	}
 </style>
