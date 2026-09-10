@@ -769,9 +769,10 @@
 		border-radius: 6px;
 		padding: 0.4rem 0.6rem;
 		color: var(--text);
-		font-size: 0.8rem;
+		font-size: 1rem;
 		font-family: 'JetBrains Mono', monospace;
 		width: 11rem;
+		max-width: 100%;
 		transition: border-color 0.15s;
 	}
 	.auth-input:focus {
@@ -973,5 +974,31 @@
 
 	:global(.spin) {
 		animation: spin 0.6s linear infinite;
+	}
+
+	@media (max-width: 480px) {
+		main {
+			padding: 2rem 1rem 4rem;
+		}
+
+		.header-row {
+			flex-wrap: wrap;
+		}
+
+		.auth-login {
+			flex: 1;
+			min-width: 0;
+		}
+
+		.auth-input {
+			width: 100%;
+			flex: 1;
+			min-width: 0;
+		}
+
+		.output-header {
+			flex-wrap: wrap;
+			gap: 0.5rem;
+		}
 	}
 </style>
