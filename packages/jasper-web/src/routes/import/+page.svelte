@@ -1187,7 +1187,7 @@
 		border: 1px solid var(--border);
 		background: var(--bg);
 		color: var(--text);
-		font-size: 0.95rem;
+		font-size: 1rem;
 	}
 
 	.field input[type='number'] {
@@ -1474,5 +1474,44 @@
 	}
 	.sep {
 		margin: 0 0.4rem;
+	}
+
+	@media (max-width: 480px) {
+		main {
+			padding: 2rem 1rem 4rem;
+		}
+
+		.signed-in-text {
+			white-space: normal;
+		}
+
+		.resume-actions {
+			flex-wrap: wrap;
+		}
+
+		.resume-actions .btn-primary {
+			flex: 1;
+		}
+
+		.saved-state-card {
+			flex-wrap: wrap;
+		}
+
+		.upload-mode-selector {
+			flex-direction: column;
+		}
+
+		.actions-inline {
+			flex-wrap: wrap;
+		}
+
+		.actions-inline .btn-primary,
+		.actions-inline .btn-secondary {
+			flex: 1;
+		}
+
+		.file-drop {
+			padding: 1.75rem 1rem;
+		}
 	}
 </style>

@@ -21,6 +21,11 @@
 	--muted: #a8a29e;
 	--error: #f87171;
 	--warn: #fbbf24;
+
+	/* aliases used by the import page */
+	--bg-secondary: var(--surface-2);
+	--bg-hover: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+	--font-mono: 'JetBrains Mono', monospace;
 }
 
 @theme {
