@@ -301,4 +301,20 @@
 		text-decoration: underline;
 		text-underline-offset: 2px;
 	}
+
+	/* ── Small screens ────────────────────────────────────────────────────── */
+	@media (max-width: 480px) {
+		header {
+			padding: 0.6rem 1rem;
+		}
+		.header-right {
+			gap: 0.6rem;
+		}
+		.nav-links {
+			gap: 0.75rem;
+		}
+		footer {
+			padding: 1rem 1rem;
+		}
+	}
 </style>

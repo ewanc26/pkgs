@@ -44,7 +44,7 @@
 			placeholder="Search actors..."
 			bind:value={identifier}
 			oninput={handleInput}
-			class="w-full rounded-full border border-[var(--border)] bg-[var(--surface)] py-2 pl-10 pr-4 text-sm outline-none focus:border-[var(--accent)]"
+			class="w-full rounded-full border border-[var(--border)] bg-[var(--surface)] py-2 pl-10 pr-4 text-base outline-none focus:border-[var(--accent)]"
 		/>
 		{#if searchLoading}
 			<Loader2 size={16} class="absolute right-3 animate-spin text-[var(--text-muted)]" />
