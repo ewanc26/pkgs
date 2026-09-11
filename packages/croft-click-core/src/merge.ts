@@ -3,16 +3,13 @@
  */
 
 import type { PlayRecord } from './types.js';
+import { canonicalizeTimestamp, normalizeString, playRecordKey } from './normalize.js';
 
 // ─── internal helpers ─────────────────────────────────────────────────────────
 
-type Source = 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'listenbrainz';
+export type Source = 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'listenbrainz';
 
-function normalizeString(s: string): string {
-  return s.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
-}
-
-interface NormalizedRecord {
+export interface NormalizedRecord {
   original: PlayRecord;
   normalizedTrack: string;
   normalizedArtist: string;
@@ -20,17 +17,17 @@ interface NormalizedRecord {
   source: Source;
 }
 
-function toNorm(r: PlayRecord, source: Source): NormalizedRecord {
+export function toNorm(r: PlayRecord, source: Source): NormalizedRecord {
   return {
     original: r,
     normalizedTrack: normalizeString(r.trackName),
     normalizedArtist: normalizeString(r.artists?.[0]?.artistName ?? ''),
-    timestamp: new Date(r.playedTime).getTime(),
+    timestamp: new Date(canonicalizeTimestamp(r.playedTime)).getTime(),
     source,
   };
 }
 
-function areDuplicates(a: NormalizedRecord, b: NormalizedRecord): boolean {
+export function areDuplicates(a: NormalizedRecord, b: NormalizedRecord): boolean {
   return (
     Math.abs(a.timestamp - b.timestamp) <= 300_000 &&
     a.normalizedTrack === b.normalizedTrack &&
@@ -38,11 +35,11 @@ function areDuplicates(a: NormalizedRecord, b: NormalizedRecord): boolean {
   );
 }
 
-function hasMbIds(n: NormalizedRecord): boolean {
+export function hasMbIds(n: NormalizedRecord): boolean {
   return !!(n.original.recordingMbId || n.original.releaseMbId || n.original.artists?.[0]?.artistMbId);
 }
 
-function betterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayRecord {
+export function betterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayRecord {
   // Last.fm and ListenBrainz both resolve listens against MusicBrainz, so a
   // record from either carrying real MBIDs beats one that doesn't.
   const aResolved = (a.source === 'lastfm' || a.source === 'listenbrainz') && hasMbIds(a);
@@ -57,7 +54,7 @@ function betterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayRecord {
 }
 
 /** Recover which source a merged record came from, for re-comparison during dedup. */
-function sourceOf(r: PlayRecord): Source {
+export function sourceOf(r: PlayRecord): Source {
   const service = r.musicServiceUri.toLowerCase();
   if (service.includes('last.fm')) return 'lastfm';
   if (service.includes('music.apple.com')) return 'apple';
@@ -135,7 +132,11 @@ export function mergePlayRecords(
 
 /**
  * Remove duplicate records within a single input set, keeping the first
- * occurrence of each (artist, track, timestamp) triple.
+ * occurrence of each (artist, track, canonical timestamp) triple.
+ *
+ * Matching uses the same normalised artist + track + canonicalised timestamp as
+ * every other dedup path, so the same listen submitted by two different clients
+ * (e.g. Last.fm via `…T14:39:14Z` and via `…T14:39:14.000Z`) collapses to one.
  */
 export function deduplicateInputRecords(
   records: PlayRecord[]
@@ -143,7 +144,7 @@ export function deduplicateInputRecords(
   const seen = new Map<string, PlayRecord>();
   let dups = 0;
   for (const r of records) {
-    const key = `${(r.artists?.[0]?.artistName ?? '').toLowerCase()}|||${r.trackName.toLowerCase()}|||${r.playedTime}`;
+    const key = playRecordKey(r);
     if (!seen.has(key)) seen.set(key, r);
     else dups++;
   }

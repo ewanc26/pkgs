@@ -1,13 +1,20 @@
 import type { Client } from '@atproto/lex'
 import type { PlayRecord, Config } from '../types.js';
-import { filterNewRecords as filterNewRecordsCore } from '@ewanc26/croft-click-core';
+import {
+  recordKey as recordKeyCore,
+  filterNewRecords as filterNewRecordsCore,
+  buildDedupPlan as buildDedupPlanCore,
+  removeDuplicateRecords as removeDuplicateRecordsCore,
+  DEFAULT_DEDUP_WINDOW_MS,
+  type DedupPlan,
+  type DedupPlanOptions,
+} from '@ewanc26/croft-click-core';
 import { fetchRepoViaCARWithClient } from '../utils/car-fetch.js';
 import { formatDate, formatDateRange } from '../utils/helpers.js';
 import * as ui from '../utils/ui.js';
 import { log } from '../utils/logger.js';
 import { isCacheValid, loadCache, saveCache, getCacheInfo } from '../utils/teal-cache.js';
 import { RECORD_TYPES } from '../config.js';
-import { com } from '@bsky/sdk/lexicons'
 
 interface ExistingRecord {
   uri: string;
@@ -15,20 +22,11 @@ interface ExistingRecord {
   value: PlayRecord;
 }
 
-interface DuplicateGroup {
-  key: string;
-  records: ExistingRecord[];
-}
-
 async function fetchPlayRecords(client: Client, did: string) {
   const collections = await Promise.all(
     RECORD_TYPES.map((collection) => fetchRepoViaCARWithClient(client, collection, did)),
   );
   return collections.flat();
-}
-
-function collectionFromUri(uri: string): string {
-  return uri.split('/').slice(3, -1).join('/');
 }
 
 /**
@@ -58,7 +56,9 @@ export async function fetchExistingRecords(
       const existingRecords = new Map<string, ExistingRecord>();
       for (const [, record] of cached.entries()) {
         const playRecord = record.value as PlayRecord;
-        existingRecords.set(createRecordKey(playRecord), record as ExistingRecord);
+        // Canonical key so cached records (which may carry old-format
+        // timestamps like `11:39:14Z`) still match incoming ones (Bug 1 & 5).
+        existingRecords.set(recordKeyCore(playRecord), record as ExistingRecord);
       }
       log.success(`✓ Loaded ${existingRecords.size.toLocaleString()} records from cache`);
       log.blank();
@@ -82,7 +82,9 @@ export async function fetchExistingRecords(
   for (const rec of carRecords) {
     const playRecord = rec.value as PlayRecord;
     const entry = { uri: rec.uri, cid: rec.cid, value: playRecord };
-    existingRecords.set(createRecordKey(playRecord), entry);
+    // CANONICAL KEY: normalises casing/Unicode and the timestamp, so a record
+    // cached under `11:39:14Z` collides with one submitted as `11:39:14.000Z`.
+    existingRecords.set(recordKeyCore(playRecord), entry);
     cacheMap.set(rec.uri, entry);
   }
 
@@ -93,8 +95,8 @@ export async function fetchExistingRecords(
 }
 
 /**
- * Fetch ALL existing play records as an array (including duplicates) via CAR exports.
- * Used by the deduplicate flow.
+ * Fetch ALL existing play records as an array (including duplicates) via CAR
+ * exports, for the deduplicate flow.
  */
 export async function fetchAllRecords(
   client: Client,
@@ -120,36 +122,32 @@ export async function fetchAllRecords(
 }
 
 /**
- * Create a unique key for a play record based on its essential properties.
+ * Create a unique key for a play record.
+ *
+ * Delegates to the shared key in `@ewanc26/croft-click-core` so the CLI and
+ * web front-end can never diverge on what counts as "the same listen": it is
+ * the normalised (case-/punctuation-/Unicode-insensitive) artist, normalised
+ * track, and a canonicalised timestamp.
  */
 export function createRecordKey(record: PlayRecord): string {
-  const artist = (record.artists?.[0]?.artistName ?? '').toLowerCase().trim();
-  const track = record.trackName.toLowerCase().trim();
-  return `${artist}|||${track}|||${record.playedTime}`;
-}
-
-/**
- * Create a fuzzy unique key for a play record, rounding the timestamp.
- */
-export function createFuzzyRecordKey(record: PlayRecord): string {
-  const artist = (record.artists?.[0]?.artistName ?? '').toLowerCase().trim();
-  const track = record.trackName.toLowerCase().trim();
-  const date = new Date(record.playedTime);
-  // Round to nearest minute
-  date.setSeconds(0, 0);
-  return `${artist}|||${track}|||${date.toISOString()}`;
+  return recordKeyCore(record);
 }
 
 /**
  * Deduplicate input records before submission.
- * Keeps the first occurrence of each duplicate.
+ *
+ * Delegates to the shared implementation, which keeps the first occurrence of
+ * each (normalised artist, normalised track, canonical timestamp) triple — so
+ * the same listen submitted as `14Z` and `14.000Z` collapses to one.
  */
-export function deduplicateInputRecords(records: PlayRecord[]): { unique: PlayRecord[]; duplicates: number } {
+export function deduplicateInputRecords(
+  records: PlayRecord[]
+): { unique: PlayRecord[]; duplicates: number } {
   const seen = new Map<string, PlayRecord>();
   let duplicates = 0;
 
   for (const record of records) {
-    const key = createRecordKey(record);
+    const key = recordKeyCore(record);
     if (!seen.has(key)) {
       seen.set(key, record);
     } else {
@@ -162,14 +160,22 @@ export function deduplicateInputRecords(records: PlayRecord[]): { unique: PlayRe
 
 /**
  * Filter out records that already exist in Teal.
+ *
+ * Wraps the shared core filter, which drops a record on an exact canonical key
+ * match OR within a ±60-second window of an existing copy of the same
+ * normalized artist + track (catching cross-source overlaps and same-source
+ * double-fires — Bug 2).
  */
 export function filterNewRecords(
   lastfmRecords: PlayRecord[],
-  existingRecords: Map<string, ExistingRecord>
+  existingRecords: Map<string, ExistingRecord>,
+  opts?: { windowMs?: number }
 ): PlayRecord[] {
   log.section('Identifying New Records');
 
-  const newRecords = filterNewRecordsCore(lastfmRecords, existingRecords);
+  const newRecords = filterNewRecordsCore(lastfmRecords, existingRecords, {
+    windowMs: opts?.windowMs ?? DEFAULT_DEDUP_WINDOW_MS,
+  });
   const newRecordSet = new Set(newRecords);
   const duplicates = lastfmRecords.filter((record) => !newRecordSet.has(record));
 
@@ -238,97 +244,48 @@ export function displaySyncStats(
 }
 
 /**
- * Find duplicate records in the existing records.
- * Returns groups of duplicates (each group has 2+ records with the same key).
+ * Fetch all records and build a deduplication plan — read-only, safe to run.
+ *
+ * Mirrors the polish flow: analyse first (`analyzeDuplicates` -> `displayDedupPlan`
+ * -> confirm), only then execute (`removeDuplicateRecords`). The plan groups
+ * records by normalized artist+track, clusters them within the ±60s window, and
+ * designates the richer record (MBIDs, ISRC, duration) as the one to keep.
  */
-export function findDuplicates(allRecords: ExistingRecord[], fuzzy = true): DuplicateGroup[] {
-  const keyGroups = new Map<string, ExistingRecord[]>();
-
-  for (const record of allRecords) {
-    const key = fuzzy ? createFuzzyRecordKey(record.value) : createRecordKey(record.value);
-    if (!keyGroups.has(key)) keyGroups.set(key, []);
-    keyGroups.get(key)!.push(record);
-  }
-
-  const duplicates: DuplicateGroup[] = [];
-  for (const [key, records] of keyGroups) {
-    if (records.length > 1) duplicates.push({ key, records });
-  }
-  return duplicates;
+export async function analyzeDuplicates(
+  client: Client,
+  config: Config,
+  opts?: DedupPlanOptions
+): Promise<DedupPlan> {
+  const allRecords = await fetchAllRecords(client, config);
+  return buildDedupPlanCore(allRecords, opts);
 }
 
 /**
- * Remove duplicate records from Teal, keeping only the first occurrence.
+ * Render a deduplication plan for review before any deletion.
  */
-export async function removeDuplicates(
-  client: Client,
-  config: Config,
-  dryRun: boolean = false
-): Promise<{ totalDuplicates: number; recordsRemoved: number }> {
-  ui.header('Checking for Duplicate Records');
+export function displayDedupPlan(plan: DedupPlan): void {
+  ui.subheader('Duplicate groups found');
 
-  const allRecords = await fetchAllRecords(client, config);
-
-  ui.startSpinner('Analyzing records for duplicates...');
-  const duplicateGroups = findDuplicates(allRecords);
-
-  if (duplicateGroups.length === 0) {
-    ui.succeedSpinner('No duplicates found!');
-    return { totalDuplicates: 0, recordsRemoved: 0 };
-  }
-
-  ui.stopSpinner();
-
-  const totalDuplicates = duplicateGroups.reduce((sum, group) => sum + (group.records.length - 1), 0);
-
-  ui.warning(`Found ${duplicateGroups.length.toLocaleString()} duplicate groups (${totalDuplicates.toLocaleString()} records to remove)`);
-  console.log('');
-
-  const exampleCount = Math.min(5, duplicateGroups.length);
-  ui.subheader('Examples of Duplicates:');
+  const exampleCount = Math.min(5, plan.groups.length);
   for (let i = 0; i < exampleCount; i++) {
-    const group = duplicateGroups[i];
-    const firstRecord = group.records[0].value;
-    console.log(`  ${i + 1}. ${firstRecord.artists?.[0]?.artistName} - ${firstRecord.trackName}`);
-    console.log(`     ${formatDate(firstRecord.playedTime, true)} · ${group.records.length - 1} duplicate(s)`);
+    const group = plan.groups[i]!;
+    const kept = group.keep.value;
+    log.info(
+      `  ${i + 1}. ${kept.artists?.[0]?.artistName ?? '(no artist)'} - ${kept.trackName}` +
+        ` @ ${formatDate(kept.playedTime, true)} — keeping` +
+        ` · dropping ${group.remove.length} (${group.reason})`
+    );
   }
-  if (duplicateGroups.length > exampleCount) {
-    console.log(`     ... and ${duplicateGroups.length - exampleCount} more groups`);
+  if (plan.groups.length > exampleCount) {
+    log.info(`     ... and ${plan.groups.length - exampleCount} more group(s)`);
   }
-  console.log('');
+  log.blank();
 
-  if (dryRun) {
-    ui.info('DRY RUN: No records were removed.');
-    return { totalDuplicates, recordsRemoved: 0 };
-  }
-
-  console.log('');
-  const progressBar = ui.createProgressBar(totalDuplicates, 'Removing duplicates');
-  let recordsRemoved = 0;
-  const startTime = Date.now();
-
-  for (const group of duplicateGroups) {
-    for (const record of group.records.slice(1)) {
-      try {
-         await client.call(com.atproto.repo.deleteRecord.main as any, {
-           repo: client.assertDid,
-           collection: collectionFromUri(record.uri),
-           rkey: record.uri.split('/').pop()!,
-         });
-        recordsRemoved++;
-        const elapsed = (Date.now() - startTime) / 1000;
-        progressBar.update(recordsRemoved, { speed: recordsRemoved / Math.max(elapsed, 0.1) });
-      } catch {
-        // continue on individual failures
-      }
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-  }
-
-  progressBar.stop();
-  console.log('');
-  ui.success(`Removed ${recordsRemoved.toLocaleString()} duplicate records`);
-  ui.info(`Kept ${duplicateGroups.length.toLocaleString()} unique records`);
-
-  return { totalDuplicates, recordsRemoved };
+  log.info(`Total records scanned: ${plan.totalRecords.toLocaleString()}`);
+  log.warn(`Duplicates to remove: ${plan.totalDuplicates.toLocaleString()} (keeping ${plan.groups.length.toLocaleString()} unique)`);
+  log.blank();
 }
+
+/** Re-export the shared executor so the CLI and web delete through one path. */
+export { removeDuplicateRecordsCore as removeDuplicateRecords };
+export type { DedupPlan };

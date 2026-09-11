@@ -205,7 +205,7 @@ describe('Spotify Record Conversion', () => {
     assert.strictEqual(playRecord.trackName, 'Test Track');
     assert.strictEqual(playRecord.artists?.[0].artistName, 'Test Artist');
     assert.strictEqual(playRecord.releaseName, 'Test Album');
-    assert.strictEqual(playRecord.playedTime, '2021-06-15T20:00:00Z');
+    assert.strictEqual(playRecord.playedTime, '2021-06-15T20:00:00.000Z');
     assert.strictEqual(playRecord.musicServiceUri, 'https://open.spotify.com/');
     assert.match(playRecord.originUri ?? '', /spotify.com/);
     assert.match(playRecord.originUri ?? '', /7qiZfU4dY1lsylvNFutmtK/);

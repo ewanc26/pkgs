@@ -29,6 +29,7 @@ export {
 export * from './mbid.js';
 export * from './merge.js';
 export * from './musicbrainz.js';
+export * from './normalize.js';
 export * from './proactive-rate-pacer.js';
 export * from './polish.js';
 export * from './publisher.js';
