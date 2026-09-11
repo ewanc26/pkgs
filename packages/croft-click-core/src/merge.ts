@@ -7,7 +7,7 @@ import { canonicalizeTimestamp, normalizeString, playRecordKey } from './normali
 
 // ─── internal helpers ─────────────────────────────────────────────────────────
 
-export type Source = 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'listenbrainz';
+export type Source = 'lastfm' | 'spotify' | 'apple' | 'youtube' | 'listenbrainz' | 'unknown';
 
 export interface NormalizedRecord {
   original: PlayRecord;
@@ -15,6 +15,31 @@ export interface NormalizedRecord {
   normalizedArtist: string;
   timestamp: number;
   source: Source;
+}
+
+export interface MergeStats {
+  lastfmTotal: number;
+  spotifyTotal: number;
+  appleTotal: number;
+  youtubeTotal: number;
+  listenbrainzTotal: number;
+  duplicatesRemoved: number;
+  mergedTotal: number;
+}
+
+/**
+ * Recover which source a record came from, for re-comparison during dedup.
+ * Existing records fetched from a live PDS may predate the `musicServiceUri`
+ * field, so a missing value is reported as 'unknown' rather than crashing the
+ * dedup sweep over production data.
+ */
+export function sourceOf(r: PlayRecord): Source {
+  const service = r.musicServiceUri?.toLowerCase() ?? '';
+  if (service.includes('last.fm')) return 'lastfm';
+  if (service.includes('music.apple.com')) return 'apple';
+  if (service.includes('music.youtube.com')) return 'youtube';
+  if (service.includes('listenbrainz.org')) return 'listenbrainz';
+  return service ? 'spotify' : 'unknown';
 }
 
 export function toNorm(r: PlayRecord, source: Source): NormalizedRecord {
@@ -46,33 +71,12 @@ export function betterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayReco
   const bResolved = (b.source === 'lastfm' || b.source === 'listenbrainz') && hasMbIds(b);
   if (aResolved && !bResolved) return a.original;
   if (bResolved && !aResolved) return b.original;
+  // 'unknown'/'youtube' records (no resolvable source) sink to the bottom.
   if (a.source === 'spotify') return a.original;
   if (b.source === 'spotify') return b.original;
   if (a.source === 'apple') return a.original;
   if (b.source === 'apple') return b.original;
   return a.original;
-}
-
-/** Recover which source a merged record came from, for re-comparison during dedup. */
-export function sourceOf(r: PlayRecord): Source {
-  const service = r.musicServiceUri.toLowerCase();
-  if (service.includes('last.fm')) return 'lastfm';
-  if (service.includes('music.apple.com')) return 'apple';
-  if (service.includes('music.youtube.com')) return 'youtube';
-  if (service.includes('listenbrainz.org')) return 'listenbrainz';
-  return 'spotify';
-}
-
-// ─── public API ───────────────────────────────────────────────────────────────
-
-export interface MergeStats {
-  lastfmTotal: number;
-  spotifyTotal: number;
-  appleTotal: number;
-  youtubeTotal: number;
-  listenbrainzTotal: number;
-  duplicatesRemoved: number;
-  mergedTotal: number;
 }
 
 /**
