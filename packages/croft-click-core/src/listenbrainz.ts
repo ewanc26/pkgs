@@ -13,6 +13,7 @@
 import type { ListenBrainzRecord, PlayRecord } from './types.js';
 import { RECORD_TYPE } from './config.js';
 import { normalizeMusicBrainzId } from './mbid.js';
+import { canonicalizeTimestamp, normalizeName } from './normalize.js';
 import { extractTextEntries, isZipArchive } from './archive.js';
 
 function isListenBrainzRecord(v: unknown): v is ListenBrainzRecord {
@@ -141,7 +142,7 @@ export function convertListenBrainzToPlayRecord(
       ? mappedArtists.map((a) => {
           const artistMbId = normalizeMusicBrainzId(a.artist_mbid);
           return {
-            artistName: a.artist_credit_name,
+            artistName: normalizeName(a.artist_credit_name),
             ...(artistMbId ? { artistMbId } : {}),
           };
         })
@@ -150,7 +151,7 @@ export function convertListenBrainzToPlayRecord(
         // a fabricated name is both untrue and invisible to MusicBrainz
         // enrichment later, since the field would look already-populated.
         artistName
-        ? [{ artistName }]
+        ? [{ artistName: normalizeName(artistName) }]
         : undefined;
 
   const recordingMbId = normalizeMusicBrainzId(
@@ -165,17 +166,18 @@ export function convertListenBrainzToPlayRecord(
   // still real. Drop it rather than invent "Unknown Track".
   if (!trackName) return null;
 
-  // ListenBrainz timestamps are Unix seconds, not milliseconds.
+  // ListenBrainz timestamps are Unix seconds, not milliseconds. Canonicalise so
+  // the published `playedTime` is byte-identical across clients (Bug 1).
   const record: PlayRecord = {
     $type: RECORD_TYPE,
-    trackName,
+    trackName: normalizeName(trackName),
     ...(artists ? { artists } : {}),
-    playedTime: new Date(r.listened_at * 1000).toISOString(),
+    playedTime: canonicalizeTimestamp(new Date(r.listened_at * 1000).toISOString()),
     submissionClientAgent: clientAgent,
     musicServiceUri: additional_info?.music_service
       ? `https://${additional_info.music_service.replace(/^https?:\/\//, '').replace(/\/$/, '')}/`
       : 'https://listenbrainz.org/',
-    ...(releaseName ? { releaseName } : {}),
+    ...(releaseName ? { releaseName: normalizeName(releaseName) } : {}),
     ...(additional_info?.origin_url ? { originUri: additional_info.origin_url } : {}),
     ...(recordingMbId ? { recordingMbId } : {}),
     ...(releaseMbId ? { releaseMbId } : {}),

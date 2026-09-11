@@ -6,6 +6,7 @@
 import type { LastFmCsvRecord, PlayRecord, PlayRecordArtist } from './types.js';
 import { RECORD_TYPE } from './config.js';
 import { normalizeMusicBrainzId } from './mbid.js';
+import { canonicalizeTimestamp, normalizeName } from './normalize.js';
 
 // ─── delimiter detection ──────────────────────────────────────────────────────
 
@@ -122,11 +123,13 @@ export function convertToPlayRecord(csv: LastFmCsvRecord, clientAgent: string): 
   if (!Number.isFinite(utsNum)) {
     throw new Error(`Invalid or missing timestamp for "${csv.track}" by ${csv.artist} (uts="${csv.uts}")`);
   }
-  const playedTime = new Date(utsNum * 1000).toISOString();
+  // Canonicalise through Date so the published `playedTime` is byte-identical
+  // across every client (Bug 1: timestamp format variance caused duplicates).
+  const playedTime = canonicalizeTimestamp(new Date(utsNum * 1000).toISOString());
 
   const artists: PlayRecord['artists'] = [];
   if (csv.artist) {
-    const a: PlayRecordArtist = { artistName: csv.artist };
+    const a: PlayRecordArtist = { artistName: normalizeName(csv.artist) };
     const artistMbId = normalizeMusicBrainzId(csv.artist_mbid);
     if (artistMbId) a.artistMbId = artistMbId;
     artists.push(a);
@@ -134,14 +137,14 @@ export function convertToPlayRecord(csv: LastFmCsvRecord, clientAgent: string): 
 
   const record: PlayRecord = {
     $type: RECORD_TYPE,
-    trackName: csv.track,
+    trackName: normalizeName(csv.track),
     artists,
     playedTime,
     submissionClientAgent: clientAgent,
     musicServiceUri: 'https://www.last.fm/',
   };
 
-  if (csv.album?.trim()) record.releaseName = csv.album;
+  if (csv.album?.trim()) record.releaseName = normalizeName(csv.album);
   const releaseMbId = normalizeMusicBrainzId(csv.album_mbid);
   if (releaseMbId) record.releaseMbId = releaseMbId;
   const recordingMbId = normalizeMusicBrainzId(csv.track_mbid);
