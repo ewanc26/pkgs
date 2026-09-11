@@ -29,6 +29,10 @@ export interface PlayRecord {
   releaseName?: string;
   releaseMbId?: string;
   recordingMbId?: string;
+  /** ISRC of the recording, per the lexicon. Set by MusicBrainz enrichment. */
+  isrc?: string;
+  /** Track length in seconds — set from Apple Music "Media Duration In Milliseconds". */
+  duration?: number;
   originUri?: string;
 }
 
@@ -61,13 +65,16 @@ export interface CommandLineArgs {
   'batch-size'?: string;
   'batch-delay'?: string;
   
-  // Import options
+   // Import options
   reverse?: boolean;
   yes?: boolean;
   'dry-run'?: boolean;
   aggressive?: boolean;
   fresh?: boolean;
   'non-interactive'?: boolean;
+  // Deduplicate: same-artist+track window in seconds. Same listen if within
+  // this many seconds of an existing record (default 60).
+  'dedup-window'?: number;
   'clear-cache'?: boolean;
   'clear-all-caches'?: boolean;
   'clear-credentials'?: boolean;

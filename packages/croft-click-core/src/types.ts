@@ -37,6 +37,14 @@ export interface PlayRecord {
   recordingMbId?: string;
   /** ISRC of the recording, per the lexicon. Set by MusicBrainz enrichment. */
   isrc?: string;
+  /**
+   * Track length in seconds, per the lexicon `duration` field.
+   * Populated by sources that carry a true track length — currently Apple Music's
+   * "Media Duration In Milliseconds" — and by MusicBrainz enrichment. Spotify's
+   * export only reports `ms_played` (how long the listener actually heard), which
+   * is not track length and is therefore never used here (see Bug 3).
+   */
+  duration?: number;
   originUri?: string;
 }
 

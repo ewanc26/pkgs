@@ -5,6 +5,7 @@
 
 import type { YouTubeMusicRecord, PlayRecord } from './types.js';
 import { RECORD_TYPE } from './config.js';
+import { canonicalizeTimestamp, normalizeName } from './normalize.js';
 
 export type { YouTubeMusicRecord };
 
@@ -30,7 +31,7 @@ export function convertYouTubeMusicToPlayRecord(r: YouTubeMusicRecord, clientAge
   // record from MusicBrainz enrichment, which looks for a missing artist.
   const subtitle = r.subtitles?.[0]?.name;
   const artistName = subtitle && !subtitle.includes('music.youtube.com') ? subtitle : undefined;
-  const artists: PlayRecord['artists'] | undefined = artistName ? [{ artistName }] : undefined;
+  const artists: PlayRecord['artists'] | undefined = artistName ? [{ artistName: normalizeName(artistName) }] : undefined;
 
   // Strip "Watched " prefix from title
   let trackName = r.title ?? '';
@@ -42,9 +43,9 @@ export function convertYouTubeMusicToPlayRecord(r: YouTubeMusicRecord, clientAge
 
   const record: PlayRecord = {
     $type: RECORD_TYPE,
-    trackName,
+    trackName: normalizeName(trackName),
     ...(artists ? { artists } : {}),
-    playedTime: r.time,
+    playedTime: canonicalizeTimestamp(r.time),
     submissionClientAgent: clientAgent,
     musicServiceUri: 'https://music.youtube.com/',
     ...(r.titleUrl ? { originUri: r.titleUrl } : {}),

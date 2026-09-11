@@ -26,7 +26,7 @@ import {
   fetchExistingRecords,
   filterNewRecords,
   fetchAllRecordsForDedup,
-  findDuplicateGroups,
+  buildDedupPlan,
   removeDuplicateRecords,
   type ExistingRecord,
 } from '@ewanc26/croft-click-core';
@@ -182,24 +182,27 @@ export async function runImport(
       );
       onLog('success', `Fetched ${all.length.toLocaleString()} records`);
 
-      const groups = findDuplicateGroups(all);
-      const totalDups = groups.reduce((s, g) => s + g.records.length - 1, 0);
+      const plan = buildDedupPlan(all);
+      const totalDups = plan.totalDuplicates;
 
       if (totalDups === 0) {
         onLog('success', 'No duplicates found — your records are clean.');
         return { success: 0, errors: 0, cancelled: false };
       }
-      onLog('warn', `Found ${totalDups.toLocaleString()} duplicate(s) across ${groups.length} groups`);
+      onLog('warn', `Found ${totalDups.toLocaleString()} duplicate(s) across ${plan.groups.length} groups`);
 
       if (dryRun) {
-        onLog('info', `[DRY RUN] Would remove ${totalDups} duplicate record(s).`);
+        onLog('info', `[DRY RUN] Would remove ${totalDups.toLocaleString()} duplicate record(s).`);
+        for (const group of plan.groups) {
+          onLog('info', `  • keep ${group.keep.value.trackName} — ${group.keep.value.artists?.[0]?.artistName}`);
+        }
         return { success: totalDups, errors: 0, cancelled: false };
       }
 
       onLog('info', 'Removing duplicates…');
       const removed = await removeDuplicateRecords(
         client,
-        groups,
+        plan,
         (n) => onLog('progress', `  Removed ${n}/${totalDups}…`),
         sig,
       );

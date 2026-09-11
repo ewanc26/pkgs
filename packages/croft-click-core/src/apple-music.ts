@@ -7,6 +7,7 @@ import type { AppleMusicRecord, PlayRecord } from './types.js';
 import type { AppleCatalogHint } from './apple-catalog.js';
 import { registerAppleCatalogHint } from './apple-catalog.js';
 import { RECORD_TYPE } from './config.js';
+import { canonicalizeTimestamp, normalizeName } from './normalize.js';
 
 export type { AppleMusicRecord };
 
@@ -189,35 +190,37 @@ export function convertAppleMusicToPlayRecord(
   if (!trackName) return null;
 
   const artistName = firstNonEmpty(r, ARTIST_COLUMNS) ?? artistLookup?.get(titleKey(trackName));
-  const artists: PlayRecord['artists'] | undefined = artistName ? [{ artistName }] : undefined;
+  const artists: PlayRecord['artists'] | undefined = artistName ? [{ artistName: normalizeName(artistName) }] : undefined;
   const releaseName = firstNonEmpty(r, ALBUM_COLUMNS);
 
-  let playedTime = r['Event End Timestamp'] || r['Event Start Timestamp'] || new Date().toISOString();
+  // Canonicalise the timestamp exactly like every other source (Bug 1): normalise
+  // Apple's space-separated forms to ISO 8601 and force UTC before collapsing to
+  // a single byte-identical timestamp shape.
+  let rawTime = r['Event End Timestamp'] || r['Event Start Timestamp'] || '';
+  if (!rawTime) rawTime = new Date().toISOString();
+  if (!rawTime.includes('T')) rawTime = rawTime.replace(' ', 'T');
+  if (!rawTime.endsWith('Z') && !rawTime.includes('+')) rawTime += 'Z';
+  const playedTime = canonicalizeTimestamp(rawTime);
 
-  if (!playedTime.includes('T')) {
-    playedTime = playedTime.replace(' ', 'T');
-  }
-  if (!playedTime.endsWith('Z') && !playedTime.includes('+') && !playedTime.includes('-')) {
-    playedTime += 'Z';
-  }
-
-  const dt = new Date(playedTime);
-  if (isNaN(dt.getTime())) {
-    playedTime = new Date().toISOString();
-  } else {
-    playedTime = dt.toISOString();
-  }
+  // `Media Duration In Milliseconds` is the true track length (not the portion
+  // actually played), so it is a faithful source for the lexicon `duration`
+  // field (Bug 3).
+  const durationMs = Number(r['Media Duration In Milliseconds']);
+  const duration = Number.isFinite(durationMs) && durationMs > 0
+    ? Math.round(durationMs / 1000)
+    : undefined;
 
   const record: PlayRecord = {
     $type: RECORD_TYPE,
-    trackName,
+    trackName: normalizeName(trackName),
     playedTime,
     submissionClientAgent: clientAgent,
     musicServiceUri: 'https://music.apple.com/',
+    ...(duration ? { duration } : {}),
   };
 
   if (artists) record.artists = artists;
-  if (releaseName) record.releaseName = releaseName;
+  if (releaseName) record.releaseName = normalizeName(releaseName);
 
   registerAppleCatalogHint(record, appleCatalogHintFromAppleMusicRecord(r));
   return record;
