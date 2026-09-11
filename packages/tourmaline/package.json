@@ -1,7 +1,7 @@
 {
   "name": "@ewanc26/tourmaline",
   "private": true,
-  "version": "0.7.2",
+  "version": "0.7.3",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -29,10 +29,10 @@
     "vite": "^8.0.7"
   },
   "dependencies": {
-    "@bsky/sdk": "latest",
     "@atproto/lex": "^0.3.0",
     "@atproto/lex-password-session": "^0.2.0",
     "@atproto/oauth-client-browser": "^0.3.42",
+    "@bsky/sdk": "latest",
     "@ewanc26/croft-click-core": "workspace:*",
     "@ewanc26/landing-ui": "workspace:*",
     "@ewanc26/noise-avatar": "workspace:*",
