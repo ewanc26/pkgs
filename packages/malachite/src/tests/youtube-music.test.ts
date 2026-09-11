@@ -101,7 +101,7 @@ describe('YouTube Music Record Conversion', () => {
 
     assert.strictEqual(playRecord.trackName, 'Test Track');
     assert.strictEqual(playRecord.artists?.[0].artistName, 'Test Artist');
-    assert.strictEqual(playRecord.playedTime, '2021-06-15T20:00:00Z');
+    assert.strictEqual(playRecord.playedTime, '2021-06-15T20:00:00.000Z');
     assert.strictEqual(playRecord.musicServiceUri, 'https://music.youtube.com/');
     assert.strictEqual(playRecord.originUri, 'https://music.youtube.com/watch?v=123');
   });
