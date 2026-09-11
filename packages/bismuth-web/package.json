@@ -1,7 +1,7 @@
 {
   "name": "@ewanc26/bismuth-web",
-  "version": "0.2.3",
-  "description": "Web frontend for Bismuth \u2014 convert ATProto richtext-block documents to Markdown in your browser",
+  "version": "0.2.4",
+  "description": "Web frontend for Bismuth — convert ATProto richtext-block documents to Markdown in your browser",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
   "private": true,
@@ -34,10 +34,10 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@bsky/sdk": "latest",
     "@atproto/lex": "^0.3.0",
     "@atproto/lex-password-session": "^0.2.0",
     "@atproto/oauth-client-browser": "0.4.0",
+    "@bsky/sdk": "latest",
     "@ewanc26/bismuth": "workspace:*",
     "@ewanc26/landing-ui": "workspace:*",
     "@lucide/svelte": "1.17.0"

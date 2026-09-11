@@ -1,7 +1,7 @@
 {
   "name": "@ewanc26/svelte-standard-site",
-  "version": "0.2.4",
-  "description": "SvelteKit library for reading and writing AT Protocol longform content via site.standard.* records \u2014 with a complete design system, federated comments, publishing tools, and content verification.",
+  "version": "0.2.5",
+  "description": "SvelteKit library for reading and writing AT Protocol longform content via site.standard.* records — with a complete design system, federated comments, publishing tools, and content verification.",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -96,9 +96,9 @@
     "lint": "prettier --check ."
   },
   "dependencies": {
-    "@bsky/sdk": "latest",
     "@atproto/lex": "^0.3.0",
     "@atproto/lex-password-session": "^0.2.0",
+    "@bsky/sdk": "latest",
     "@ewanc26/atproto": "workspace:*",
     "@ewanc26/tid": "workspace:*",
     "@ewanc26/utils": "workspace:*",
