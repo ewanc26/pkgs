@@ -8,6 +8,32 @@ Import your music listening history to AT Protocol as `fm.teal.feed.play` record
 
 Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/malachite)**.
 
+## Deduplication & sync guarantees
+
+Malachite treats two play records as the same listen using a single shared key
+(`@ewanc26/croft-click-core`): the **normalized artist**, **normalized track**,
+and a **canonical timestamp**. Normalization is case-insensitive,
+punctuation-insensitive, and applies Unicode **NFKC** equivalence first, so
+`Dagames`/`DAGames`, `jack stauber's`/`jack stauber's` (curly vs straight
+apostrophe), and `Bru-C`/`Bru-C` (non-breaking vs regular hyphen) all collapse
+onto one key **without** rewriting the casing of the stored record.
+
+Timestamps are parsed and re-emitted as canonical ISO 8601, so the same instant
+scrobbled as `2026-07-17T11:39:14Z` and `2026-07-17T11:39:14.000Z` hashes to one
+record key and publishes a byte-identical `playedTime`.
+
+Beyond exact keys, the sync and cleanup paths also fold together records that
+share artist + track within a **±60 second** window — the conservative
+"cross-source overlap / double-fire" tolerance (a deliberate replay of a short
+track after the window is preserved as a real listen). This window is
+configurable via the `windowMs`/`--dedup-window` option.
+
+The historical `deduplicate` mode (`--mode deduplicate`) is **dry-run first**:
+it fetches your repo via CAR, builds a reviewable plan that keeps the richest
+copy of each duplicate cluster (MusicBrainz IDs, ISRC, duration preferred) and
+marks the rest for deletion, then prompts for confirmation before deleting
+anything with `com.atproto.repo.deleteRecord`.
+
 ## Related projects
 
 Part of the [croft.click](https://croft.click) toolkit — free, browser-based tools for moving your data onto the AT Protocol:
