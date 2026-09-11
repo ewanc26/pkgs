@@ -42,6 +42,8 @@ export interface MusicBrainzMatch {
   releaseMbId?: string;
   releaseName?: string;
   isrc?: string;
+  /** Track length in seconds, from MusicBrainz's `length`, when present. */
+  duration?: number;
   artists: Array<{ artistName: string; artistMbId?: string }>;
   /** MusicBrainz's own confidence, 0–100. */
   score: number;
@@ -92,6 +94,8 @@ interface MbRecording {
   id?: string;
   score?: number;
   title?: string;
+  /** Track length in seconds, when MusicBrainz has one for the recording. */
+  length?: number | string;
   isrcs?: string[];
   'artist-credit'?: MbArtistCredit[];
   releases?: MbRelease[];
@@ -180,11 +184,13 @@ export class MusicBrainzClient {
     if (artists.length === 0) return null;
 
     const release = top.releases?.[0];
+    const lengthSec = typeof top.length === 'string' ? Number(top.length) : top.length;
     return {
       recordingMbId: normalizeMusicBrainzId(top.id),
       releaseMbId: normalizeMusicBrainzId(release?.id),
       releaseName: release?.title,
       isrc: top.isrcs?.[0],
+      duration: Number.isFinite(lengthSec && lengthSec > 0 ? lengthSec : NaN) ? Math.round(lengthSec!) : undefined,
       artists,
       score,
     };
@@ -327,6 +333,9 @@ export async function enrichWithMusicBrainz(
     if (!next.releaseMbId && match.releaseMbId) next.releaseMbId = match.releaseMbId;
     if (!next.releaseName && match.releaseName) next.releaseName = match.releaseName;
     if (!next.isrc && match.isrc) next.isrc = match.isrc;
+    // Backfill a true track length (seconds) where no source provided one —
+    // Apple provides it directly, Spotify does not, so MusicBrainz fills the gap.
+    if (!next.duration && match.duration) next.duration = match.duration;
 
     out.push(next);
     musicBrainzEnriched++;
