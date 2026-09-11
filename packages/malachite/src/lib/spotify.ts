@@ -1,31 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { PlayRecord, Config } from '../types.js';
+import { convertSpotifyToPlayRecord as coreConvertSpotify } from '@ewanc26/croft-click-core';
+import type { SpotifyRecord } from '@ewanc26/croft-click-core';
 import { buildClientAgent } from '../config.js';
 
-/**
- * Spotify streaming history record
- */
-export interface SpotifyRecord {
-  ts: string;
-  platform: string;
-  ms_played: number;
-  conn_country: string;
-  master_metadata_track_name: string | null;
-  master_metadata_album_artist_name: string | null;
-  master_metadata_album_album_name: string | null;
-  spotify_track_uri: string | null;
-  episode_name: string | null;
-  episode_show_name: string | null;
-  spotify_episode_uri: string | null;
-  reason_start: string;
-  reason_end: string;
-  shuffle: boolean;
-  skipped: boolean;
-  offline: boolean;
-  offline_timestamp: number | null;
-  incognito_mode: boolean;
-}
+export type { SpotifyRecord };
 
 // ─── web: boolean toggle ────────────────────────────────────────────────────
 //  parseSpotifyJsonContent accepts an already-decoded SpotifyRecord[] so the
@@ -81,43 +61,19 @@ export function parseSpotifyJson(filePathOrDir: string): SpotifyRecord[] {
 }
 
 /**
- * Convert Spotify record to ATProto play record
+ * Convert a Spotify record to an ATProto play record.
+ *
+ * Delegates to the shared converter in `@ewanc26/croft-click-core` so the CLI
+ * and the web front-end can never drift apart. The shared converter
+ * canonicalises `playedTime`, applies NFKC to artist/track names, and — because
+ * Spotify only exposes `ms_played` (how long the listener heard the track, not
+ * the track's length) — deliberately leaves `duration` unset. `debug` is kept
+ * for signature stability; the agent string is derived from the package version.
  */
-export function convertSpotifyToPlayRecord(spotifyRecord: SpotifyRecord, config: Config, debug = false): PlayRecord | null {
-  const { RECORD_TYPE } = config;
-
-  // Podcast episodes and local files arrive with no track metadata. `trackName`
-  // is the lexicon's only required field, and a play without one says nothing.
-  const trackName = spotifyRecord.master_metadata_track_name;
-  if (!trackName) return null;
-
-  // Spotify timestamp is already in ISO 8601 format
-  const playedTime = spotifyRecord.ts;
-
-  const artistName = spotifyRecord.master_metadata_album_artist_name;
-
-  // Build the play record
-  const playRecord: PlayRecord = {
-    $type: RECORD_TYPE,
-    trackName,
-    // Omitted when unknown rather than given a placeholder name, which would
-    // also make the record invisible to MusicBrainz enrichment.
-    ...(artistName ? { artists: [{ artistName }] } : {}),
-    playedTime,
-    submissionClientAgent: buildClientAgent(debug),
-    musicServiceUri: 'https://open.spotify.com/',
-  };
-
-  // Add optional fields
-  if (spotifyRecord.master_metadata_album_album_name) {
-    playRecord.releaseName = spotifyRecord.master_metadata_album_album_name;
-  }
-
-  // Generate Spotify URL if we have the track URI
-  if (spotifyRecord.spotify_track_uri) {
-    const trackId = spotifyRecord.spotify_track_uri.replace('spotify:track:', '');
-    playRecord.originUri = `https://open.spotify.com/track/${trackId}`;
-  }
-
-  return playRecord;
+export function convertSpotifyToPlayRecord(
+  spotifyRecord: SpotifyRecord,
+  _config?: Config,
+  debug = false
+): PlayRecord | null {
+  return coreConvertSpotify(spotifyRecord, buildClientAgent(debug));
 }

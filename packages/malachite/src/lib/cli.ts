@@ -28,7 +28,8 @@ import { publishRecordsWithApplyWrites } from './publisher.js';
 import { prompt, confirm, menu, promptWithValidation, validateFilePath, isNonInteractive } from '../utils/input.js';
 import { sortRecords } from '../utils/helpers.js';
 import config, { VERSION, RECORD_TYPE, LEGACY_RECORD_TYPE } from '../config.js';
-import { fetchExistingRecords, filterNewRecords, displaySyncStats, removeDuplicates, deduplicateInputRecords } from './sync.js';
+import { DEFAULT_DEDUP_WINDOW_MS } from '@ewanc26/croft-click-core';
+import { fetchExistingRecords, filterNewRecords, displaySyncStats, deduplicateInputRecords, analyzeDuplicates, displayDedupPlan, removeDuplicateRecords } from './sync.js';
 import { analyzeLegacyRecords, displayPolishPlan, migrateLegacyRecords } from './polish.js';
 import { Logger, LogLevel, setGlobalLogger, log } from '../utils/logger.js';
 import { registerKillswitch } from '../utils/killswitch.js';
@@ -151,8 +152,11 @@ ${'\x1b[1m'}EXAMPLES:${'\x1b[0m'}
   ${'\x1b[2m'}# Dry run with verbose logging${'\x1b[0m'}
   pnpm start -i lastfm.csv --dry-run -v
 
-  ${'\x1b[2m'}# Remove duplicate records${'\x1b[0m'}
-  pnpm start -m deduplicate
+   ${'\x1b[2m'}# Remove duplicate records${'\x1b[0m'}
+   pnpm start -m deduplicate
+   ${'\x1b[2m'}# Remove duplicates, treating plays within 30s as one listen${'\x1b[0m'}
+   pnpm start -m deduplicate --dedup-window 30
+
 
   ${'\x1b[2m'}# List stored OAuth sessions${'\x1b[0m'}
   malachite --list-sessions
@@ -204,6 +208,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
     'dry-run': { type: 'boolean', default: false },
     aggressive: { type: 'boolean', default: false },
     fresh: { type: 'boolean', default: false },
+    'dedup-window': { type: 'string' },
     'clear-cache': { type: 'boolean', default: false },
     'clear-all-caches': { type: 'boolean', default: false },
     'clear-credentials': { type: 'boolean', default: false },
@@ -244,7 +249,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
       'batch-delay': values['batch-delay'],
       reverse: values.reverse || values['reverse-chronological'],
       yes: values.yes,
-      'dry-run': values['dry-run'],
+       'dry-run': values['dry-run'],
       aggressive: values.aggressive,
       fresh: values.fresh,
       'clear-cache': values['clear-cache'],
@@ -256,8 +261,9 @@ export function parseCommandLineArgs(): CommandLineArgs {
       verbose: values.verbose,
       quiet: values.quiet,
       dev: values.dev,
-      'non-interactive': values['non-interactive'],
-    };
+       'non-interactive': values['non-interactive'],
+       'dedup-window': values['dedup-window'] ? Number(values['dedup-window']) : undefined,
+     };
 
     if (values.mode) {
       normalizedArgs.mode = values.mode;
@@ -793,13 +799,34 @@ export async function runCLI(): Promise<void> {
         client = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER);
       }
       log.section('Remove Duplicate Records');
-      const result = await removeDuplicates(client, cfg, dryRun);
-      if (result.totalDuplicates === 0) {
+      const windowLabel = args['dedup-window']
+        ? `${args['dedup-window']}s (custom)`
+        : `${(DEFAULT_DEDUP_WINDOW_MS / 1000).toFixed(0)}s (default)`;
+      log.info(`Scanning for duplicates within a ±${windowLabel} window...`);
+      log.blank();
+
+      // 1. Build a read-only plan first — never touch the live repo until the
+      //    user has reviewed the preview (mirrors `polish`).
+      const plan = await analyzeDuplicates(client, cfg, {
+        ...(args['dedup-window'] ? { windowMs: args['dedup-window'] * 1000 } : {}),
+      });
+      displayDedupPlan(plan);
+
+      if (plan.totalDuplicates === 0) {
+        log.success('No duplicates found — your records are clean.');
         return;
       }
-      if (!dryRun && !args.yes) {
-        log.warn(`This will permanently delete ${result.totalDuplicates} duplicate records from Teal.`);
-        log.info('The first occurrence of each duplicate will be kept.');
+
+      if (dryRun) {
+        log.info('DRY RUN: No records were actually removed.');
+        log.info('Remove --dry-run flag to actually delete duplicates.');
+        return;
+      }
+
+      // 2. Confirm before any deletion.
+      if (!args.yes) {
+        log.warn(`This will permanently delete ${plan.totalDuplicates.toLocaleString()} duplicate record(s) from Teal.`);
+        log.info(`The richer copy of each group (MusicBrainz IDs, ISRC, duration) is kept; the rest are removed.`);
         log.blank();
         if (isNonInteractive()) {
           throw new Error('Deduplicate mode requires confirmation. Pass -y/--yes to proceed, or run interactively.');
@@ -809,12 +836,11 @@ export async function runCLI(): Promise<void> {
           log.info('Duplicate removal cancelled by user.');
           process.exit(0);
         }
-        await removeDuplicates(client, cfg, false);
-        log.success('Duplicate removal complete!');
-      } else if (dryRun) {
-        log.info('DRY RUN: No records were actually removed.');
-        log.info('Remove --dry-run flag to actually delete duplicates.');
       }
+
+      // 3. Execute the reviewed plan.
+      const removed = await removeDuplicateRecords(client, plan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${plan.totalDuplicates.toLocaleString()}…`));
+      log.success(`Removed ${removed.toLocaleString()} duplicate records from Teal.`);
       return;
     }
 
