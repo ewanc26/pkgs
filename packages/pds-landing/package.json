@@ -1,6 +1,6 @@
 {
   "name": "pds-landing",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A standalone Vite + Svelte app for an ATProto PDS landing page — terminal-aesthetic UI with live status fetching.",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
@@ -23,8 +23,9 @@
     "svelte": "^5.53.11"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.1",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.2.1",
     "@types/node": "^22.15.0",
     "oxfmt": "^0.57.0",
     "prettier": "^3.8.1",
@@ -33,7 +34,6 @@
     "svelte-check": "^4.4.5",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1",
-    "@sveltejs/vite-plugin-svelte": "^5.0.0"
+    "vite": "^7.3.1"
   }
 }

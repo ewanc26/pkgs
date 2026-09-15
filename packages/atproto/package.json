@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/atproto",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "description": "AT Protocol service layer extracted from ewancroft.uk",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
@@ -45,8 +45,8 @@
     "@bsky/sdk": ">=0.1.0"
   },
   "devDependencies": {
-    "@bsky/sdk": "latest",
     "@atproto/lex": "^0.3.0",
+    "@bsky/sdk": "latest",
     "typescript": "^5.9.3"
   }
 }

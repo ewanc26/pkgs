@@ -1,6 +1,6 @@
 {
 	"name": "@ewanc26/landing-ui",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Shared landing page layout and CSS for @ewanc26/*-web projects",
 	"author": "Ewan Croft",
 	"license": "AGPL-3.0-only",
