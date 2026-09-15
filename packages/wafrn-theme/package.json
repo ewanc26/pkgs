@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/wafrn-theme",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A WAFRN theme using the pds-landing Catppuccin terminal aesthetic — dark forest-green palette, JetBrains Mono, soft rounded cards.",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",

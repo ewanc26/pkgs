@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/opal",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Convert microblog posts from Twitter, Mastodon, Threads, and Nostr to AT Protocol Bluesky posts",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
@@ -54,10 +54,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@bsky/sdk": "latest",
     "@atproto/lex": "^0.3.0",
     "@atproto/lex-password-session": "^0.2.0",
     "@atproto/oauth-client-node": "^0.3.16",
+    "@bsky/sdk": "latest",
     "@ewanc26/croft-click-core": "workspace:*",
     "@ewanc26/tid": "workspace:*",
     "chalk": "^5.6.2",

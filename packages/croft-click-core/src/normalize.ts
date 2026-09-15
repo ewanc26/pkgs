@@ -35,6 +35,7 @@ import type { PlayRecord } from './types.js';
  * data instead of aborting an entire import.
  */
 export function canonicalizeTimestamp(playedTime: string): string {
+  if (typeof playedTime !== 'string' || !playedTime.trim()) return '';
   const parsed = new Date(playedTime);
   if (Number.isNaN(parsed.getTime())) return playedTime.trim();
   return parsed.toISOString();
@@ -51,14 +52,13 @@ export function canonicalizeTimestamp(playedTime: string): string {
  * treated as the same artist or track for dedup purposes.
  */
 export function normalizeString(value: string): string {
-  return (
-    value
-      .normalize('NFKC')
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-  );
+  const s = typeof value !== 'string' ? '' : value;
+  return s
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** The normalised "first artist" of a record, or '' when none is present. */
@@ -100,11 +100,14 @@ export function epochMillis(record: PlayRecord): number {
 /**
  * Unicode NFKC normalisation for display names — applied at ingest so the
  * stored record carries the canonical spelling rather than a compatibility
- * form. Folds curly apostrophes → straight, non-breaking hyphens → regular
- * hyphens, fullwidth letters → ASCII, ligatures → their components, etc.,
+ * form. Folds fullwidth letters and ligatures to their canonical equivalents
  * while preserving case (we deliberately do not rewrite casing — that needs an
- * external authority and can be wrong; see Bug 4).
+ * external authority and can be wrong; see Bug 4). Apostrophe / hyphen
+ * *variants* (curly vs straight, non-breaking vs regular) are not Unicode
+ * equivalents, so they are left intact here and equated instead at the dedup
+ * key level by `normalizeString`'s punctuation stripping.
  */
 export function normalizeName(name: string): string {
-  return name.normalize('NFKC');
+  const s = typeof name !== 'string' ? '' : name;
+  return s.normalize('NFKC');
 }

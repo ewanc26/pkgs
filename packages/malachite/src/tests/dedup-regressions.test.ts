@@ -322,4 +322,44 @@ describe('Bug 5 — historical deduplicate plan', () => {
     assert.strictEqual(plan.totalDuplicates, 1);
     assert.deepStrictEqual([a, b].map(snapshot), before);
   });
+
+  it('does not crash on legacy records missing musicServiceUri / trackName', () => {
+    // Production repo contains older rows that predate musicServiceUri (and
+    // occasionally omit trackName) — the plan must skip them, not throw.
+    const legacy = {
+      $type: 'fm.teal.feed.play',
+      trackName: 'Runaway',
+      artists: [{ artistName: 'Aurora' }],
+      playedTime: '2026-07-17T11:39:14Z',
+      submissionClientAgent: 'malachite/0.19.4',
+      musicServiceUri: undefined,
+    } as unknown as PlayRecord;
+
+    const sparse = {
+      $type: 'fm.teal.feed.play',
+      playedTime: '2026-07-17T11:39:14Z',
+      submissionClientAgent: 'malachite/0.19.4',
+      musicServiceUri: undefined,
+    } as unknown as PlayRecord;
+
+    assert.doesNotThrow(() => playRecordKey(sparse));
+    assert.doesNotThrow(() => buildDedupPlan([mkExisting(legacy, 'legacy'), mkExisting(sparse, 'sparse')]));
+  });
+
+  it('deprioritises records with an unresolvable source when richer metadata exists', () => {
+    const legacy = {
+      $type: 'fm.teal.feed.play',
+      trackName: 'Runaway',
+      artists: [{ artistName: 'Aurora' }],
+      playedTime: '2026-07-17T11:39:14.000Z',
+      submissionClientAgent: 'malachite/0.19.4',
+      musicServiceUri: undefined,
+    } as unknown as PlayRecord;
+    const richer = play({ artists: [{ artistName: 'Aurora', artistMbId: 'mbid:x' }], trackName: 'Runaway', playedTime: '2026-07-17T11:39:14.000Z', musicServiceUri: 'https://www.last.fm/', recordingMbId: 'mbid:rec' });
+
+    const plan = buildDedupPlan([mkExisting(legacy, 'legacy'), mkExisting(richer, 'rich')]);
+    assert.strictEqual(plan.totalDuplicates, 1);
+    assert.strictEqual(plan.groups[0].keep.value.musicServiceUri, 'https://www.last.fm/');
+    assert.strictEqual(plan.groups[0].remove[0].uri, 'legacy');
+  });
 });
