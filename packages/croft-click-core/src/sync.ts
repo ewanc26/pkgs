@@ -6,8 +6,9 @@
 
 import type { Client } from '@atproto/lex'
 import type { PlayRecord } from './types.js'
-import { RECORD_TYPES } from './config.js'
+import { RECORD_TYPES, MAX_PDS_BATCH_SIZE } from './config.js'
 import { fetchRepoViaCARWithClient } from './car-fetch.js'
+import { retryWithBackoff } from './retry-helper.js'
 import { com } from '@bsky/sdk/lexicons'
 import {
   playRecordKey,
@@ -367,12 +368,42 @@ function duplicateReason(cluster: ExistingRecord[], kept: ExistingRecord): strin
 }
 
 /**
+ * Delete one record via `com.atproto.repo.deleteRecord`.
+ *
+ * Fallback path for records that failed inside an {@link removeDuplicateRecords}
+ * batch — a single bad rkey fails its whole `applyWrites` call, so the batch is
+ * retried record-by-record to preserve the "remove what we can" behaviour.
+ */
+async function deleteRecord(
+  client: Client,
+  uri: string,
+  signal?: AbortSignal
+): Promise<boolean> {
+  try {
+    await client.call(com.atproto.repo.deleteRecord.main as any,
+      { repo: getDid(client)!, collection: collectionFromUri(uri), rkey: uri.split('/').pop()! },
+      { signal }
+    );
+    return true;
+  } catch (err: unknown) {
+    if (signal?.aborted) throw err;
+    return false;
+  }
+}
+
+/**
  * Execute a deduplication plan: delete every record marked `remove`.
  *
- * Each deletion is a dedicated `com.atproto.repo.deleteRecord` call with a short
- * pacing delay, so a 100k-record repo with a few thousand duplicates is handled
- * safely without tripping write rate limits. The plan itself is built read-only
- * by {@link buildDedupPlan}; this performs only the deletions.
+ * Deletions are batched via `com.atproto.repo.applyWrites` (up to
+ * {@link MAX_PDS_BATCH_SIZE} per call — the PDS hard limit), turning a few
+ * thousand duplicates into a few dozen HTTP round-trips instead of one
+ * round-trip per record. DELETE costs 1 rate-limit point per record either
+ * way, so batching saves requests, not quota. If a batch fails (one bad rkey
+ * fails the whole atomic call), the batch falls back to per-record
+ * `deleteRecord` calls so salvageable deletions still go through.
+ *
+ * The plan itself is built read-only by {@link buildDedupPlan}; this performs
+ * only the deletions.
  */
 export async function removeDuplicateRecords(
   client: Client,
@@ -380,25 +411,59 @@ export async function removeDuplicateRecords(
   onProgress?: (removed: number) => void,
   signal?: AbortSignal
 ): Promise<number> {
+  const targets = plan.groups.flatMap((group) => group.remove);
   let removed = 0;
-  for (const group of plan.groups) {
-    for (const rec of group.remove) {
-      signal?.throwIfAborted();
-      try {
-        await client.call(com.atproto.repo.deleteRecord.main as any,
-          { repo: getDid(client)!, collection: collectionFromUri(rec.uri), rkey: rec.uri.split('/').pop()! },
+
+  for (let i = 0; i < targets.length; i += MAX_PDS_BATCH_SIZE) {
+    signal?.throwIfAborted();
+    const batch = targets.slice(i, i + MAX_PDS_BATCH_SIZE);
+    const writes = batch.map((rec) => ({
+      $type: 'com.atproto.repo.applyWrites#delete',
+      collection: collectionFromUri(rec.uri),
+      rkey: rec.uri.split('/').pop()!,
+    }));
+
+    try {
+      await retryWithBackoff(
+        () => client.call(com.atproto.repo.applyWrites.main as any,
+          { repo: getDid(client)!, writes: writes as any },
           { signal }
-        );
-        removed++;
-        onProgress?.(removed);
-        await new Promise<void>((resolve, reject) => {
-          const t = setTimeout(resolve, 100);
-          signal?.addEventListener('abort', () => { clearTimeout(t); reject(signal.reason); }, { once: true });
-        });
-      } catch (err: unknown) {
-        if (signal?.aborted) throw err;
+        ),
+        {
+          maxAttempts: 3,
+          initialDelayMs: 1000,
+          backoffMultiplier: 2,
+          retryableErrors: [
+            'fetch failed',
+            'ECONNRESET',
+            'ETIMEDOUT',
+            'ENOTFOUND',
+            'ECONNREFUSED',
+            'network',
+            'socket hang up',
+            'timeout',
+            '503',
+            '502',
+            '504',
+          ],
+        }
+      );
+      removed += batch.length;
+      onProgress?.(removed);
+    } catch (err: unknown) {
+      if (signal?.aborted) throw err;
+
+      // Batch failed (applyWrites is atomic — one bad rkey fails all 200).
+      // Fall back to per-record deletes so salvageable deletions still run.
+      for (const rec of batch) {
+        signal?.throwIfAborted();
+        if (await deleteRecord(client, rec.uri, signal)) {
+          removed++;
+          onProgress?.(removed);
+        }
       }
     }
   }
+
   return removed;
 }
