@@ -51,3 +51,13 @@ Not up for that? Starring the repo, filing a good bug report, or pointing someon
 ## Licence
 
 AGPL-3.0-only (TypeScript/Svelte) · MIT (Rust)
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=ewanc26%2Fpkgs&type=date&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ewanc26/pkgs&type=date&theme=dark&legend=bottom-right" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ewanc26/pkgs&type=date&legend=bottom-right" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ewanc26/pkgs&type=date&legend=bottom-right" />
+ </picture>
+</a>
