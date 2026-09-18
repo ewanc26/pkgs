@@ -1,0 +1,64 @@
+name: Malachite CI
+
+on:
+  pull_request:
+    paths:
+      - 'packages/croft-click-core/**'
+      - 'packages/malachite/**'
+      - 'packages/malachite-web/**'
+      - 'packages/tid/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/malachite-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/croft-click-core/**'
+      - 'packages/malachite/**'
+      - 'packages/malachite-web/**'
+      - 'packages/tid/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/malachite-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: malachite-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build, test, and check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Malachite and workspace dependencies
+        run: pnpm --filter @ewanc26/malachite... build
+
+      - name: Run Malachite Node test suite
+        run: pnpm --filter @ewanc26/malachite test
+
+      - name: Check Malachite Web
+        run: pnpm --filter @ewanc26/malachite-web check
