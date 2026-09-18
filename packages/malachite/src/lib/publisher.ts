@@ -218,7 +218,7 @@ export async function publishRecordsWithApplyWrites(
       );
       
       // Update batch size if changed significantly
-      if (Math.abs(finalSize - currentBatchSize) > 5) {
+      if (finalSize < currentBatchSize || Math.abs(finalSize - currentBatchSize) > 5) {
         log.info(`📊 Batch size: ${currentBatchSize} → ${finalSize} records`);
         if (adaptiveScale.scale !== 1.0) {
           log.info(`   └─ Adaptive: ×${adaptiveScale.scale.toFixed(2)} (${adaptiveScale.reason})`);

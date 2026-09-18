@@ -211,7 +211,7 @@ export async function publishRecords(
         );
 
         // Update batch size if changed significantly
-        if (Math.abs(finalSize - currentBatchSize) > 5) {
+        if (finalSize < currentBatchSize || Math.abs(finalSize - currentBatchSize) > 5) {
           onLog('progress', `Batch size: ${currentBatchSize} -> ${finalSize} records`);
           currentBatchSize = finalSize;
         }
@@ -296,12 +296,15 @@ export async function publishRecords(
             const cap = rl.getServerCapacity();
             const remaining = rl.getActualRemaining();
             if (cap) {
-              const newBatchSize = pacer.calculateOptimalBatchSize(
-                cap.limit,
-                cap.windowSeconds,
-                remaining,
-                MAX_PDS_BATCH_SIZE,
-                rl.getPointsPerRecord(POINTS_PER_RECORD)
+              const newBatchSize = capBatchSizeToRecordRate(
+                pacer.calculateOptimalBatchSize(
+                  cap.limit,
+                  cap.windowSeconds,
+                  remaining,
+                  MAX_PDS_BATCH_SIZE,
+                  rl.getPointsPerRecord(POINTS_PER_RECORD)
+                ),
+                maxRecordsPerSecond,
               );
 
               const quotaPercent = ((remaining / cap.limit) * 100).toFixed(1);
@@ -309,7 +312,7 @@ export async function publishRecords(
               onLog('info', `  Remaining quota: ${remaining}/${cap.limit} (${quotaPercent}%)`);
               onLog('info', `  Optimal batch: ${newBatchSize} records`);
 
-              currentBatchSize = capBatchSizeToRecordRate(newBatchSize, maxRecordsPerSecond);
+              currentBatchSize = newBatchSize;
             }
           }
         }
