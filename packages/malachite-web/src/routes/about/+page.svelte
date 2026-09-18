@@ -132,6 +132,9 @@ pnpm start -m deduplicate -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx
 # Migrate legacy fm.teal.alpha scrobbles into fm.teal.feed.play
 pnpm start -m polish -h alice.bsky.social -p xxxx-xxxx-xxxx-xxxx
 
+# Cap publishing at four records per second
+pnpm start -i lastfm.csv --max-records-per-second 4
+
 # Preview without publishing
 pnpm start -i lastfm.csv --dry-run</code></pre>
     </div>
@@ -149,6 +152,7 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
       <div class="flag-row"><code>-m &lt;mode&gt;</code><span><code>lastfm</code> · <code>spotify</code> · <code>combined</code> · <code>sync</code> · <code>deduplicate</code> · <code>polish</code></span></div>
       <div class="flag-row"><code>-y</code><span>Skip confirmation prompts</span></div>
       <div class="flag-row"><code>--dry-run</code><span>Preview without writing records</span></div>
+      <div class="flag-row"><code>--max-records-per-second &lt;n&gt;</code><span>Optional hard publish-rate ceiling; automatic PDS pacing still applies if it is slower</span></div>
       <div class="flag-row"><code>-v</code><span>Verbose / debug output</span></div>
       <div class="flag-row"><code>-q</code><span>Quiet mode (warnings &amp; errors only)</span></div>
     </div>
@@ -170,8 +174,12 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
       <li>Reading the <code>ratelimit-*</code> headers from each response</li>
       <li>Maintaining a 15% headroom buffer before the quota ceiling</li>
       <li>Automatically adjusting batch size (up to 200 records) in real time</li>
+      <li>Optionally applying a stricter user-defined records-per-second ceiling to the initial probe and every later batch</li>
       <li>Pausing immediately when the abort signal fires if you press Stop</li>
     </ul>
+    <p>
+      The optional ceiling is an upper bound, not a replacement for the PDS limiter. If the PDS-derived safe rate is lower, Malachite follows that lower rate. The same setting is available in the web import options as <strong>Maximum publish rate</strong>.
+    </p>
   </section>
 
   <!-- ── Licence ────────────────────────────────────────────────────────────── -->
