@@ -24,13 +24,13 @@ Runs entirely in the browser. Export files are parsed locally. The only external
 
 ## Rate limit handling
 
-Reads ratelimit-* headers from each PDS response, maintains a 15% headroom buffer before the quota ceiling, auto-adjusts batch size (up to 200 records), and respects abort signals immediately.
+Reads ratelimit-* headers from each PDS response, maintains a 15% headroom buffer before the quota ceiling, auto-adjusts batch size (up to 200 records), and respects abort signals immediately. Imports can optionally set a stricter maximum records-per-second ceiling; it also constrains the initial probe, while the PDS-derived safe rate still wins whenever it is lower.
 
 ## CLI
 
 Also available as a Node.js CLI. Clone https://github.com/ewanc26/pkgs, install dependencies in packages/malachite, then run `pnpm start`. Supports interactive and command-line modes.
 
-Key flags: -i (input), -h (handle), -p (app password), -m (mode), -y (skip prompts), --dry-run.
+Key flags: -i (input), -h (handle), -p (app password), -m (mode), -y (skip prompts), --dry-run, --max-records-per-second <n>.
 
 ## Licence
 
