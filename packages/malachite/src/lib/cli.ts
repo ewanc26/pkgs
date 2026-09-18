@@ -107,6 +107,8 @@ ${'\x1b[1m'}MODE:${'\x1b[0m'}
                                                  version of Malachite, sorry)
 
 ${'\x1b[1m'}BATCH CONFIGURATION:${'\x1b[0m'}
+  --max-records-per-second <n>   Optional hard ceiling for published records/second
+                                 (applied on top of automatic PDS rate limiting)
   -b, --batch-size <number>      ${'\x1b[2m'}Deprecated, no effect — batching is automatic and adapts to live rate limits${'\x1b[0m'}
   -d, --batch-delay <ms>         ${'\x1b[2m'}Deprecated, no effect — pacing is automatic and adapts to live rate limits${'\x1b[0m'}
 
@@ -203,6 +205,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
     mode: { type: 'string', short: 'm' },
     'batch-size': { type: 'string', short: 'b' },
     'batch-delay': { type: 'string', short: 'd' },
+    'max-records-per-second': { type: 'string' },
     reverse: { type: 'boolean', short: 'r', default: false },
     yes: { type: 'boolean', short: 'y', default: false },
     'dry-run': { type: 'boolean', default: false },
@@ -247,6 +250,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
       'lastfm-api-key': values['lastfm-api-key'] || process.env.LASTFM_API_KEY,
       'batch-size': values['batch-size'],
       'batch-delay': values['batch-delay'],
+      'max-records-per-second': values['max-records-per-second'],
       reverse: values.reverse || values['reverse-chronological'],
       yes: values.yes,
        'dry-run': values['dry-run'],
@@ -1102,6 +1106,16 @@ export async function runCLI(): Promise<void> {
       log.warn('--batch-size, --batch-delay, and --aggressive are deprecated and have no effect.');
       log.warn('Batching and pacing now adapt automatically to the PDS\'s live rate limits.');
     }
+    const maxRecordsPerSecond = args['max-records-per-second'] === undefined
+      ? undefined
+      : Number(args['max-records-per-second']);
+    if (
+      maxRecordsPerSecond !== undefined &&
+      (!Number.isFinite(maxRecordsPerSecond) || maxRecordsPerSecond <= 0)
+    ) {
+      throw new Error('--max-records-per-second must be a number greater than 0');
+    }
+
     // Passed through to publishRecordsWithApplyWrites for its (ignored) legacy
     // signature — actual batch size and delay are calculated live per-batch.
     const batchSize = 0;
@@ -1109,6 +1123,9 @@ export async function runCLI(): Promise<void> {
 
     log.section('Import Configuration');
     log.info(`Total records: ${totalRecords.toLocaleString()}`);
+    if (maxRecordsPerSecond !== undefined) {
+      log.info(`Maximum publish rate: ${maxRecordsPerSecond} record(s)/second`);
+    }
     log.blank();
 
     let importState: ImportState | null = null;
@@ -1172,7 +1189,8 @@ export async function runCLI(): Promise<void> {
       cfg,
       dryRun,
       mode === 'sync' || mode === 'combined',
-      importState
+      importState,
+      maxRecordsPerSecond,
     );
 
     log.blank();
