@@ -107,8 +107,6 @@ ${'\x1b[1m'}MODE:${'\x1b[0m'}
                                                  version of Malachite, sorry)
 
 ${'\x1b[1m'}BATCH CONFIGURATION:${'\x1b[0m'}
-  --max-records-per-second <n>   Optional hard ceiling for published records/second
-                                 (applied on top of automatic PDS rate limiting)
   -b, --batch-size <number>      ${'\x1b[2m'}Deprecated, no effect — batching is automatic and adapts to live rate limits${'\x1b[0m'}
   -d, --batch-delay <ms>         ${'\x1b[2m'}Deprecated, no effect — pacing is automatic and adapts to live rate limits${'\x1b[0m'}
 
@@ -117,6 +115,7 @@ ${'\x1b[1m'}IMPORT OPTIONS:${'\x1b[0m'}
   -y, --yes                      Skip confirmation prompts
   --dry-run                      Preview without importing
   --aggressive                   ${'\x1b[2m'}Deprecated, no effect — rate limiting is automatic${'\x1b[0m'}
+  --danger-zone                  ${'\x1b[31m'}Disable quota headroom; may rate-limit the entire PDS${'\x1b[0m'}
   --fresh                        Start fresh (ignore cache & previous import state)
   --clear-cache                  Clear cached records for current user
   --clear-all-caches             Clear all cached records
@@ -205,11 +204,11 @@ export function parseCommandLineArgs(): CommandLineArgs {
     mode: { type: 'string', short: 'm' },
     'batch-size': { type: 'string', short: 'b' },
     'batch-delay': { type: 'string', short: 'd' },
-    'max-records-per-second': { type: 'string' },
     reverse: { type: 'boolean', short: 'r', default: false },
     yes: { type: 'boolean', short: 'y', default: false },
     'dry-run': { type: 'boolean', default: false },
     aggressive: { type: 'boolean', default: false },
+    'danger-zone': { type: 'boolean', default: false },
     fresh: { type: 'boolean', default: false },
     'dedup-window': { type: 'string' },
     'clear-cache': { type: 'boolean', default: false },
@@ -250,11 +249,11 @@ export function parseCommandLineArgs(): CommandLineArgs {
       'lastfm-api-key': values['lastfm-api-key'] || process.env.LASTFM_API_KEY,
       'batch-size': values['batch-size'],
       'batch-delay': values['batch-delay'],
-      'max-records-per-second': values['max-records-per-second'],
       reverse: values.reverse || values['reverse-chronological'],
       yes: values.yes,
        'dry-run': values['dry-run'],
       aggressive: values.aggressive,
+      'danger-zone': values['danger-zone'],
       fresh: values.fresh,
       'clear-cache': values['clear-cache'],
       'clear-all-caches': values['clear-all-caches'],
@@ -1106,16 +1105,20 @@ export async function runCLI(): Promise<void> {
       log.warn('--batch-size, --batch-delay, and --aggressive are deprecated and have no effect.');
       log.warn('Batching and pacing now adapt automatically to the PDS\'s live rate limits.');
     }
-    const maxRecordsPerSecond = args['max-records-per-second'] === undefined
-      ? undefined
-      : Number(args['max-records-per-second']);
-    if (
-      maxRecordsPerSecond !== undefined &&
-      (!Number.isFinite(maxRecordsPerSecond) || maxRecordsPerSecond <= 0)
-    ) {
-      throw new Error('--max-records-per-second must be a number greater than 0');
+    if (args['danger-zone']) {
+      log.warn('☢️  DANGER ZONE enabled: Malachite will use all observed quota with no headroom.');
+      log.warn('☢️  This can rate-limit every user on the PDS. Use only on a PDS you control.');
+      if (!args.yes) {
+        if (isNonInteractive()) {
+          throw new Error('Danger Zone requires explicit confirmation. Pass -y/--yes to proceed.');
+        }
+        const answer = await prompt('Type DANGER to continue: ');
+        if (answer !== 'DANGER') {
+          log.info('Danger Zone cancelled.');
+          process.exit(0);
+        }
+      }
     }
-
     // Passed through to publishRecordsWithApplyWrites for its (ignored) legacy
     // signature — actual batch size and delay are calculated live per-batch.
     const batchSize = 0;
@@ -1123,9 +1126,6 @@ export async function runCLI(): Promise<void> {
 
     log.section('Import Configuration');
     log.info(`Total records: ${totalRecords.toLocaleString()}`);
-    if (maxRecordsPerSecond !== undefined) {
-      log.info(`Maximum publish rate: ${maxRecordsPerSecond} record(s)/second`);
-    }
     log.blank();
 
     let importState: ImportState | null = null;
@@ -1190,7 +1190,7 @@ export async function runCLI(): Promise<void> {
       dryRun,
       mode === 'sync' || mode === 'combined',
       importState,
-      maxRecordsPerSecond,
+      args['danger-zone'] ?? false
     );
 
     log.blank();

@@ -55,8 +55,7 @@ export interface ImportOptions {
    * hours, and the import works fine without it.
    */
   enrichFromMusicBrainz?: boolean;
-  /** Optional hard ceiling layered on top of automatic PDS-safe pacing. */
-  maxRecordsPerSecond?: number;
+  dangerZone?: boolean;
 }
 
 export interface ImportResult {
@@ -162,7 +161,7 @@ export async function runImport(
   appleFiles: File[],
   youtubeFiles: File[],
   listenbrainzFiles: File[],
-  { dryRun, reverseOrder, fresh, enrichFromMusicBrainz, maxRecordsPerSecond }: ImportOptions,
+  { dryRun, reverseOrder, fresh, enrichFromMusicBrainz, dangerZone }: ImportOptions,
   { onLog, onProgress, isCancelled }: ImportCallbacks,
   /** Number of records to skip when resuming a previous import. */
   startIndex = 0,
@@ -424,18 +423,11 @@ export async function runImport(
     // ── Publish ──────────────────────────────────────────────────────────────
     onLog('section', '── Publishing ───────────────────────────────────────');
     onLog('warn', 'Do not close this tab while publishing.');
-    const res = await publishRecords(
-      client,
-      records,
-      dryRun,
-      {
-        onProgress,
-        onLog: (level, msg) => onLog(level as LogEntry['level'], msg),
-        isCancelled,
-      },
-      'publish',
-      { maxRecordsPerSecond },
-    );
+    const res = await publishRecords(client, records, dryRun, {
+      onProgress,
+      onLog: (level, msg) => onLog(level as LogEntry['level'], msg),
+      isCancelled,
+    }, 'publish', dangerZone ?? false);
     
     if (!dryRun && !res.cancelled && res.successCount > 0) {
       try {

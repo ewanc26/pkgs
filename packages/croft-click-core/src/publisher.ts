@@ -37,47 +37,6 @@ export interface PublisherCallbacks {
   isCancelled: () => boolean;
 }
 
-export interface PublisherOptions {
-  /**
-   * Optional hard ceiling for record publication throughput. This is layered on
-   * top of the PDS-derived safety pacing: whichever limit is slower wins.
-   */
-  maxRecordsPerSecond?: number;
-}
-
-export function normalizeMaxRecordsPerSecond(value: number | undefined): number | undefined {
-  if (value === undefined) return undefined;
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new RangeError('maxRecordsPerSecond must be a finite number greater than 0');
-  }
-  return value;
-}
-
-/**
- * Keep a single applyWrites burst within at most one second of the configured
- * user rate. Fractional rates still publish one record at a time and rely on
- * the matching delay calculation below.
- */
-export function capBatchSizeToRecordRate(
-  batchSize: number,
-  maxRecordsPerSecond: number | undefined,
-): number {
-  const maxRate = normalizeMaxRecordsPerSecond(maxRecordsPerSecond);
-  if (maxRate === undefined) return batchSize;
-  const maxBurst = Math.max(1, Math.floor(maxRate));
-  return Math.max(1, Math.min(batchSize, maxBurst));
-}
-
-/** Minimum wall-clock interval needed for a batch to respect a record-rate cap. */
-export function minimumRecordRateDelayMs(
-  batchSize: number,
-  maxRecordsPerSecond: number | undefined,
-): number {
-  const maxRate = normalizeMaxRecordsPerSecond(maxRecordsPerSecond);
-  if (maxRate === undefined) return 0;
-  return Math.ceil((batchSize / maxRate) * 1000);
-}
-
 function cancellableSleep(ms: number, isCancelled: () => boolean): Promise<void> {
   return new Promise((resolve) => {
     const end = Date.now() + ms;
@@ -108,10 +67,9 @@ export async function publishRecords(
   dryRun: boolean,
   callbacks: PublisherCallbacks,
   context = 'publish',
-  options: PublisherOptions = {},
+  dangerZone = false
 ): Promise<{ successCount: number; errorCount: number; cancelled: boolean }> {
   const { onProgress, onLog, isCancelled } = callbacks;
-  const maxRecordsPerSecond = normalizeMaxRecordsPerSecond(options.maxRecordsPerSecond);
 
   // Preflight every record before dry-run output or the first write. The shared
   // sanitizer also enforces the Apple-import invariant that a play may not be
@@ -134,9 +92,14 @@ export async function publishRecords(
   const ac = new AbortController();
   const cancelPoll = setInterval(() => { if (isCancelled()) ac.abort(); }, 50);
 
-  const rl = new RateLimiter({ headroom: 0.15 });
+  const rl = new RateLimiter({ headroom: dangerZone ? 0 : 0.15 });
   const calculator = new DynamicBatchCalculator();
   const pacer = new ProactiveRatePacer();
+
+  if (dangerZone) {
+    onLog('warn', '☢️ DANGER ZONE: quota headroom is disabled. This may rate-limit the entire PDS.');
+    onLog('warn', '☢️ The PDS still enforces its own limit; only Malachite\'s safety buffer is disabled.');
+  }
 
   // Check if we already know server capacity (from previous session cache)
   const serverCapacity = rl.getServerCapacity();
@@ -146,31 +109,21 @@ export async function publishRecords(
   if (serverCapacity) {
     // We have server info -- calculate optimal batch size right away
     const actualRemaining = rl.getActualRemaining();
-    currentBatchSize = capBatchSizeToRecordRate(
-      pacer.calculateOptimalBatchSize(
-        serverCapacity.limit,
-        serverCapacity.windowSeconds,
-        actualRemaining,
-        MAX_PDS_BATCH_SIZE,
-        rl.getPointsPerRecord(POINTS_PER_RECORD)
-      ),
-      maxRecordsPerSecond,
+    currentBatchSize = pacer.calculateOptimalBatchSize(
+      serverCapacity.limit,
+      serverCapacity.windowSeconds,
+      actualRemaining,
+      MAX_PDS_BATCH_SIZE,
+      rl.getPointsPerRecord(POINTS_PER_RECORD)
     );
     currentDelay = 500;
     onLog('info', `Using saved server info: ${serverCapacity.limit} pts/${serverCapacity.windowSeconds}s`);
     onLog('info', `Starting with optimal batch: ${currentBatchSize} records`);
   } else {
-    // Smart probe -- cap the first burst too when the user supplied a ceiling.
-    currentBatchSize = capBatchSizeToRecordRate(50, maxRecordsPerSecond);
+    // Smart probe -- 50 records (150 points) is safe for all standard rate limits
+    currentBatchSize = 50;
     currentDelay = 500;
-    onLog(
-      'info',
-      `Probing server capacity with ${currentBatchSize} records (${currentBatchSize * POINTS_PER_RECORD} points)`,
-    );
-  }
-
-  if (maxRecordsPerSecond !== undefined) {
-    onLog('info', `User record-rate cap: ${maxRecordsPerSecond} record(s)/second`);
+    onLog('info', `Probing server capacity with ${currentBatchSize} records (150 points)`);
   }
 
   let successCount = 0;
@@ -205,13 +158,10 @@ export async function publishRecords(
         // Apply adaptive scaling from performance metrics
         const adaptiveScale = calculator.calculateAdaptiveScale();
         const scaledSize = Math.floor(optimalSize * adaptiveScale.scale);
-        const finalSize = capBatchSizeToRecordRate(
-          Math.max(1, Math.min(scaledSize, MAX_PDS_BATCH_SIZE)),
-          maxRecordsPerSecond,
-        );
+        const finalSize = Math.max(1, Math.min(scaledSize, MAX_PDS_BATCH_SIZE));
 
         // Update batch size if changed significantly
-        if (finalSize < currentBatchSize || Math.abs(finalSize - currentBatchSize) > 5) {
+        if (Math.abs(finalSize - currentBatchSize) > 5) {
           onLog('progress', `Batch size: ${currentBatchSize} -> ${finalSize} records`);
           currentBatchSize = finalSize;
         }
@@ -296,15 +246,12 @@ export async function publishRecords(
             const cap = rl.getServerCapacity();
             const remaining = rl.getActualRemaining();
             if (cap) {
-              const newBatchSize = capBatchSizeToRecordRate(
-                pacer.calculateOptimalBatchSize(
-                  cap.limit,
-                  cap.windowSeconds,
-                  remaining,
-                  MAX_PDS_BATCH_SIZE,
-                  rl.getPointsPerRecord(POINTS_PER_RECORD)
-                ),
-                maxRecordsPerSecond,
+              const newBatchSize = pacer.calculateOptimalBatchSize(
+                cap.limit,
+                cap.windowSeconds,
+                remaining,
+                MAX_PDS_BATCH_SIZE,
+                rl.getPointsPerRecord(POINTS_PER_RECORD)
               );
 
               const quotaPercent = ((remaining / cap.limit) * 100).toFixed(1);
@@ -370,11 +317,9 @@ export async function publishRecords(
         i += batch.length;
       }
 
-      // Wait before next batch. The user ceiling is an upper bound layered on
-      // top of PDS-derived pacing, so whichever delay is longer wins.
+      // Wait before next batch (proactive pacing)
       if (i < total) {
-        const userRateDelay = minimumRecordRateDelayMs(batch.length, maxRecordsPerSecond);
-        await cancellableSleep(Math.max(currentDelay, userRateDelay), isCancelled);
+        await cancellableSleep(currentDelay, isCancelled);
       }
     }
   } finally {
