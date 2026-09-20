@@ -31,6 +31,7 @@ export * from './merge.js';
 export * from './musicbrainz.js';
 export * from './normalize.js';
 export * from './proactive-rate-pacer.js';
+export * from './record-rate-cap.js';
 export * from './polish.js';
 export * from './publisher.js';
 export * from './retry-helper.js';
