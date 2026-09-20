@@ -71,6 +71,8 @@ export interface CommandLineArgs {
   yes?: boolean;
   'dry-run'?: boolean;
   aggressive?: boolean;
+  /** Disable Malachite's quota headroom and safety pacing (explicitly unsafe). */
+  'danger-zone'?: boolean;
   fresh?: boolean;
   'non-interactive'?: boolean;
   // Deduplicate: same-artist+track window in seconds. Same listen if within

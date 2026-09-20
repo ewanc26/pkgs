@@ -51,7 +51,7 @@
 	let reverseOrder = $state(false);
 	let fresh = $state(false);
 	let enrichFromMusicBrainz = $state(false);
-	let maxRecordsPerSecond = $state<number | null>(null);
+	let dangerZone = $state(false);
 
 	let isRunning = $state(false);
 	// Plain variable (not $state) — only ever read inside the isCancelled() closure.
@@ -119,6 +119,7 @@
 
 	async function handleStartImport() {
 		if (!agent || !mode) return;
+		if (dangerZone && !dryRun && !window.confirm('Danger Zone may rate-limit every user on this PDS. Continue only if you control the PDS?')) return;
 		isRunning = true;
 		cancelled = false;
 		stopping = false;
@@ -140,13 +141,7 @@
 				appleFiles,
 				youtubeFiles,
 				listenbrainzFiles,
-				{
-					dryRun,
-					reverseOrder,
-					fresh,
-					enrichFromMusicBrainz,
-					maxRecordsPerSecond: maxRecordsPerSecond ?? undefined
-				},
+				{ dryRun, reverseOrder, fresh, enrichFromMusicBrainz, dangerZone },
 				{
 					onLog: addLog,
 					onProgress: (p) => {
@@ -257,7 +252,6 @@
 		reverseOrder = false;
 		fresh = false;
 		enrichFromMusicBrainz = false;
-		maxRecordsPerSecond = null;
 		logs = [];
 		progress = null;
 		result = null;
@@ -358,8 +352,8 @@
 						bind:dryRun
 						bind:reverseOrder
 						bind:fresh
-						bind:enrichFromMusicBrainz
-						bind:maxRecordsPerSecond
+					bind:enrichFromMusicBrainz
+					bind:dangerZone
 						onstartimport={handleStartImport}
 						onback={handleBack}
 					/>

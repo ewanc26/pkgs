@@ -2,7 +2,7 @@ import type { Client } from '@atproto/lex'
 import { formatDuration, formatDate } from '../utils/helpers.js';
 import { isImportCancelled } from '../utils/killswitch.js';
 import { RateLimiter } from '../utils/rate-limiter.js';
-import { DynamicBatchCalculator, ProactiveRatePacer, retryWithBackoff, isRetryableError, isRateLimitError, normalizeHeaders, normalizeMusicBrainzId, sanitizePlayRecordMusicBrainzIds, normalizeMaxRecordsPerSecond, capBatchSizeToRecordRate, minimumRecordRateDelayMs } from '@ewanc26/croft-click-core';
+import { DynamicBatchCalculator, ProactiveRatePacer, retryWithBackoff, isRetryableError, isRateLimitError, normalizeHeaders, normalizeMusicBrainzId, sanitizePlayRecordMusicBrainzIds } from '@ewanc26/croft-click-core';
 import { formatLocaleNumber } from '../utils/platform.js';
 import { generateTIDFromISO } from '../utils/tid.js';
 import type { PlayRecord, Config, PublishResult } from '../types.js';
@@ -87,11 +87,10 @@ export async function publishRecordsWithApplyWrites(
   dryRun = false,
   syncMode = false,
   importState: ImportState | null = null,
-  maxRecordsPerSecond?: number,
+  dangerZone = false
 ): Promise<PublishResult> {
   const { RECORD_TYPE } = config;
   const totalRecords = records.length;
-  const normalizedMaxRecordsPerSecond = normalizeMaxRecordsPerSecond(maxRecordsPerSecond);
 
   // Preflight the entire import before dry-run output or the first write. This
   // prevents a late unresolved Apple row from being discovered only after
@@ -107,12 +106,17 @@ export async function publishRecordsWithApplyWrites(
   }
 
   // Initialize systems
-  const rl = new RateLimiter({ headroom: 0.15 });
+  const rl = new RateLimiter({ headroom: dangerZone ? 0 : 0.15 });
   const calculator = new DynamicBatchCalculator(); // For performance metrics
   const pacer = new ProactiveRatePacer(); // NEW: Proactive pacing
   
-  log.section('Proactive Rate-Limited Import');
-  log.info(`🎯 Proactive pacing strategy: Never hit rate limits`);
+  log.section(dangerZone ? 'Danger Zone Import' : 'Proactive Rate-Limited Import');
+  if (dangerZone) {
+    log.warn('☢️  DANGER ZONE: quota headroom is disabled. This may rate-limit the entire PDS.');
+    log.warn('☢️  The PDS still enforces its own limit; this only removes Malachite\'s safety buffer.');
+  } else {
+    log.info(`🎯 Proactive pacing strategy: Never hit rate limits`);
+  }
   log.info(`📊 Batch size: Optimized for sustainable throughput`);
   log.info(`⏱️  Delay: Calculated to maintain steady rate below limit`);
   log.info(`🔄 Sliding window: Points recover as we use them`);
@@ -126,14 +130,11 @@ export async function publishRecordsWithApplyWrites(
   if (serverCapacity) {
     // We have server info - calculate optimal batch size
     const actualRemaining = rl.getActualRemaining();
-    currentBatchSize = capBatchSizeToRecordRate(
-      pacer.calculateOptimalBatchSize(
-        serverCapacity.limit,
-        serverCapacity.windowSeconds,
-        actualRemaining,
-        MAX_PDS_BATCH_SIZE
-      ),
-      normalizedMaxRecordsPerSecond,
+    currentBatchSize = pacer.calculateOptimalBatchSize(
+      serverCapacity.limit,
+      serverCapacity.windowSeconds,
+      actualRemaining,
+      MAX_PDS_BATCH_SIZE
     );
     
     // Initial delay will be calculated after first batch
@@ -156,15 +157,11 @@ export async function publishRecordsWithApplyWrites(
     // OPTIMIZED: Smart probe - 50 records (150 points) is safe for all standard rate limits
     // Previous: 10 records was too conservative, causing slow first imports
     // Minimum server: 1000 points/hour → 150 points is only 15% → Very safe
-    currentBatchSize = capBatchSizeToRecordRate(50, normalizedMaxRecordsPerSecond);
+    currentBatchSize = 50;
     currentDelay = 500;
-    log.info(`🔍 Smart probe: ${currentBatchSize} records (${currentBatchSize * POINTS_PER_RECORD} points)`);
+    log.info(`🔍 Smart probe: ${currentBatchSize} records (150 points)`);
     log.info(`ℹ️  Safe for all standard rate limits (min 1000 points/hour)`);
     log.info(`ℹ️  Will optimize after learning server capacity`);
-  }
-
-  if (normalizedMaxRecordsPerSecond !== undefined) {
-    log.info(`🚦 User record-rate cap: ${normalizedMaxRecordsPerSecond} record(s)/second`);
   }
   
   log.blank();
@@ -212,13 +209,10 @@ export async function publishRecordsWithApplyWrites(
       // Apply adaptive scaling from performance metrics
       const adaptiveScale = calculator.calculateAdaptiveScale();
       const scaledSize = Math.floor(optimalSize * adaptiveScale.scale);
-      const finalSize = capBatchSizeToRecordRate(
-        Math.max(1, Math.min(scaledSize, MAX_PDS_BATCH_SIZE)),
-        normalizedMaxRecordsPerSecond,
-      );
+      const finalSize = Math.max(1, Math.min(scaledSize, MAX_PDS_BATCH_SIZE));
       
       // Update batch size if changed significantly
-      if (finalSize < currentBatchSize || Math.abs(finalSize - currentBatchSize) > 5) {
+      if (Math.abs(finalSize - currentBatchSize) > 5) {
         log.info(`📊 Batch size: ${currentBatchSize} → ${finalSize} records`);
         if (adaptiveScale.scale !== 1.0) {
           log.info(`   └─ Adaptive: ×${adaptiveScale.scale.toFixed(2)} (${adaptiveScale.reason})`);
@@ -313,18 +307,15 @@ export async function publishRecordsWithApplyWrites(
             rl.updateFromHeaders(normalized);
             
             // After first response, recalculate optimal settings
-            if (rl.hasServerInfo() && batchCounter === 1) {
+            if (!rl.hasServerInfo() && batchCounter === 1) {
             const newCap = rl.getServerCapacity();
             if (newCap) {
             const actualQuota = rl.getActualRemaining();
-            const newBatchSize = capBatchSizeToRecordRate(
-              pacer.calculateOptimalBatchSize(
-                newCap.limit,
-                newCap.windowSeconds,
-                actualQuota,
-                MAX_PDS_BATCH_SIZE
-              ),
-              normalizedMaxRecordsPerSecond,
+            const newBatchSize = pacer.calculateOptimalBatchSize(
+            newCap.limit,
+            newCap.windowSeconds,
+            actualQuota,
+            MAX_PDS_BATCH_SIZE
             );
             
             const quotaPercent = ((actualQuota / newCap.limit) * 100).toFixed(1);
@@ -453,11 +444,9 @@ export async function publishRecordsWithApplyWrites(
       return handleCancellation(successCount, errorCount, totalRecords);
     }
 
-    // Wait before next batch. A user-supplied record-rate ceiling is layered
-    // on top of PDS-derived pacing, so the longer delay always wins.
+    // Wait before next batch (proactive pacing)
     if (i < totalRecords) {
-      const userRateDelay = minimumRecordRateDelayMs(batch.length, normalizedMaxRecordsPerSecond);
-      await new Promise((resolve) => setTimeout(resolve, Math.max(currentDelay, userRateDelay)));
+      await new Promise((resolve) => setTimeout(resolve, currentDelay));
     }
   }
 

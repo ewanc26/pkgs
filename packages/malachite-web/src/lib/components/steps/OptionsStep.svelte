@@ -8,7 +8,7 @@
     reverseOrder = $bindable(false),
     fresh        = $bindable(false),
     enrichFromMusicBrainz = $bindable(false),
-    maxRecordsPerSecond = $bindable<number | null>(null),
+    dangerZone = $bindable(false),
     onstartimport,
     onback,
   }: {
@@ -17,7 +17,7 @@
     reverseOrder: boolean;
     fresh: boolean;
     enrichFromMusicBrainz: boolean;
-    maxRecordsPerSecond: number | null;
+    dangerZone: boolean;
     onstartimport: () => void;
     onback: () => void;
   } = $props();
@@ -70,6 +70,29 @@
         </button>
       </div>
 
+      <div class="danger-zone">
+        <div class="danger-heading">Danger Zone</div>
+        <div class="option-row danger-row">
+          <div class="option-info">
+            <span class="option-name">Use all observed quota</span>
+            <span class="option-desc">Disables Malachite's 15% safety buffer. This can rate-limit every user on the PDS. Only use this on a PDS you control.</span>
+          </div>
+          <button
+            class="toggle danger-toggle"
+            class:on={dangerZone}
+            onclick={() => (dangerZone = !dangerZone)}
+            type="button"
+            aria-label="Toggle Danger Zone"
+            aria-pressed={dangerZone}
+          >
+            <span class="toggle-thumb"></span>
+          </button>
+        </div>
+        {#if dangerZone}
+          <div class="danger-warning">Warning: the PDS still enforces its limit, but this may exhaust shared quota and affect other users.</div>
+        {/if}
+      </div>
+
       <div class="option-row">
         <div class="option-info">
           <span class="option-name">Look up missing artists</span>
@@ -88,29 +111,6 @@
         >
           <span class="toggle-thumb"></span>
         </button>
-      </div>
-
-      <div class="option-row">
-        <div class="option-info">
-          <span class="option-name">Maximum publish rate</span>
-          <span class="option-desc">
-            Optional records-per-second ceiling. This also limits the first probe burst and is useful when another service mirrors Teal records. Leave blank for automatic pacing.
-          </span>
-        </div>
-        <input
-          class="rate-input"
-          type="number"
-          min="0.1"
-          step="0.1"
-          placeholder="Auto"
-          value={maxRecordsPerSecond ?? ''}
-          aria-label="Maximum records per second"
-          oninput={(event) => {
-            const raw = (event.currentTarget as HTMLInputElement).value;
-            const parsed = Number(raw);
-            maxRecordsPerSecond = raw === '' || !Number.isFinite(parsed) || parsed <= 0 ? null : parsed;
-          }}
-        />
       </div>
 
       <div class="option-row">
@@ -171,22 +171,6 @@
   .option-name  { font-size: 0.875rem; color: var(--text); display: block; }
   .option-desc  { font-size: 0.75rem; color: var(--muted); display: block; margin-top: 0.15rem; }
 
-  .rate-input {
-    width: 6.5rem;
-    flex-shrink: 0;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface-2);
-    color: var(--text);
-    padding: 0.45rem 0.55rem;
-    font: inherit;
-  }
-
-  .rate-input:focus {
-    outline: 1px solid var(--accent);
-    border-color: var(--accent);
-  }
-
   .toggle {
     width: 40px;
     height: 22px;
@@ -216,6 +200,11 @@
   .toggle.on .toggle-thumb { transform: translateX(18px); background: #000; }
 
   .polish-note { margin-bottom: 0.5rem; }
+  .danger-zone { margin-top: 1rem; padding: 0 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--surface); }
+  .danger-heading { padding-top: 0.75rem; color: var(--warn); font-size: 0.8rem; font-weight: 600; }
+  .danger-row { border-bottom: none; }
+  .danger-toggle.on { background: var(--warn); border-color: var(--warn); }
+  .danger-warning { padding: 0 0 0.75rem; color: var(--warn); font-size: 0.75rem; line-height: 1.4; }
   .polish-note code {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.78em;
