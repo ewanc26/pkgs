@@ -191,4 +191,44 @@ describe('Apple artist completeness', () => {
       /Refusing to publish Apple Music play without an artist/,
     );
   });
+
+  it('should publish an unresolved Apple play when explicitly allowed', () => {
+    const unresolved: PlayRecord = {
+      $type: 'fm.teal.feed.play',
+      trackName: 'Unresolved Song',
+      playedTime: '2026-08-20T12:00:00.000Z',
+      submissionClientAgent: 'test',
+      musicServiceUri: 'https://music.apple.com/',
+    };
+
+    const sanitized = sanitizePlayRecordMusicBrainzIds(unresolved, { allowUnresolvedApple: true });
+    assert.strictEqual(sanitized.trackName, 'Unresolved Song');
+    assert.strictEqual(sanitized.artists, undefined);
+  });
+
+  it('should keep the preflight guard unless the caller opts in', async () => {
+    const unresolved: PlayRecord = {
+      $type: 'fm.teal.feed.play',
+      trackName: 'Unresolved Song',
+      playedTime: '2026-08-20T12:00:00.000Z',
+      submissionClientAgent: 'test',
+      musicServiceUri: 'https://music.apple.com/',
+    };
+
+    const result = await publishRecordsWithApplyWrites(
+      null,
+      [unresolved],
+      0,
+      0,
+      config,
+      true,
+      false,
+      null,
+      false,
+      true,
+    );
+
+    assert.strictEqual(result.successCount, 1);
+    assert.strictEqual(result.errorCount, 0);
+  });
 });

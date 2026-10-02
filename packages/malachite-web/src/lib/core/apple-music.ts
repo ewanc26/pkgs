@@ -102,6 +102,9 @@ export async function splitAppleMusicFiles(
 
     if (/"?Track Description"?/.test(header)) {
       out.dailyTracks ??= file;
+    } else if (/"?Track Name"?/.test(header) && !/"?(Song|Content) Name"?/.test(header)) {
+      // Track Play History format - can be used as daily tracks companion
+      out.dailyTracks ??= file;
     } else if (/"?(Song|Content) Name"?/.test(header)) {
       out.playActivity ??= file;
     }
