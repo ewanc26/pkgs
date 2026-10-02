@@ -82,6 +82,11 @@ ${'\x1b[1m'}INPUT:${'\x1b[0m'}
                                  Rate-limited to one lookup per second, so a
                                  large import can take hours. Records that can't
                                  be matched are left untouched, never dropped.
+  --allow-unresolved-apple       Import Apple Music plays that still have no
+                                 artist after --enrich. Without this, Malachite
+                                 aborts the whole import and publishes nothing,
+                                 because unattributed plays are hard to spot
+                                 (and fix) once they're in your scrobbles.
   --youtube-input <path>         Path to YouTube Music JSON export
   --listenbrainz-input <path>    Path to ListenBrainz export (.zip, export
                                  directory, or .json/.jsonl file)
@@ -197,6 +202,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
     'apple-input': { type: 'string' },
     'apple-daily-tracks': { type: 'string' },
     'enrich': { type: 'boolean' },
+    'allow-unresolved-apple': { type: 'boolean' },
     'youtube-input': { type: 'string' },
     'listenbrainz-input': { type: 'string' },
     'lastfm-user': { type: 'string' },
@@ -243,6 +249,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
       'apple-input': values['apple-input'],
       'apple-daily-tracks': values['apple-daily-tracks'],
       enrich: values.enrich,
+      'allow-unresolved-apple': values['allow-unresolved-apple'],
       'youtube-input': values['youtube-input'],
       'listenbrainz-input': values['listenbrainz-input'],
       'lastfm-user': values['lastfm-user'],
@@ -527,6 +534,10 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
       const apple = await promptWithValidation('📄 Path to Apple Music CSV file (optional, Enter to skip): ', (input) => validateFilePath(input, 'csv'), true);
       if (apple) {
         args['apple-input'] = apple;
+        const appleDaily = await promptWithValidation('📄 Path to "Apple Music - Play History Daily Tracks.csv" (optional, helps recover missing artists): ', (input) => validateFilePath(input, 'csv'), true);
+        if (appleDaily) {
+          args['apple-daily-tracks'] = appleDaily;
+        }
       }
 
       const youtube = await promptWithValidation('📁 Path to YouTube Music JSON export (optional, Enter to skip): ', (input) => validateFilePath(input, 'json'), true);
@@ -556,6 +567,11 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
         (input) => validateFilePath(input, 'csv')
       );
       console.log('✓ File validated');
+
+      const appleDaily = await promptWithValidation('📄 Path to "Apple Music - Play History Daily Tracks.csv" (optional, helps recover missing artists): ', (input) => validateFilePath(input, 'csv'), true);
+      if (appleDaily) {
+        args['apple-daily-tracks'] = appleDaily;
+      }
     } else if (args.mode === 'youtube') {
       console.log('\n📁 Input File');
       console.log('─'.repeat(50));
@@ -1074,6 +1090,7 @@ export async function runCLI(): Promise<void> {
         let lastLogged = 0;
         const result = await enrichWithMusicBrainz(records, {
           userAgent: `malachite/v${VERSION} ( https://github.com/ewanc26/pkgs )`,
+          allowUnresolvedApple: args['allow-unresolved-apple'] ?? false,
           onProgress: ({ processed, total }) => {
             if (processed - lastLogged >= 50 || processed === total) {
               lastLogged = processed;
@@ -1083,6 +1100,26 @@ export async function runCLI(): Promise<void> {
         });
         records = result.records;
         log.success(`Filled in ${formatLocaleNumber(result.enriched)} artist name(s)`);
+
+        // Malachite's default is to abort rather than publish unattributed plays.
+        // With --allow-unresolved-apple the core stops throwing, so report exactly
+        // what is about to go out so it is visible in the transcript afterwards.
+        if (result.unresolvedApple > 0) {
+          const unresolvedTitles = [
+            ...new Set(records.filter(r => !r.artists?.length).map(r => r.trackName)),
+          ];
+          log.warn(
+            `${formatLocaleNumber(result.unresolvedApple)} play(s) still have no artist ` +
+            `across ${formatLocaleNumber(unresolvedTitles.length)} title(s) — publishing them unattributed.`
+          );
+          for (const title of unresolvedTitles.slice(0, 5)) {
+            log.warn(`  • ${title}`);
+          }
+          if (unresolvedTitles.length > 5) {
+            log.warn(`  …and ${formatLocaleNumber(unresolvedTitles.length - 5)} more`);
+          }
+          log.blank();
+        }
 
         // Filling an artist can cause two formerly-incomplete rows to converge
         // on the same final key, so remove those locally before publication.
@@ -1190,7 +1227,8 @@ export async function runCLI(): Promise<void> {
       dryRun,
       mode === 'sync' || mode === 'combined',
       importState,
-      args['danger-zone'] ?? false
+      args['danger-zone'] ?? false,
+      args['allow-unresolved-apple'] ?? false
     );
 
     log.blank();

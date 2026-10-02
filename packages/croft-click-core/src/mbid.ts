@@ -42,9 +42,17 @@ export function normalizeMusicBrainzId(value: string | undefined | null): string
  * the Daily Tracks companion, Apple's catalogue, or MusicBrainz first. Failing
  * closed here guarantees Malachite cannot create new Apple artist gaps even if
  * a caller forgets to run enrichment.
+ *
+ * `allowUnresolvedApple` is the explicit opt-out for callers whose user asked
+ * for an incomplete import anyway (CLI `--allow-unresolved-apple`). It stays
+ * opt-in so no other path can weaken the invariant by accident.
  */
-export function sanitizePlayRecordMusicBrainzIds(record: PlayRecord): PlayRecord {
+export function sanitizePlayRecordMusicBrainzIds(
+  record: PlayRecord,
+  opts: { allowUnresolvedApple?: boolean } = {}
+): PlayRecord {
   if (
+    !opts.allowUnresolvedApple &&
     record.musicServiceUri.toLowerCase().includes('music.apple.com') &&
     !record.artists?.some((artist) => artist.artistName?.trim())
   ) {

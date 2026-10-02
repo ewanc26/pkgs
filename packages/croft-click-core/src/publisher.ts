@@ -67,7 +67,8 @@ export async function publishRecords(
   dryRun: boolean,
   callbacks: PublisherCallbacks,
   context = 'publish',
-  dangerZone = false
+  dangerZone = false,
+  allowUnresolvedApple = false
 ): Promise<{ successCount: number; errorCount: number; cancelled: boolean }> {
   const { onProgress, onLog, isCancelled } = callbacks;
 
@@ -75,7 +76,7 @@ export async function publishRecords(
   // sanitizer also enforces the Apple-import invariant that a play may not be
   // published without a real artist, so a late bad row cannot leave a partially
   // completed import behind.
-  records.forEach((record) => { sanitizePlayRecordMusicBrainzIds(record); });
+  records.forEach((record) => { sanitizePlayRecordMusicBrainzIds(record, { allowUnresolvedApple }); });
 
   const total = records.length;
 
@@ -186,7 +187,7 @@ export async function publishRecords(
         $type: 'com.atproto.repo.applyWrites#create',
         collection: RECORD_TYPE,
         rkey: generateTIDFromISO(record.playedTime, context),
-        value: sanitizePlayRecordMusicBrainzIds(record),
+        value: sanitizePlayRecordMusicBrainzIds(record, { allowUnresolvedApple }),
       }));
 
       const batchPoints = batch.length * POINTS_PER_RECORD;

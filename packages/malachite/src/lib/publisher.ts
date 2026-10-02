@@ -45,8 +45,11 @@ import { com } from '@bsky/sdk/lexicons'
  * valid `mbid:<uuid>` URI. Keeping the CLI diagnostics here preserves useful
  * warnings while sharing the same publication contract as the web publisher.
  */
-function sanitizeMbidFields(record: PlayRecord): PlayRecord {
-  const sanitized = sanitizePlayRecordMusicBrainzIds(record);
+function sanitizeMbidFields(
+  record: PlayRecord,
+  opts: { allowUnresolvedApple?: boolean } = {}
+): PlayRecord {
+  const sanitized = sanitizePlayRecordMusicBrainzIds(record, opts);
 
   const recordingMbId = normalizeMusicBrainzId(record.recordingMbId);
   if (record.recordingMbId && !recordingMbId) {
@@ -87,15 +90,17 @@ export async function publishRecordsWithApplyWrites(
   dryRun = false,
   syncMode = false,
   importState: ImportState | null = null,
-  dangerZone = false
+  dangerZone = false,
+  allowUnresolvedApple = false
 ): Promise<PublishResult> {
   const { RECORD_TYPE } = config;
   const totalRecords = records.length;
+  const sanitizeOpts = { allowUnresolvedApple };
 
   // Preflight the entire import before dry-run output or the first write. This
   // prevents a late unresolved Apple row from being discovered only after
   // earlier batches have already landed.
-  records.forEach((record) => { sanitizeMbidFields(record); });
+  records.forEach((record) => { sanitizeMbidFields(record, sanitizeOpts); });
 
   if (dryRun) {
     return handleDryRun(records, config, syncMode);
@@ -233,7 +238,7 @@ export async function publishRecordsWithApplyWrites(
 
     // Build writes array
     const writes = batch.map((record) => {
-      const sanitizedRecord = sanitizeMbidFields(record);
+      const sanitizedRecord = sanitizeMbidFields(record, sanitizeOpts);
       return {
         $type: 'com.atproto.repo.applyWrites#create',
         collection: RECORD_TYPE,

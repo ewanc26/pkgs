@@ -89,6 +89,7 @@ function titleKey(title: string): string {
   return title
     .normalize('NFKC')
     .toLowerCase()
+    .replace(/\s*\([^)]*\)$/g, '')
     .replace(/\s*-\s*(single|ep)$/i, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -106,7 +107,21 @@ export function parseDailyTracksArtistMap(rows: Array<Record<string, string>>): 
   const candidates = new Map<string, Set<string>>();
 
   for (const row of rows) {
-    const description = row['Track Description']?.trim();
+    let description = row['Track Description']?.trim();
+    if (!description) {
+      // Try Track Play History format
+      description = row['Track Name']?.trim() || row['track name']?.trim();
+    }
+    if (!description) {
+      // Fallback: look in first value
+      const values = Object.values(row);
+      for (const v of values) {
+        if (typeof v === 'string' && v.includes(' - ')) {
+          description = v.trim();
+          break;
+        }
+      }
+    }
     if (!description) continue;
 
     const sep = description.indexOf(' - ');
@@ -120,6 +135,16 @@ export function parseDailyTracksArtistMap(rows: Array<Record<string, string>>): 
     const artists = candidates.get(key) ?? new Set<string>();
     artists.add(artist);
     candidates.set(key, artists);
+    // Also try with trailing parentheticals stripped
+    const key2 = title.replace(/\s*\([^)]*\)$/g, '').trim();
+    if (key2 && key2 !== title) {
+      const k2 = titleKey(key2);
+      if (k2 !== key) {
+        const a2 = candidates.get(k2) ?? new Set<string>();
+        a2.add(artist);
+        candidates.set(k2, a2);
+      }
+    }
   }
 
   const map = new Map<string, string>();

@@ -50,6 +50,12 @@ export interface CommandLineArgs {
   'apple-input'?: string;
   'apple-daily-tracks'?: string;
   enrich?: boolean;
+  /**
+   * Publish Apple Music plays that still have no artist after enrichment.
+   * Off by default: Malachite refuses to publish an incomplete import rather
+   * than filling your scrobbles with unattributed plays.
+   */
+  'allow-unresolved-apple'?: boolean;
   'youtube-input'?: string;
   'listenbrainz-input'?: string;
 
