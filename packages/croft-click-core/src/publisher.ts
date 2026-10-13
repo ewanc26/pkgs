@@ -310,6 +310,7 @@ export async function publishRecords(
           rl.refund(batchPoints); // this reservation was never actually sent
           rl.handleRateLimitHit(normalizeHeaders(rawErrHeaders));
           await rl.waitForPermit(batchPoints, isCancelled);
+          batchCounter--; // the retry is the same batch, not a new one
           continue; // retry same batch
         }
         rl.refund(batchPoints); // batch failed before actually costing any quota
