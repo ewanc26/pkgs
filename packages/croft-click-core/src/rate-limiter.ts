@@ -5,6 +5,9 @@
 
 import { normalizeHeaders } from './rate-limit-headers.js';
 
+/** Minimum wait after a 429 when the server gave no future reset time. */
+const RATE_LIMIT_FALLBACK_WAIT_SECONDS = 60;
+
 interface State {
   limit: number;
   remaining: number;
@@ -127,6 +130,11 @@ export class RateLimiter {
   /**
    * Called when the server returns a 429. Zeroes remaining so the next
    * `waitForPermit` actually blocks until the window resets.
+   *
+   * If the 429 carried no usable reset time, the stored `resetAt` can already
+   * be in the past. `waitForPermit` treats a past `resetAt` as a fresh window
+   * and returns immediately, which turns the retry into a tight 429 loop, so
+   * push `resetAt` forward to guarantee a real wait.
    */
   handleRateLimitHit(errHeaders?: Record<string, string>): void {
     if (errHeaders && Object.keys(errHeaders).length > 0) {
@@ -135,6 +143,9 @@ export class RateLimiter {
     const now = Math.floor(Date.now() / 1000);
     if (this.state) {
       this.state.remaining = 0;
+      if (this.state.resetAt <= now) {
+        this.state.resetAt = now + RATE_LIMIT_FALLBACK_WAIT_SECONDS;
+      }
     } else {
       this.state = { limit: 5000, remaining: 0, resetAt: now + 3600, windowSeconds: 3600 };
     }

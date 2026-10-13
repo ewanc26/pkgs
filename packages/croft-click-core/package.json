@@ -37,7 +37,8 @@
     "dev": "tsc --watch",
     "prepare": "pnpm run build",
     "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "tsc && node --test dist/tests/*.test.js"
   },
   "dependencies": {
     "@atproto/lex": "^0.3.0",
