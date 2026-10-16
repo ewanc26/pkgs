@@ -16,4 +16,4 @@ my pkgs monorepo
 
 ## Recent direction
 
-Recent commits: Sync AGENTS.md from zincfox; Sync AGENTS.md from zincfox; Sync CONTRIBUTING.md from zincfox; Sync CONTRIBUTING.md from zincfox; fix(malachite): respect daily repository write budget
+Recent commits: fix(malachite): respect daily repository write budget
