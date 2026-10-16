@@ -20,4 +20,4 @@ my pkgs monorepo
 
 ## Recent history
 
-Sync AGENTS.md from zincfox; Sync AGENTS.md from zincfox; Sync CONTRIBUTING.md from zincfox; Sync CONTRIBUTING.md from zincfox; fix(malachite): respect daily repository write budget
+fix(malachite): respect daily repository write budget
