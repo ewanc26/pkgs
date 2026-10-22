@@ -20,6 +20,7 @@ import {
   toNorm,
   sourceOf,
   betterRecord,
+  CROSS_SOURCE_WINDOW_MS,
 } from './merge.js'
 
 export interface ExistingRecord {
@@ -170,9 +171,10 @@ function matchesWithinWindow(
   const minuteMap = index.get(nk);
   if (!minuteMap || minuteMap.size === 0) return false;
 
-  const bucket = Math.floor(epochMillis(record) / 60_000);
   const recordTs = epochMillis(record);
-  for (const b of [bucket - 1, bucket, bucket + 1]) {
+  const bucket = Math.floor(recordTs / 60_000);
+  const span = Math.max(1, Math.ceil(windowMs / 60_000));
+  for (let b = bucket - span; b <= bucket + span; b++) {
     const arr = minuteMap.get(b);
     if (!arr) continue;
     for (const candidate of arr) {
@@ -200,15 +202,56 @@ function matchesWithinWindow(
  *     same event. When both sides have artists and they disagree, the incoming
  *     record is preserved rather than collapsed, since the title may be shared.
  *
+ *  4. A record from a *different* known source (e.g. Last.fm vs Spotify, Apple
+ *     import vs live scrobble) within `crossSourceWindowMs` (default 15 min;
+ *     0 disables), matched one-to-one against existing records.
+ *
  * @param windowMs  Same-listen tolerance in milliseconds (default 60_000).
  */
 export function filterNewRecords(
   records: PlayRecord[],
   existing: Map<string, ExistingRecord>,
-  opts?: { windowMs?: number }
+  opts?: { windowMs?: number; crossSourceWindowMs?: number }
 ): PlayRecord[] {
   const windowMs = opts?.windowMs ?? DEFAULT_DEDUP_WINDOW_MS;
+  const crossMs = opts?.crossSourceWindowMs ?? CROSS_SOURCE_WINDOW_MS;
   const windowIndex = buildWindowIndex(existing);
+
+  // Cross-source tier: the same listen reported by a different service is offset
+  // by about the track length (end- vs start-time stamps), far beyond windowMs.
+  // Matches are one-to-one so real repeats still get through.
+  const byTrack = new Map<string, ExistingRecord[]>();
+  if (crossMs > 0) {
+    for (const e of existing.values()) {
+      const k = `${normalizeString(e.value.artists?.[0]?.artistName ?? '')}|||${normalizeString(e.value.trackName)}`;
+      const g = byTrack.get(k);
+      if (g) g.push(e);
+      else byTrack.set(k, [e]);
+    }
+  }
+  const claimed = new Set<ExistingRecord>();
+  const matchesCrossSource = (record: PlayRecord): boolean => {
+    if (crossMs <= 0) return false;
+    const src = sourceOf(record);
+    if (src === 'unknown') return false;
+    const k = `${normalizeString(record.artists?.[0]?.artistName ?? '')}|||${normalizeString(record.trackName)}`;
+    const ts = epochMillis(record);
+    let best: ExistingRecord | undefined;
+    let bestGap = Infinity;
+    for (const e of byTrack.get(k) ?? []) {
+      if (claimed.has(e)) continue;
+      const eSrc = sourceOf(e.value);
+      if (eSrc === 'unknown' || eSrc === src) continue;
+      const gap = Math.abs(epochMillis(e.value) - ts);
+      if (gap <= crossMs && gap < bestGap) {
+        best = e;
+        bestGap = gap;
+      }
+    }
+    if (!best) return false;
+    claimed.add(best);
+    return true;
+  };
 
   const byTrackTime = new Map<string, ExistingRecord[]>();
   for (const existingRecord of existing.values()) {
@@ -221,6 +264,7 @@ export function filterNewRecords(
   return records.filter((record) => {
     if (existing.has(recordKey(record))) return false;
     if (matchesWithinWindow(record, windowIndex, windowMs)) return false;
+    if (matchesCrossSource(record)) return false;
 
     const candidates = byTrackTime.get(trackTimeKey(record));
     if (!candidates?.length) return true;

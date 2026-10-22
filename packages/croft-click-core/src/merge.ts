@@ -34,27 +34,54 @@ export interface MergeStats {
  * dedup sweep over production data.
  */
 export function sourceOf(r: PlayRecord): Source {
-  const service = r.musicServiceUri?.toLowerCase() ?? '';
+  // Older records carry `musicServiceUri`; newer clients write
+  // `musicServiceBaseDomain` / `originUrl` instead, so consult all three.
+  const service = [r.musicServiceUri, r.musicServiceBaseDomain, r.originUrl]
+    .filter((v): v is string => typeof v === 'string' && v.length > 0)
+    .join(' ')
+    .toLowerCase();
   if (service.includes('last.fm')) return 'lastfm';
   if (service.includes('music.apple.com')) return 'apple';
   if (service.includes('music.youtube.com')) return 'youtube';
   if (service.includes('listenbrainz.org')) return 'listenbrainz';
+  if (service.includes('spotify.com')) return 'spotify';
   return service ? 'spotify' : 'unknown';
+}
+
+/** Fallback to the raw lower-cased text so symbol-only names never normalise to ''. */
+function normOrRaw(value: string | undefined): string {
+  const raw = value ?? '';
+  return normalizeString(raw) || raw.trim().toLowerCase();
 }
 
 export function toNorm(r: PlayRecord, source: Source): NormalizedRecord {
   return {
     original: r,
-    normalizedTrack: normalizeString(r.trackName),
-    normalizedArtist: normalizeString(r.artists?.[0]?.artistName ?? ''),
+    normalizedTrack: normOrRaw(r.trackName),
+    normalizedArtist: normOrRaw(r.artists?.[0]?.artistName),
     timestamp: new Date(canonicalizeTimestamp(r.playedTime)).getTime(),
     source,
   };
 }
 
-export function areDuplicates(a: NormalizedRecord, b: NormalizedRecord): boolean {
+/**
+ * Cross-source match window. Spotify and Apple Music export the play *end*
+ * time while Last.fm, ListenBrainz and live scrobblers record the *start*, so
+ * the same listen differs by roughly the track length (median ≈ 3 min, and
+ * well past 5 min for longer tracks).
+ */
+export const CROSS_SOURCE_WINDOW_MS = 15 * 60_000;
+
+/** Same track played twice by one source this close together is one event. */
+export const SAME_SOURCE_EVENT_WINDOW_MS = 5_000;
+
+export function areDuplicates(
+  a: NormalizedRecord,
+  b: NormalizedRecord,
+  windowMs = CROSS_SOURCE_WINDOW_MS
+): boolean {
   return (
-    Math.abs(a.timestamp - b.timestamp) <= 300_000 &&
+    Math.abs(a.timestamp - b.timestamp) <= windowMs &&
     a.normalizedTrack === b.normalizedTrack &&
     a.normalizedArtist === b.normalizedArtist
   );
@@ -79,17 +106,26 @@ export function betterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayReco
   return a.original;
 }
 
+interface MergeEntry {
+  norm: NormalizedRecord;
+  sources: Set<Source>;
+}
+
 /**
- * Merge exports from all sources, deduplicating records within ±5 minutes
- * of each other. Prefers records resolved against MusicBrainz (Last.fm,
- * ListenBrainz) over Spotify/Apple's richer metadata, and finally YouTube.
+ * Merge exports from all sources, collapsing the same listen reported by
+ * different services. A record only merges with an entry from a *different*
+ * source that hasn't already absorbed one from its source (one-to-one), within
+ * `windowMs`; genuine repeats from a single source are never collapsed.
+ * Prefers records resolved against MusicBrainz (Last.fm, ListenBrainz) over
+ * Spotify/Apple's richer metadata, and finally YouTube.
  */
 export function mergePlayRecords(
   lastfmRecords: PlayRecord[],
   spotifyRecords: PlayRecord[],
   appleRecords: PlayRecord[] = [],
   youtubeRecords: PlayRecord[] = [],
-  listenbrainzRecords: PlayRecord[] = []
+  listenbrainzRecords: PlayRecord[] = [],
+  windowMs: number = CROSS_SOURCE_WINDOW_MS
 ): { merged: PlayRecord[]; stats: MergeStats } {
   const all = [
     ...lastfmRecords.map((r) => toNorm(r, 'lastfm')),
@@ -99,26 +135,46 @@ export function mergePlayRecords(
     ...listenbrainzRecords.map((r) => toNorm(r, 'listenbrainz')),
   ].sort((a, b) => a.timestamp - b.timestamp);
 
-  const unique: PlayRecord[] = [];
-  const seen = new Set<string>();
+  const entries: MergeEntry[] = [];
+  const groups = new Map<string, MergeEntry[]>();
   let dups = 0;
 
   for (const rec of all) {
-    const key = `${rec.normalizedTrack}|${rec.normalizedArtist}|${Math.floor(rec.timestamp / 60_000)}`;
-    if (seen.has(key)) {
-      const idx = unique.findIndex((u) => areDuplicates(rec, toNorm(u, sourceOf(u))));
-      if (idx !== -1) {
-        const existing = toNorm(unique[idx], sourceOf(unique[idx]));
-        unique[idx] = betterRecord(existing, rec);
-        dups++;
-        continue;
+    const key = `${rec.normalizedTrack}|||${rec.normalizedArtist}`;
+    let group = groups.get(key);
+    if (!group) {
+      group = [];
+      groups.set(key, group);
+    }
+
+    // Entries are in time order, so the first eligible hit scanning backwards
+    // is the nearest earlier candidate.
+    let match: MergeEntry | undefined;
+    for (let i = group.length - 1; i >= 0; i--) {
+      const e = group[i];
+      if (rec.timestamp - e.norm.timestamp > windowMs) break;
+      if (!e.sources.has(rec.source)) {
+        match = e;
+        break;
       }
     }
-    seen.add(key);
-    unique.push(rec.original);
+
+    if (match) {
+      const winner = betterRecord(match.norm, rec);
+      match.norm = winner === rec.original ? rec : match.norm;
+      match.sources.add(rec.source);
+      dups++;
+    } else {
+      const entry: MergeEntry = { norm: rec, sources: new Set([rec.source]) };
+      group.push(entry);
+      entries.push(entry);
+    }
   }
 
-  unique.sort((a, b) => new Date(a.playedTime).getTime() - new Date(b.playedTime).getTime());
+  const unique = entries
+    .map((e) => e.norm)
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .map((n) => n.original);
 
   return {
     merged: unique,
@@ -141,16 +197,31 @@ export function mergePlayRecords(
  * Matching uses the same normalised artist + track + canonicalised timestamp as
  * every other dedup path, so the same listen submitted by two different clients
  * (e.g. Last.fm via `…T14:39:14Z` and via `…T14:39:14.000Z`) collapses to one.
+ * The same track within `SAME_SOURCE_EVENT_WINDOW_MS` of the previous kept copy
+ * is also treated as a duplicate event (exporters that emit one play twice).
  */
 export function deduplicateInputRecords(
   records: PlayRecord[]
 ): { unique: PlayRecord[]; duplicates: number } {
   const seen = new Map<string, PlayRecord>();
+  const lastSeen = new Map<string, number>();
   let dups = 0;
   for (const r of records) {
     const key = playRecordKey(r);
-    if (!seen.has(key)) seen.set(key, r);
-    else dups++;
+    if (seen.has(key)) {
+      dups++;
+      continue;
+    }
+    // Some exporters emit the same event several times a few ms/seconds apart.
+    const trackKey = `${normOrRaw(r.trackName)}|||${normOrRaw(r.artists?.[0]?.artistName)}`;
+    const ts = new Date(canonicalizeTimestamp(r.playedTime)).getTime();
+    const prev = lastSeen.get(trackKey);
+    if (prev !== undefined && Number.isFinite(ts) && Math.abs(ts - prev) <= SAME_SOURCE_EVENT_WINDOW_MS) {
+      dups++;
+      continue;
+    }
+    if (Number.isFinite(ts)) lastSeen.set(trackKey, ts);
+    seen.set(key, r);
   }
   return { unique: Array.from(seen.values()), duplicates: dups };
 }

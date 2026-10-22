@@ -1,6 +1,7 @@
 import type { Client } from '@atproto/lex'
 import type { PlayRecord, Config } from '../types.js';
 import {
+  deduplicateInputRecords as deduplicateInputRecordsCore,
   recordKey as recordKeyCore,
   filterNewRecords as filterNewRecordsCore,
   buildDedupPlan as buildDedupPlanCore,
@@ -143,19 +144,7 @@ export function createRecordKey(record: PlayRecord): string {
 export function deduplicateInputRecords(
   records: PlayRecord[]
 ): { unique: PlayRecord[]; duplicates: number } {
-  const seen = new Map<string, PlayRecord>();
-  let duplicates = 0;
-
-  for (const record of records) {
-    const key = recordKeyCore(record);
-    if (!seen.has(key)) {
-      seen.set(key, record);
-    } else {
-      duplicates++;
-    }
-  }
-
-  return { unique: Array.from(seen.values()), duplicates };
+  return deduplicateInputRecordsCore(records);
 }
 
 /**
@@ -169,7 +158,7 @@ export function deduplicateInputRecords(
 export function filterNewRecords(
   lastfmRecords: PlayRecord[],
   existingRecords: Map<string, ExistingRecord>,
-  opts?: { windowMs?: number }
+  opts?: { windowMs?: number; crossSourceWindowMs?: number }
 ): PlayRecord[] {
   log.section('Identifying New Records');
 
