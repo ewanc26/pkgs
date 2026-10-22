@@ -13,6 +13,7 @@ import {
   parseDailyTracksArtistMap,
 } from '@ewanc26/croft-click-core';
 import { VERSION } from '../config.js';
+import { backfillAppleRecords, parseAppleLibraryXml } from './apple-library.js';
 
 export { parseAppleMusicCsvContent };
 export type { AppleMusicRecord };
@@ -84,4 +85,12 @@ export function parseAppleMusicDailyTracksCsv(filePath: string): Map<string, str
   const map = parseDailyTracksArtistMap(rows);
   console.log(`✓ Recovered ${map.size} unambiguous artist names\n`);
   return map;
+}
+
+/** Fill missing track length, album and artist from an iTunes/Music `Library.xml`. */
+export function applyAppleLibrary(records: AppleMusicRecord[], libraryPath: string): AppleMusicRecord[] {
+  console.log(`Reading Apple Music library: ${libraryPath}`);
+  const { records: filled, filled: count } = backfillAppleRecords(records, parseAppleLibraryXml(libraryPath));
+  console.log(`✓ Filled in details for ${count} play(s) from the library\n`);
+  return filled;
 }

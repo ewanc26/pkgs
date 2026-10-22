@@ -13,6 +13,7 @@ import type { OnThisDayEntry } from "$lib/analysis/on-this-day";
 import type { StoryRecap as StoryRecapData } from "$lib/analysis/story-recap";
 import type { PersonalityProfile } from "$lib/analysis/personality";
 import { Aggregator } from "$lib/analysis/aggregator";
+import { collapseCrossSource } from "$lib/analysis/cross-source-dedupe";
 import { buildGenreProfile, buildMonthlyGenres } from "$lib/analysis/genres";
 import { buildTimeline } from "$lib/analysis/timeline";
 import { diversityScore, calculateGini } from "$lib/analysis/diversity";
@@ -516,7 +517,7 @@ export async function loadProfile(
     clearInterval(fetchTimer);
   }
 
-  allScrobbles = deduplicateScrobbles(allScrobbles);
+  allScrobbles = collapseCrossSource(deduplicateScrobbles(allScrobbles)).scrobbles;
 
   if (allScrobbles.length === 0) {
     onPhase?.("complete");

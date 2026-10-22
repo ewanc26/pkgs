@@ -118,17 +118,19 @@ describe('Bug 2 — window-based sync dedup', () => {
     assert.deepStrictEqual(kept, []);
   });
 
-  it('keeps a Spotify import more than 60s after an existing Last.fm record', () => {
+  it('treats a Spotify import 66s after an existing Last.fm record as the same listen across sources', () => {
     const existing = new Map<string, ExistingRecord>([
       [playRecordKey(play({ artists: [{ artistName: 'Aurora' }], trackName: 'Runaway', playedTime: '2026-07-17T11:39:14.000Z', musicServiceUri: 'https://www.last.fm/' })),
        mkExisting(play({ artists: [{ artistName: 'Aurora' }], trackName: 'Runaway', playedTime: '2026-07-17T11:39:14.000Z', musicServiceUri: 'https://www.last.fm/' }))],
     ]);
 
-    // 66s later — outside the conservative 60s window, so it is a distinct listen.
+    // 66s later — outside the same-source 60s window, but Last.fm stamps the
+    // start and Spotify the end, so different sources differ by ~the track length.
     const incoming = play({ artists: [{ artistName: 'Aurora' }], trackName: 'Runaway', playedTime: '2026-07-17T11:40:20.000Z', musicServiceUri: 'https://open.spotify.com/' });
 
-    const kept = filterNewRecordsCore([incoming], existing);
-    assert.deepStrictEqual(kept, [incoming]);
+    assert.deepStrictEqual(filterNewRecordsCore([incoming], existing), []);
+    // With the cross-source tier disabled the conservative 60s window applies.
+    assert.deepStrictEqual(filterNewRecordsCore([incoming], existing, { crossSourceWindowMs: 0 }), [incoming]);
   });
 
   it('the window is configurable', () => {

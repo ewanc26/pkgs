@@ -13,6 +13,7 @@ import { parseSpotifyJson, convertSpotifyToPlayRecord } from './spotify.js';
 import {
   parseAppleMusicCsv,
   parseAppleMusicDailyTracksCsv,
+  applyAppleLibrary,
   convertAppleMusicRecords,
 } from './apple-music.js';
 import { parseYouTubeMusicJson, convertYouTubeMusicToPlayRecord } from './youtube-music.js';
@@ -48,7 +49,7 @@ function displayMergeStats(stats: MergeStats, merged: PlayRecord[]): void {
  * Parse and merge exports from any combination of supported sources.
  */
 export function parseCombinedExports(
-  paths: { lastfm?: string, spotify?: string, apple?: string, appleDailyTracks?: string, youtube?: string, listenbrainz?: string },
+  paths: { lastfm?: string, spotify?: string, apple?: string, appleDailyTracks?: string, appleLibrary?: string, youtube?: string, listenbrainz?: string },
   config: Config,
   debug = false
 ): PlayRecord[] {
@@ -75,7 +76,9 @@ export function parseCombinedExports(
 
   if (paths.apple) {
     log.info('Parsing Apple Music export...');
-    const appleCsvRecords = parseAppleMusicCsv(paths.apple);
+    const appleCsvRecords = paths.appleLibrary
+      ? applyAppleLibrary(parseAppleMusicCsv(paths.apple), paths.appleLibrary)
+      : parseAppleMusicCsv(paths.apple);
     const appleArtists = paths.appleDailyTracks
       ? parseAppleMusicDailyTracksCsv(paths.appleDailyTracks)
       : undefined;
