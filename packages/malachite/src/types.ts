@@ -49,6 +49,7 @@ export interface CommandLineArgs {
   'spotify-input'?: string;
   'apple-input'?: string;
   'apple-daily-tracks'?: string;
+  'apple-library'?: string;
   enrich?: boolean;
   /**
    * Publish Apple Music plays that still have no artist after enrichment.
