@@ -47,8 +47,10 @@ export function canonicalizeTimestamp(playedTime: string): string {
  *
  * NFKC first (so compatibility forms — fullwidth letters, ligatures, curly
  * punctuation, non-breaking hyphens — fold to their canonical equivalents), then
- * lower-case, then strip everything that is not a letter, digit, or whitespace,
- * then collapse runs of whitespace. Two names that compare equal here are
+ * lower-case, then strip everything that is not a letter, digit, or whitespace (any script),
+ * then collapse runs of whitespace. Letters and digits are matched with Unicode
+ * property classes, so non-Latin titles (e.g. 怪物) survive instead of collapsing
+ * to an empty string that would make unrelated tracks compare equal. Two names that compare equal here are
  * treated as the same artist or track for dedup purposes.
  */
 export function normalizeString(value: string): string {
@@ -56,7 +58,7 @@ export function normalizeString(value: string): string {
   return s
     .normalize('NFKC')
     .toLowerCase()
-    .replace(/[^\w\s]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
 }

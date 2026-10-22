@@ -19,6 +19,7 @@ import {
   parseAppleMusicCsv,
   parseAppleMusicDailyTracksCsv,
   convertAppleMusicRecords,
+  applyAppleLibrary,
 } from '../lib/apple-music.js';
 import { parseYouTubeMusicJson, convertYouTubeMusicToPlayRecord } from '../lib/youtube-music.js';
 import { parseListenBrainzJson, convertListenBrainzToPlayRecord } from '../lib/listenbrainz.js';
@@ -78,6 +79,10 @@ ${'\x1b[1m'}INPUT:${'\x1b[0m'}
                                  Current Apple exports dropped the artist column;
                                  this fills artists back in. Without it, plays
                                  still import, just without an artist name.
+  --apple-library <path>         Optional companion to --apple-input: path to your
+                                 iTunes/Music "Library.xml". Fills in track length,
+                                 album and artist for Apple plays the Play Activity
+                                 export left them out of. Ambiguous titles are skipped.
   --enrich                       Look missing artist names up on MusicBrainz.
                                  Rate-limited to one lookup per second, so a
                                  large import can take hours. Records that can't
@@ -201,6 +206,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
     'spotify-input': { type: 'string' },
     'apple-input': { type: 'string' },
     'apple-daily-tracks': { type: 'string' },
+    'apple-library': { type: 'string' },
     'enrich': { type: 'boolean' },
     'allow-unresolved-apple': { type: 'boolean' },
     'youtube-input': { type: 'string' },
@@ -248,6 +254,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
       'spotify-input': values['spotify-input'] || values['spotify-file'],
       'apple-input': values['apple-input'],
       'apple-daily-tracks': values['apple-daily-tracks'],
+      'apple-library': values['apple-library'],
       enrich: values.enrich,
       'allow-unresolved-apple': values['allow-unresolved-apple'],
       'youtube-input': values['youtube-input'],
@@ -538,6 +545,10 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
         if (appleDaily) {
           args['apple-daily-tracks'] = appleDaily;
         }
+        const appleLibrary = await promptWithValidation('📄 Path to "Library.xml" (optional, fills in missing track lengths and albums): ', (input) => validateFilePath(input, 'xml'), true);
+        if (appleLibrary) {
+          args['apple-library'] = appleLibrary;
+        }
       }
 
       const youtube = await promptWithValidation('📁 Path to YouTube Music JSON export (optional, Enter to skip): ', (input) => validateFilePath(input, 'json'), true);
@@ -571,6 +582,11 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
       const appleDaily = await promptWithValidation('📄 Path to "Apple Music - Play History Daily Tracks.csv" (optional, helps recover missing artists): ', (input) => validateFilePath(input, 'csv'), true);
       if (appleDaily) {
         args['apple-daily-tracks'] = appleDaily;
+      }
+
+      const appleLibrary = await promptWithValidation('📄 Path to "Library.xml" (optional, fills in missing track lengths and albums): ', (input) => validateFilePath(input, 'xml'), true);
+      if (appleLibrary) {
+        args['apple-library'] = appleLibrary;
       }
     } else if (args.mode === 'youtube') {
       console.log('\n📁 Input File');
@@ -986,6 +1002,7 @@ export async function runCLI(): Promise<void> {
         spotify: args['spotify-input'],
         apple: args['apple-input'],
         appleDailyTracks: args['apple-daily-tracks'],
+        appleLibrary: args['apple-library'],
         youtube: args['youtube-input'],
         listenbrainz: args['listenbrainz-input']
       }, cfg, isDebug);
@@ -997,8 +1014,11 @@ export async function runCLI(): Promise<void> {
       records = spotifyRecords.map(record => convertSpotifyToPlayRecord(record, cfg, isDebug)).filter((r): r is PlayRecord => r !== null);
     } else if (mode === 'apple') {
       log.info('Importing from Apple Music export...');
-      const appleRecords = parseAppleMusicCsv(args.input!);
-      rawRecordCount = appleRecords.length;
+      const parsedAppleRecords = parseAppleMusicCsv(args.input!);
+      rawRecordCount = parsedAppleRecords.length;
+      const appleRecords = args['apple-library']
+        ? applyAppleLibrary(parsedAppleRecords, args['apple-library'])
+        : parsedAppleRecords;
       const appleArtists = args['apple-daily-tracks']
         ? parseAppleMusicDailyTracksCsv(args['apple-daily-tracks'])
         : undefined;

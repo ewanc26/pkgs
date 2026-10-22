@@ -32,6 +32,9 @@ export interface PlayRecord {
   playedTime: string;
   submissionClientAgent: string;
   musicServiceUri: string;
+  /** Newer lexicon fields written by other clients (e.g. piper): `spotify.com`, `music.apple.com`. */
+  musicServiceBaseDomain?: string;
+  originUrl?: string;
   releaseName?: string;
   releaseMbId?: string;
   recordingMbId?: string;

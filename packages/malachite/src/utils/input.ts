@@ -42,7 +42,7 @@ export function isDirectory(filepath: string): boolean {
  */
 export function validateFilePath(
   filepath: string,
-  fileType: 'csv' | 'json' | 'directory' | 'listenbrainz'
+  fileType: 'csv' | 'json' | 'xml' | 'directory' | 'listenbrainz'
 ): { valid: boolean; message?: string } {
   if (!filepath || filepath.trim() === '') {
     return { valid: false, message: '⚠️  Path cannot be empty' };
@@ -70,6 +70,10 @@ export function validateFilePath(
   // Check file extension for specific types
   if (fileType === 'csv' && !trimmedPath.toLowerCase().endsWith('.csv')) {
     return { valid: false, message: `⚠️  Expected a CSV file, but got: ${path.extname(trimmedPath)}` };
+  }
+
+  if (fileType === 'xml' && !trimmedPath.toLowerCase().endsWith('.xml')) {
+    return { valid: false, message: `⚠️  Expected an XML file, but got: ${path.extname(trimmedPath)}` };
   }
 
   if (fileType === 'json' && !isDirectory(trimmedPath) && !trimmedPath.toLowerCase().endsWith('.json')) {

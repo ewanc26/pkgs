@@ -135,8 +135,9 @@ export function calculateOptimalBatchSize(totalRecords: number, batchDelay: numb
  */
 export function normalizeString(str: string): string {
   return str
+    .normalize('NFKC')
     .toLowerCase()
-    .replace(/[^\w\s]/g, '') // Remove punctuation
+    .replace(/[^\p{L}\p{N}\s]/gu, '') // Remove punctuation, keep letters/digits in any script
     .replace(/\s+/g, ' ')     // Normalize whitespace
     .trim();
 }
