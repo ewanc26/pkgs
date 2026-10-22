@@ -33,7 +33,9 @@ export interface MergeStats {
  * field, so a missing value is reported as 'unknown' rather than crashing the
  * dedup sweep over production data.
  */
-export function sourceOf(r: PlayRecord): Source {
+export function sourceOf(
+  r: Partial<Pick<PlayRecord, 'musicServiceUri' | 'musicServiceBaseDomain' | 'originUrl'>>
+): Source {
   // Older records carry `musicServiceUri`; newer clients write
   // `musicServiceBaseDomain` / `originUrl` instead, so consult all three.
   const service = [r.musicServiceUri, r.musicServiceBaseDomain, r.originUrl]
