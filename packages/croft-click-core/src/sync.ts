@@ -19,6 +19,7 @@ import {
 import {
   toNorm,
   sourceOf,
+  streamOf,
   betterRecord,
   CROSS_SOURCE_WINDOW_MS,
 } from './merge.js'
@@ -232,16 +233,17 @@ export function filterNewRecords(
   const claimed = new Set<ExistingRecord>();
   const matchesCrossSource = (record: PlayRecord): boolean => {
     if (crossMs <= 0) return false;
-    const src = sourceOf(record);
-    if (src === 'unknown') return false;
+    if (sourceOf(record) === 'unknown') return false;
+    const src = streamOf(record);
     const k = `${normalizeString(record.artists?.[0]?.artistName ?? '')}|||${normalizeString(record.trackName)}`;
     const ts = epochMillis(record);
     let best: ExistingRecord | undefined;
     let bestGap = Infinity;
     for (const e of byTrack.get(k) ?? []) {
       if (claimed.has(e)) continue;
-      const eSrc = sourceOf(e.value);
-      if (eSrc === 'unknown' || eSrc === src) continue;
+      if (sourceOf(e.value) === 'unknown') continue;
+      const eSrc = streamOf(e.value);
+      if (eSrc === src) continue;
       const gap = Math.abs(epochMillis(e.value) - ts);
       if (gap <= crossMs && gap < bestGap) {
         best = e;

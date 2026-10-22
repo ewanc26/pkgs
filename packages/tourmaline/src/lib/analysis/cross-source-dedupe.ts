@@ -1,7 +1,7 @@
 import {
   CROSS_SOURCE_WINDOW_MS,
-  sourceOf,
-  type Source,
+  SAME_SOURCE_EVENT_WINDOW_MS,
+  streamOf,
 } from "@ewanc26/croft-click-core/merge";
 import { normalizeString } from "@ewanc26/croft-click-core/normalize";
 import type { TealScrobble } from "../types.ts";
@@ -9,7 +9,7 @@ import type { TealScrobble } from "../types.ts";
 interface Entry {
   scrobble: TealScrobble;
   time: number;
-  sources: Set<Source>;
+  streams: Set<string>;
 }
 
 const norm = (v: string | undefined) =>
@@ -26,11 +26,11 @@ function richness(s: TealScrobble): number {
 }
 
 /**
- * Collapse the same listen reported by different sources (e.g. a Last.fm
- * import plus a Spotify import or a live scrobbler). Spotify/Apple timestamps
- * are play *end* times while others are *start* times, so matching uses a
- * wide window; it is one-to-one per source so genuine repeats survive.
- * Input order is preserved apart from removed duplicates.
+ * Collapse duplicate listens. Each stream matches one-to-one with other streams
+ * within CROSS_SOURCE_WINDOW_MS (Spotify/Apple timestamps are play *end* times,
+ * others are *start*). Repeats within one stream closer than
+ * SAME_SOURCE_EVENT_WINDOW_MS are double-fired events and dropped; genuine
+ * repeats further apart survive. Input order is preserved apart from removals.
  */
 export function collapseCrossSource(
   scrobbles: TealScrobble[],
@@ -46,22 +46,33 @@ export function collapseCrossSource(
     .sort((a, b) => a.time - b.time || a.index - b.index);
 
   const byTrack = new Map<string, Entry[]>();
+  const lastInStream = new Map<string, number>();
   const kept = new Map<number, Entry>();
 
   for (const { scrobble, index, time } of order) {
-    const source = sourceOf(scrobble);
-    const key = `${norm(scrobble.trackName)}\u0000${norm(scrobble.artists[0]?.name)}`;
-    const group = byTrack.get(key) ?? [];
+    const stream = streamOf(scrobble);
+    const track = `${norm(scrobble.trackName)}\u0000${norm(scrobble.artists[0]?.name)}`;
+
+    const streamKey = `${track}\u0000${stream}`;
+    const previous = lastInStream.get(streamKey);
+    if (
+      previous !== undefined &&
+      time - previous <= SAME_SOURCE_EVENT_WINDOW_MS
+    )
+      continue;
+    lastInStream.set(streamKey, time);
+
+    const group = byTrack.get(track) ?? [];
     let match: Entry | undefined;
     for (let i = group.length - 1; i >= 0; i--) {
       if (time - group[i].time > windowMs) break;
-      if (!group[i].sources.has(source)) {
+      if (!group[i].streams.has(stream)) {
         match = group[i];
         break;
       }
     }
     if (match) {
-      match.sources.add(source);
+      match.streams.add(stream);
       if (richness(scrobble) > richness(match.scrobble)) {
         for (const [idx, e] of kept) if (e === match) kept.delete(idx);
         match.scrobble = scrobble;
@@ -69,9 +80,9 @@ export function collapseCrossSource(
       }
       continue;
     }
-    const entry: Entry = { scrobble, time, sources: new Set([source]) };
+    const entry: Entry = { scrobble, time, streams: new Set([stream]) };
     group.push(entry);
-    byTrack.set(key, group);
+    byTrack.set(track, group);
     kept.set(index, entry);
   }
 

@@ -116,6 +116,17 @@ describe('deduplicateInputRecords — near-simultaneous events', () => {
   });
 });
 
+describe('mergePlayRecords — Apple import vs live', () => {
+  it('collapses an Apple import and a live Apple row for the same listen', () => {
+    const APPLE = 'https://music.apple.com';
+    const imported: PlayRecord = { ...rec('Song', '2026-08-01T10:00:00Z', APPLE), submissionClientAgent: 'malachite/0.19.10' };
+    const live: PlayRecord = { ...rec('Song', '2026-08-01T10:02:50Z', APPLE), submissionClientAgent: 'piper/0.1.1' };
+    const { merged, stats } = mergePlayRecords([], [], [imported, live]);
+    assert.strictEqual(merged.length, 1);
+    assert.strictEqual(stats.duplicatesRemoved, 1);
+  });
+});
+
 describe('filterNewRecords — cross-source and wide windows', () => {
   const existingMap = (...recs: PlayRecord[]) =>
     new Map<string, ExistingRecord>(
@@ -154,6 +165,13 @@ describe('filterNewRecords — cross-source and wide windows', () => {
     const incoming = [rec('Song', '2025-03-01T10:03:00Z', SPOTIFY)];
     assert.strictEqual(filterNewRecords(incoming, existing, { crossSourceWindowMs: 0 }).length, 1);
     assert.strictEqual(filterNewRecords(incoming, existing, { windowMs: 300_000, crossSourceWindowMs: 0 }).length, 0);
+  });
+
+  it('matches an Apple import against a live Apple record of the same listen', () => {
+    const APPLE = 'https://music.apple.com';
+    const live: PlayRecord = { ...rec('Song', '2026-08-01T10:02:30Z', APPLE), submissionClientAgent: 'piper/0.1.1' };
+    const imported: PlayRecord = { ...rec('Song', '2026-08-01T10:00:00Z', APPLE), submissionClientAgent: 'malachite/0.19.10' };
+    assert.strictEqual(filterNewRecords([imported], existingMap(live)).length, 0);
   });
 
   it('can disable the cross-source tier', () => {

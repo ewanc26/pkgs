@@ -50,6 +50,17 @@ export function sourceOf(
   return service ? 'spotify' : 'unknown';
 }
 
+/**
+ * A stream is one producer of plays: a service plus the client that submitted
+ * it. Apple Music import (malachite) and live (piper) rows share a service but
+ * are separate streams, so the same listen can match across them.
+ */
+export function streamOf(
+  r: Partial<Pick<PlayRecord, 'musicServiceUri' | 'musicServiceBaseDomain' | 'originUrl' | 'submissionClientAgent'>>
+): string {
+  return `${sourceOf(r)}\u0000${(r.submissionClientAgent ?? '').split('/')[0]}`;
+}
+
 /** Fallback to the raw lower-cased text so symbol-only names never normalise to ''. */
 function normOrRaw(value: string | undefined): string {
   const raw = value ?? '';
@@ -110,7 +121,7 @@ export function betterRecord(a: NormalizedRecord, b: NormalizedRecord): PlayReco
 
 interface MergeEntry {
   norm: NormalizedRecord;
-  sources: Set<Source>;
+  sources: Set<string>;
 }
 
 /**
@@ -155,7 +166,7 @@ export function mergePlayRecords(
     for (let i = group.length - 1; i >= 0; i--) {
       const e = group[i];
       if (rec.timestamp - e.norm.timestamp > windowMs) break;
-      if (!e.sources.has(rec.source)) {
+      if (!e.sources.has(streamOf(rec.original))) {
         match = e;
         break;
       }
@@ -164,10 +175,10 @@ export function mergePlayRecords(
     if (match) {
       const winner = betterRecord(match.norm, rec);
       match.norm = winner === rec.original ? rec : match.norm;
-      match.sources.add(rec.source);
+      match.sources.add(streamOf(rec.original));
       dups++;
     } else {
-      const entry: MergeEntry = { norm: rec, sources: new Set([rec.source]) };
+      const entry: MergeEntry = { norm: rec, sources: new Set([streamOf(rec.original)]) };
       group.push(entry);
       entries.push(entry);
     }
