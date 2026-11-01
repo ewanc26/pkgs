@@ -1,0 +1,67 @@
+{
+  "name": "@ewanc26/rock-tumbl",
+  "version": "0.1.0",
+  "description": "Convert Tumblr blog exports into Standard.site documents",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "keywords": [
+    "tumblr",
+    "standard.site",
+    "atproto",
+    "converter",
+    "migration",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/rock-tumbl"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/rock-tumbl",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "rock-tumbl": "./dist/bin.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepare": "pnpm run build",
+    "type-check": "tsc --noEmit",
+    "test": "pnpm run build && node --test dist/tests/**/*.test.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@atproto/lex": "^0.3.0",
+    "@atproto/lex-password-session": "^0.2.0",
+    "@bsky/sdk": "1.0.0",
+    "@ewanc26/tid": "workspace:*",
+    "@zip.js/zip.js": "^2.8.26",
+    "linkedom": "^0.18.14"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
