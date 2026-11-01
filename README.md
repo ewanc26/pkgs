@@ -26,6 +26,7 @@ Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/p
 | [`malachite-web`](./packages/malachite-web)                        | Music listening history → AT Protocol scrobble importer (web frontend, private) |
 | [`nix-config-tools`](./packages/nix-config-tools)                  | Nix config management tools (Rust)                                   |
 | [`llm-analyser`](./packages/llm-analyser)                          | `.docx` analysis with Ollama (Python)                                |
+| [`@ewanc26/rock-tumbl`](./packages/rock-tumbl)                     | Starter package for rock-tumbl                                       |
 
 ## Try the tools
 
