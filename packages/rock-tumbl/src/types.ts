@@ -124,6 +124,32 @@ export interface StandardDocumentValue {
   preferences?: unknown
 }
 
+// ─── Standard.site publication value ────────────────────────────────────────
+
+/** A blob reference as returned by `com.atproto.repo.uploadBlob`. */
+export interface AtProtoBlobRef {
+  $type: 'blob'
+  ref: { $link: string }
+  mimeType: string
+  size: number
+}
+
+/**
+ * The record value shape for site.standard.publication.
+ * `url` and `name` are required; everything else is optional.
+ */
+export interface StandardPublicationValue {
+  $type: 'site.standard.publication'
+  url: string
+  name: string
+  description?: string
+  icon?: AtProtoBlobRef
+  preferences?: {
+    showInDiscover?: boolean
+    [key: string]: unknown
+  }
+}
+
 // ─── Conversion / publish options ───────────────────────────────────────────
 
 export interface ConvertOptions {
