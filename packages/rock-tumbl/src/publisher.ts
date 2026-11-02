@@ -1,19 +1,18 @@
 /**
- * Standard.site document publisher.
+ * Standard.site publisher.
  *
- * Publishes site.standard.document records to an AT Protocol PDS using
- * @atproto/lex. Record keys are TIDs derived from the document's publishedAt
- * timestamp, matching the standard.site lexicon requirements.
- *
- * Media (blob uploads) and idempotent re-imports (durable Tumblr-id → AT-URI
- * mapping) are intentionally out of scope for the initial version; see the
- * project issue for the proposed implementation sequence.
+ * Publishes `site.standard.publication` and `site.standard.document` records to
+ * an AT Protocol PDS using @atproto/lex. Document record keys are TIDs derived
+ * from the document's publishedAt timestamp; publication keys use the current
+ * time. Media blobs are uploaded with `com.atproto.repo.uploadBlob` and served
+ * back through `com.atproto.sync.getBlob`.
  */
 
 import { Client } from '@atproto/lex'
 import { com } from '@bsky/sdk/lexicons'
-import { generateTID } from '@ewanc26/tid'
-import type { StandardDocumentValue } from './types.js'
+import { generateNextTID, generateTID } from '@ewanc26/tid'
+import { buildPublicationValue, PUBLICATION_COLLECTION, type PublicationInput } from './publication.js'
+import type { AtProtoBlobRef, StandardDocumentValue } from './types.js'
 
 const DOCUMENT_COLLECTION = 'site.standard.document'
 
@@ -33,9 +32,17 @@ export interface PublishProgress {
   onLog?: (level: 'info' | 'warn' | 'error', msg: string) => void
 }
 
+interface AccessSession {
+  session: { accessJwt: string }
+  /** Runs an authenticated request against the session's PDS, refreshing if needed. */
+  fetchHandler(path: string, init: RequestInit): Promise<Response>
+}
+
 export class StandardSitePublisher {
   private client: Client | null = null
+  private session: AccessSession | null = null
   private did: string | null = null
+  private pdsUrl: string | null = null
 
   constructor(private readonly config: PublisherConfig) {}
 
@@ -52,11 +59,12 @@ export class StandardSitePublisher {
     })
 
     this.client = client
-    this.did = (client as any).assertDid ?? null
+    this.session = session
+    this.did = session.did
 
     // Resolve the PDS from the DID document
     const did = this.did!
-    let pdsUrl: string
+    let pdsUrl: string | undefined
     if (did.startsWith('did:plc:')) {
       const res = await fetch(`https://plc.directory/${did}`)
       if (!res.ok) throw new Error(`Failed to resolve DID: ${did}`)
@@ -77,7 +85,42 @@ export class StandardSitePublisher {
     }
     if (!pdsUrl) throw new Error(`No PDS found for ${did}`)
 
-    this.config.onLog?.('info', `Logged in as ${this.did} (${pdsUrl})`)
+    this.pdsUrl = pdsUrl.replace(/\/+$/, '')
+    this.config.onLog?.('info', `Logged in as ${this.did} (${this.pdsUrl})`)
+  }
+
+  /**
+   * Create a site.standard.publication record.
+   * Returns the new record's AT URI and CID.
+   */
+  async createPublication(input: PublicationInput, dryRun = false): Promise<PublishResult> {
+    if (!this.client || !this.did) throw new Error('Not logged in — call login() first')
+
+    const value = buildPublicationValue(input)
+    const rkey = generateNextTID()
+    const uri = `at://${this.did}/${PUBLICATION_COLLECTION}/${rkey}`
+
+    if (dryRun) {
+      this.config.onLog?.(
+        'info',
+        `[DRY RUN] Would create ${PUBLICATION_COLLECTION}/${rkey}: ${value.name}`,
+      )
+      return { uri, cid: 'dry-run' }
+    }
+
+    const response = await (this.client as any).call(com.atproto.repo.createRecord, {
+      repo: this.did,
+      collection: PUBLICATION_COLLECTION,
+      rkey,
+      value,
+    })
+
+    const createdUri = (response as any)?.uri
+    const cid = (response as any)?.cid
+    if (!createdUri || !cid) throw new Error(`Publish returned no uri/cid for ${value.name}`)
+
+    this.config.onLog?.('info', `Created publication ${createdUri}`)
+    return { uri: createdUri, cid }
   }
 
   /**
@@ -85,7 +128,7 @@ export class StandardSitePublisher {
    * Returns the record's AT URI and CID.
    */
   async publishDocument(doc: StandardDocumentValue, dryRun = false): Promise<PublishResult> {
-    if (!this.client) throw new Error('Not logged in — call login() first')
+    if (!this.client || !this.did) throw new Error('Not logged in — call login() first')
 
     const rkey = generateTID(doc.publishedAt)
 
@@ -111,7 +154,7 @@ export class StandardSitePublisher {
     }
 
     const response = await (this.client as any).call(com.atproto.repo.createRecord, {
-      repo: this.did!,
+      repo: this.did,
       collection: DOCUMENT_COLLECTION,
       rkey,
       value,
@@ -125,7 +168,49 @@ export class StandardSitePublisher {
     return { uri, cid }
   }
 
+  /**
+   * Upload raw bytes to the PDS and return the blob reference used in records.
+   * `com.atproto.repo.uploadBlob` takes the bytes directly, with the blob's
+   * MIME type in Content-Type — not a multipart form.
+   */
+  async uploadBlob(data: Uint8Array, mimeType: string, dryRun = false): Promise<AtProtoBlobRef> {
+    if (dryRun) {
+      return { $type: 'blob', ref: { $link: 'dry-run' }, mimeType, size: data.byteLength }
+    }
+    if (!this.session || !this.pdsUrl) throw new Error('Not logged in — call login() first')
+
+    const response = await this.session.fetchHandler('/xrpc/com.atproto.repo.uploadBlob', {
+      method: 'POST',
+      headers: { 'Content-Type': mimeType },
+      body: data as unknown as BodyInit,
+    })
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '')
+      throw new Error(
+        `Blob upload failed: ${response.status}${detail ? ` ${detail.slice(0, 200)}` : ''}`,
+      )
+    }
+
+    const body = (await response.json()) as { blob?: AtProtoBlobRef }
+    if (!body.blob?.ref?.$link) throw new Error('Blob upload returned no CID')
+    return body.blob
+  }
+
+  /** Public URL for an uploaded blob. */
+  getBlobUrl(cid: string): string {
+    if (!this.did || !this.pdsUrl) throw new Error('Not logged in — call login() first')
+    return (
+      `${this.pdsUrl}/xrpc/com.atproto.sync.getBlob` +
+      `?did=${encodeURIComponent(this.did)}&cid=${encodeURIComponent(cid)}`
+    )
+  }
+
   getDid(): string | null {
     return this.did
+  }
+
+  getPdsUrl(): string | null {
+    return this.pdsUrl
   }
 }

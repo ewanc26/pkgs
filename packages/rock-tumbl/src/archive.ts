@@ -16,12 +16,14 @@
  */
 
 import {
+  BlobReader,
   TextWriter,
   Uint8ArrayReader,
   Uint8ArrayWriter,
   type FileEntry,
   ZipReader,
 } from '@zip.js/zip.js'
+import { openAsBlob } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { basename, join, relative, resolve } from 'node:path'
 import type { ArchiveLayout, ParsedArchive, TumblrMedia, TumblrPost, TumblrPostType } from './types.js'
@@ -36,7 +38,7 @@ const MAX_NESTING = 2
 
 // ─── Path safety ────────────────────────────────────────────────────────────
 
-function isUnsafeEntryName(name: string): boolean {
+export function isUnsafeEntryName(name: string): boolean {
   // Tumblr's own posts.zip stores entries with a leading slash (/style.css).
   // Nothing is written to disk, so a leading slash is stripped rather than
   // rejected; a `..` segment is still refused outright.
@@ -44,7 +46,7 @@ function isUnsafeEntryName(name: string): boolean {
   return parts.some((p) => p === '..')
 }
 
-function archivePath(name: string): string {
+export function archivePath(name: string): string {
   return name.replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
 }
 
@@ -84,7 +86,7 @@ async function detectZip(inputPath: string): Promise<DetectResult> {
     throw new Error(`Input is not a .zip file: ${inputPath}`)
   }
 
-  const zip = new ZipReader(new Uint8ArrayReader(new Uint8Array(await readFile(inputPath))))
+  const zip = new ZipReader(new BlobReader(await openAsBlob(inputPath)))
   try {
     const entries = await zip.getEntries()
     if (entries.length > MAX_ENTRIES) {
@@ -246,8 +248,8 @@ function isMediaFile(name: string): boolean {
 
 async function readSources(detection: DetectResult, warnings: string[]): Promise<SourceBundle> {
   if (detection.inputPath.toLowerCase().endsWith('.zip')) {
-    const bytes = new Uint8Array(await readFile(detection.inputPath))
-    const bundle = await readZipSources(bytes, warnings, 0)
+    const blob = await openAsBlob(detection.inputPath)
+    const bundle = await readZipSources(blob, warnings, 0)
     if (bundle.sources.length === 0) {
       throw new Error('Archive contains no post HTML or posts.xml')
     }
@@ -258,7 +260,7 @@ async function readSources(detection: DetectResult, warnings: string[]): Promise
 }
 
 async function readZipSources(
-  bytes: Uint8Array,
+  input: Blob | Uint8Array,
   warnings: string[],
   depth: number,
 ): Promise<SourceBundle> {
@@ -266,7 +268,8 @@ async function readZipSources(
     throw new Error(`Archives nested deeper than ${MAX_NESTING} levels`)
   }
 
-  const zip = new ZipReader(new Uint8ArrayReader(bytes))
+  const reader = input instanceof Uint8Array ? new Uint8ArrayReader(input) : new BlobReader(input)
+  const zip = new ZipReader(reader)
   const sources: SourceFile[] = []
   const mediaFiles = new Set<string>()
 
@@ -568,7 +571,7 @@ function collectMedia(root: Element, mediaFiles: Set<string>): TumblrMedia[] {
   return media
 }
 
-function localMediaPath(src: string): string | undefined {
+export function localMediaPath(src: string): string | undefined {
   if (/^[a-z][a-z0-9+.-]*:/i.test(src) || src.startsWith('//')) return undefined
   let path = src.replace(/\\/g, '/')
   while (path.startsWith('../')) path = path.slice(3)
@@ -576,7 +579,7 @@ function localMediaPath(src: string): string | undefined {
   return path.startsWith('media/') ? path : undefined
 }
 
-function mimeFor(path: string): string | undefined {
+export function mimeFor(path: string): string | undefined {
   const match = /\.([a-z0-9]+)(?:[?#].*)?$/i.exec(path)
   return match ? MIME_BY_EXTENSION[match[1].toLowerCase()] : undefined
 }

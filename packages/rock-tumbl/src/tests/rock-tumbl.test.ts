@@ -5,15 +5,26 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { TextReader, Uint8ArrayReader, Uint8ArrayWriter, ZipWriter } from '@zip.js/zip.js'
 import {
+  buildPublicationValue,
   convertArchive,
   detectLayout,
   htmlToMarkdown,
   htmlToText,
+  isAtUri,
+  isPublicationAtUri,
+  normalizePublicationUrl,
+  openMediaArchive,
   parseArchive,
+  parseAtUri,
   parseExportTimestamp,
+  publicationWellKnownBody,
+  publicationWellKnownPath,
+  rewriteMediaReferences,
   sanitizeHtml,
+  uploadArchiveMedia,
   validateDocument,
   validateSite,
+  type BlobUploader,
 } from '../index.js'
 import type { StandardDocumentValue, TumblrPost } from '../types.js'
 
@@ -374,6 +385,19 @@ describe('validateDocument', () => {
     assert.doesNotThrow(() => validateDocument(base(), '1'))
   })
 
+  it('accepts a publication AT URI as the site', () => {
+    assert.doesNotThrow(() =>
+      validateDocument(
+        base({ site: 'at://did:plc:abc123/site.standard.publication/3abc' }),
+        '1',
+      ),
+    )
+    assert.throws(
+      () => validateDocument(base({ site: 'at://did:plc:abc123/site.standard.document/3abc' }), '1'),
+      /not a site\.standard\.publication AT URI/,
+    )
+  })
+
   it('rejects missing or malformed required fields', () => {
     assert.throws(() => validateDocument(base({ site: '' }), '1'), /missing site/)
     assert.throws(() => validateDocument(base({ site: 'nope' }), '1'), /invalid site URL/)
@@ -419,6 +443,241 @@ describe('validateSite', () => {
     assert.doesNotThrow(() => validateSite('https://blog.example'))
     assert.throws(() => validateSite(''), /site is required/)
     assert.throws(() => validateSite('blog.example'), /Invalid site URL/)
+  })
+
+  it('accepts a publication AT URI and rejects other collections', () => {
+    assert.doesNotThrow(() =>
+      validateSite('at://did:plc:abc123/site.standard.publication/3abc'),
+    )
+    assert.throws(
+      () => validateSite('at://did:plc:abc123/site.standard.document/3abc'),
+      /Invalid publication AT URI/,
+    )
+    assert.throws(() => validateSite('at://not-a-did/site.standard.publication/x'), /Invalid/)
+  })
+})
+
+// ─── AT URIs ────────────────────────────────────────────────────────────────
+
+describe('AT URI helpers', () => {
+  it('parses publication AT URIs', () => {
+    assert.deepEqual(
+      parseAtUri('at://did:plc:abc123/site.standard.publication/3lwafzkjqm25s'),
+      {
+        did: 'did:plc:abc123',
+        collection: 'site.standard.publication',
+        rkey: '3lwafzkjqm25s',
+      },
+    )
+    assert.equal(isAtUri('at://did:plc:abc123/site.standard.publication/x'), true)
+    assert.equal(
+      isPublicationAtUri('at://did:plc:abc123/site.standard.publication/x'),
+      true,
+    )
+    assert.equal(isPublicationAtUri('at://did:plc:abc123/site.standard.document/x'), false)
+  })
+
+  it('rejects malformed AT URIs', () => {
+    for (const uri of [
+      '',
+      'https://blog.example',
+      'at://did:plc:abc123',
+      'at://did:plc:abc123/site.standard.publication',
+      'at://did:plc:abc123/site.standard.publication/a/b',
+      'at:///site.standard.publication/x',
+      'at://did:plc:abc123/site.standard.publication/',
+    ]) {
+      assert.equal(parseAtUri(uri), undefined, uri)
+    }
+  })
+})
+
+// ─── Publication helpers ────────────────────────────────────────────────────
+
+describe('publication helpers', () => {
+  it('normalises URLs and removes trailing slashes, query and fragment', () => {
+    assert.equal(normalizePublicationUrl('https://blog.example/'), 'https://blog.example')
+    assert.equal(normalizePublicationUrl('https://blog.example/blog/'), 'https://blog.example/blog')
+    assert.equal(
+      normalizePublicationUrl('https://blog.example/blog/?x=1#top'),
+      'https://blog.example/blog',
+    )
+    assert.throws(() => normalizePublicationUrl('blog.example'), /Invalid publication URL/)
+    assert.throws(() => normalizePublicationUrl('ftp://blog.example'), /must use http/)
+  })
+
+  it('builds well-known paths at the root and below a path', () => {
+    assert.equal(
+      publicationWellKnownPath('https://blog.example/'),
+      '/.well-known/site.standard.publication',
+    )
+    assert.equal(
+      publicationWellKnownPath('https://blog.example/blog/'),
+      '/.well-known/site.standard.publication/blog',
+    )
+    assert.equal(
+      publicationWellKnownBody('at://did:plc:abc123/site.standard.publication/x'),
+      'at://did:plc:abc123/site.standard.publication/x\n',
+    )
+  })
+
+  it('builds a publication record value with normalised required fields', () => {
+    assert.deepEqual(
+      buildPublicationValue({
+        url: 'https://blog.example/',
+        name: '  My archive  ',
+        description: ' Posts from Tumblr ',
+      }),
+      {
+        $type: 'site.standard.publication',
+        url: 'https://blog.example',
+        name: 'My archive',
+        description: 'Posts from Tumblr',
+      },
+    )
+  })
+
+  it('rejects a missing name and preserves optional fields', () => {
+    assert.throws(() => buildPublicationValue({ url: 'https://x.example', name: ' ' }), /name is required/)
+
+    const icon = { $type: 'blob' as const, ref: { $link: 'bafy' }, mimeType: 'image/png', size: 3 }
+    const value = buildPublicationValue({
+      url: 'https://x.example',
+      name: 'X',
+      icon,
+      preferences: { showInDiscover: true },
+    })
+    assert.deepEqual(value.icon, icon)
+    assert.deepEqual(value.preferences, { showInDiscover: true })
+  })
+})
+
+// ─── Media upload ───────────────────────────────────────────────────────────
+
+describe('media upload', () => {
+  function fakeUploader(): { uploader: BlobUploader; uploads: Array<{ bytes: number; mime: string }> } {
+    const uploads: Array<{ bytes: number; mime: string }> = []
+    const uploader: BlobUploader = {
+      async uploadBlob(data, mimeType) {
+        uploads.push({ bytes: data.byteLength, mime: mimeType })
+        return {
+          $type: 'blob',
+          ref: { $link: `cid-${uploads.length}` },
+          mimeType,
+          size: data.byteLength,
+        }
+      },
+      getBlobUrl(cid) {
+        return `https://pds.example/xrpc/com.atproto.sync.getBlob?cid=${cid}`
+      },
+    }
+    return { uploader, uploads }
+  }
+
+  it('reads media from an extracted directory', async () => {
+    const root = await makeTree({ 'media/a.png': new Uint8Array([1, 2, 3]) })
+    const media = await openMediaArchive(root)
+    try {
+      assert.deepEqual(Array.from((await media.read('media/a.png')) ?? []), [1, 2, 3])
+      assert.equal(await media.read('media/missing.png'), undefined)
+      assert.equal(await media.read('../../media/a.png'), undefined)
+    } finally {
+      await media.close()
+    }
+  })
+
+  it('reads media from a ZIP and rejects unsafe entries', async () => {
+    const archive = await makeZip({ 'media/a.png': new Uint8Array([4, 5]) })
+    const media = await openMediaArchive(archive)
+    try {
+      assert.deepEqual(Array.from((await media.read('media/a.png')) ?? []), [4, 5])
+    } finally {
+      await media.close()
+    }
+
+    const unsafe = await makeZip({ '../evil.png': new Uint8Array([1]) })
+    await assert.rejects(openMediaArchive(unsafe), /Unsafe archive entry path/)
+  })
+
+  it('uploads each referenced local file once and skips missing ones', async () => {
+    const root = await makeTree({
+      'media/a.png': new Uint8Array([1, 2, 3]),
+      'media/b.jpg': new Uint8Array([4, 5, 6, 7]),
+    })
+    const posts: TumblrPost[] = [
+      makePost({
+        id: '1',
+        media: [
+          { type: 'photo', url: '../../media/a.png', localPath: 'media/a.png', mimeType: 'image/png' },
+          { type: 'photo', url: '../../media/missing.png', localPath: 'media/missing.png' },
+        ],
+      }),
+      makePost({
+        id: '2',
+        media: [
+          { type: 'photo', url: '../../media/a.png', localPath: 'media/a.png' },
+          { type: 'photo', url: '../../media/b.jpg', localPath: 'media/b.jpg' },
+        ],
+      }),
+    ]
+
+    const { uploader, uploads } = fakeUploader()
+    const warnings: string[] = []
+    const result = await uploadArchiveMedia(uploader, root, posts, {
+      onLog: (level, msg) => {
+        if (level === 'warn') warnings.push(msg)
+      },
+    })
+
+    assert.equal(result.uploaded, 2)
+    assert.equal(result.failed, 1)
+    assert.equal(result.bytes, 7)
+    assert.equal(uploads.length, 2)
+    assert.deepEqual(uploads.map((u) => u.mime), ['image/png', 'image/jpeg'])
+    assert.equal(result.urlByPath.get('media/a.png'), 'https://pds.example/xrpc/com.atproto.sync.getBlob?cid=cid-1')
+    assert.equal(result.urlByPath.get('media/b.jpg'), 'https://pds.example/xrpc/com.atproto.sync.getBlob?cid=cid-2')
+    assert.match(warnings.join('\n'), /missing from archive: media\/missing\.png/)
+  })
+
+  it('skips files above the configured blob limit', async () => {
+    const root = await makeTree({ 'media/big.png': new Uint8Array([1, 2, 3]) })
+    const posts = [
+      makePost({ media: [{ type: 'photo', url: '../../media/big.png', localPath: 'media/big.png' }] }),
+    ]
+    const { uploader } = fakeUploader()
+    const warnings: string[] = []
+    const result = await uploadArchiveMedia(uploader, root, posts, {
+      maxBytes: 2,
+      onLog: (level, msg) => {
+        if (level === 'warn') warnings.push(msg)
+      },
+    })
+
+    assert.equal(result.uploaded, 0)
+    assert.equal(result.skipped, 1)
+    assert.match(warnings.join('\n'), /exceeds the 2-byte blob limit/)
+  })
+
+  it('rewrites relative media references but leaves remote URLs alone', () => {
+    const url = 'https://pds.example/xrpc/com.atproto.sync.getBlob?did=did:plc:x&cid=bafy'
+    const html = [
+      '<p><img src="../../media/a.png" alt="a"></p>',
+      '<video src="../../media/clip.mp4"></video>',
+      '<img src="https://64.media.tumblr.com/pic.jpg">',
+      '<a href="../../media/a.png">download</a>',
+    ].join('')
+    const output = rewriteMediaReferences(
+      html,
+      new Map([
+        ['media/a.png', url],
+        ['media/clip.mp4', 'https://pds.example/clip'],
+      ]),
+    )
+
+    assert.match(output, new RegExp(`src="${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`))
+    assert.match(output, /src="https:\/\/pds\.example\/clip"/)
+    assert.match(output, /https:\/\/64\.media\.tumblr\.com\/pic\.jpg/)
+    assert.match(output, new RegExp(`href="${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`))
   })
 })
 
