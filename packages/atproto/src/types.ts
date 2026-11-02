@@ -484,12 +484,18 @@ export interface ToolkitUseTourmaline {
 	sharedToBluesky?: boolean;
 }
 
+export interface ToolkitUseRockTumbl {
+	$type: 'click.croft.tools.rock-tumbl';
+	documentsConverted?: number;
+}
+
 export type ToolkitUseTool =
 	| ToolkitUseMalachite
 	| ToolkitUseJasper
 	| ToolkitUseBismuth
 	| ToolkitUseOpal
-	| ToolkitUseTourmaline;
+	| ToolkitUseTourmaline
+	| ToolkitUseRockTumbl;
 
 export interface ToolkitUseRecord {
 	$type: 'click.croft.toolkit.use';

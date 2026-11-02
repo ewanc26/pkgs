@@ -1,206 +1,73 @@
 <script lang="ts">
-	import { LandingLayout } from '@ewanc26/landing-ui';
-	import '@ewanc26/landing-ui/landing.css';
-
-	let uploading = $state(false);
-	let result = $state<any>(null);
-	let errorMsg = $state('');
-	let showNotice = $state(false);
-	let noticeText = $state('');
-	let noticeType = $state('success');
-	let fileInput: HTMLInputElement | null = null;
-
-	const handleConvert = async (e: Event) => {
-		e.preventDefault();
-		if (!fileInput?.files?.length) {
-			showNotice = true;
-			noticeText = 'Please select a Tumblr export ZIP file';
-			noticeType = 'error';
-			setTimeout(() => { showNotice = false; }, 5000);
-			return;
-		}
-		if (!document.getElementById('site-url')?.value) {
-			showNotice = true;
-			noticeText = 'Please enter a Standard.site publication URL';
-			noticeType = 'error';
-			setTimeout(() => { showNotice = false; }, 5000);
-			return;
-		}
-
-		uploading = true;
-		errorMsg = '';
-		result = null;
-
-		const formData = new FormData();
-		formData.append('input', fileInput.files[0]);
-		formData.append('site', (document.getElementById('site-url') as HTMLInputElement).value);
-		formData.append('include-private', String((document.getElementById('include-private') as HTMLInputElement)?.checked));
-		formData.append('create-publication', String((document.getElementById('create-publication') as HTMLInputElement)?.checked));
-		formData.append('publication-name', (document.getElementById('publication-name') as HTMLInputElement).value || '');
-		formData.append('publication-description', (document.getElementById('publication-description') as HTMLInputElement).value || '');
-		formData.append('upload-media', String((document.getElementById('upload-media') as HTMLInputElement)?.checked));
-		formData.append('handle', (document.getElementById('handle') as HTMLInputElement).value || '');
-		formData.append('password', (document.getElementById('password') as HTMLInputElement).value || '');
-		formData.append('service', (document.getElementById('service') as HTMLInputElement).value || '');
-		formData.append('max-media-bytes', (document.getElementById('max-media-bytes') as HTMLInputElement).value || '');
-
-		try {
-			const resp = await fetch('/api/convert', {
-				method: 'POST',
-				body: formData,
-			});
-
-			if (!resp.ok) {
-				const err = await resp.json();
-				throw new Error(err.message || 'Conversion failed');
-			}
-
-			result = await resp.json();
-			showNotice = true;
-			noticeText = `${result.documents?.length ?? 0} document(s) converted successfully`;
-			noticeType = 'success';
-			setTimeout(() => { showNotice = false; }, 5000);
-		} catch (err) {
-			errorMsg = err instanceof Error ? err.message : 'Conversion failed';
-			showNotice = true;
-			noticeText = errorMsg;
-			noticeType = 'error';
-			setTimeout(() => { showNotice = false; }, 5000);
-		} finally {
-			uploading = false;
-		}
-	};
-
-	const downloadResult = () => {
-		if (!result?.documents) return;
-		const json = JSON.stringify(result.documents, null, 2);
-		const blob = new Blob([json], { type: 'application/json' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = 'rock-tumbl-documents.json';
-		a.click();
-		URL.revokeObjectURL(url);
-	};
+	import { LandingPage } from '@ewanc26/landing-ui';
+	import { FileArchive, Newspaper, Images, Send, Lock } from '@lucide/svelte';
+	import logo from '$lib/assets/logo.svg';
 </script>
 
-<LandingLayout
+<svelte:head>
+	<title>rock-tumbl — Tumblr exports to Standard.site</title>
+	<meta
+		name="description"
+		content="Convert your Tumblr blog export into Standard.site documents. Publication creation, media upload, and AT Protocol publishing support."
+	/>
+	<link rel="canonical" href="https://rock-tumbl.croft.click" />
+
+	<!-- Open Graph -->
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://rock-tumbl.croft.click" />
+	<meta property="og:title" content="rock-tumbl — Tumblr exports to Standard.site" />
+	<meta
+		property="og:description"
+		content="Convert your Tumblr blog export into Standard.site documents. Publication creation, media upload, and AT Protocol publishing support."
+	/>
+	<meta property="og:image" content="https://rock-tumbl.croft.click/og.svg" />
+
+	<!-- Twitter / X card -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="rock-tumbl — Tumblr exports to Standard.site" />
+	<meta
+		name="twitter:description"
+		content="Convert your Tumblr blog export into Standard.site documents. Publication creation, media upload, and AT Protocol publishing support."
+	/>
+	<meta name="twitter:image" content="https://rock-tumbl.croft.click/og.svg" />
+</svelte:head>
+
+<LandingPage
 	name="rock-tumbl"
-	logo="/favicon.svg"
-	subtitle="Convert Tumblr blog exports into Standard.site documents"
-	footerTagline="Free and open source — read the docs"
-	footerSourceUrl="https://github.com/ewanc26/pkgs/tree/main/packages/rock-tumbl"
-	webVersion="0.1.0"
-	cliVersion="0.1.0"
-	supportUrl="https://ewancroft.uk/support"
-	directoryUrl="https://croft.click"
+	logo={logo}
+	logoAlt="rock-tumbl"
+	eyebrow="Open source · Free to use"
+	ctaHref="/convert"
+	ctaLabel="Open converter"
+	ctaSub="Upload your export — files are converted on the server and deleted afterwards."
+	githubUrl="https://github.com/ewanc26/pkgs/tree/main/packages/rock-tumbl"
+	features={[
+		{ icon: FileArchive, title: 'Tumblr exports', description: 'Drop in the ZIP from Tumblr — nested posts.zip archives are descended into automatically.' },
+		{ icon: Newspaper, title: 'Standard.site documents', description: 'Text, photo, quote, chat, audio, video, and ask posts become site.standard.document records.' },
+		{ icon: Images, title: 'Media upload', description: 'Referenced images and media can be uploaded to your PDS with links rewritten.' },
+		{ icon: Send, title: 'AT Protocol publishing', description: 'Create the publication record and publish documents straight to Standard.site.' },
+		{ icon: Lock, title: 'Private posts stay private', description: 'Private and draft posts are excluded by default — include them only if you ask.' }
+	]}
+	steps={[
+		{ title: 'Export from Tumblr', description: 'Download your blog export as a ZIP from Tumblr.' },
+		{ title: 'Upload your export', description: 'Drop in the ZIP and add your publication URL or AT URI.' },
+		{ title: 'Convert', description: 'rock-tumbl parses your posts and builds Standard.site documents.' },
+		{ title: 'Download or publish', description: 'Download the documents as JSON, or publish them to your PDS.' }
+	]}
+	siblings={[
+		{ name: 'Malachite', url: 'https://malachite.croft.click', description: 'Import your music listening history into Teal.' },
+		{ name: 'Opal', url: 'https://opal.croft.click', description: 'Convert Twitter, Mastodon, Threads, and Nostr posts to Bluesky.' },
+		{ name: 'Bismuth', url: 'https://bismuth.croft.click', description: 'Convert ATProto richtext-block documents to Markdown.' },
+		{ name: 'Jasper', url: 'https://jasper.croft.click', description: 'Import Instagram photos and videos to Grain or Spark.' }
+	]}
 >
-	<header class="converter-header">
-		<h1>rock-tumbl</h1>
-		<p class="subtitle">Convert Tumblr blog exports into Standard.site documents</p>
-	</header>
+	{#snippet heading()}
+		Take your Tumblr posts<br />out of the platform.
+	{/snippet}
 
-	{#if showNotice}
-		<div class="notice" aria-live="polite" role="alert">
-			{noticeText}
-		</div>
-	{/if}
-
-	{#if errorMsg}
-		<div class="result error"><p>{errorMsg}</p></div>
-	{/if}
-
-	<fieldset class="form">
-		<div class="form-group">
-			<label for="tumblr-input">Tumblr Export ZIP</label>
-			<input type="file" id="tumblr-input" name="input" accept=".zip,.zipx" bind:this={fileInput} required />
-		</div>
-
-		<div class="form-group">
-			<label for="site-url">Standard.site Publication URL or AT URI</label>
-			<input type="text" id="site-url" name="site" placeholder="https://myblog.example.com" required />
-			<small class="muted">Use the publication URL or an AT URI pointing at a site.standard.publication record.</small>
-		</div>
-
-		<div class="options">
-			<label class="option-item">
-				<input type="checkbox" name="include-private" />
-				Include private/draft posts
-			</label>
-			<label class="option-item">
-				<input type="checkbox" name="create-publication" />
-				Create publication record
-			</label>
-			<label class="option-item">
-				<input type="text" name="publication-name" placeholder="Publication name" />
-			</label>
-			<label class="option-item">
-				<input type="text" name="publication-description" placeholder="Publication description" />
-			</label>
-			<label class="option-item">
-				<input type="checkbox" name="upload-media" />
-				Upload referenced media
-			</label>
-			<label class="option-item">
-				<input type="text" name="handle" placeholder="AT Protocol handle" />
-				<span class="muted">(required for publishing)</span>
-			</label>
-			<label class="option-item">
-				<input type="password" name="password" placeholder="App password" />
-				<span class="muted">(required for publishing)</span>
-			</label>
-			<label class="option-item">
-				<input type="text" name="service" placeholder="PDS URL" value="https://bsky.social" />
-			</label>
-			<label class="option-item">
-				<input type="number" name="max-media-bytes" value="5368709120" min="1048576" />
-				<span class="muted">Max media bytes per blob (default 5MB)</span>
-			</label>
-		</div>
-
-		<button type="submit" class="btn btn-primary" disabled={uploading} on:click={handleConvert}>
-			{#if uploading} Converting… {:else} Convert {/if}
-		</button>
-		<button type="button" class="btn btn-secondary" on:click={() => { result = null; errorMsg = ''; }}>Clear</button>
-	</fieldset>
-
-	{#if result}
-		<fieldset class="result-section result">
-			<h2>Results</h2>
-			<p><strong>Converted: {result.documents?.length ?? 0}</strong></p>
-			{#if result.skipped} <p>Skipped: {result.skipped}</p> {/if}
-			{#if result.errors?.length} <p class="muted">Errors: {result.errors.length}</p> {/if}
-			{#if result.warnings?.length} <p>Warnings: {result.warnings.length}</p> {/if}
-			<button class="btn btn-secondary" on:click={downloadResult}>Download Documents as JSON</button>
-		</fieldset>
-	{/if}
-</LandingLayout>
-
-<style>
-	@import '@ewanc26/landing-ui/landing.css';
-
-	.converter-header {
-		margin-bottom: 1.5rem;
-		text-align: center;
-		padding-bottom: 1.5rem;
-		border-bottom: 1px solid var(--border);
-	}
-
-	.converter-header h1 {
-		font-size: clamp(1.5rem, 4vw, 2rem);
-		font-weight: 600;
-		color: var(--accent);
-		margin-bottom: 0.5rem;
-	}
-
-	.converter-header .subtitle {
-		color: var(--muted);
-		font-size: 0.95rem;
-		max-width: 480px;
-		margin: 0 auto;
-	}
-
-	.result-section {
-		margin-top: 2rem;
-	}
-</style>
+	{#snippet sub()}
+		rock-tumbl converts your Tumblr export into
+		<a href="https://standard.site" target="_blank" rel="noopener">Standard.site</a>
+		documents — own your archive instead of leaving it locked in by big tech.
+	{/snippet}
+</LandingPage>

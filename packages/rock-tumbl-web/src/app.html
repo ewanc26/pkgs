@@ -1,16 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" href="/favicon.svg" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>rock-tumbl — Tumblr to Standard.site</title>
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+		<meta name="description" content="rock-tumbl — Convert Tumblr blog exports into Standard.site documents" />
+		<meta name="theme-color" content="#140e08" />
+
+		<!-- Open Graph -->
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content="https://rock-tumbl.croft.click" />
+		<meta property="og:title" content="rock-tumbl" />
+		<meta property="og:description" content="Convert Tumblr blog exports into Standard.site documents" />
+		<meta property="og:image" content="https://rock-tumbl.croft.click/og.svg" />
+
+		<!-- Twitter / X card -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="rock-tumbl" />
+		<meta name="twitter:description" content="Convert Tumblr blog exports into Standard.site documents" />
+		<meta name="twitter:image" content="https://rock-tumbl.croft.click/og.svg" />
+
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
-		%sveltekit.body%
+		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
