@@ -34,6 +34,8 @@ export interface PublishProgress {
 
 interface AccessSession {
   session: { accessJwt: string }
+  /** Runs an authenticated request against the session's PDS, refreshing if needed. */
+  fetchHandler(path: string, init: RequestInit): Promise<Response>
 }
 
 export class StandardSitePublisher {
@@ -177,12 +179,9 @@ export class StandardSitePublisher {
     }
     if (!this.session || !this.pdsUrl) throw new Error('Not logged in — call login() first')
 
-    const response = await fetch(`${this.pdsUrl}/xrpc/com.atproto.repo.uploadBlob`, {
+    const response = await this.session.fetchHandler('/xrpc/com.atproto.repo.uploadBlob', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.session.session.accessJwt}`,
-        'Content-Type': mimeType,
-      },
+      headers: { 'Content-Type': mimeType },
       body: data as unknown as BodyInit,
     })
 
