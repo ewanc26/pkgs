@@ -37,6 +37,7 @@
     "@atproto/lex": "^0.3.0",
     "@atproto/lex-password-session": "^0.2.0",
     "@bsky/sdk": "latest",
+    "@ewanc26/landing-ui": "workspace:*",
     "@ewanc26/rock-tumbl": "workspace:*",
     "@lucide/svelte": "^0.575.0"
   },
