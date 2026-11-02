@@ -79,6 +79,12 @@ export const TOOL_META: Record<string, ToolMeta> = {
     accent: "#e94984",
     metricLabel: "scrobbles analysed",
   },
+  "click.croft.tools.rock-tumbl": {
+    slug: "rock-tumbl",
+    name: "rock-tumbl",
+    accent: "#cf8f52",
+    metricLabel: "documents converted",
+  },
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {

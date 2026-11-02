@@ -48,6 +48,16 @@ export const coreProjects: Project[] = [
 			'Convert your posts from Twitter, Mastodon, Threads, and Nostr to AT Protocol Bluesky posts. Original timestamps preserved.',
 		accent: '#84ddeb',
 		logo: '/opal.svg'
+	},
+	{
+		name: 'rock-tumbl',
+		slug: 'rock-tumbl',
+		url: 'https://rock-tumbl.croft.click',
+		heading: 'Tumblr → Standard.site',
+		description:
+			'Convert Tumblr blog exports into Standard.site documents. Publication creation, media upload, and AT Protocol publishing support.',
+		accent: '#cf8f52',
+		logo: '/rock-tumbl.svg'
 	}
 ];
 
