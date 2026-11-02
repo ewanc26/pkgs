@@ -7,7 +7,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const formData = await request.formData();
   const input = formData.get('input');
   const site = (formData.get('site') as string) || '';
-  const includePrivate = formData.get('includePrivate') === 'true';
+  const includePrivate = formData.get('include-private') === 'true';
 
   if (!input || !(input instanceof File)) {
     throw error(400, { message: 'No file uploaded' });
