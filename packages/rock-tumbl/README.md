@@ -4,7 +4,7 @@ Convert a [Tumblr](https://www.tumblr.com) blog export into
 [Standard.site](https://standard.site) `site.standard.document` records.
 
 Parsing and conversion happen locally. Nothing leaves your machine unless you
-explicitly pass `--publish`.
+explicitly pass `--publish` (and `--upload-media` for media files).
 
 ## Install
 
@@ -39,16 +39,22 @@ producing an empty import.
 ## CLI
 
 ```bash
-rock-tumbl --input <archive.zip|export-dir> --site <site-url> [options]
+rock-tumbl --input <archive.zip|export-dir> --site <publication-url|at-uri> [options]
 ```
 
 | Option | Description |
 | --- | --- |
 | `--input`, `-i` | Tumblr export ZIP or extracted directory (required) |
-| `--site`, `-s` | Standard.site publication URL used as the document `site` (required) |
+| `--site`, `-s` | Publication URL, or an existing publication AT URI, used as the document `site` (required) |
 | `--output`, `-o` | Write converted documents as JSON to a file |
 | `--dry-run` | Preview publishing without writing records (use with `--publish`) |
 | `--publish` | Publish documents to Standard.site after conversion |
+| `--create-publication` | Create a new `site.standard.publication` record using `--site` as its URL (requires `--publish`) |
+| `--publication-name` | Publication name (required with `--create-publication`) |
+| `--publication-description` | Publication description |
+| `--well-known-out` | Write the verification body to a file |
+| `--upload-media` | Upload referenced local media and rewrite document links (requires `--publish`) |
+| `--max-media-bytes` | Skip media files larger than this (default 5242880, 5 MiB) |
 | `--include-private` | Include private and draft posts (excluded by default) |
 | `--handle` | AT Protocol handle, required with `--publish` |
 | `--password` | App password, required with `--publish` |
@@ -65,7 +71,63 @@ rock-tumbl \
   --output preview.json
 ```
 
-Publish to your PDS:
+### Create a publication and import everything
+
+The first import can create the publication record for you. `--site` is the
+public domain where the blog will live; the new record's AT URI is then used as
+the `site` of every document:
+
+```bash
+rock-tumbl \
+  --input tumblr-export.zip \
+  --site https://myblog.example \
+  --publish \
+  --create-publication \
+  --publication-name "My Tumblr archive" \
+  --publication-description "Posts imported from Tumblr" \
+  --upload-media \
+  --well-known-out .well-known-site.standard.publication \
+  --handle you.bsky.social \
+  --password "$ATPROTO_APP_PASSWORD"
+```
+
+The command prints the new publication AT URI and the exact body to serve from
+`/.well-known/site.standard.publication` on the domain:
+
+```text
+at://did:plc:abc123/site.standard.publication/3lwafzkjqm25s
+```
+
+Deploy that file at the printed path (for a publication under
+`https://myblog.example/blog`, the path is
+`/.well-known/site.standard.publication/blog`) before expecting readers to
+trust the records. The command also writes the body to the file given by
+`--well-known-out`.
+
+To import more posts later, reuse the existing publication instead of creating
+another one:
+
+```bash
+rock-tumbl \
+  --input another-export.zip \
+  --site at://did:plc:abc123/site.standard.publication/3lwafzkjqm25s \
+  --publish \
+  --handle you.bsky.social \
+  --password "$ATPROTO_APP_PASSWORD"
+```
+
+### Media
+
+Tumblr exports reference media with relative paths such as
+`../../media/200_0.png`. With `--upload-media`, `rock-tumbl` reads those files
+from the export, uploads each unique file once to your PDS with
+`com.atproto.repo.uploadBlob`, and rewrites the document markup to the public
+`com.atproto.sync.getBlob` URL. Remote Tumblr URLs are left unchanged.
+
+Files larger than `--max-media-bytes` are skipped with a warning and their
+references stay relative. Raise the limit if your PDS accepts larger blobs.
+
+Publish without media upload (documents only):
 
 ```bash
 rock-tumbl \
@@ -106,8 +168,35 @@ for (const document of result.documents) {
 ```
 
 Lower-level helpers are exported too: `sanitizeHtml`, `htmlToMarkdown`,
-`htmlToText`, `parseExportTimestamp`, `validateDocument`, `validateSite`, and
-`StandardSitePublisher`.
+`htmlToText`, `parseExportTimestamp`, `validateDocument`, `validateSite`,
+`StandardSitePublisher`, `buildPublicationValue`, `normalizePublicationUrl`,
+`publicationWellKnownPath`, `publicationWellKnownBody`,
+`openMediaArchive`, `uploadArchiveMedia`, and `rewriteMediaReferences`.
+
+Create a publication and upload a blob programmatically:
+
+```ts
+import { StandardSitePublisher } from '@ewanc26/rock-tumbl'
+
+const publisher = new StandardSitePublisher({
+  handle: 'you.bsky.social',
+  password: process.env.ATPROTO_APP_PASSWORD!,
+})
+
+await publisher.login()
+
+const publication = await publisher.createPublication({
+  url: 'https://myblog.example',
+  name: 'My Tumblr archive',
+  description: 'Posts imported from Tumblr',
+})
+
+console.log(publication.uri)
+// at://did:plc:…/site.standard.publication/…
+
+const blob = await publisher.uploadBlob(bytes, 'image/png')
+console.log(publisher.getBlobUrl(blob.ref.$link))
+```
 
 ## What is preserved
 
@@ -119,27 +208,42 @@ Lower-level helpers are exported too: `sanitizeHtml`, `htmlToMarkdown`,
 - Original publication timestamps.
 - Post ids as stable document paths (`/posts/post/<id>`), or the Tumblr slug
   when `posts.xml` supplies one.
-- Media references (see limitations).
+- Media references (see limitations). With `--upload-media`, referenced local
+  media is uploaded to the PDS and the markup is rewritten to blob URLs.
 
 HTML is sanitised against an allow-list before conversion: unknown elements are
 unwrapped, `script`/`style` content is dropped, event-handler and `data-*`
 attributes are removed, and `javascript:`, `vbscript:`, and `data:` URLs are
 rejected.
 
+## Verification
+
+Standard.site treats a record as valid only when the domain points back to it:
+
+- **Publication:** serve the publication AT URI from
+  `/.well-known/site.standard.publication` (or
+  `/.well-known/site.standard.publication/<path>` for a publication under a
+  subpath). `--well-known-out` writes the exact body.
+- **Document:** optionally add
+  `<link rel="site.standard.document" href="at://…">` to the rendered page
+  head. `rock-tumbl` does not write your site, so this is up to the frontend.
+
 ## Known limitations
 
 - **Timestamps are treated as UTC.** Tumblr's per-post HTML prints local blog
   time with no offset, so posts can appear shifted by your blog's timezone.
   `posts.xml` timestamps are parsed from their exported value instead.
-- **Media is not uploaded.** Converted Markdown keeps the export's relative
-  `media/...` references and remote Tumblr URLs. Those relative links will not
-  resolve on Standard.site until media upload is implemented. Unreferenced
-  media is ignored.
+- **Media upload is opt-in.** Without `--upload-media`, converted Markdown keeps
+  the export's relative `media/...` references. With it, each unique local file
+  is uploaded once. Files above `--max-media-bytes` (5 MiB by default) are
+  skipped with a warning, and remote Tumblr URLs are left as-is.
 - **No permanent Tumblr permalink in HTML-only exports.** The current export
   does not include a canonical post URL, so `postUrl` is empty and provenance
   text is omitted. Older `posts.xml` exports retain it.
 - **Re-imports are not idempotent.** Publishing generates a fresh TID record
-  key for each document, so running the import twice creates duplicates.
+  key for each document, so running the import twice creates duplicates. Reuse
+  the existing publication AT URI with `--site` rather than creating another
+  publication.
 - **HTML-only exports are flattened.** Reblog trails, quote/chat/audio/video
   structure, and comment threads are represented as markup and text, not
   typed post variants. `comments.csv` and `conversations.zip` are used only to
@@ -152,9 +256,10 @@ rejected.
 ## Privacy
 
 The export contains private media and personal posts. Keep it out of version
-control and shared storage, and delete it when you are done. `rock-tumbl` never
-uploads media or archive contents; publishing sends only the converted records
-to your own PDS.
+control and shared storage, and delete it when you are done. Parsing and
+conversion are local. Publishing sends converted records to your own PDS, and
+`--upload-media` sends the referenced media files there as well; nothing is
+sent anywhere else.
 
 ## Development
 
