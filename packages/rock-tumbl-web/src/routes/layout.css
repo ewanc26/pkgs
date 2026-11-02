@@ -1,0 +1,42 @@
+/* ── rock-tumbl Web Layout ─────────────────────────────────────────────
+   Warm sandstone-copper colour scheme for the Tumblr-to-Standard.site
+   converter. Single-page app with Tailwind v4 theme tokens mapped to
+   CSS vars.
+   ────────────────────────────────────────────────────────────────── */
+
+@import 'tailwindcss';
+
+:root {
+	--bg: #140e08;
+	--surface: #1c130b;
+	--surface-2: #261a10;
+	--border: #42301d;
+	--border-subtle: #2f2314;
+	--accent: #cf8f52;
+	--accent-bright: #e5b983;
+	--accent-dim: #8a5a2b;
+	--accent-glow: rgba(207, 143, 82, 0.14);
+	--text: #faf5ec;
+	--text-muted: #d4c6b4;
+	--text-dim: #a89880;
+	--muted: #a89880;
+	--error: #f87171;
+	--warn: #fbbf24;
+}
+
+@theme {
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-surface-2: var(--surface-2);
+	--color-border: var(--border);
+	--color-border-subtle: var(--border-subtle);
+	--color-accent: var(--accent);
+	--color-accent-bright: var(--accent-bright);
+	--color-accent-dim: var(--accent-dim);
+	--color-text: var(--text);
+	--color-text-muted: var(--text-muted);
+	--color-text-dim: var(--text-dim);
+	--color-muted: var(--muted);
+	--color-error: var(--error);
+	--color-warn: var(--warn);
+}

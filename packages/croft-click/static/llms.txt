@@ -2,7 +2,7 @@
 
 > Landing page for Ewan Croft's suite of open-source AT Protocol tools.
 
-croft.click is the central hub for a collection of browser-based tools that help users move their data to the open social web via the AT Protocol (ATProto). All tools are free, open-source, and run in the browser with no server-side data storage.
+croft.click is the central hub for a collection of browser-based tools that help users move their data to the open social web via the AT Protocol (ATProto). All tools are free and open-source. Most run entirely in the browser with no server-side data storage; rock-tumbl converts uploads on the server and deletes them afterwards.
 
 ## Tools
 
@@ -11,6 +11,7 @@ croft.click is the central hub for a collection of browser-based tools that help
 - Malachite (malachite.croft.click): Import your music listening history to Teal (fm.teal.feed.play records). Smart deduplication and sync support.
 - Bismuth (bismuth.croft.click): Convert ATProto richtext-block documents from Standard.site publications (Leaflet, Pckt, Offprint) to Markdown.
 - Opal (opal.croft.click): Convert microblog posts from Twitter, Mastodon, Threads, and Nostr to Bluesky. Original timestamps preserved.
+- rock-tumbl (rock-tumbl.croft.click): Convert Tumblr blog exports into Standard.site documents. Publication creation, media upload, and AT Protocol publishing support.
 - Tourmaline (tourmaline.croft.click): Analyse Teal.fm scrobble history. Personality archetypes, genre profiles, mood mapping, and share-to-Bluesky.
 - Devlog (devlog.croft.click): Changelog and devlog for Ewan's projects, published via Sequoia on ATProto.
 

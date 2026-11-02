@@ -87,6 +87,17 @@
 			type: "project",
 		},
 		{
+			id: "rock-tumbl",
+			cx: 700,
+			cy: 470,
+			r: 21,
+			accent: ps["rock-tumbl"].accent,
+			logo: ps["rock-tumbl"].logo,
+			label: "rock-tumbl",
+			href: ps["rock-tumbl"].url,
+			type: "project",
+		},
+		{
 			id: "devlog",
 			cx: 490,
 			cy: 440,
@@ -229,6 +240,8 @@
 		{ a: "tourmaline", b: "tealfm", variant: "shared" },
 
 		{ a: "bismuth", b: "standardsite", variant: "service" },
+		{ a: "croft", b: "rock-tumbl", variant: "hub" },
+		{ a: "rock-tumbl", b: "standardsite", variant: "service" },
 		{ a: "devlog", b: "standardsite", variant: "service" },
 		{ a: "standardsite", b: "leaflet", variant: "platform" },
 		{ a: "standardsite", b: "pckt", variant: "platform" },
