@@ -66,6 +66,15 @@
 		<p>
 			No cookies, no fingerprinting.
 		</p>
+
+		<h3>Toolkit Usage Logging</h3>
+		<p>
+			If you choose to sign in with your AT Protocol identity, rock-tumbl will create a record in your
+			own repository using the <code>click.croft.toolkit.use</code> lexicon each time you
+			convert an export. This record contains only the number of documents converted
+			and a timestamp, allowing you to track your activity across the croft.click suite. No
+			export content or metadata is included in these usage records.
+			</p>
 	</section>
 
 	<!-- ── Supported content ──────────────────────────────────────────────────── -->

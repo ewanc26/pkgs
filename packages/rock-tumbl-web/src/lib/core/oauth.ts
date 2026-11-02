@@ -1,0 +1,52 @@
+/**
+ * ATProto OAuth client — browser-only.
+ * Wraps @atproto/oauth-client-browser for use across the app.
+ */
+
+import { BrowserOAuthClient } from '@atproto/oauth-client-browser';
+import type { Agent } from '@atproto/api';
+import { Client } from '@atproto/lex';
+
+const SCOPE = 'atproto repo:click.croft.toolkit.use';
+
+const CLIENT_ID = import.meta.env.DEV
+	? `http://localhost?${new URLSearchParams([
+			['redirect_uri', 'http://127.0.0.1:5173/convert'],
+			['scope', SCOPE]
+		])}`
+	: 'https://rock-tumbl.croft.click/client-metadata.json';
+
+// Singleton promise — BrowserOAuthClient.load() is async.
+let _client: Promise<BrowserOAuthClient> | null = null;
+
+function getClient(): Promise<BrowserOAuthClient> {
+	if (!_client) {
+		_client = BrowserOAuthClient.load({
+			clientId: CLIENT_ID,
+			handleResolver: 'https://bsky.social'
+		});
+	}
+	return _client;
+}
+
+/**
+ * Call once on mount on the /convert page.
+ */
+export async function initOAuth(): Promise<Agent | null> {
+	const client = await getClient();
+	const result = await client.init();
+	if (!result) return null;
+	// The Lex client exposes the generated `com.*` namespace at runtime. Keep
+	// it as the browser-safe runtime client while presenting the Agent surface
+	// used by this route for typed generated API calls.
+	return new Client(result.session) as unknown as Agent;
+}
+
+/**
+ * Kicks off the OAuth sign-in flow.
+ */
+export async function signInWithOAuth(handle: string): Promise<never> {
+	const client = await getClient();
+	await client.signIn(handle, { scope: SCOPE });
+	throw new Error('redirect should have occurred');
+}

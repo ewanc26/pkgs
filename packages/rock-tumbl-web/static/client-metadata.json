@@ -1,0 +1,15 @@
+{
+	"client_id": "https://rock-tumbl.croft.click/client-metadata.json",
+	"client_name": "rock-tumbl",
+	"client_uri": "https://rock-tumbl.croft.click",
+	"logo_uri": "https://rock-tumbl.croft.click/logo.svg",
+	"tos_uri": "https://rock-tumbl.croft.click/about",
+	"policy_uri": "https://rock-tumbl.croft.click/about",
+	"redirect_uris": ["https://rock-tumbl.croft.click/convert"],
+	"scope": "atproto repo:click.croft.toolkit.use",
+	"grant_types": ["authorization_code", "refresh_token"],
+	"response_types": ["code"],
+	"token_endpoint_auth_method": "none",
+	"application_type": "native",
+	"dpop_bound_access_tokens": true
+}
