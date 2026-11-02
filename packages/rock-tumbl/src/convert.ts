@@ -17,6 +17,7 @@ import type {
   StandardDocumentValue,
   TumblrPost,
 } from './types.js'
+import { isPublicationAtUri } from './aturi.js'
 import { htmlToMarkdown, htmlToText, sanitizeHtml } from './sanitize.js'
 
 // ─── Conversion ─────────────────────────────────────────────────────────────
@@ -115,10 +116,16 @@ export function validateDocument(
   postId: string,
 ): void {
   if (!doc.site) throw new Error(`Post ${postId}: missing site`)
-  try {
-    new URL(doc.site)
-  } catch {
-    throw new Error(`Post ${postId}: invalid site URL "${doc.site}"`)
+  if (doc.site.startsWith('at://')) {
+    if (!isPublicationAtUri(doc.site)) {
+      throw new Error(`Post ${postId}: site is not a site.standard.publication AT URI "${doc.site}"`)
+    }
+  } else {
+    try {
+      new URL(doc.site)
+    } catch {
+      throw new Error(`Post ${postId}: invalid site URL "${doc.site}"`)
+    }
   }
 
   if (!doc.title || !doc.title.trim()) {
@@ -150,10 +157,19 @@ export function validateDocument(
 }
 
 /**
- * Validate a site URL before publishing.
+ * Validate a site value before publishing.
+ *
+ * `site` may be an `https://` publication URL or an AT URI pointing at a
+ * `site.standard.publication` record.
  */
 export function validateSite(site: string): void {
   if (!site) throw new Error('site is required')
+  if (site.startsWith('at://')) {
+    if (!isPublicationAtUri(site)) {
+      throw new Error(`Invalid publication AT URI: ${site}`)
+    }
+    return
+  }
   try {
     new URL(site)
   } catch {
