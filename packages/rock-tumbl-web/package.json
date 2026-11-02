@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/rock-tumbl-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Web frontend for rock-tumbl — convert Tumblr blog exports into Standard.site documents",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
