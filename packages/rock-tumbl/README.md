@@ -240,10 +240,15 @@ Standard.site treats a record as valid only when the domain points back to it:
 - **No permanent Tumblr permalink in HTML-only exports.** The current export
   does not include a canonical post URL, so `postUrl` is empty and provenance
   text is omitted. Older `posts.xml` exports retain it.
-- **Re-imports are not idempotent.** Publishing generates a fresh TID record
-  key for each document, so running the import twice creates duplicates. Reuse
-  the existing publication AT URI with `--site` rather than creating another
-  publication.
+- **Re-imports are idempotent for documents.** Each document's record key is
+  derived deterministically from its path (the Tumblr post id or slug), and
+  publishing uses `com.atproto.repo.putRecord`, so re-running an import updates
+  existing records instead of creating duplicates. Use the same publication AT
+  URI with `--site` on later runs rather than creating another publication;
+  `--create-publication` always creates a new publication record.
+- **Deleted posts are not removed.** Re-importing a smaller archive updates the
+  posts it contains but leaves records for posts that disappeared from the
+  export. Delete those records manually if needed.
 - **HTML-only exports are flattened.** Reblog trails, quote/chat/audio/video
   structure, and comment threads are represented as markup and text, not
   typed post variants. `comments.csv` and `conversations.zip` are used only to
