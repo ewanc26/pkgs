@@ -56,8 +56,8 @@ rock-tumbl --input <archive.zip|export-dir> --site <publication-url|at-uri> [opt
 | `--upload-media` | Upload referenced local media and rewrite document links (requires `--publish`) |
 | `--max-media-bytes` | Skip media files larger than this (default 5242880, 5 MiB) |
 | `--include-private` | Include private and draft posts (excluded by default) |
-| `--handle` | AT Protocol handle, required with `--publish` |
-| `--password` | App password, required with `--publish` |
+| `--handle` | AT Protocol handle (or `ATPROTO_HANDLE`), required with `--publish` |
+| `--password` | App password (or `ATPROTO_APP_PASSWORD`), required with `--publish` |
 | `--service` | PDS override (default `https://bsky.social`) |
 | `-h`, `--help` | Show help |
 | `--version` | Print the version |
@@ -78,6 +78,9 @@ public domain where the blog will live; the new record's AT URI is then used as
 the `site` of every document:
 
 ```bash
+export ATPROTO_HANDLE=you.bsky.social
+export ATPROTO_APP_PASSWORD=...   # an app password, not your main password
+
 rock-tumbl \
   --input tumblr-export.zip \
   --site https://myblog.example \
@@ -86,9 +89,7 @@ rock-tumbl \
   --publication-name "My Tumblr archive" \
   --publication-description "Posts imported from Tumblr" \
   --upload-media \
-  --well-known-out .well-known-site.standard.publication \
-  --handle you.bsky.social \
-  --password "$ATPROTO_APP_PASSWORD"
+  --well-known-out .well-known-site.standard.publication
 ```
 
 The command prints the new publication AT URI and the exact body to serve from
@@ -111,9 +112,7 @@ another one:
 rock-tumbl \
   --input another-export.zip \
   --site at://did:plc:abc123/site.standard.publication/3lwafzkjqm25s \
-  --publish \
-  --handle you.bsky.social \
-  --password "$ATPROTO_APP_PASSWORD"
+  --publish
 ```
 
 ### Media
@@ -133,15 +132,14 @@ Publish without media upload (documents only):
 rock-tumbl \
   --input tumblr-export.zip \
   --site https://myblog.example \
-  --publish \
-  --handle you.bsky.social \
-  --password "$ATPROTO_APP_PASSWORD"
+  --publish
 ```
 
 Use an
 [app password](https://bsky.app/settings/app-passwords), not your main
-password, and pass it through the environment rather than shell history where
-possible.
+password. The CLI reads `ATPROTO_HANDLE` and `ATPROTO_APP_PASSWORD` from the
+environment, so the password never has to appear in `argv` or shell history;
+`--handle` and `--password` still work when you need them.
 
 ## Library
 
