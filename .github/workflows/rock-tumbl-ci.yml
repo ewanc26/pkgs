@@ -1,0 +1,64 @@
+name: Rock-Tumbl CI
+
+on:
+  pull_request:
+    paths:
+      - 'packages/rock-tumbl/**'
+      - 'packages/rock-tumbl-web/**'
+      - 'packages/landing-ui/**'
+      - 'packages/tid/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/rock-tumbl-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/rock-tumbl/**'
+      - 'packages/rock-tumbl-web/**'
+      - 'packages/landing-ui/**'
+      - 'packages/tid/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/rock-tumbl-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rock-tumbl-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build, test, and check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check rock-tumbl
+        run: pnpm --filter @ewanc26/rock-tumbl type-check
+
+      - name: Run rock-tumbl test suite
+        run: pnpm --filter @ewanc26/rock-tumbl test
+
+      - name: Check rock-tumbl-web
+        run: pnpm --filter @ewanc26/rock-tumbl-web check
