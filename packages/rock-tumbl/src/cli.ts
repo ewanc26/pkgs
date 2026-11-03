@@ -9,11 +9,12 @@
  *
  * Examples:
  *   rock-tumbl --input export.zip --site https://myblog.croft.click --dry-run
- *   rock-tumbl --input export.zip --site https://myblog.croft.click --publish \
- *       --handle you.bsky.social --password app-password
- *   rock-tumbl --input export.zip --site https://myblog.croft.click \
+ *   ATPROTO_HANDLE=you.bsky.social ATPROTO_APP_PASSWORD=... \
+ *     rock-tumbl --input export.zip --site https://myblog.croft.click --publish
+ *   ATPROTO_HANDLE=you.bsky.social ATPROTO_APP_PASSWORD=... \
+ *     rock-tumbl --input export.zip --site https://myblog.croft.click \
  *       --publish --create-publication --publication-name "My Tumblr archive" \
- *       --upload-media --handle you.bsky.social --password app-password
+ *       --upload-media
  */
 
 import { parseArgs } from 'node:util'
@@ -126,8 +127,8 @@ Options:
   --publish             Publish documents to Standard.site after conversion
   --dry-run             Preview what would be published without writing records
   --include-private     Include private/draft posts (excluded by default)
-  --handle HANDLE       AT Protocol handle (required for --publish)
-  --password PASS       App password (required for --publish)
+  --handle HANDLE       AT Protocol handle (or ATPROTO_HANDLE)
+  --password PASS       App password (or ATPROTO_APP_PASSWORD)
   --service URL         PDS override (default: https://bsky.social)
   --non-interactive     Accepted for consistency; rock-tumbl never prompts
   -h, --help            Show this help message
@@ -137,11 +138,12 @@ Examples:
   rock-tumbl --input export.zip --site https://blog.example.com --dry-run
   rock-tumbl --input export/ --site https://blog.example.com --output posts.json
   rock-tumbl --input export.zip --site https://blog.example.com --publish \\
-    --create-publication --publication-name "My blog" --upload-media \\
-    --handle you.bsky.social --password app-password
+    --create-publication --publication-name "My blog" --upload-media
   rock-tumbl --input export.zip \\
-    --site at://did:plc:abc123/site.standard.publication/3abc --publish \\
-    --handle you.bsky.social --password app-password
+    --site at://did:plc:abc123/site.standard.publication/3abc --publish
+
+Authentication:
+  Set ATPROTO_HANDLE and ATPROTO_APP_PASSWORD, or pass --handle/--password.
 `.trim())
 }
 
@@ -180,8 +182,15 @@ export async function runCLI(argv: string[] = process.argv.slice(2)): Promise<vo
   }
 
   if (args.uploadMedia && !args.publish) fail('--upload-media requires --publish')
-  if (args.publish && (!args.handle || !args.password)) {
-    fail('--handle and --password are required when using --publish')
+
+  // Prefer environment variables so app passwords need not appear in argv or
+  // shell history; explicit flags still win.
+  const handle = args.handle ?? process.env.ATPROTO_HANDLE
+  const password = args.password ?? process.env.ATPROTO_APP_PASSWORD
+  if (args.publish && (!handle || !password)) {
+    fail(
+      '--handle and --password (or ATPROTO_HANDLE / ATPROTO_APP_PASSWORD) are required when using --publish',
+    )
   }
 
   let maxMediaBytes: number | undefined
@@ -216,8 +225,8 @@ export async function runCLI(argv: string[] = process.argv.slice(2)): Promise<vo
 
   if (args.publish) {
     publisher = new StandardSitePublisher({
-      handle: args.handle!,
-      password: args.password!,
+      handle: handle!,
+      password: password!,
       service: args.service,
       onLog: (level, msg) => console.log(`  [${level}] ${msg}`),
     })
