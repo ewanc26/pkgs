@@ -67,6 +67,7 @@ export {
 } from './media.js'
 
 export {
+  documentRecordKey,
   StandardSitePublisher,
   type PublishResult,
   type PublisherConfig,
