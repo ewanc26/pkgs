@@ -2,19 +2,27 @@
  * Standard.site publisher.
  *
  * Publishes `site.standard.publication` and `site.standard.document` records to
- * an AT Protocol PDS using @atproto/lex. Document record keys are TIDs derived
- * from the document's publishedAt timestamp; publication keys use the current
- * time. Media blobs are uploaded with `com.atproto.repo.uploadBlob` and served
- * back through `com.atproto.sync.getBlob`.
+ * an AT Protocol PDS using @atproto/lex. Document record keys are derived
+ * deterministically from the document path, so re-importing the same archive
+ * updates existing records instead of creating duplicates. Publication keys use
+ * the current time. Media blobs are uploaded with
+ * `com.atproto.repo.uploadBlob` and served back through
+ * `com.atproto.sync.getBlob`.
  */
 
 import { Client } from '@atproto/lex'
 import { com } from '@bsky/sdk/lexicons'
-import { generateNextTID, generateTID } from '@ewanc26/tid'
+import { createHash } from 'node:crypto'
+import { generateNextTID } from '@ewanc26/tid'
 import { buildPublicationValue, PUBLICATION_COLLECTION, type PublicationInput } from './publication.js'
 import type { AtProtoBlobRef, StandardDocumentValue } from './types.js'
 
 const DOCUMENT_COLLECTION = 'site.standard.document'
+
+// AT Protocol's base-32 alphabet, shared with TIDs. Using it keeps generated
+// record keys the same shape and character set as the TIDs other clients use.
+const S32 = '234567abcdefghijklmnopqrstuvwxyz'
+const RECORD_KEY_LENGTH = 13
 
 export interface PublisherConfig {
   handle: string
@@ -36,6 +44,33 @@ interface AccessSession {
   session: { accessJwt: string }
   /** Runs an authenticated request against the session's PDS, refreshing if needed. */
   fetchHandler(path: string, init: RequestInit): Promise<Response>
+}
+
+/**
+ * Deterministic record key for a document.
+ *
+ * Re-importing an archive must not duplicate records, so the key is derived
+ * from the document's stable path (which itself comes from the Tumblr post id
+ * or slug). The result is 13 base-32 characters — the same shape as a TID — so
+ * clients that assume TID-style keys keep working.
+ */
+export function documentRecordKey(doc: StandardDocumentValue): string {
+  const identity = doc.path?.trim() || `${doc.publishedAt}\n${doc.title}`
+  const digest = createHash('sha256').update(identity).digest()
+
+  let key = ''
+  let bits = 0
+  let value = 0
+  for (const byte of digest) {
+    value = (value << 8) | byte
+    bits += 8
+    while (bits >= 5 && key.length < RECORD_KEY_LENGTH) {
+      bits -= 5
+      key += S32[(value >>> bits) & 31]
+    }
+    if (key.length === RECORD_KEY_LENGTH) break
+  }
+  return key
 }
 
 export class StandardSitePublisher {
@@ -125,12 +160,15 @@ export class StandardSitePublisher {
 
   /**
    * Publish a single site.standard.document record.
-   * Returns the record's AT URI and CID.
+   *
+   * Uses `putRecord` with a deterministic key, so a re-import updates the
+   * existing record rather than creating a duplicate. Returns the record's AT
+   * URI and CID.
    */
   async publishDocument(doc: StandardDocumentValue, dryRun = false): Promise<PublishResult> {
     if (!this.client || !this.did) throw new Error('Not logged in — call login() first')
 
-    const rkey = generateTID(doc.publishedAt)
+    const rkey = documentRecordKey(doc)
 
     const value: Record<string, unknown> = {
       $type: DOCUMENT_COLLECTION,
@@ -149,22 +187,25 @@ export class StandardSitePublisher {
     if (doc.preferences) value.preferences = doc.preferences
 
     if (dryRun) {
-      this.config.onLog?.('info', `[DRY RUN] Would create ${DOCUMENT_COLLECTION}/${rkey}: ${doc.title}`)
+      this.config.onLog?.(
+        'info',
+        `[DRY RUN] Would write ${DOCUMENT_COLLECTION}/${rkey}: ${doc.title}`,
+      )
       return { uri: `at://${this.did}/${DOCUMENT_COLLECTION}/${rkey}`, cid: 'dry-run' }
     }
 
-    const response = await (this.client as any).call(com.atproto.repo.createRecord, {
+    const response = await (this.client as any).call(com.atproto.repo.putRecord, {
       repo: this.did,
       collection: DOCUMENT_COLLECTION,
       rkey,
-      value,
+      record: value,
     })
 
     const uri = (response as any)?.uri
     const cid = (response as any)?.cid
     if (!uri || !cid) throw new Error(`Publish returned no uri/cid for ${doc.title}`)
 
-    this.config.onLog?.('info', `Published ${uri}`)
+    this.config.onLog?.('info', `Wrote ${uri}`)
     return { uri, cid }
   }
 

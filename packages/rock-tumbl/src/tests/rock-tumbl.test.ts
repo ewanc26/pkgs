@@ -8,6 +8,7 @@ import {
   buildPublicationValue,
   convertArchive,
   detectLayout,
+  documentRecordKey,
   htmlToMarkdown,
   htmlToText,
   isAtUri,
@@ -549,6 +550,66 @@ describe('publication helpers', () => {
     })
     assert.deepEqual(value.icon, icon)
     assert.deepEqual(value.preferences, { showInDiscover: true })
+  })
+})
+
+// ─── Document record keys (idempotency) ─────────────────────────────────────
+
+describe('documentRecordKey', () => {
+  const doc = (overrides: Partial<StandardDocumentValue> = {}): StandardDocumentValue => ({
+    $type: 'site.standard.document',
+    site: 'https://blog.example',
+    title: 'Title',
+    publishedAt: '2024-01-02T03:04:05.000Z',
+    path: '/posts/post/1000',
+    ...overrides,
+  })
+
+  it('is deterministic for the same document', () => {
+    assert.equal(documentRecordKey(doc()), documentRecordKey(doc()))
+  })
+
+  it('produces a valid record key', () => {
+    const key = documentRecordKey(doc())
+    assert.equal(key.length, 13)
+    assert.match(key, /^[234567abcdefghijklmnopqrstuvwxyz]{13}$/)
+    assert.notEqual(key, '.')
+    assert.notEqual(key, '..')
+  })
+
+  it('changes when the path changes', () => {
+    assert.notEqual(
+      documentRecordKey(doc({ path: '/posts/post/1000' })),
+      documentRecordKey(doc({ path: '/posts/post/1001' })),
+    )
+  })
+
+  it('ignores mutable fields when a path is present', () => {
+    assert.equal(
+      documentRecordKey(doc()),
+      documentRecordKey(
+        doc({
+          title: 'Updated title',
+          content: { $type: 'site.standard.content.markdown', text: 'new body', version: '1.0' },
+        }),
+      ),
+    )
+  })
+
+  it('falls back to publishedAt and title without a path', () => {
+    const withoutPath = doc({ path: undefined })
+    assert.equal(documentRecordKey(withoutPath), documentRecordKey(doc({ path: undefined })))
+    assert.notEqual(
+      documentRecordKey(withoutPath),
+      documentRecordKey(doc({ path: undefined, title: 'Another title' })),
+    )
+  })
+
+  it('ignores surrounding whitespace in a path', () => {
+    assert.equal(
+      documentRecordKey(doc({ path: '  /posts/post/1000  ' })),
+      documentRecordKey(doc()),
+    )
   })
 })
 
