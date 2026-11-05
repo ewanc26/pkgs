@@ -27,7 +27,7 @@ import {
   logout,
   listOAuthSessionsWithHandles,
 } from "./lib/auth.js";
-import { getExistingPhotos, getExistingGalleries } from "./lib/publisher.js";
+import { getExistingPhotos } from "./lib/publisher.js";
 import {
   getExistingSparkPosts,
   publishSparkPost,
@@ -42,6 +42,10 @@ import {
 } from "./lib/spark-video-publisher.js";
 import { RateLimitedPublisher } from "./lib/rate-limited-publisher.js";
 import { config, DEFAULT_DAILY_LIMIT, TARGET_CONFIGS } from "./core/config.js";
+import {
+  galleryTitleForPost,
+  galleryDescriptionForPost,
+} from "./core/gallery.js";
 import type {
   ImportState,
   ParsedPost,
@@ -154,9 +158,6 @@ async function runImport(options: {
   password?: string;
   dailyLimit?: number;
   resume?: boolean;
-  gallery?: string;
-  galleryTitle?: string;
-  galleryDescription?: string;
 }): Promise<void> {
   const targetConfig = TARGET_CONFIGS[options.target];
   ui.header(
@@ -344,126 +345,8 @@ async function runImport(options: {
   );
   log.blank();
 
-  // Gallery selection/creation (Grain only)
-  let galleryUri: string | undefined;
-  let galleryTitle: string | undefined;
-
   // Create rate-limited publisher
   const publisher = new RateLimitedPublisher(agent, options.dryRun);
-
-  if (options.target === "grain") {
-    // Resume: use existing gallery
-    if (importState?.galleryUri) {
-      galleryUri = importState.galleryUri;
-      galleryTitle = importState.galleryTitle;
-      log.info(`Using gallery: ${galleryTitle}`);
-      log.blank();
-    } else if (!options.dryRun) {
-      log.progress("Fetching your galleries...");
-      const existingGalleries = await getExistingGalleries(agent);
-      ui.succeedSpinner(`Found ${existingGalleries.length} galleries`);
-      log.blank();
-
-      if (options.gallery) {
-        // --gallery <atUri>: use directly, no prompt/select required
-        const match = existingGalleries.find((g) => g.uri === options.gallery);
-        if (!match) {
-          log.error(`Gallery not found: ${options.gallery}`);
-          log.error(
-            existingGalleries.length > 0
-              ? `Existing galleries: ${existingGalleries.map((g) => g.uri).join(", ")}`
-              : "You have no existing galleries — omit --gallery to create one.",
-          );
-          process.exit(1);
-        }
-        galleryUri = match!.uri;
-        galleryTitle = match!.title;
-        log.info(`Using gallery: ${galleryTitle}`);
-        log.blank();
-      } else if (isNonInteractive()) {
-        if (!options.galleryTitle) {
-          log.error(
-            "Non-interactive mode: no gallery specified for this Grain import.",
-          );
-          log.error(
-            "Pass --gallery <atUri> to use an existing gallery, or --gallery-title <text> " +
-              "[--gallery-description <text>] to create a new one.",
-          );
-          log.error(
-            existingGalleries.length > 0
-              ? `Existing galleries: ${existingGalleries.map((g) => g.uri).join(", ")}`
-              : "You have no existing galleries.",
-          );
-          process.exit(1);
-        }
-        log.progress("Creating gallery...");
-        const result = await publisher.createGallery(
-          options.galleryTitle,
-          options.galleryDescription,
-        );
-        if (result.success && result.uri) {
-          galleryUri = result.uri;
-          galleryTitle = options.galleryTitle;
-          ui.succeedSpinner(`Created gallery: ${galleryTitle}`);
-        } else {
-          log.error(`Failed to create gallery: ${result.error}`);
-          process.exit(1);
-        }
-        log.blank();
-      } else {
-        const galleryOptions = [
-          "Create new gallery",
-          ...existingGalleries.map(
-            (g) => `${g.title} (${new Date(g.createdAt).toLocaleDateString()})`,
-          ),
-        ];
-
-        const choice = await select(
-          "Select gallery for import:",
-          galleryOptions,
-          0,
-        );
-
-        if (choice === 0) {
-          // Create new gallery
-          const defaultTitle = `Instagram Import — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
-          log.info(`Default title: ${defaultTitle}`);
-          const titleInput = await prompt(
-            `Gallery title (press Enter for default): `,
-          );
-          const title = titleInput || defaultTitle;
-          const addDescription = await confirm("Add description?", false);
-          const description = addDescription
-            ? await prompt("Description: ")
-            : undefined;
-
-          log.progress("Creating gallery...");
-          const result = await publisher.createGallery(
-            title || defaultTitle,
-            description,
-          );
-          if (result.success && result.uri) {
-            galleryUri = result.uri;
-            galleryTitle = title || defaultTitle;
-            ui.succeedSpinner(`Created gallery: ${galleryTitle}`);
-          } else {
-            log.error(`Failed to create gallery: ${result.error}`);
-            process.exit(1);
-          }
-        } else {
-          // Use existing gallery
-          galleryUri = existingGalleries[choice - 1]?.uri;
-          galleryTitle = existingGalleries[choice - 1]?.title;
-          if (!galleryUri) {
-            log.error("Invalid gallery selection");
-            process.exit(1);
-          }
-          log.info(`Using gallery: ${galleryTitle}`);
-        }
-        log.blank();
-      }
-    }
-  }
 
   // Create import state if new
   if (!importState) {
@@ -472,8 +355,8 @@ async function runImport(options: {
       absolutePath,
       exportHash,
       options.target,
-      galleryUri || "",
-      galleryTitle || "",
+      "",
+      "",
       posts.length,
       dailyLimit,
     );
@@ -490,7 +373,6 @@ async function runImport(options: {
   let imported = 0;
   let skipped = 0;
   let failed = 0;
-  let galleryPosition = importState?.importedTimestamps.length ?? 0;
 
   const isZip = isZipFile(absolutePath);
 
@@ -739,6 +621,7 @@ async function runImport(options: {
         );
         continue;
       }
+      const photoUris: string[] = [];
       for (const media of post.media) {
         if (media.type === "video") {
           skipped++;
@@ -780,20 +663,8 @@ async function runImport(options: {
           if (result.success) {
             imported++;
             await trackProgress(post, "imported");
-
-            // Create gallery item linking photo to gallery
-            if (galleryUri && result.uri) {
-              const itemResult = await publisher.createGalleryItem(
-                galleryUri,
-                result.uri,
-                galleryPosition,
-                timestamp,
-              );
-              if (itemResult.success) {
-                galleryPosition++;
-              } else {
-                log.warn(`Failed to create gallery item: ${itemResult.error}`);
-              }
+            if (result.uri) {
+              photoUris.push(result.uri);
             }
           } else {
             failed++;
@@ -804,6 +675,34 @@ async function runImport(options: {
           failed++;
           await trackProgress(post, "failed");
           log.error(`Error processing media: ${(error as Error).message}`);
+        }
+      }
+
+      // A gallery is one post in Grain, so each imported post becomes its own
+      // gallery holding that post's photos, with the post's own caption and
+      // timestamp. Posts whose photos all failed are left out.
+      if (photoUris.length > 0) {
+        const title = galleryTitleForPost(post.caption, post.createdAt);
+        const description = galleryDescriptionForPost(post.caption);
+        const gallery = await publisher.createGallery(
+          title,
+          description,
+          timestamp,
+        );
+        if (gallery.success && gallery.uri) {
+          for (let position = 0; position < photoUris.length; position++) {
+            const itemResult = await publisher.createGalleryItem(
+              gallery.uri,
+              photoUris[position],
+              position,
+              timestamp,
+            );
+            if (!itemResult.success) {
+              log.warn(`Failed to add photo to gallery: ${itemResult.error}`);
+            }
+          }
+        } else {
+          log.warn(`Failed to create gallery: ${gallery.error}`);
         }
       }
     }

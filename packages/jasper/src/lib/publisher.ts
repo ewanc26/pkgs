@@ -311,6 +311,7 @@ export async function createGallery(
   title: string,
   description?: string,
   dryRun = false,
+  createdAt?: string,
 ): Promise<GalleryResult> {
   if (dryRun) {
     log.debug(`[DRY RUN] Would create gallery: ${title}`);
@@ -318,7 +319,10 @@ export async function createGallery(
   }
 
   try {
-    const now = new Date().toISOString();
+    /* The gallery is the post, so it keeps the post's timestamp; the TID is
+     * derived from the same value so galleries sort like the posts they came
+     * from rather than like the import. */
+    const now = createdAt || new Date().toISOString();
     const record = {
       $type: GRAIN_GALLERY_COLLECTION,
       title,
