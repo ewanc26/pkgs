@@ -311,7 +311,9 @@ export function formatImportStateSummary(state: ImportState): string {
   return [
     `Export: ${path.basename(state.exportPath)}`,
     `Target: ${state.target === "spark" ? "Spark" : "Grain"}`,
-    state.target === "grain" ? `Gallery: ${state.galleryTitle}` : null,
+    state.target === "grain" && state.galleryTitle
+      ? `Gallery: ${state.galleryTitle}`
+      : null,
     `Progress: ${imported} imported, ${skipped} skipped, ${failed} failed`,
     `Remaining: ${remaining} posts`,
     `Today: ${state.dailyImported} imported`,

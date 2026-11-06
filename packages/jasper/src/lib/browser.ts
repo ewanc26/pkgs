@@ -29,6 +29,10 @@ import {
   type PhotoInput,
   type GalleryItemInput,
 } from "./publisher.js";
+import {
+  galleryTitleForPost,
+  galleryDescriptionForPost,
+} from "../core/gallery.js";
 import { getExistingSparkPosts, publishSparkPost } from "./spark-publisher.js";
 import {
   publishSparkStory,
@@ -327,6 +331,16 @@ export async function publishPhotoFromBlob(
 }
 
 /**
+ * A photo waiting to be flushed into the Grain batch, together with the post
+ * (and therefore gallery) it belongs to.
+ */
+interface QueuedGrainPhoto {
+  input: PhotoInput;
+  timestamp: string;
+  galleryUri: string | null;
+}
+
+/**
  * Result from flushing a grain photo batch
  */
 interface FlushGrainBatchResult {
@@ -346,15 +360,18 @@ interface FlushGrainBatchResult {
  */
 async function flushGrainPhotoBatch(
   client: Client,
-  photoBatch: PhotoInput[],
-  galleryUri: string | null,
+  queue: QueuedGrainPhoto[],
   dryRun: boolean,
 ): Promise<FlushGrainBatchResult> {
-  if (photoBatch.length === 0) {
+  if (queue.length === 0) {
     return { successes: [], uris: [], galleryItemInputs: [] };
   }
 
-  const results = await publishPhotos(client, photoBatch, dryRun);
+  const results = await publishPhotos(
+    client,
+    queue.map((queued) => queued.input),
+    dryRun,
+  );
 
   const successes: boolean[] = [];
   const uris: string[] = [];
@@ -362,17 +379,17 @@ async function flushGrainPhotoBatch(
 
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
-    const photo = photoBatch[i];
+    const queued = queue[i];
 
     successes.push(result.success);
     uris.push(result.uri ?? '');
 
-    if (result.success && galleryUri && result.uri) {
+    if (result.success && queued.galleryUri && result.uri) {
       galleryItemInputs.push({
-        galleryUri,
+        galleryUri: queued.galleryUri,
         photoUri: result.uri,
         position: 0, // position assigned by caller
-        createdAt: photo.createdAt,
+        createdAt: queued.input.createdAt,
       });
     }
   }
@@ -400,8 +417,15 @@ export async function createNewGallery(
   title: string,
   description?: string,
   dryRun = false,
+  createdAt?: string,
 ): Promise<{ success: boolean; uri?: string; error?: string }> {
-  const result = await createGallery(client, title, description, dryRun);
+  const result = await createGallery(
+    client,
+    title,
+    description,
+    dryRun,
+    createdAt,
+  );
   return { success: result.success, uri: result.uri, error: result.error };
 }
 
@@ -586,7 +610,9 @@ function withRateLimitCapture(client: Client, rateLimiter: RateLimiter): Client 
 
 /**
  * Run the full import process in browser
- * Supports gallery selection, batch limiting, state persistence, and alt text override
+ * Creates one Grain gallery per Instagram post, unless a gallery URI is given
+ * for the legacy single-gallery behaviour. Supports batch limiting, state
+ * persistence, and alt text override.
  */
 export async function runImport(
   client: Client,
@@ -647,8 +673,15 @@ export async function runImport(
     // Initialize or resume state
     let state: BrowserImportState | undefined;
     let galleryTitle = "Unknown Gallery";
+    // A gallery is one post in Grain, so an import without an explicitly
+    // selected gallery creates one gallery per Instagram post.
+    const perPostGalleries = target === "grain" && !galleryUri;
 
-    if (existingState && existingState.galleryUri === galleryUri) {
+    if (
+      existingState &&
+      existingState.target === target &&
+      existingState.galleryUri === (galleryUri ?? "")
+    ) {
       state = existingState;
       galleryTitle = existingState.galleryTitle;
 
@@ -693,6 +726,17 @@ export async function runImport(
         target,
       );
       saveBrowserImportState(state);
+    } else if (perPostGalleries) {
+      galleryTitle = "";
+      state = createBrowserImportState(
+        file,
+        "",
+        "",
+        validPosts.length,
+        batchSize,
+        target,
+      );
+      saveBrowserImportState(state);
     }
 
     // Filter out already processed posts
@@ -724,13 +768,25 @@ export async function runImport(
     let photosImported = 0;
     let galleryItemsCreated = 0;
     let errors = 0;
-    let galleryPosition = state?.importedTimestamps.length ?? 0;
     let batchCount = state?.dailyImported ?? 0;
     let dailyLimitReached = false;
 
-    // Grain batch accumulators (collect photos for batch applyWrites)
-    const grainPhotoBatch: PhotoInput[] = [];
-    const grainPhotoTimestamps: string[] = [];
+    // Grain batch accumulators (collect photos for batch applyWrites). Each
+    // queued photo carries the gallery it belongs to, so a batch can span
+    // posts without losing the per-post gallery mapping.
+    const grainPhotoQueue: QueuedGrainPhoto[] = [];
+
+    // Gallery item positions are per gallery. A legacy single-gallery import
+    // resumes after the photos already imported; per-post galleries start at 0.
+    const galleryPositions = new Map<string, number>();
+    if (galleryUri) {
+      galleryPositions.set(galleryUri, state?.importedTimestamps.length ?? 0);
+    }
+    const nextGalleryPosition = (uri: string): number => {
+      const position = galleryPositions.get(uri) ?? 0;
+      galleryPositions.set(uri, position + 1);
+      return position;
+    };
 
     // Helper for alt text
     const getAltText = (caption?: string): string => {
@@ -797,15 +853,15 @@ export async function runImport(
       }
 
       // Flush any pending Grain batch so batchCount is accurate for the daily limit check
-      if (target === "grain" && grainPhotoBatch.length > 0) {
+      if (target === "grain" && grainPhotoQueue.length > 0) {
         const flushResult = await flushGrainPhotoBatch(
-          client, grainPhotoBatch, galleryUri, dryRun,
+          client, grainPhotoQueue, dryRun,
         );
 
-        // Assign gallery item positions
+        // Assign gallery item positions per gallery
         for (let gi = 0; gi < flushResult.galleryItemInputs.length; gi++) {
-          flushResult.galleryItemInputs[gi].position = galleryPosition;
-          galleryPosition++;
+          const item = flushResult.galleryItemInputs[gi];
+          item.position = nextGalleryPosition(item.galleryUri);
         }
 
         // Batch-create gallery items
@@ -823,8 +879,8 @@ export async function runImport(
         // Update counters and per-item progress
         let importedCount = 0;
         let failedCount = 0;
-        for (let gi = 0; gi < flushResult.successes.length && gi < grainPhotoTimestamps.length; gi++) {
-          const ts = grainPhotoTimestamps[gi];
+        for (let gi = 0; gi < flushResult.successes.length && gi < grainPhotoQueue.length; gi++) {
+          const ts = grainPhotoQueue[gi].timestamp;
           if (flushResult.successes[gi]) {
             importedCount++;
             trackProgress(ts, "imported");
@@ -837,9 +893,8 @@ export async function runImport(
         batchCount += importedCount;
         errors += failedCount;
 
-        // Clear the batch arrays
-        grainPhotoBatch.length = 0;
-        grainPhotoTimestamps.length = 0;
+        // Clear the batch queue
+        grainPhotoQueue.length = 0;
       }
 
       // Check batch/daily limit
@@ -862,6 +917,10 @@ export async function runImport(
 
       // Wait for rate-limit permit before publishing to ATProto
       await rateLimiter.waitForPermit(1);
+
+      // Photos for this post only, so a gallery can be created before they
+      // enter the shared applyWrites batch.
+      const grainPostPhotos: PhotoInput[] = [];
 
       for (const media of post.media) {
         if (target === "spark") {
@@ -1031,16 +1090,15 @@ export async function runImport(
             try {
               const dims = await getImageDimensionsFromBlob(media.data);
 
-              grainPhotoBatch.push({
+              grainPostPhotos.push({
                 imageData: new Uint8Array(await media.data.arrayBuffer()),
                 aspectRatio: dims,
                 createdAt: timestamp,
                 alt: getAltText(post.caption),
               });
-              grainPhotoTimestamps.push(timestamp);
 
               logger.info(
-                `Queued photo from ${post.createdAt.toLocaleDateString()} (queued: ${grainPhotoBatch.length})`,
+                `Queued photo from ${post.createdAt.toLocaleDateString()} (queued: ${grainPhotoQueue.length + grainPostPhotos.length})`,
               );
             } catch (error) {
               errors++;
@@ -1050,18 +1108,52 @@ export async function runImport(
           }
         }
       }
+
+      // Grain treats a gallery as a post, so each imported post gets its own
+      // gallery holding that post's photos. An explicit galleryUri (legacy
+      // single-gallery import) still overrides this.
+      if (target === "grain" && grainPostPhotos.length > 0) {
+        let postGalleryUri = galleryUri;
+        if (!postGalleryUri) {
+          const title = galleryTitleForPost(post.caption, post.createdAt);
+          const description = galleryDescriptionForPost(post.caption);
+          const gallery = await createGallery(
+            client,
+            title,
+            description,
+            dryRun,
+            timestamp,
+          );
+          if (!gallery.success || !gallery.uri) {
+            errors += grainPostPhotos.length;
+            trackProgress(timestamp, "failed");
+            logger.error(`Failed to create gallery: ${gallery.error}`);
+            continue;
+          }
+          postGalleryUri = gallery.uri;
+          logger.info(`Created gallery: ${title}`);
+        }
+
+        for (const input of grainPostPhotos) {
+          grainPhotoQueue.push({
+            input,
+            timestamp,
+            galleryUri: postGalleryUri,
+          });
+        }
+      }
     }
 
     // Flush remaining Grain batch (if any)
-    if (target === "grain" && grainPhotoBatch.length > 0) {
+    if (target === "grain" && grainPhotoQueue.length > 0) {
       const flushResult = await flushGrainPhotoBatch(
-        client, grainPhotoBatch, galleryUri, dryRun,
+        client, grainPhotoQueue, dryRun,
       );
 
-      // Assign gallery item positions using the accumulated timestamp order
+      // Assign gallery item positions per gallery
       for (let gi = 0; gi < flushResult.galleryItemInputs.length; gi++) {
-        flushResult.galleryItemInputs[gi].position = galleryPosition;
-        galleryPosition++;
+        const item = flushResult.galleryItemInputs[gi];
+        item.position = nextGalleryPosition(item.galleryUri);
       }
 
       // Batch-create gallery items for successful photos
@@ -1081,8 +1173,8 @@ export async function runImport(
       // Update counters and per-item progress using the per-item results
       let importedCount = 0;
       let failedCount = 0;
-      for (let gi = 0; gi < flushResult.successes.length && gi < grainPhotoTimestamps.length; gi++) {
-        const ts = grainPhotoTimestamps[gi];
+      for (let gi = 0; gi < flushResult.successes.length && gi < grainPhotoQueue.length; gi++) {
+        const ts = grainPhotoQueue[gi].timestamp;
         if (flushResult.successes[gi]) {
           importedCount++;
           trackProgress(ts, "imported");
@@ -1095,9 +1187,8 @@ export async function runImport(
       batchCount += importedCount;
       errors += failedCount;
 
-      // Clear the batch arrays
-      grainPhotoBatch.length = 0;
-      grainPhotoTimestamps.length = 0;
+      // Clear the batch queue
+      grainPhotoQueue.length = 0;
     }
 
     // Final state save

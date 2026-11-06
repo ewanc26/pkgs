@@ -42,14 +42,6 @@ ${chalk.bold("AUTH OPTIONS")}
   --handle <handle>       AT Protocol handle for app password login
   --password <password>   App password for login
 
-${chalk.bold("GRAIN GALLERY OPTIONS")}
-  --gallery <atUri>            Use an existing gallery (skips gallery prompt)
-  --gallery-title <text>       Title for a newly created gallery
-                                (required in --non-interactive mode when
-                                --gallery isn't given)
-  --gallery-description <text> Optional description for a newly created
-                                gallery
-
 ${chalk.bold("EXAMPLES")}
   ${chalk.gray("# Interactive mode")}
   jasper
@@ -79,7 +71,7 @@ ${chalk.bold("EXAMPLES")}
   jasper -i export.zip --handle your.handle --password app-password
 
   ${chalk.gray("# CI / LLM-safe: never prompts, fails fast on missing input")}
-  jasper -i export.zip --handle h --password p -y --gallery-title "Import" --non-interactive
+  jasper -i export.zip --handle h --password p -y --non-interactive
 
 ${chalk.bold("MORE INFO")}
   ${chalk.gray("Privacy:")} https://github.com/ewanc26/pkgs/tree/main/packages/jasper/PRIVACY.md
@@ -112,9 +104,6 @@ export function parseCliArgs(argv: string[]): CommandLineArgs {
       resume: { type: "boolean" },
       "list-imports": { type: "boolean" },
       "clear-imports": { type: "boolean" },
-      gallery: { type: "string" },
-      "gallery-title": { type: "string" },
-      "gallery-description": { type: "string" },
       session: { type: "string" },
       "non-interactive": { type: "boolean" },
     },
@@ -146,9 +135,6 @@ export function parseCliArgs(argv: string[]): CommandLineArgs {
     resume: values.resume as boolean | undefined,
     listImports: values["list-imports"] as boolean | undefined,
     clearImports: values["clear-imports"] as boolean | undefined,
-    gallery: values.gallery as string | undefined,
-    galleryTitle: values["gallery-title"] as string | undefined,
-    galleryDescription: values["gallery-description"] as string | undefined,
     session: values.session ? parseInt(values.session as string, 10) : undefined,
     nonInteractive: values["non-interactive"] as boolean | undefined,
   };
@@ -168,9 +154,6 @@ export function argsToImportOptions(args: CommandLineArgs): ImportOptions {
     quiet: args.quiet || false,
     alt: args.alt,
     target: args.target || "grain",
-    gallery: args.gallery,
-    galleryTitle: args.galleryTitle,
-    galleryDescription: args.galleryDescription,
   };
 }
 
