@@ -8,7 +8,6 @@
 	import {
 		runImport,
 		fetchUserGalleries,
-		createNewGallery,
 		fetchOrphanPhotos,
 		organizeOrphanPhotos,
 		loadBrowserImportState,
@@ -65,11 +64,6 @@
 
 	// Gallery state
 	let galleries = $state<GalleryInfo[]>([]);
-	let selectedGalleryUri = $state<string | null>(null);
-	let newGalleryTitle = $state('');
-	let newGalleryDescription = $state('');
-	let showNewGalleryForm = $state(false);
-	let loadingGalleries = $state(false);
 
 	// Orphan state
 	let orphans = $state<OrphanPhoto[]>([]);
@@ -150,13 +144,10 @@
 
 	async function loadGalleries() {
 		if (!agent) return;
-		loadingGalleries = true;
 		try {
 			galleries = await fetchUserGalleries(agent);
 		} catch (e) {
 			console.error('Failed to load galleries:', e);
-		} finally {
-			loadingGalleries = false;
 		}
 	}
 
@@ -172,32 +163,6 @@
 		}
 	}
 
-	async function handleCreateGallery() {
-		if (!agent || !newGalleryTitle.trim()) return;
-		error = null;
-		try {
-			const result = await createNewGallery(
-				agent,
-				newGalleryTitle,
-				newGalleryDescription || undefined,
-				dryRun
-			);
-			if (result.success && result.uri) {
-				selectedGalleryUri = result.uri;
-				showNewGalleryForm = false;
-				await loadGalleries();
-			} else {
-				error = result.error || 'Failed to create gallery';
-			}
-		} catch (e) {
-			error = (e as Error).message;
-		}
-	}
-
-	async function handleSelectGallery(uri: string) {
-		selectedGalleryUri = uri;
-	}
-
 	async function handleStartImport() {
 		if (!agent || !file) return;
 		isRunning = true;
@@ -205,15 +170,17 @@
 		result = null;
 		goTo(3);
 
-		// Check if file matches saved state for resume
+		// Check if file matches saved state for resume. Legacy sessions have a
+		// single gallery URI; per-post sessions leave it empty.
 		const existingState = savedState && fileMatchesState(file, savedState) ? savedState : undefined;
+		const resumeGalleryUri = existingState?.galleryUri || null;
 
 		try {
 			const importResult = await runImport(
 				agent,
 				file,
 				dryRun,
-				selectedGalleryUri,
+				resumeGalleryUri,
 				batchSize,
 				altText || undefined,
 				(current, total) => {
@@ -300,7 +267,6 @@
 		goTo(1);
 		file = null;
 		dryRun = false;
-		selectedGalleryUri = null;
 		logs = [];
 		result = null;
 		savedState = null;
@@ -325,8 +291,6 @@
 
 	function handleResumeImport() {
 		if (!savedState) return;
-		// Pre-select the gallery from saved state
-		selectedGalleryUri = savedState.galleryUri;
 		target = savedState.target || 'grain';
 		showResumePrompt = false;
 		// User still needs to upload the file
@@ -375,9 +339,11 @@
 					avatar: avatarUrl
 				};
 
-				// If there's a saved state, check if gallery still exists (Grain only)
+				// A legacy saved state is tied to one gallery, so only offer to
+				// resume if that gallery still exists. Per-post sessions have no
+				// single gallery to check.
 				if (savedState) {
-					if (savedState.target === 'grain' || !savedState.target) {
+					if ((savedState.target === 'grain' || !savedState.target) && savedState.galleryUri) {
 						await loadGalleries();
 						const galleryExists = galleries.some((g) => g.uri === savedState?.galleryUri);
 						if (galleryExists) {
@@ -629,7 +595,6 @@
 								class:selected={target === 'grain'}
 								onclick={() => {
 									target = 'grain';
-									selectedGalleryUri = null;
 								}}
 							>
 								<span class="target-name">Grain</span>
@@ -640,7 +605,6 @@
 								class:selected={target === 'spark'}
 								onclick={() => {
 									target = 'spark';
-									selectedGalleryUri = null;
 								}}
 							>
 								<span class="target-name">Spark</span>
@@ -692,69 +656,15 @@
 						</label>
 
 						{#if target === 'grain'}
-							<h3 class="subsection-title">Select Gallery</h3>
-							<p class="section-sub">Photos will be added to the selected gallery.</p>
-
-							{#if loadingGalleries}
-								<div class="loading-inline">
-									<Loader2 class="spin" size={18} /> Loading galleries...
-								</div>
-							{:else if galleries.length > 0}
-								<div class="gallery-list">
-									{#each galleries as gallery}
-										<button
-											class="gallery-item"
-											class:selected={selectedGalleryUri === gallery.uri}
-											onclick={() => handleSelectGallery(gallery.uri)}
-										>
-											<Image size={16} />
-											<span class="gallery-title">{gallery.title}</span>
-											<span class="gallery-date"
-												>{new Date(gallery.createdAt).toLocaleDateString()}</span
-											>
-										</button>
-									{/each}
-								</div>
-							{:else}
-								<p class="field-hint">No galleries yet. Create one below.</p>
-							{/if}
-
-							{#if showNewGalleryForm}
-								<div class="new-gallery-form">
-									<div class="field">
-										<input type="text" bind:value={newGalleryTitle} placeholder="Gallery title" />
-									</div>
-									<div class="field">
-										<input
-											type="text"
-											bind:value={newGalleryDescription}
-											placeholder="Description (optional)"
-										/>
-									</div>
-									<div class="actions-inline">
-										<button class="btn-secondary" onclick={() => (showNewGalleryForm = false)}
-											>Cancel</button
-										>
-										<button class="btn-primary" onclick={handleCreateGallery}>Create</button>
-									</div>
-								</div>
-							{:else}
-								<button
-									class="btn-secondary full-width"
-									onclick={() => (showNewGalleryForm = true)}
-								>
-									+ Create new gallery
-								</button>
-							{/if}
+							<p class="section-sub">
+								Each Instagram post becomes its own Grain gallery, with the caption as its
+								title and description.
+							</p>
 						{/if}
 
 						<div class="actions">
 							<button class="btn-secondary" onclick={() => goTo(1)}>Back</button>
-							<button
-								class="btn-primary"
-								disabled={!file || (target === 'grain' && !selectedGalleryUri)}
-								onclick={handleStartImport}
-							>
+							<button class="btn-primary" disabled={!file} onclick={handleStartImport}>
 								{dryRun ? 'Preview' : 'Import'}
 								<ArrowRight size={16} />
 							</button>
@@ -1329,13 +1239,6 @@
 		color: var(--muted);
 	}
 
-	.new-gallery-form {
-		padding: 1rem;
-		background: var(--bg-secondary);
-		border-radius: 8px;
-		margin-bottom: 1rem;
-	}
-
 	.loading-inline {
 		display: flex;
 		align-items: center;
@@ -1352,16 +1255,6 @@
 
 	.actions button {
 		flex: 1;
-	}
-
-	.actions-inline {
-		display: flex;
-		gap: 0.5rem;
-		margin-top: 0.5rem;
-	}
-
-	.full-width {
-		width: 100%;
 	}
 
 	.running-indicator {
@@ -1499,15 +1392,6 @@
 
 		.upload-mode-selector {
 			flex-direction: column;
-		}
-
-		.actions-inline {
-			flex-wrap: wrap;
-		}
-
-		.actions-inline .btn-primary,
-		.actions-inline .btn-secondary {
-			flex: 1;
 		}
 
 		.file-drop {
