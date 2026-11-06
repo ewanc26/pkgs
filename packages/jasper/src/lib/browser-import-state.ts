@@ -196,7 +196,11 @@ export function formatBrowserImportStateSummary(
   return [
     `File: ${state.fileName}`,
     `Target: ${state.target === "spark" ? "Spark" : "Grain"}`,
-    state.target === "grain" ? `Gallery: ${state.galleryTitle}` : null,
+    state.target === "grain"
+      ? state.galleryTitle
+        ? `Gallery: ${state.galleryTitle}`
+        : "Galleries: one per post"
+      : null,
     `Progress: ${imported} imported, ${skipped} skipped`,
     `Remaining: ${remaining} posts`,
     `Today: ${state.dailyImported} imported`,
