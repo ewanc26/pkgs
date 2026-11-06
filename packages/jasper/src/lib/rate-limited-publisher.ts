@@ -139,17 +139,30 @@ export class RateLimitedPublisher {
   async createGallery(
     title: string,
     description?: string,
+    createdAt?: string,
   ): Promise<GalleryResult> {
     await this.waitForQuota(OPERATION_POINTS.GALLERY);
 
     try {
-      return await createGallery(this.client, title, description, this.dryRun);
+      return await createGallery(
+        this.client,
+        title,
+        description,
+        this.dryRun,
+        createdAt,
+      );
     } catch (error) {
       if (isRateLimitError(error)) {
         log.warn("Rate limit hit, waiting for reset...");
         this.rateLimiter.handleRateLimitHit();
         await this.waitForQuota(OPERATION_POINTS.GALLERY);
-        return createGallery(this.client, title, description, this.dryRun);
+        return createGallery(
+          this.client,
+          title,
+          description,
+          this.dryRun,
+          createdAt,
+        );
       }
       throw error;
     }
