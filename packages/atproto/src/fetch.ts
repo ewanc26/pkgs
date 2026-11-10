@@ -219,7 +219,7 @@ export async function fetchSiteInfo(
 						collection: 'uk.ewancroft.site.info',
 						rkey: 'self'
 					})) as any;
-					return response.data;
+					return response.data ?? response;
 				} catch (err: any) {
 					if (err.error === 'RecordNotFound') return null;
 					throw err;
@@ -828,7 +828,7 @@ export async function fetchSifaProfile(
 					collection: 'id.sifa.profile.self',
 					rkey: 'self'
 				})) as any;
-				return response.data;
+				return response.data ?? response;
 			},
 			true,
 			fetchFn
