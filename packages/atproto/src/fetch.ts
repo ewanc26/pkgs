@@ -90,20 +90,38 @@ async function listLatestRecord(
 
 // ─── Profile ─────────────────────────────────────────────────────────────
 
+// Blob refs arrive as {ref: {$link: cid}} over raw HTTP, but the lex client
+// parses dag-json CIDs ({"\/": ...}) into CID instances whose string form is
+// the CID. Accept both shapes.
+function blobRefCid(ref: any): string | undefined {
+	if (typeof ref === 'string') return ref;
+	if (typeof ref?.$link === 'string') return ref.$link;
+	const candidate = typeof ref?.['/'] === 'string' ? ref['/'] : String(ref ?? '');
+	return /^[A-Za-z0-9]{20,}$/.test(candidate) ? candidate : undefined;
+}
+
 export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise<ProfileData> {
 	const cacheKey = `profile:${did}`;
 	const cached = cache.get<ProfileData>(cacheKey);
 	if (cached) return cached;
 
-	const profile = await withFallback(
-		did,
-		async (client) => {
-			const response = (await client.call(app.bsky.actor.getProfile.main as any, { actor: did })) as any;
-			return response.data;
-		},
-		false,
-		fetchFn
-	);
+	let profile: any;
+	try {
+		profile = await withFallback(
+			did,
+			async (client) => {
+				const response = (await client.call(app.bsky.actor.getProfile.main as any, { actor: did })) as any;
+				return response.data ?? response;
+			},
+			false,
+			fetchFn
+		);
+	} catch {
+		// app.bsky.actor.getProfile fails from some egress IPs (AppView
+		// rate limiting) and PDS app.bsky.* calls require auth, so fall back
+		// to reading the profile record anonymously via getRecord.
+		return profileFromRepo(did, fetchFn);
+	}
 
 	let pronouns: string | undefined;
 	try {
@@ -115,7 +133,7 @@ export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise
 					collection: 'app.bsky.actor.profile',
 					rkey: 'self'
 				})) as any;
-				return response.data;
+				return response.data ?? response;
 			},
 			false,
 			fetchFn
@@ -134,6 +152,47 @@ export async function fetchProfile(did: string, fetchFn?: typeof fetch): Promise
 		followsCount: profile.followsCount,
 		postsCount: profile.postsCount,
 		pronouns
+	};
+
+	cache.set(cacheKey, data);
+	return data;
+}
+
+// Fallback when app.bsky.actor.getProfile is unavailable everywhere: the
+// profile record itself is readable anonymously via com.atproto.repo.getRecord
+// (PDS first, AppView second), with avatar/banner blobs served by
+// com.atproto.sync.getBlob off the PDS. Follower/follow/post counts are not
+// available from the record, so they are omitted.
+async function profileFromRepo(did: string, fetchFn?: typeof fetch): Promise<ProfileData> {
+	const cacheKey = `profile:${did}`;
+
+	const identity = await resolveIdentity(did, fetchFn);
+	const recordResponse = await withFallback(
+		did,
+		async (client) => {
+			const response = (await client.call(com.atproto.repo.getRecord.main as any, {
+				repo: did,
+				collection: 'app.bsky.actor.profile',
+				rkey: 'self'
+			})) as any;
+			return response.data ?? response;
+		},
+		true,
+		fetchFn
+	);
+
+	const value = (recordResponse.value as any) ?? {};
+	const avatarCid = blobRefCid(value.avatar?.ref);
+	const bannerCid = blobRefCid(value.banner?.ref);
+
+	const data: ProfileData = {
+		did: identity.did,
+		handle: ((identity as any).handle as string | undefined) ?? did,
+		displayName: value.displayName,
+		description: value.description,
+		avatar: avatarCid ? buildPdsBlobUrl(identity.pds, did, avatarCid) : undefined,
+		banner: bannerCid ? buildPdsBlobUrl(identity.pds, did, bannerCid) : undefined,
+		pronouns: value.pronouns
 	};
 
 	cache.set(cacheKey, data);
