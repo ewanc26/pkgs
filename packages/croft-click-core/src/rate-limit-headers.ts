@@ -29,7 +29,12 @@ export function parseRateLimitHeaders(headers: Record<string, string>): RateLimi
   const m = /;w=(\d+)/.exec(policy);
   if (m) windowSeconds = parseInt(m[1], 10);
   else if (!isNaN(reset)) {
-    windowSeconds = Math.max(0, reset - Math.floor(Date.now() / 1000));
+    // ratelimit-reset is a delta in seconds per the IETF draft; a value past
+    // ~2001 in epoch seconds is an absolute timestamp instead.
+    windowSeconds =
+      reset >= 1_000_000_000
+        ? Math.max(0, reset - Math.floor(Date.now() / 1000))
+        : Math.max(0, reset);
   }
 
   return {

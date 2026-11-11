@@ -30,6 +30,28 @@ describe('RateLimiter', () => {
     assert.strictEqual(o.headroomThreshold, 0.5);
   });
 
+  it('treats a small ratelimit-reset as delta seconds, and honours Retry-After on 429', () => {
+    const rl = new RateLimiter({ headroom: 0.15 });
+    // IETF draft: reset is a delta. 300 means "resets in 300s", not 1970.
+    rl.updateFromHeaders({
+      'ratelimit-limit': '100',
+      'ratelimit-remaining': '80',
+      'ratelimit-reset': '300',
+      'ratelimit-policy': '100;w=3600',
+    });
+    const statePath = path.join(getMalachiteStateDir(), 'state', 'rate-limit.json');
+    const o = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    const now = Math.floor(Date.now() / 1000);
+    assert.ok(o.resetAt >= now + 290 && o.resetAt <= now + 310,
+      `delta reset lands ~300s out (got ${o.resetAt}, now ${now})`);
+
+    // A 429 carrying Retry-After must push the wait out by that delta.
+    rl.handleRateLimitHit({ 'retry-after': '37531' });
+    const o2 = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    assert.ok(o2.resetAt >= now + 37000, 'Retry-After delta honoured');
+    assert.strictEqual(o2.remaining, 0);
+  });
+
   it('getSafeAvailablePoints respects headroom threshold', () => {
     const rl = new RateLimiter({ headroom: 0.15 }); // 15% headroom
     const now = Math.floor(Date.now() / 1000);
