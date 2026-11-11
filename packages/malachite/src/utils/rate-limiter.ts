@@ -387,7 +387,15 @@ export class RateLimiter {
     }
     
     const now = Math.floor(Date.now() / 1000);
-    const resetAt = parsed.reset || (now + (parsed.windowSeconds || 3600));
+    // ratelimit-reset is a delta in seconds per the IETF draft, but some
+    // servers send an epoch timestamp; anything past ~2001 in epoch seconds
+    // is unambiguously absolute.
+    const resetAt =
+      parsed.reset === undefined
+        ? now + (parsed.windowSeconds || 3600)
+        : parsed.reset >= 1_000_000_000
+          ? parsed.reset
+          : now + parsed.reset;
     const windowSeconds = parsed.windowSeconds || 3600;
     
     const state: RateLimitState = {
@@ -700,6 +708,17 @@ export class RateLimiter {
     // Apply header info first so resetAt is as accurate as possible.
     if (errHeaders && Object.keys(errHeaders).length > 0) {
       this.updateFromHeaders(errHeaders);
+      // A 429's Retry-After (delta seconds) is the server's own statement of
+      // when to come back; honour it even when ratelimit-reset looks shorter.
+      const retryAfter = parseInt(normalizeHeaders(errHeaders)['retry-after'] ?? '', 10);
+      const st = this.readState();
+      if (!isNaN(retryAfter) && st) {
+        const retryAt = Math.floor(Date.now() / 1000) + retryAfter;
+        if (retryAt > st.resetAt) {
+          st.resetAt = retryAt;
+          this.writeState(st);
+        }
+      }
     }
 
     const now = Math.floor(Date.now() / 1000);
