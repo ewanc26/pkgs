@@ -60,7 +60,14 @@ export class RateLimiter {
     if (m) windowSeconds = parseInt(m[1], 10);
 
     const now = Math.floor(Date.now() / 1000);
-    const resetAt = isNaN(reset) ? now + windowSeconds : reset;
+    // ratelimit-reset is a delta in seconds per the IETF draft, but some
+    // servers send an epoch timestamp instead. Anything past ~2001 in epoch
+    // seconds is unambiguously an absolute time; smaller values are deltas.
+    const resetAt = isNaN(reset)
+      ? now + windowSeconds
+      : reset >= 1_000_000_000
+        ? reset
+        : now + reset;
 
     // Only learn from this reading if it's a same-window continuation of the
     // previous one — a window reset (or first-ever reading) makes the delta
@@ -139,6 +146,15 @@ export class RateLimiter {
   handleRateLimitHit(errHeaders?: Record<string, string>): void {
     if (errHeaders && Object.keys(errHeaders).length > 0) {
       this.updateFromHeaders(errHeaders);
+      // A 429's Retry-After (delta seconds) is the server's own statement of
+      // when to come back; honour it even when ratelimit-reset looks shorter.
+      const h = normalizeHeaders(errHeaders);
+      const retryAfter = parseInt(h['retry-after'] ?? '', 10);
+      if (!isNaN(retryAfter) && this.state) {
+        const nowSec = Math.floor(Date.now() / 1000);
+        const retryAt = nowSec + retryAfter;
+        if (retryAt > this.state.resetAt) this.state.resetAt = retryAt;
+      }
     }
     const now = Math.floor(Date.now() / 1000);
     if (this.state) {

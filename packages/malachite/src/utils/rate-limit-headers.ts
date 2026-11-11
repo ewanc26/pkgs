@@ -47,10 +47,15 @@ export function parseRateLimitHeaders(headers: Record<string, string>): RateLimi
     }
   }
 
-  // If reset is present (unix epoch seconds), compute approximate window
+  // If reset is present, compute approximate window. ratelimit-reset is a
+  // delta in seconds per the IETF draft; a value past ~2001 in epoch seconds
+  // is an absolute timestamp instead.
   if (validReset && !windowSeconds) {
     const now = Math.floor(Date.now() / 1000);
-    windowSeconds = Math.max(0, validReset - now);
+    windowSeconds =
+      validReset >= 1_000_000_000
+        ? Math.max(0, validReset - now)
+        : Math.max(0, validReset);
     log.debug(`[rate-limit-headers.ts] Computed window from reset time: ${windowSeconds}s`);
   }
 
