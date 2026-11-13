@@ -21,3 +21,15 @@ Guidance for `llm-analyser`, a standalone Python CLI inside the monorepo. It rec
 - Install with `python3 -m pip install -r packages/llm-analyser/requirements.txt` in an isolated environment. Run `python3 -m py_compile packages/llm-analyser/main.py`; the root `pnpm py:check` masks syntax failures and is not sufficient evidence.
 - There is no automated test suite. For behavioural work use disposable `.docx` fixtures and a disposable/local model, exercise thread and process paths where practical, failures from Ollama and parsing, output naming, interruption, and explicit/default output directories.
 - Do not commit virtual environments, documents, generated `*_essays` directories, Ollama model data, caches, or transcripts.
+
+<!-- allowed-agents -->
+## Allowed agents
+
+Only **Claude** (Anthropic) and **Mistral** (Mistral AI) may be used as coding agents in this repository. This rule supersedes any earlier agent-attribution guidance in this file.
+
+- Agent-assisted commits must credit only one of those agents:
+  - `Co-Authored-By: Claude <noreply@anthropic.com>`
+  - `Co-Authored-By: Mistral Vibe <vibe@mistral.ai>`
+- Allowed agent footers are `🤖 Generated with [Claude Code](https://claude.com/claude-code)` and `🤖 Generated with [Mistral Vibe](https://mistral.ai)`.
+- Do not add `Co-Authored-By:` trailers, `Generated with` footers, author names, or committer identities for any other agent or AI tool.
+- Do not credit another agent in commit metadata.
