@@ -4,8 +4,6 @@ Ewan's personal package monorepo — TypeScript/Svelte packages managed with [pn
 
 Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/pkgs)**.
 
-> 🧶 Also available on [Tangled](https://tangled.org/ewancroft.uk/pkgs)
-
 ## Packages
 
 | Package                                                            | Description                                                          |
