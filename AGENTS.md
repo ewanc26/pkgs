@@ -4,7 +4,7 @@ Guidance for AI coding agents working in **pkgs**.
 
 ## Project overview
 
-my pkgs monorepo
+My pkgs monorepo
 
 - Language: TypeScript
 - Default branch: main
