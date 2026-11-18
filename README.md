@@ -48,6 +48,10 @@ All of this is free and open source, built and maintained in my spare time. If a
 
 Not up for that? Starring the repo, filing a good bug report, or pointing someone at [croft.click](https://croft.click) helps just as much.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and the checks required before opening a pull request.
+
 ## Licence
 
 AGPL-3.0-only (TypeScript/Svelte) · MIT (Rust)
