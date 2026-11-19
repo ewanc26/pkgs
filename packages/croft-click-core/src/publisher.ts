@@ -14,6 +14,7 @@ import { com } from '@bsky/sdk/lexicons'
 import { RECORD_TYPE, MAX_PDS_BATCH_SIZE, POINTS_PER_RECORD } from './config.js';
 import { RateLimiter, type PermitWaitInfo } from './rate-limiter.js';
 import { ProactiveRatePacer } from './proactive-rate-pacer.js';
+import { estimateImportDuration, formatImportEstimate } from './import-estimate.js';
 import { DynamicBatchCalculator } from './dynamic-batch-calculator.js';
 import { retryWithBackoff } from './retry-helper.js';
 import { generateTIDFromISO } from './tid.js';
@@ -292,6 +293,23 @@ export async function publishRecords(
               onLog('info', `Learned server capacity: ${cap.limit} pts/${cap.windowSeconds}s`);
               onLog('info', `  Remaining quota: ${remaining}/${cap.limit} (${quotaPercent}%)`);
               onLog('info', `  Optimal batch: ${newBatchSize} records`);
+
+              // Pre-flight duration range. The advertised window is never the
+              // whole story for a long import (daily write budgets are not in
+              // the headers), so give the honest range and, for imports that
+              // will span days, an explicit disclaimer (#94).
+              const estimate = estimateImportDuration(
+                total - successCount,
+                cap.limit,
+                cap.windowSeconds,
+                rl.getPointsPerRecord(POINTS_PER_RECORD),
+              );
+              onLog('info', `  Estimated time: ${formatImportEstimate(estimate)}`);
+              if (estimate.isLongImport) {
+                onLog('warn', `⏳ This import is estimated to take ${formatImportEstimate(estimate)} — hourly write limits are advertised, but daily budgets are not.`);
+                onLog('warn', `   Rate limits vary per PDS, so the real duration may land anywhere in that range.`);
+                onLog('warn', `   You can stop at any time and resume later; already-published records are skipped on the next run.`);
+              }
 
               currentBatchSize = newBatchSize;
             }
