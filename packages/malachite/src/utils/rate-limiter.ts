@@ -387,16 +387,25 @@ export class RateLimiter {
     }
     
     const now = Math.floor(Date.now() / 1000);
-    // ratelimit-reset is a delta in seconds per the IETF draft, but some
-    // servers send an epoch timestamp; anything past ~2001 in epoch seconds
-    // is unambiguously absolute.
-    const resetAt =
-      parsed.reset === undefined
-        ? now + (parsed.windowSeconds || 3600)
-        : parsed.reset >= 1_000_000_000
-          ? parsed.reset
-          : now + parsed.reset;
     const windowSeconds = parsed.windowSeconds || 3600;
+    // ratelimit-reset is a delta in seconds per the IETF draft, but some
+    // servers send an epoch timestamp — in seconds OR milliseconds. A 13-digit
+    // epoch-ms value classified as epoch seconds lands ~55,000 years in the
+    // future, wedging waitForReset (and the persisted state file) forever.
+    let resetAt =
+      parsed.reset === undefined
+        ? now + windowSeconds
+        : parsed.reset >= 1e12
+          ? Math.floor(parsed.reset / 1000)
+          : parsed.reset >= 1_000_000_000
+            ? parsed.reset
+            : now + parsed.reset;
+    // Defence in depth: clamp implausible far-future resets to one window so a
+    // garbage header can never produce an effectively unbounded wait.
+    if (resetAt > now + 2 * windowSeconds) {
+      log.warn(`[RateLimiter] ⚠️  Implausible reset timestamp clamped to one ${windowSeconds}s window`);
+      resetAt = now + windowSeconds;
+    }
     
     const state: RateLimitState = {
       limit: parsed.limit,
@@ -687,8 +696,22 @@ export class RateLimiter {
     log.warn(`[RateLimiter] ⏳ Waiting ${minutes}m ${seconds}s for quota reset...`);
     log.warn(`[RateLimiter] Reset at: ${new Date(state.resetAt * 1000).toISOString()}`);
     
-    // Wait with 1 second buffer
-    await new Promise(resolve => setTimeout(resolve, (waitTime + 1) * 1000));
+    // Wait with 1 second buffer, emitting a heartbeat every minute so a long
+    // silent sleep is never mistaken for a hang.
+    const end = Date.now() + (waitTime + 1) * 1000;
+    await new Promise<void>((resolve) => {
+      let lastBeatAt = Date.now();
+      const tick = () => {
+        if (Date.now() >= end) { resolve(); return; }
+        if (Date.now() - lastBeatAt >= 60_000) {
+          lastBeatAt = Date.now();
+          const left = Math.max(1, Math.ceil((end - Date.now()) / 1000));
+          log.info(`[RateLimiter] ⏳ ${Math.floor(left / 60)}m ${left % 60}s until quota reset...`);
+        }
+        setTimeout(tick, Math.min(1000, end - Date.now()));
+      };
+      tick();
+    });
     
     log.info('[RateLimiter] ✅ Wait complete - quota restored');
   }

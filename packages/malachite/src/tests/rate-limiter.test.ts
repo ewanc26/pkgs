@@ -148,4 +148,36 @@ describe('RateLimiter', () => {
     assert.strictEqual(capacity.limit, 5000);
     assert.strictEqual(capacity.windowSeconds, 3600);
   });
+  it('treats epoch-millisecond ratelimit-reset as ms, not far-future epoch seconds', () => {
+    const rl = new RateLimiter({ headroom: 0.15 });
+    const now = Math.floor(Date.now() / 1000);
+    rl.updateFromHeaders({
+      'ratelimit-limit': '100',
+      'ratelimit-remaining': '80',
+      'ratelimit-reset': String((now + 600) * 1000), // 13-digit epoch ms
+      'ratelimit-policy': '100;w=3600',
+    });
+    const statePath = path.join(getMalachiteStateDir(), 'state', 'rate-limit.json');
+    const o = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    // Before the fix this landed ~55,000 years in the future and wedged waitForReset forever.
+    assert.ok(o.resetAt >= now + 590 && o.resetAt <= now + 610,
+      `epoch-ms reset lands ~600s out (got ${o.resetAt}, now ${now})`);
+    assert.strictEqual(rl.getActualRemaining(), 80, 'window still open, quota readable');
+  });
+
+  it('clamps an implausible far-future epoch reset to one window', () => {
+    const rl = new RateLimiter({ headroom: 0.15 });
+    const now = Math.floor(Date.now() / 1000);
+    rl.updateFromHeaders({
+      'ratelimit-limit': '100',
+      'ratelimit-remaining': '80',
+      'ratelimit-reset': String(now + 999_999_999), // epoch seconds, ~year 2058
+      'ratelimit-policy': '100;w=3600',
+    });
+    const statePath = path.join(getMalachiteStateDir(), 'state', 'rate-limit.json');
+    const o = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    assert.ok(o.resetAt <= now + 3600,
+      `reset clamped to one window (got ${o.resetAt}, now ${now})`);
+  });
+
 });
