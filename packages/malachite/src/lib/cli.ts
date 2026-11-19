@@ -1249,7 +1249,15 @@ export async function runCLI(): Promise<void> {
       mode === 'sync' || mode === 'combined',
       importState,
       args['danger-zone'] ?? false,
-      args['allow-unresolved-apple'] ?? false
+      args['allow-unresolved-apple'] ?? false,
+      // Offer an exit when the estimate says the import will span days (#94).
+      // Interactive runs already confirmed publishing, but this confirmation
+      // carries new information: the duration estimate. Non-interactive runs
+      // require --yes to get here, so they auto-proceed.
+      async () => {
+        if (isNonInteractive()) return true;
+        return confirm('This import is estimated to take over a day. Continue? (y/N) ', false);
+      }
     );
 
     log.blank();
