@@ -190,6 +190,7 @@ ${'\x1b[1m'}MORE INFO:${'\x1b[0m'}
 ${'\x1b[1m'}SUPPORT:${'\x1b[0m'}
   Ko-fi: https://ko-fi.com/ewancroft
   GitHub Sponsors: https://github.com/sponsors/ewanc26
+  Liberapay: https://liberapay.com/ewanc26/
 `);
 }
 
@@ -1309,7 +1310,7 @@ export async function runCLI(): Promise<void> {
     if (lastfmTempFile) {
       try { fs.unlinkSync(lastfmTempFile); } catch { /* best-effort cleanup */ }
     }
-    console.log('\x1b[2mEnjoying Malachite? Support development: Ko-fi https://ko-fi.com/ewancroft · GitHub Sponsors https://github.com/sponsors/ewanc26\x1b[0m\n');
+    console.log('\x1b[2mEnjoying Malachite? Support development: Ko-fi https://ko-fi.com/ewancroft · GitHub Sponsors https://github.com/sponsors/ewanc26 · Liberapay https://liberapay.com/ewanc26/\x1b[0m\n');
     log.closeLogFile();
   }
 }
