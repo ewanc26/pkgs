@@ -12,7 +12,7 @@ import type { Client } from '@atproto/lex'
 import type { PlayRecord } from './types.js'
 import { com } from '@bsky/sdk/lexicons'
 import { RECORD_TYPE, MAX_PDS_BATCH_SIZE, POINTS_PER_RECORD } from './config.js';
-import { RateLimiter } from './rate-limiter.js';
+import { RateLimiter, type PermitWaitInfo } from './rate-limiter.js';
 import { ProactiveRatePacer } from './proactive-rate-pacer.js';
 import { DynamicBatchCalculator } from './dynamic-batch-calculator.js';
 import { retryWithBackoff } from './retry-helper.js';
@@ -46,6 +46,14 @@ function cancellableSleep(ms: number, isCancelled: () => boolean): Promise<void>
     };
     tick();
   });
+}
+
+/** Human-readable wait duration for limiter waits (e.g. "45s", "12 min", "1.2 h"). */
+function formatWaitSeconds(seconds: number): string {
+  if (seconds < 90) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 90) return `${minutes} min`;
+  return `${(minutes / 60).toFixed(1)} h`;
 }
 
 function extractHeaders(response: unknown): Record<string, string> {
@@ -190,8 +198,33 @@ export async function publishRecords(
         value: sanitizePlayRecordMusicBrainzIds(record, { allowUnresolvedApple }),
       }));
 
-      const batchPoints = batch.length * POINTS_PER_RECORD;
-      await rl.waitForPermit(batchPoints, isCancelled);
+      // Gate the batch against the tightest reported bucket using the observed
+      // points-per-record rather than the assumed constant. The server reports
+      // whichever bucket is currently tightest under the same generic header
+      // names; against a request-counted bucket the assumed value wildly
+      // overestimates the cost per record and keeps the ledger below the
+      // headroom line in phantom-blocking mode.
+      const batchPoints = batch.length * rl.getPointsPerRecord(POINTS_PER_RECORD);
+
+      // Surface limiter waits (reason + duration + heartbeat) so the UI shows
+      // "waiting for quota" instead of a frozen progress card.
+      const emitQuotaWait = ({ reason, totalWaitSeconds, remainingSeconds }: PermitWaitInfo) => {
+        if (remainingSeconds === totalWaitSeconds) {
+          onLog('warn', `${reason} -- waiting ${formatWaitSeconds(totalWaitSeconds)}`);
+        }
+        onProgress({
+          batchIndex: batchCounter,
+          totalBatches: Math.ceil(total / currentBatchSize),
+          recordsProcessed: i,
+          totalRecords: total,
+          successCount,
+          errorCount,
+          currentBatchSize: batch.length,
+          message: `Waiting for rate-limit window -- ${reason} (${formatWaitSeconds(remainingSeconds)} left)`,
+        });
+      };
+
+      await rl.waitForPermit(batchPoints, isCancelled, emitQuotaWait);
       if (isCancelled()) {
         onLog('warn', 'Import cancelled by user.');
         return { successCount, errorCount, cancelled: true };
@@ -309,7 +342,7 @@ export async function publishRecords(
               : (e?.response?.headers ?? e?.headers ?? {});
           rl.refund(batchPoints); // this reservation was never actually sent
           rl.handleRateLimitHit(normalizeHeaders(rawErrHeaders));
-          await rl.waitForPermit(batchPoints, isCancelled);
+          await rl.waitForPermit(batchPoints, isCancelled, emitQuotaWait);
           batchCounter--; // the retry is the same batch, not a new one
           continue; // retry same batch
         }

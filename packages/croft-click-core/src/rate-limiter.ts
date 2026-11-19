@@ -8,6 +8,18 @@ import { normalizeHeaders } from './rate-limit-headers.js';
 /** Minimum wait after a 429 when the server gave no future reset time. */
 const RATE_LIMIT_FALLBACK_WAIT_SECONDS = 60;
 
+/** How often a long wait re-reports progress through `onWait`. */
+const WAIT_HEARTBEAT_SECONDS = 30;
+
+/**
+ * Longest sleep honoured when the *local ledger* (learned headers minus
+ * headroom) says the batch won't fit but the server has not actually sent a
+ * 429. The reported bucket may not even be the write-points bucket, so a
+ * ledger-only block must never wedge the import for a full window: sleep at
+ * most this long, then let the next request's headers re-learn real quota.
+ */
+const MAX_LEDGER_WAIT_SECONDS = 60;
+
 interface State {
   limit: number;
   remaining: number;
@@ -15,9 +27,31 @@ interface State {
   windowSeconds: number;
 }
 
+/**
+ * Reported whenever `waitForPermit` decides the caller must wait, and again
+ * as a heartbeat during long waits so UIs can show "waiting" instead of a
+ * frozen progress card with no explanation.
+ */
+export interface PermitWaitInfo {
+  /** Human-readable reason for the wait. */
+  reason: string;
+  /** Total wait chosen for this permit, in seconds. */
+  totalWaitSeconds: number;
+  /** Seconds still to wait (equal to `totalWaitSeconds` on the initial call). */
+  remainingSeconds: number;
+}
+
 export class RateLimiter {
   private state: State | null = null;
   private readonly headroom: number;
+  private readonly maxLedgerWaitSeconds: number;
+  /**
+   * True from the moment a 429 zeroes the ledger until a successful response
+   * (or a genuine window reset) refreshes it. Distinguishes a server-confirmed
+   * wait, which must honour the full advertised reset, from a ledger-only
+   * block, which may be phantom and gets capped at `maxLedgerWaitSeconds`.
+   */
+  private exhaustedBy429 = false;
 
   /**
    * Empirically observed points consumed per record, derived from successive
@@ -34,8 +68,9 @@ export class RateLimiter {
   private lastRemaining: number | null = null;
   private lastResetAt: number | null = null;
 
-  constructor(opts?: { headroom?: number }) {
+  constructor(opts?: { headroom?: number; maxLedgerWaitSeconds?: number }) {
     this.headroom = opts?.headroom ?? 0.15;
+    this.maxLedgerWaitSeconds = opts?.maxLedgerWaitSeconds ?? MAX_LEDGER_WAIT_SECONDS;
   }
 
   /**
@@ -61,13 +96,23 @@ export class RateLimiter {
 
     const now = Math.floor(Date.now() / 1000);
     // ratelimit-reset is a delta in seconds per the IETF draft, but some
-    // servers send an epoch timestamp instead. Anything past ~2001 in epoch
-    // seconds is unambiguously an absolute time; smaller values are deltas.
-    const resetAt = isNaN(reset)
+    // servers send an epoch timestamp instead — in seconds OR milliseconds.
+    // Classify by magnitude: 13-digit values are epoch ms, 10-digit values are
+    // epoch seconds, smaller values are deltas. An epoch-ms value misread as
+    // epoch seconds would land ~55,000 years in the future and silently wedge
+    // `waitForPermit` forever.
+    let resetAt = isNaN(reset)
       ? now + windowSeconds
-      : reset >= 1_000_000_000
-        ? reset
-        : now + reset;
+      : reset >= 1e12
+        ? Math.floor(reset / 1000)
+        : reset >= 1_000_000_000
+          ? reset
+          : now + reset;
+    // Defence in depth: clamp implausible far-future resets to one window so a
+    // garbage header can never produce an effectively unbounded wait.
+    if (resetAt > now + 2 * windowSeconds) {
+      resetAt = now + windowSeconds;
+    }
 
     // Only learn from this reading if it's a same-window continuation of the
     // previous one — a window reset (or first-ever reading) makes the delta
@@ -94,6 +139,8 @@ export class RateLimiter {
 
     this.lastRemaining = remaining;
     this.lastResetAt = resetAt;
+    // A live response supersedes any previous 429 exhaustion.
+    this.exhaustedBy429 = false;
     this.state = { limit, remaining, resetAt, windowSeconds };
   }
 
@@ -165,41 +212,91 @@ export class RateLimiter {
     } else {
       this.state = { limit: 5000, remaining: 0, resetAt: now + 3600, windowSeconds: 3600 };
     }
+    // The server itself confirmed the exhaustion, so `waitForPermit` should
+    // honour the full advertised reset rather than capping the wait.
+    this.exhaustedBy429 = true;
   }
 
   /**
    * Wait until there is sufficient quota to send `pointsNeeded` points.
    * Polls `isCancelled` every 50 ms so callers can abort mid-wait.
+   *
+   * When a wait is needed, `onWait` reports the reason and the chosen duration
+   * immediately, then re-reports remaining time as a heartbeat every
+   * `WAIT_HEARTBEAT_SECONDS` so no wait is ever silent.
+   *
+   * Waits fall into two classes. A *server-confirmed* wait (this call follows
+   * `handleRateLimitHit`) sleeps out the full advertised reset — the server
+   * itself demands it. A *ledger-only* wait (headers minus headroom say the
+   * batch won't fit, but no 429 backs that up) is capped at
+   * `maxLedgerWaitSeconds`: the tightest reported bucket may not even be the
+   * write-points bucket, so instead of sleeping out a full window on possibly
+   * phantom quota, the permit is granted and the next request's headers
+   * re-learn the real remaining. A genuine limit re-establishes itself the
+   * reactive way, via a 429.
    */
-  async waitForPermit(pointsNeeded: number, isCancelled?: () => boolean): Promise<void> {
+  async waitForPermit(
+    pointsNeeded: number,
+    isCancelled?: () => boolean,
+    onWait?: (info: PermitWaitInfo) => void,
+  ): Promise<void> {
     if (!this.state) return; // no info yet — let first request probe
 
     const now = Math.floor(Date.now() / 1000);
     if (now >= this.state.resetAt) {
       this.state.remaining = this.state.limit;
       this.state.resetAt = now + this.state.windowSeconds;
+      this.exhaustedBy429 = false;
     }
 
     const headroomPts = Math.floor(this.state.limit * this.headroom);
     const effective = this.state.remaining - headroomPts;
 
-    if (effective < pointsNeeded) {
-      const resetMs = Math.max(0, (this.state.resetAt - Math.floor(Date.now() / 1000)) + 1) * 1000;
-      const end = Date.now() + resetMs;
-      await new Promise<void>((resolve) => {
-        const tick = () => {
-          if (isCancelled?.() || Date.now() >= end) { resolve(); return; }
-          setTimeout(tick, Math.min(50, end - Date.now()));
-        };
-        tick();
-      });
-      if (this.state && !isCancelled?.()) {
-        this.state.remaining = this.state.limit;
-        this.state.resetAt = Math.floor(Date.now() / 1000) + this.state.windowSeconds;
-      }
+    if (effective >= pointsNeeded) {
+      this.state.remaining = Math.max(0, this.state.remaining - pointsNeeded);
+      return;
     }
 
-    if (this.state) this.state.remaining = Math.max(0, this.state.remaining - pointsNeeded);
+    const reason = this.exhaustedBy429
+      ? `Server-confirmed rate limit exhausted (${this.state.remaining}/${this.state.limit} pts remaining)`
+      : `Local quota ledger below headroom (${this.state.remaining}/${this.state.limit} pts, ${headroomPts} reserved) — no recent 429, re-probing server`;
+
+    const resetWaitSeconds = Math.max(0, this.state.resetAt - Math.floor(Date.now() / 1000)) + 1;
+    const waitSeconds = this.exhaustedBy429
+      ? resetWaitSeconds
+      : Math.min(resetWaitSeconds, this.maxLedgerWaitSeconds);
+
+    onWait?.({ reason, totalWaitSeconds: waitSeconds, remainingSeconds: waitSeconds });
+
+    const end = Date.now() + waitSeconds * 1000;
+    await new Promise<void>((resolve) => {
+      let lastBeatAt = Date.now();
+      const tick = () => {
+        if (isCancelled?.() || Date.now() >= end) { resolve(); return; }
+        if (onWait && Date.now() - lastBeatAt >= WAIT_HEARTBEAT_SECONDS * 1000) {
+          lastBeatAt = Date.now();
+          onWait({
+            reason,
+            totalWaitSeconds: waitSeconds,
+            remainingSeconds: Math.max(1, Math.ceil((end - Date.now()) / 1000)),
+          });
+        }
+        setTimeout(tick, Math.min(50, end - Date.now()));
+      };
+      tick();
+    });
+
+    if (this.state && !isCancelled?.()) {
+      const nowAfter = Math.floor(Date.now() / 1000);
+      if (nowAfter >= this.state.resetAt) {
+        // A genuine window reset restores the ledger. A capped probe does not
+        // — the next response headers re-learn real quota either way.
+        this.state.remaining = this.state.limit;
+        this.state.resetAt = nowAfter + this.state.windowSeconds;
+        this.exhaustedBy429 = false;
+      }
+      this.state.remaining = Math.max(0, this.state.remaining - pointsNeeded);
+    }
   }
 
   /**

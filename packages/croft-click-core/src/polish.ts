@@ -177,7 +177,7 @@ export async function migrateLegacyRecords(
     for (let i = 0; i < plan.toBackfill.length; i += MAX_WRITES_PER_BATCH) {
       signal?.throwIfAborted();
       const batch = plan.toBackfill.slice(i, i + MAX_WRITES_PER_BATCH);
-      const batchPoints = batch.length * POINTS_PER_RECORD;
+      const batchPoints = batch.length * rl.getPointsPerRecord(POINTS_PER_RECORD);
 
       await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false);
 
@@ -283,7 +283,7 @@ export async function migrateLegacyRecords(
     for (let i = 0; i < toDelete.length; i += MAX_WRITES_PER_BATCH) {
       signal?.throwIfAborted();
       const batch = toDelete.slice(i, i + MAX_WRITES_PER_BATCH);
-      const batchPoints = batch.length * POINTS_PER_RECORD;
+      const batchPoints = batch.length * rl.getPointsPerRecord(POINTS_PER_RECORD);
 
       await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false);
 
