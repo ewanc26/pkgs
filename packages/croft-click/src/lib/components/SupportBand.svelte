@@ -19,6 +19,9 @@
 		<a href="https://github.com/sponsors/ewanc26" target="_blank" rel="noopener" class="btn-ghost">
 			Sponsor monthly <ArrowUpRight size={14} aria-hidden="true" />
 		</a>
+		<a href="https://liberapay.com/ewanc26/" target="_blank" rel="noopener" class="btn-ghost">
+			Donate on Liberapay <ArrowUpRight size={14} aria-hidden="true" />
+		</a>
 		<a href="https://github.com/ewanc26/pkgs" target="_blank" rel="noopener" class="btn-quiet">
 			<Star size={13} aria-hidden="true" /> Star the repo
 		</a>

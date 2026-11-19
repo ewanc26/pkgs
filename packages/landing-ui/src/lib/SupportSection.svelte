@@ -8,6 +8,8 @@
 		kofiUrl?: string;
 		/** GitHub Sponsors link. */
 		sponsorsUrl?: string;
+		/** Liberapay recurring-donation link. */
+		liberapayUrl?: string;
 		/** Repo link, used for the "star it instead" alternative. */
 		githubUrl?: string;
 	}
@@ -16,6 +18,7 @@
 		name,
 		kofiUrl = 'https://ko-fi.com/ewancroft',
 		sponsorsUrl = 'https://github.com/sponsors/ewanc26',
+		liberapayUrl = 'https://liberapay.com/ewanc26/',
 		githubUrl
 	}: Props = $props();
 </script>
@@ -34,6 +37,9 @@
 		</a>
 		<a href={sponsorsUrl} target="_blank" rel="noopener" class="btn-ghost">
 			Sponsor monthly <ArrowUpRight size={14} />
+		</a>
+		<a href={liberapayUrl} target="_blank" rel="noopener" class="btn-ghost">
+			Donate on Liberapay <ArrowUpRight size={14} />
 		</a>
 	</div>
 
