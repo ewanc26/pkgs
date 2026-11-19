@@ -2,7 +2,7 @@ import type { Client } from '@atproto/lex'
 import { formatDuration, formatDate } from '../utils/helpers.js';
 import { isImportCancelled } from '../utils/killswitch.js';
 import { RateLimiter } from '../utils/rate-limiter.js';
-import { DynamicBatchCalculator, ProactiveRatePacer, retryWithBackoff, isRetryableError, isRateLimitError, normalizeHeaders, normalizeMusicBrainzId, sanitizePlayRecordMusicBrainzIds } from '@ewanc26/croft-click-core';
+import { DynamicBatchCalculator, ProactiveRatePacer, retryWithBackoff, isRetryableError, isRateLimitError, normalizeHeaders, normalizeMusicBrainzId, sanitizePlayRecordMusicBrainzIds, estimateImportDuration, formatImportEstimate, type ImportEstimate } from '@ewanc26/croft-click-core';
 import { formatLocaleNumber } from '../utils/platform.js';
 import { generateTIDFromISO } from '../utils/tid.js';
 import type { PlayRecord, Config, PublishResult } from '../types.js';
@@ -91,7 +91,14 @@ export async function publishRecordsWithApplyWrites(
   syncMode = false,
   importState: ImportState | null = null,
   dangerZone = false,
-  allowUnresolvedApple = false
+  allowUnresolvedApple = false,
+  /**
+   * Consulted (once) when the import is estimated to take longer than a day:
+   * return false to abort. Interactive callers wire this to a confirm prompt;
+   * non-interactive or pre-confirmed runs pass nothing (or `--yes`) and the
+   * estimate is surfaced as a warning only (#94).
+   */
+  confirmLongImport?: () => Promise<boolean>
 ): Promise<PublishResult> {
   const { RECORD_TYPE } = config;
   const totalRecords = records.length;
@@ -114,7 +121,39 @@ export async function publishRecordsWithApplyWrites(
   const rl = new RateLimiter({ headroom: dangerZone ? 0 : 0.15 });
   const calculator = new DynamicBatchCalculator(); // For performance metrics
   const pacer = new ProactiveRatePacer(); // NEW: Proactive pacing
-  
+
+  /**
+   * Announce a long import once and offer an exit before committing to it
+   * (#94). `alreadyPublished` is zero on the saved-capacity pre-flight path
+   * and the probe batch's size on the learned-capacity path. Returns false
+   * when the caller must abort.
+   */
+  let longImportAnnounced = false;
+  const announceLongImport = async (
+    estimate: ImportEstimate,
+    alreadyPublished: number
+  ): Promise<boolean> => {
+    if (longImportAnnounced) return true;
+    longImportAnnounced = true;
+    if (!estimate.isLongImport) return true;
+
+    log.warn(`⏳  Heads up: this import is estimated to take ${formatImportEstimate(estimate)}.`);
+    log.warn(`   The hourly write limit comes from your PDS's headers, but daily write budgets`);
+    log.warn(`   aren't advertised, so the real duration can land anywhere in that range.`);
+    log.info(`   Ctrl+C stops gracefully at any time; resuming skips already-published records.`);
+
+    if (!confirmLongImport) return true;
+    const proceed = await confirmLongImport();
+    if (!proceed) {
+      log.warn(
+        alreadyPublished > 0
+          ? `Long import cancelled — ${formatLocaleNumber(alreadyPublished)} probe record(s) were published and will be skipped on resume.`
+          : 'Long import cancelled — nothing has been published yet.'
+      );
+    }
+    return proceed;
+  };
+
   log.section(dangerZone ? 'Danger Zone Import' : 'Proactive Rate-Limited Import');
   if (dangerZone) {
     log.warn('☢️  DANGER ZONE: quota headroom is disabled. This may rate-limit the entire PDS.');
@@ -158,6 +197,15 @@ export async function publishRecordsWithApplyWrites(
       actualRemaining
     );
     log.info(`⏱️  Estimated time: ~${formatDuration(eta * 1000)} at sustainable rate`);
+
+    // Pre-flight duration range for saved-capacity imports: the advertised
+    // window is not the whole story for a long import, so show the honest
+    // span and offer an exit before the first write (#94). Nothing has been
+    // published at this point.
+    const preflightEstimate = estimateImportDuration(totalRecords, serverCapacity.limit, serverCapacity.windowSeconds);
+    if (!(await announceLongImport(preflightEstimate, 0))) {
+      return handleCancellation(0, 0, totalRecords);
+    }
   } else {
     // OPTIMIZED: Smart probe - 50 records (150 points) is safe for all standard rate limits
     // Previous: 10 records was too conservative, causing slow first imports
@@ -311,8 +359,12 @@ export async function publishRecordsWithApplyWrites(
           if (hasRateLimitHeaders) {
             rl.updateFromHeaders(normalized);
             
-            // After first response, recalculate optimal settings
-            if (!rl.hasServerInfo() && batchCounter === 1) {
+            // After first response, recalculate optimal settings. Writing the
+            // learned state inside updateFromHeaders marks server info as
+            // known, so this fires whenever capacity exists now (learned by
+            // this response on a first-ever probe, or restored from the
+            // saved state file).
+            if (batchCounter === 1 && rl.hasServerInfo()) {
             const newCap = rl.getServerCapacity();
             if (newCap) {
             const actualQuota = rl.getActualRemaining();
@@ -339,6 +391,18 @@ export async function publishRecordsWithApplyWrites(
               actualQuota
               );
                 log.info(`   ETA: ~${formatDuration(eta * 1000)}`);
+
+                // Fresh-capacity duration range + long-import confirmation
+                // (#94). The probe batch has just been published, so a
+                // decline counts it and a resumed run skips it.
+                const learnedEstimate = estimateImportDuration(
+                  totalRecords - successCount,
+                  newCap.limit,
+                  newCap.windowSeconds
+                );
+                if (!(await announceLongImport(learnedEstimate, successCount))) {
+                  return handleCancellation(successCount, errorCount, totalRecords);
+                }
                 }
               }
           }
@@ -442,6 +506,13 @@ export async function publishRecordsWithApplyWrites(
     log.debug(
       `Stats - ${elapsed} | ${recordsPerSecond.toFixed(1)} rec/s | ${successCount}/${totalRecords} | ~${formatDuration(estimatedRemaining * 1000)} remaining`
     );
+
+    // Info-level heartbeat so long imports stay visible without debug logging
+    // (#94): every 25 batches, mid-import only.
+    if (batchCounter % 25 === 0 && i < totalRecords) {
+      const pctDone = ((i / totalRecords) * 100).toFixed(1);
+      log.info(`⏱️  ${formatLocaleNumber(successCount)}/${formatLocaleNumber(totalRecords)} records (${pctDone}%) — ${recordsPerSecond.toFixed(2)} rec/s — ~${formatDuration(estimatedRemaining * 1000)} remaining`);
+    }
     log.blank();
 
     // Check killswitch again
