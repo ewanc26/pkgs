@@ -65,7 +65,7 @@ Part of the [croft.click](https://croft.click) toolkit — free, browser-based t
 
 ## Support
 
-This is free and open source, built and maintained in my spare time. If it's useful to you, a [one-off tip on Ko-fi](https://ko-fi.com/ewancroft) or a [monthly sponsorship](https://github.com/sponsors/ewanc26) helps keep it maintained. A star on the repo or a mention to someone who'd use it helps just as much.
+This is free and open source, built and maintained in my spare time. If it's useful to you, a [one-off tip on Ko-fi](https://ko-fi.com/ewancroft), a [recurring donation on Liberapay](https://liberapay.com/ewanc26/) or a [monthly sponsorship](https://github.com/sponsors/ewanc26) helps keep it maintained. A star on the repo or a mention to someone who'd use it helps just as much.
 
 ## Trademark
 
