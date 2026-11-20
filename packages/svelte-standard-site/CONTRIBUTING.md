@@ -1,45 +1,52 @@
 # Contributing to svelte-standard-site
 
-Thank you for your interest in contributing! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing! `svelte-standard-site` is a SvelteKit library for building sites from `site.standard.*` AT Protocol records. It lives in the [ewanc26/pkgs](https://github.com/ewanc26/pkgs) monorepo.
 
-## Getting Started
+Start with the [root contributing guide](../../CONTRIBUTING.md) for the workflow common to every package. The rest of this file is specific to this library.
+
+## Getting started
 
 ### Prerequisites
 
-- Node.js 18 or higher
-- pnpm 8 or higher
+- Node.js 24.x
+- pnpm ≥ 9
 
 ### Setup
 
-1. Fork and clone the repository:
+1. Clone the monorepo and install dependencies:
 
 ```bash
-git clone https://github.com/ewanc26/svelte-standard-site.git
-cd svelte-standard-site
-```
-
-2. Install dependencies:
-
-```bash
+git clone https://github.com/ewanc26/pkgs.git
+cd pkgs
 pnpm install
 ```
 
-3. Create a `.env` file:
+2. Create a `.env` file (from this package's directory):
 
 ```bash
+cd packages/svelte-standard-site
 cp .env.example .env
 # Edit .env and add your PUBLIC_ATPROTO_DID
 ```
 
-4. Start the development server:
+3. Start the development server:
 
 ```bash
 pnpm dev
 ```
 
-## Development Workflow
+## Commands
 
-### Project Structure
+- `pnpm dev` - Start the development server
+- `pnpm build` - Build the library
+- `pnpm check` - Run type checking
+- `pnpm format` - Format code with Prettier
+- `pnpm lint` - Check code formatting
+- `pnpm prepack` - Prepare the package for publishing
+
+## Development workflow
+
+### Project structure
 
 ```
 src/
@@ -61,90 +68,32 @@ src/
     └── +page.server.ts
 ```
 
-### Commands
+### Making changes
 
-- `pnpm dev` - Start development server
-- `pnpm build` - Build the library
-- `pnpm check` - Run type checking
-- `pnpm format` - Format code with Prettier
-- `pnpm lint` - Check code formatting
-- `pnpm prepack` - Prepare package for publishing
+- Run `pnpm format` before committing; TypeScript strict mode is enabled.
+- Follow the existing code structure and patterns.
+- New components belong in `src/lib/components/` with a corresponding usage example in `routes/`.
 
-## Making Changes
+### Commit messages
 
-### Code Style
+Follow [Conventional Commits](https://www.conventionalcommits.org/), optionally scoped: `feat: add support for custom PDS endpoints`, `fix: resolve caching issue with blob URLs`, `docs: update README with new examples`.
 
-- We use Prettier for code formatting
-- Run `pnpm format` before committing
-- TypeScript strict mode is enabled
-- Follow the existing code structure and patterns
+### Pull request process
 
-### Commit Messages
+1. Create a branch from `main` and make your changes, with examples/tests where applicable.
+2. Ensure `pnpm check` and `pnpm format` are clean.
+3. Open a Pull Request against `main` with a clear description of what changed and why, plus how you verified it.
 
-We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+Documentation for public API changes lives in [API.md](API.md); new features should land with usage examples in [EXAMPLES.md](EXAMPLES.md) where they're user-facing.
 
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation changes
-- `style:` - Code style changes (formatting, etc.)
-- `refactor:` - Code refactoring
-- `test:` - Test additions or changes
-- `chore:` - Build process or tooling changes
+## What to contribute
 
-Example:
+- **Bug fixes** — report and fix; a failing-then-passing case is ideal.
+- **Features** — discuss in an issue first.
+- **Documentation and examples** — always welcome.
+- **Components and tests** — new reusable components and coverage improvements.
 
-```
-feat: add support for custom PDS endpoints
-fix: resolve caching issue with blob URLs
-docs: update README with new examples
-```
-
-### Pull Request Process
-
-1. Create a new branch:
-
-```bash
-git checkout -b feat/your-feature-name
-```
-
-2. Make your changes and commit them:
-
-```bash
-git add .
-git commit -m "feat: add your feature"
-```
-
-3. Push to your fork:
-
-```bash
-git push origin feat/your-feature-name
-```
-
-4. Open a Pull Request on GitHub
-
-5. Ensure:
-   - Code passes type checking (`pnpm check`)
-   - Code is properly formatted (`pnpm format`)
-   - Documentation is updated if needed
-   - Examples are added for new features
-
-## What to Contribute
-
-### Good First Issues
-
-Look for issues labeled `good first issue` for beginner-friendly tasks.
-
-### Areas for Contribution
-
-- **Bug Fixes**: Report and fix bugs
-- **Features**: Implement new features (discuss in an issue first)
-- **Documentation**: Improve or expand documentation
-- **Examples**: Add new usage examples
-- **Components**: Create new reusable components
-- **Tests**: Add or improve test coverage
-- **Performance**: Optimize existing code
-
-## Reporting Bugs
+## Reporting bugs
 
 When reporting bugs, please include:
 
@@ -155,49 +104,12 @@ When reporting bugs, please include:
 5. Environment details (Node version, OS, etc.)
 6. Code samples if applicable
 
-## Feature Requests
+## Code of conduct
 
-For feature requests:
+Be respectful and inclusive, welcome newcomers, accept constructive criticism gracefully, and focus on what's best for the community. Harassment, discriminatory language, personal attacks, and publishing others' private information are unacceptable.
 
-1. Check if the feature already exists or is planned
-2. Open an issue describing:
-   - The problem you're trying to solve
-   - Your proposed solution
-   - Any alternatives you've considered
-   - Examples of the desired behavior
+## Licence
 
-## Code of Conduct
-
-### Our Pledge
-
-We are committed to providing a friendly, safe, and welcoming environment for all contributors.
-
-### Expected Behavior
-
-- Be respectful and inclusive
-- Welcome newcomers
-- Accept constructive criticism gracefully
-- Focus on what's best for the community
-- Show empathy towards others
-
-### Unacceptable Behavior
-
-- Harassment of any kind
-- Discriminatory language or actions
-- Personal attacks
-- Publishing others' private information
-- Other conduct which could reasonably be considered inappropriate
-
-## Questions?
-
-Feel free to:
-
-- Open an issue for questions
-- Start a discussion in GitHub Discussions
-- Reach out to maintainers
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the [AGPL-3.0](./LICENSE).
+By contributing, you agree that your contributions will be licensed under [LICENSE](LICENSE).
 
 Thank you for contributing to svelte-standard-site! 🎉
