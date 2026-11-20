@@ -1,0 +1,55 @@
+version: 2
+# Dependabot version-update config for pkgs.
+#
+# A 7-day cooldown lets newly published releases age so compromised
+# versions are usually yanked before we adopt them. Security updates
+# are never delayed. Auto-merge is intentionally disabled.
+
+updates:
+  - package-ecosystem: cargo
+    directories:
+      - "/"
+      - "/packages/nix-config-tools"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directories:
+      - "/"
+      - "/packages/*"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      production:
+        dependency-type: production
+        update-types: [minor, patch]
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+  - package-ecosystem: pip
+    directory: "/packages/llm-analyser"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
