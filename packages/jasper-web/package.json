@@ -46,7 +46,7 @@
     "@zip.js/zip.js": "^2.7.57"
   },
   "devDependencies": {
-    "@sveltejs/adapter-vercel": "^6.3.1",
+    "@sveltejs/adapter-vercel": "^6.3.5",
     "@sveltejs/kit": "^2.50.2",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/vite": "^4.1.18",
