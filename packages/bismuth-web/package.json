@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@sveltejs/adapter-vercel": "6.3.3",
-    "@sveltejs/kit": "2.57.0",
+    "@sveltejs/kit": "3.1.1",
     "@sveltejs/vite-plugin-svelte": "7.0.0",
     "@tailwindcss/vite": "4.2.2",
     "prettier": "3.8.3",
