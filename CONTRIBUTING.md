@@ -8,14 +8,12 @@ The workflow in this file applies to the whole monorepo. Each package in `packag
 
 Issues live in this repository. Current queue, friendliest first:
 
-1. **[#97 — "Maximum publish rate" no longer an option](https://github.com/ewanc26/pkgs/issues/97)** *(docs, good first issue)* — the README/About page still references a web-UI option that was renamed or removed. Confirm which it is, then either restore the setting in the web options or fix the docs in both places.
-2. **[#98 — duplicate records on Sync re-attempts](https://github.com/ewanc26/pkgs/issues/98)** *(bug, core logic)* — stopping a run mid-import and restarting creates duplicates; the second run's sync check appears to skip far fewer records than were actually posted. Likely the existing-records snapshot (CAR export cache) is stale or undercounted after an interruption. A reproduction exists in the issue, and the sync-check log excerpt is the starting point.
-3. **[#93 — Last.fm import fails](https://github.com/ewanc26/pkgs/issues/93)** *(bug)* — needs a reproduction with logs before any fix is possible.
-4. **[#88 — cross-post imported scrobbles to rocksky lexicons](https://github.com/ewanc26/pkgs/issues/88)** *(feature)* — mapping `fm.teal.feed.pl
-ay` records onto rocksky's lexicons during import.
-5. **[#72 — Deezer listening-history import](https://github.com/ewanc26/pkgs/issues/72)** *(research, good first issue)* — investigate what Deezer export offers and write up findings in the issue before any code.
-6. **[#96 — hosted service for high-volume operations](https://github.com/ewanc26/pkgs/issues/96)** *(design discussion)* — comments welcome; also see [#64](https://github.com/ewanc26/pkgs/issues/64) for the sustainable-hosting angle.
-7. **[#65 — AT Protocol Spaces support](https://github.com/ewanc26/pkgs/issues/65)** — explicitly waiting on upstream; don't start this one yet.
+1. **[#98 — duplicate records on Sync re-attempts](https://github.com/ewanc26/pkgs/issues/98)** *(bug, core logic)* — stopping a run mid-import and restarting creates duplicates; the second run's sync check appears to skip far fewer records than were actually posted. Likely the existing-records snapshot (CAR export cache) is stale or undercounted after an interruption. A reproduction exists in the issue, and the sync-check log excerpt is the starting point.
+2. **[#93 — Last.fm import fails](https://github.com/ewanc26/pkgs/issues/93)** *(bug)* — needs a reproduction with logs before any fix is possible.
+3. **[#88 — cross-post imported scrobbles to rocksky lexicons](https://github.com/ewanc26/pkgs/issues/88)** *(feature)* — mapping `fm.teal.feed.play` records onto rocksky's lexicons during import.
+4. **[#72 — Deezer listening-history import](https://github.com/ewanc26/pkgs/issues/72)** *(research, good first issue)* — investigate what Deezer export offers and write up findings in the issue before any code.
+5. **[#96 — hosted service for high-volume operations](https://github.com/ewanc26/pkgs/issues/96)** *(design discussion)* — comments welcome; also see [#64](https://github.com/ewanc26/pkgs/issues/64) for the sustainable-hosting angle.
+6. **[#65 — AT Protocol Spaces support](https://github.com/ewanc26/pkgs/issues/65)** — explicitly waiting on upstream; don't start this one yet.
 
 If an issue is a question or a design discussion, reply in the issue; if it's a bug or a small feature, comment that you'd like to take it and reference the issue number in your PR so work doesn't get duplicated.
 
