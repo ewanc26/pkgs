@@ -14,7 +14,7 @@ import { Client } from '@atproto/lex'
 // The client_id must be http://localhost with no path (query params are fine).
 //
 // In production, load() fetches the metadata from the https:// URL.
-const SCOPE = 'atproto repo:fm.teal.feed.play repo:fm.teal.alpha.feed.play repo:click.croft.toolkit.use';
+const SCOPE = 'atproto repo:fm.teal.feed.play repo:fm.teal.alpha.feed.play repo:click.croft.toolkit.use repo:app.rocksky.scrobble';
 
 const CLIENT_ID = import.meta.env.DEV
   ? `http://localhost?${new URLSearchParams([

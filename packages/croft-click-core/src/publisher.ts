@@ -38,6 +38,17 @@ export interface PublisherCallbacks {
   isCancelled: () => boolean;
 }
 
+/** Which collection plays are written to, and how each play becomes a record there. */
+export interface PublishTarget {
+  collection: string;
+  toValue: (record: PlayRecord) => unknown;
+}
+
+export const TEAL_PUBLISH_TARGET: PublishTarget = {
+  collection: RECORD_TYPE,
+  toValue: (record) => record,
+};
+
 function cancellableSleep(ms: number, isCancelled: () => boolean): Promise<void> {
   return new Promise((resolve) => {
     const end = Date.now() + ms;
@@ -77,7 +88,8 @@ export async function publishRecords(
   callbacks: PublisherCallbacks,
   context = 'publish',
   dangerZone = false,
-  allowUnresolvedApple = false
+  allowUnresolvedApple = false,
+  target: PublishTarget = TEAL_PUBLISH_TARGET
 ): Promise<{ successCount: number; errorCount: number; cancelled: boolean }> {
   const { onProgress, onLog, isCancelled } = callbacks;
 
@@ -194,9 +206,9 @@ export async function publishRecords(
 
       const writes = batch.map((record) => ({
         $type: 'com.atproto.repo.applyWrites#create',
-        collection: RECORD_TYPE,
+        collection: target.collection,
         rkey: generateTIDFromISO(record.playedTime, context),
-        value: sanitizePlayRecordMusicBrainzIds(record, { allowUnresolvedApple }),
+        value: target.toValue(sanitizePlayRecordMusicBrainzIds(record, { allowUnresolvedApple })),
       }));
 
       // Gate the batch against the tightest reported bucket using the observed

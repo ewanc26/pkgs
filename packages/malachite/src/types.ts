@@ -85,6 +85,8 @@ export interface CommandLineArgs {
   // Deduplicate: same-artist+track window in seconds. Same listen if within
   // this many seconds of an existing record (default 60).
   'dedup-window'?: number;
+  /** Also write plays as rocksky scrobbles (import, polish), or dedupe them (deduplicate). */
+  rocksky?: boolean;
   'clear-cache'?: boolean;
   'clear-all-caches'?: boolean;
   'clear-credentials'?: boolean;

@@ -30,8 +30,9 @@ import { prompt, confirm, menu, promptWithValidation, validateFilePath, isNonInt
 import { sortRecords } from '../utils/helpers.js';
 import config, { VERSION, RECORD_TYPE, LEGACY_RECORD_TYPE } from '../config.js';
 import { DEFAULT_DEDUP_WINDOW_MS } from '@ewanc26/croft-click-core';
-import { fetchExistingRecords, filterNewRecords, displaySyncStats, deduplicateInputRecords, analyzeDuplicates, displayDedupPlan, removeDuplicateRecords } from './sync.js';
+import { fetchExistingRecords, fetchAllRecords, filterNewRecords, displaySyncStats, deduplicateInputRecords, analyzeDuplicates, displayDedupPlan, removeDuplicateRecords } from './sync.js';
 import { analyzeLegacyRecords, displayPolishPlan, migrateLegacyRecords } from './polish.js';
+import { ensureRockskyAccess, crossPostToRocksky, analyzeRockskyDuplicates } from './rocksky.js';
 import { Logger, LogLevel, setGlobalLogger, log } from '../utils/logger.js';
 import { registerKillswitch } from '../utils/killswitch.js';
 import { clearCache, clearAllCaches } from '../utils/teal-cache.js';
@@ -127,6 +128,9 @@ ${'\x1b[1m'}IMPORT OPTIONS:${'\x1b[0m'}
   --aggressive                   ${'\x1b[2m'}Deprecated, no effect — rate limiting is automatic${'\x1b[0m'}
   --danger-zone                  ${'\x1b[31m'}Disable quota headroom; may rate-limit the entire PDS${'\x1b[0m'}
   --fresh                        Start fresh (ignore cache & previous import state)
+  --rocksky                      Also write plays as Rocksky scrobbles (app.rocksky.scrobble).
+                                 With -m polish, cross-posts teal plays Rocksky is missing;
+                                 with -m deduplicate, also removes duplicate Rocksky scrobbles
   --clear-cache                  Clear cached records for current user
   --clear-all-caches             Clear all cached records
   --clear-credentials            Clear saved app-password credentials
@@ -224,6 +228,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
     'danger-zone': { type: 'boolean', default: false },
     fresh: { type: 'boolean', default: false },
     'dedup-window': { type: 'string' },
+    rocksky: { type: 'boolean', default: false },
     'clear-cache': { type: 'boolean', default: false },
     'clear-all-caches': { type: 'boolean', default: false },
     'clear-credentials': { type: 'boolean', default: false },
@@ -281,6 +286,7 @@ export function parseCommandLineArgs(): CommandLineArgs {
       dev: values.dev,
        'non-interactive': values['non-interactive'],
        'dedup-window': values['dedup-window'] ? Number(values['dedup-window']) : undefined,
+       rocksky: values.rocksky,
      };
 
     if (values.mode) {
@@ -633,7 +639,15 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
     const reverse = await confirm('Process newest records first?', false);
     if (reverse) args.reverse = true;
   }
-  
+
+  const rocksky = await confirm(
+    args.mode === 'deduplicate'
+      ? 'Also remove duplicate Rocksky scrobbles?'
+      : 'Also cross-post to Rocksky (app.rocksky.scrobble)?',
+    false
+  );
+  if (rocksky) args.rocksky = true;
+
   args.yes = true; // Auto-confirm in interactive mode since user already confirmed via prompts
   
   return args;
@@ -834,6 +848,7 @@ export async function runCLI(): Promise<void> {
         }
         client = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER);
       }
+      if (args.rocksky) await ensureRockskyAccess(client, dryRun);
       log.section('Remove Duplicate Records');
       const windowLabel = args['dedup-window']
         ? `${args['dedup-window']}s (custom)`
@@ -843,12 +858,21 @@ export async function runCLI(): Promise<void> {
 
       // 1. Build a read-only plan first — never touch the live repo until the
       //    user has reviewed the preview (mirrors `polish`).
-      const plan = await analyzeDuplicates(client, cfg, {
-        ...(args['dedup-window'] ? { windowMs: args['dedup-window'] * 1000 } : {}),
-      });
+      const windowOpts = args['dedup-window'] ? { windowMs: args['dedup-window'] * 1000 } : {};
+      const plan = await analyzeDuplicates(client, cfg, windowOpts);
       displayDedupPlan(plan);
 
-      if (plan.totalDuplicates === 0) {
+      // Rocksky scrobbles get their own plan: a teal play and its rocksky
+      // cross-post are the same listen in two collections, not duplicates.
+      let rockskyPlan: Awaited<ReturnType<typeof analyzeRockskyDuplicates>> | null = null;
+      if (args.rocksky) {
+        log.section('Rocksky Duplicates');
+        rockskyPlan = await analyzeRockskyDuplicates(client, windowOpts);
+        displayDedupPlan(rockskyPlan);
+      }
+      const rockskyDuplicates = rockskyPlan?.totalDuplicates ?? 0;
+
+      if (plan.totalDuplicates === 0 && rockskyDuplicates === 0) {
         log.success('No duplicates found — your records are clean.');
         return;
       }
@@ -862,6 +886,9 @@ export async function runCLI(): Promise<void> {
       // 2. Confirm before any deletion.
       if (!args.yes) {
         log.warn(`This will permanently delete ${plan.totalDuplicates.toLocaleString()} duplicate record(s) from Teal.`);
+        if (rockskyDuplicates > 0) {
+          log.warn(`It will also delete ${rockskyDuplicates.toLocaleString()} duplicate Rocksky scrobble(s).`);
+        }
         log.info(`The richer copy of each group (MusicBrainz IDs, ISRC, duration) is kept; the rest are removed.`);
         log.blank();
         if (isNonInteractive()) {
@@ -875,8 +902,14 @@ export async function runCLI(): Promise<void> {
       }
 
       // 3. Execute the reviewed plan.
-      const removed = await removeDuplicateRecords(client, plan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${plan.totalDuplicates.toLocaleString()}…`));
-      log.success(`Removed ${removed.toLocaleString()} duplicate records from Teal.`);
+      if (plan.totalDuplicates > 0) {
+        const removed = await removeDuplicateRecords(client, plan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${plan.totalDuplicates.toLocaleString()}…`));
+        log.success(`Removed ${removed.toLocaleString()} duplicate records from Teal.`);
+      }
+      if (rockskyPlan && rockskyDuplicates > 0) {
+        const removed = await removeDuplicateRecords(client, rockskyPlan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${rockskyDuplicates.toLocaleString()}…`));
+        log.success(`Removed ${removed.toLocaleString()} duplicate Rocksky scrobbles.`);
+      }
       return;
     }
 
@@ -905,6 +938,20 @@ export async function runCLI(): Promise<void> {
         }
         client = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER);
       }
+      if (args.rocksky) await ensureRockskyAccess(client, dryRun);
+
+      // With --rocksky, polish also cross-posts teal plays rocksky is missing.
+      // It runs last so that it reads the migrated collection.
+      const polishClient = client;
+      const crossPostTealPlays = async () => {
+        if (!args.rocksky) return;
+        const teal = await fetchAllRecords(polishClient, cfg);
+        await crossPostToRocksky(polishClient, teal.map((rec) => rec.value), {
+          dryRun,
+          yes: args.yes ?? false,
+          dangerZone: args['danger-zone'] ?? false,
+        });
+      };
 
       log.section('Polish Legacy Scrobbles');
       log.info(`Migrates legacy ${LEGACY_RECORD_TYPE} records into ${RECORD_TYPE}.`);
@@ -915,12 +962,14 @@ export async function runCLI(): Promise<void> {
       displayPolishPlan(plan, dryRun);
 
       if (plan.legacyTotal === 0) {
-        log.success('No legacy records to migrate — nothing to do!');
+        log.success(args.rocksky ? 'No legacy records to migrate.' : 'No legacy records to migrate — nothing to do!');
+        await crossPostTealPlays();
         return;
       }
 
       if (dryRun) {
         log.info('Remove --dry-run to run the migration for real.');
+        await crossPostTealPlays();
         return;
       }
 
@@ -959,6 +1008,7 @@ export async function runCLI(): Promise<void> {
       } catch (err) {
         log.warn(`Failed to log toolkit usage: ${(err as Error).message}`);
       }
+      await crossPostTealPlays();
       return;
     }
 
@@ -990,6 +1040,7 @@ export async function runCLI(): Promise<void> {
       client = await login(args.handle, args.password, args.pds ?? cfg.SLINGSHOT_RESOLVER);
     }
     log.debug('Authentication successful');
+    if (args.rocksky) await ensureRockskyAccess(client, dryRun);
 
     log.section('Loading Records');
     let records: PlayRecord[];
@@ -1054,6 +1105,11 @@ export async function runCLI(): Promise<void> {
     }
     log.blank();
 
+    // Input plays teal already has. They aren't imported again, but with
+    // --rocksky they may still be missing from rocksky.
+    let alreadyInTeal: PlayRecord[] = [];
+    const crossPostOptions = { dryRun, yes: args.yes ?? false, dangerZone: args['danger-zone'] ?? false };
+
     if (client) {
       const originalRecords = [...records];
 
@@ -1071,9 +1127,12 @@ export async function runCLI(): Promise<void> {
       }
 
       records = filterNewRecords(records, existingMap);
+      const newToTeal = new Set(records);
+      alreadyInTeal = originalRecords.filter((record) => !newToTeal.has(record));
 
       if (records.length === 0 && carSyncOk) {
         log.success('All records already exist in Teal. Nothing to import!');
+        if (args.rocksky) await crossPostToRocksky(client, alreadyInTeal, crossPostOptions);
         process.exit(0);
       }
 
@@ -1299,6 +1358,11 @@ export async function runCLI(): Promise<void> {
       } catch (err) {
         log.warn(`Failed to log toolkit usage: ${(err as Error).message}`);
       }
+    }
+
+    // Teal first, then rocksky, so a stop during the teal import stops both.
+    if (args.rocksky && client && !result.cancelled) {
+      await crossPostToRocksky(client, [...records, ...alreadyInTeal], crossPostOptions);
     }
   } catch (error) {
     const err = error as Error;
