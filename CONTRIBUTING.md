@@ -11,7 +11,8 @@ Issues live in this repository. Current queue, friendliest first:
 1. **[#97 — "Maximum publish rate" no longer an option](https://github.com/ewanc26/pkgs/issues/97)** *(docs, good first issue)* — the README/About page still references a web-UI option that was renamed or removed. Confirm which it is, then either restore the setting in the web options or fix the docs in both places.
 2. **[#98 — duplicate records on Sync re-attempts](https://github.com/ewanc26/pkgs/issues/98)** *(bug, core logic)* — stopping a run mid-import and restarting creates duplicates; the second run's sync check appears to skip far fewer records than were actually posted. Likely the existing-records snapshot (CAR export cache) is stale or undercounted after an interruption. A reproduction exists in the issue, and the sync-check log excerpt is the starting point.
 3. **[#93 — Last.fm import fails](https://github.com/ewanc26/pkgs/issues/93)** *(bug)* — needs a reproduction with logs before any fix is possible.
-4. **[#88 — cross-post imported scrobbles to rocksky lexicons](https://github.com/ewanc26/pkgs/issues/88)** *(feature)* — mapping `fm.teal.feed.play` records onto rocksky's lexicons during import.
+4. **[#88 — cross-post imported scrobbles to rocksky lexicons](https://github.com/ewanc26/pkgs/issues/88)** *(feature)* — mapping `fm.teal.feed.pl
+ay` records onto rocksky's lexicons during import.
 5. **[#72 — Deezer listening-history import](https://github.com/ewanc26/pkgs/issues/72)** *(research, good first issue)* — investigate what Deezer export offers and write up findings in the issue before any code.
 6. **[#96 — hosted service for high-volume operations](https://github.com/ewanc26/pkgs/issues/96)** *(design discussion)* — comments welcome; also see [#64](https://github.com/ewanc26/pkgs/issues/64) for the sustainable-hosting angle.
 7. **[#65 — AT Protocol Spaces support](https://github.com/ewanc26/pkgs/issues/65)** — explicitly waiting on upstream; don't start this one yet.
@@ -23,7 +24,7 @@ If an issue is a question or a design discussion, reply in the issue; if it's a 
 - **TypeScript/Svelte packages** in `packages/*`, managed with [pnpm workspaces](https://pnpm.io/workspaces).
 - The browser-based [croft.click](https://croft.click) tools (Malachite, Opal, Jasper, Bismuth, Tourmaline) each pair an importer/CLI package with a `*-web` SvelteKit frontend.
 - **Rust** tools (`nix-config-tools`) via Cargo + Nix flake. **Python** utilities (`llm-analyser`) alongside.
-- Documentation lives at [docs.ewancroft.uk](https://docs.ewancroft.uk/projects/pkgs).
+- Documentation for all the projects lives in the [`docsite` repository](https://github.com/ewanc26/docsite): Markdown sources in `src/content/documentation/`, rendered at [docs.ewancroft.uk](https://docs.ewancroft.uk/projects/pkgs). Docs fixes and additions are PRs to that repo — it has its own [CONTRIBUTING.md](https://github.com/ewanc26/docsite/blob/main/CONTRIBUTING.md).
 - Web apps deploy to Vercel (some on Cloudflare) and sign users in with AT Protocol OAuth.
 
 ## Development setup
@@ -45,7 +46,8 @@ pnpm test         # builds then runs each package's tests
 pnpm check        # per-package checks
 ```
 
-To work on one package, run its scripts from its directory, or scope from the root with `pnpm --filter <package-name> <script>`.
+To work on one package, run its scripts from its directory, or scope from the root with `pnpm --fil
+ter <package-name> <script>`.
 
 ### A safe test account, please
 
@@ -73,7 +75,8 @@ A lot of this repo's history involves AI pair-programming, so AI-assisted PRs ar
 Please include:
 
 - **Version info** — for the croft.click tools, both the web version and CLI version (e.g. `web v0.11.0, cli v0.21.0`).
-- **What you did** — exact steps, including any interruption (like pressing Stop mid-sync) and retry.
+- **What you did** — exact steps, including any interruptio
+n (like pressing Stop mid-sync) and retry.
 - **What happened vs. what you expected.**
 - **Logs** — for import tools, especially the `── Sync Check ──` section.
 - **Where to look** — your handle plus the collection (e.g. `fm.teal.feed.play`), so records can be inspected with `pdsls`.
@@ -93,6 +96,6 @@ TypeScript/Svelte packages are **AGPL-3.0-only** (Rust tools are MIT). By submit
 
 ## Other ways to help
 
-Code isn't the only contribution. Triage a fresh issue (try to reproduce it, note what you find), improve the docs at [docs.ewancroft.uk](https://docs.ewancroft.uk/projects/pkgs), answer questions from new users, star the repo, or point someone at [croft.click](https://croft.click). If the tools are useful to you, [Ko-fi](https://ko-fi.com/ewancroft), [Liberapay](https://liberapay.com/ewancroft/), or [GitHub Sponsors](https://github.com/sponsors/ewanc26) keep the lights on.
+Code isn't the only contribution. Triage a fresh issue (try to reproduce it, note what you find), improve the docs in [ewanc26/docsite](https://github.com/ewanc26/docsite) (see its [CONTRIBUTING.md](https://github.com/ewanc26/docsite/blob/main/CONTRIBUTING.md)), answer questions from new users, star the repo, or point someone at [croft.click](https://croft.click). If the tools are useful to you, [Ko-fi](https://ko-fi.com/ewancroft), [Liberapay](https://liberapay.com/ewancroft/), or [GitHub Sponsors](https://github.com/sponsors/ewanc26) keep the lights on.
 
 Thank you for helping! 💚
