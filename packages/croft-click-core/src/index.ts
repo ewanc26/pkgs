@@ -38,6 +38,7 @@ export * from './publisher.js';
 export * from './retry-helper.js';
 export * from './rate-limit-headers.js';
 export * from './rate-limiter.js';
+export * from './rocksky.js';
 export { parseSpotifyJsonContent, convertSpotifyToPlayRecord } from './spotify.js';
 export * from './sync.js';
 export * from './tid.js';

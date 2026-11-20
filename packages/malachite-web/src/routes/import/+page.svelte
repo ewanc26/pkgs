@@ -52,6 +52,7 @@
 	let fresh = $state(false);
 	let enrichFromMusicBrainz = $state(false);
 	let dangerZone = $state(false);
+	let rocksky = $state(false);
 
 	let isRunning = $state(false);
 	// Plain variable (not $state) — only ever read inside the isCancelled() closure.
@@ -141,7 +142,7 @@
 				appleFiles,
 				youtubeFiles,
 				listenbrainzFiles,
-				{ dryRun, reverseOrder, fresh, enrichFromMusicBrainz, dangerZone },
+				{ dryRun, reverseOrder, fresh, enrichFromMusicBrainz, dangerZone, rocksky },
 				{
 					onLog: addLog,
 					onProgress: (p) => {
@@ -252,6 +253,7 @@
 		reverseOrder = false;
 		fresh = false;
 		enrichFromMusicBrainz = false;
+		rocksky = false;
 		logs = [];
 		progress = null;
 		result = null;
@@ -354,6 +356,7 @@
 						bind:fresh
 					bind:enrichFromMusicBrainz
 					bind:dangerZone
+					bind:rocksky
 						onstartimport={handleStartImport}
 						onback={handleBack}
 					/>

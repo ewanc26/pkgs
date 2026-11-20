@@ -54,6 +54,37 @@ copy of each duplicate cluster (MusicBrainz IDs, ISRC, duration preferred) and
 marks the rest for deletion, then prompts for confirmation before deleting
 anything with `com.atproto.repo.deleteRecord`.
 
+## Cross-posting to Rocksky
+
+[Rocksky](https://rocksky.app) reads its own `app.rocksky.scrobble` records
+rather than `fm.teal.feed.play`. With `--rocksky` (or **Cross-post to Rocksky**
+in the web app), Malachite also writes each play as a Rocksky scrobble, so the
+same history shows up in both.
+
+```sh
+pnpm start -i lastfm.csv --rocksky
+pnpm start -m polish --rocksky        # cross-post plays already in teal
+pnpm start -m deduplicate --rocksky   # also dedupe Rocksky scrobbles
+```
+
+Before writing, Malachite reads your existing Rocksky scrobbles via CAR export
+and skips any play Rocksky already has, using the same ±60 second matching as
+the teal sync. It also skips plays that Rocksky itself pushed to teal, and plays
+with no artist, since Rocksky needs one. Rocksky's lexicon requires an album and
+a duration too. When an export has neither, Malachite writes an empty album and
+a duration of 0, which is what Rocksky's own importer does.
+
+Each scrobble costs the same PDS write quota as a teal play, so a cross-posted
+import takes roughly twice as long.
+
+If you have Rocksky's Teal.fm mirror turned on, leave `--rocksky` off. The
+mirror already copies new teal plays into Rocksky, and running both can leave
+duplicates.
+
+OAuth sign-ins from before this option existed don't include permission to
+write Rocksky records. Run `malachite --oauth-login` again, or sign out and back
+in on the web, to grant it.
+
 ## Related projects
 
 Part of the [croft.click](https://croft.click) toolkit — free, browser-based tools for moving your data onto the AT Protocol:

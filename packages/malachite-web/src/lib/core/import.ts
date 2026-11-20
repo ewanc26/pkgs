@@ -32,6 +32,14 @@ import {
 } from '@ewanc26/croft-click-core';
 import { publishRecords, type PublishProgress } from '@ewanc26/croft-click-core';
 import { analyzeLegacyRecords, migrateLegacyRecords } from '@ewanc26/croft-click-core';
+import {
+  canWriteRocksky,
+  fetchRockskyScrobbles,
+  planRockskyCrossPost,
+  ROCKSKY_PUBLISH_TARGET,
+  buildRockskyDedupPlan,
+  type DedupPlan,
+} from '@ewanc26/croft-click-core';
 import { com } from '@bsky/sdk/lexicons'
 
 export type { PublishProgress };
@@ -56,6 +64,8 @@ export interface ImportOptions {
    */
   enrichFromMusicBrainz?: boolean;
   dangerZone?: boolean;
+  /** Also write plays as rocksky scrobbles (import, polish), or dedupe them (deduplicate). */
+  rocksky?: boolean;
 }
 
 export interface ImportResult {
@@ -145,6 +155,56 @@ async function enrichRecords(
   return enrichedRecords;
 }
 
+/**
+ * Write a rocksky scrobble for each play rocksky doesn't have yet. When the
+ * existing scrobbles can't be read this writes nothing, because writing without
+ * checking would duplicate every play rocksky already has.
+ */
+async function crossPostToRocksky(
+  client: Client,
+  plays: PlayRecord[],
+  dryRun: boolean,
+  dangerZone: boolean,
+  { onLog, isCancelled }: ImportCallbacks,
+  signal: AbortSignal
+): Promise<ImportResult> {
+  onLog('section', '── Rocksky ──────────────────────────────────────────');
+  onLog('info', 'Fetching existing Rocksky scrobbles via CAR export…');
+  let existing: Awaited<ReturnType<typeof fetchRockskyScrobbles>>;
+  try {
+    existing = await fetchRockskyScrobbles(client, signal);
+  } catch (err) {
+    // Stopped by the user: report a stop, so the teal result still shows.
+    if (signal.aborted) return { success: 0, errors: 0, cancelled: true };
+    onLog('warn', `Could not read Rocksky scrobbles: ${err instanceof Error ? err.message : String(err)}`);
+    onLog('warn', 'Skipping the Rocksky cross-post: writing without checking would duplicate plays Rocksky already has.');
+    return { success: 0, errors: 0, cancelled: false };
+  }
+
+  const plan = planRockskyCrossPost(plays, existing);
+  onLog('info', `${plan.alreadyInRocksky.toLocaleString()} play(s) already in Rocksky`);
+  if (plan.duplicates > 0) onLog('info', `${plan.duplicates.toLocaleString()} near-duplicate play(s) folded together`);
+  if (plan.incomplete > 0) onLog('warn', `${plan.incomplete.toLocaleString()} play(s) skipped: no artist, title or valid time`);
+  if (plan.toPublish.length === 0) {
+    onLog('success', 'Rocksky already has every play.');
+    return { success: 0, errors: 0, cancelled: false };
+  }
+
+  onLog('info', `${plan.toPublish.length.toLocaleString()} play(s) to cross-post`);
+  const res = await publishRecords(client, plan.toPublish, dryRun, {
+    // The page saves onProgress counts as the teal import's resume offset, so
+    // rocksky progress must not reach it. Per-batch log lines still show it.
+    onProgress: () => {},
+    onLog: (level, msg) => onLog(level as LogEntry['level'], msg),
+    isCancelled,
+  }, 'rocksky', dangerZone, false, ROCKSKY_PUBLISH_TARGET);
+  if (!dryRun && !res.cancelled) {
+    onLog('success', `Cross-posted ${res.successCount.toLocaleString()} scrobble(s) to Rocksky`);
+    if (res.errorCount > 0) onLog('warn', `${res.errorCount.toLocaleString()} Rocksky scrobble(s) failed. Run Polish with Cross-post to Rocksky on to retry them.`);
+  }
+  return { success: res.successCount, errors: res.errorCount, cancelled: res.cancelled };
+}
+
 /** Rough human-readable duration for a one-request-per-second job. */
 function formatDuration(requests: number): string {
   const seconds = Math.ceil(requests * 1.1);
@@ -161,17 +221,31 @@ export async function runImport(
   appleFiles: File[],
   youtubeFiles: File[],
   listenbrainzFiles: File[],
-  { dryRun, reverseOrder, fresh, enrichFromMusicBrainz, dangerZone }: ImportOptions,
-  { onLog, onProgress, isCancelled }: ImportCallbacks,
+  { dryRun, reverseOrder, fresh, enrichFromMusicBrainz, dangerZone, rocksky }: ImportOptions,
+  callbacks: ImportCallbacks,
   /** Number of records to skip when resuming a previous import. */
   startIndex = 0,
 ): Promise<ImportResult> {
+  const { onLog, onProgress, isCancelled } = callbacks;
   // Single AbortController for every network call in this run.
   const ac = new AbortController();
   const poll = setInterval(() => { if (isCancelled()) ac.abort(); }, 50);
   const sig = ac.signal;
 
   const run = async (): Promise<ImportResult> => {
+    if (rocksky && !(await canWriteRocksky(client))) {
+      const message = "This sign-in doesn't allow writing Rocksky scrobbles yet. Sign out and sign in again to grant it.";
+      if (!dryRun) throw new Error(message);
+      onLog('warn', message);
+    }
+
+    // Rocksky goes after teal in every mode, so stopping during the teal step
+    // stops both. Returns whether the rocksky step was stopped.
+    const crossPost = async (plays: PlayRecord[]): Promise<boolean> =>
+      rocksky
+        ? (await crossPostToRocksky(client, plays, dryRun, dangerZone ?? false, callbacks, sig)).cancelled
+        : false;
+
     // ── Deduplicate mode ─────────────────────────────────────────────────────
     if (mode === 'deduplicate') {
       onLog('section', '── Deduplication ──────────────────────────────────');
@@ -184,42 +258,66 @@ export async function runImport(
       onLog('success', `Fetched ${all.length.toLocaleString()} records`);
 
       const plan = buildDedupPlan(all);
-      const totalDups = plan.totalDuplicates;
+
+      // Rocksky scrobbles get their own plan: a teal play and its rocksky
+      // cross-post are one listen in two collections, not duplicates.
+      let rockskyPlan: DedupPlan | null = null;
+      if (rocksky) {
+        onLog('info', 'Fetching Rocksky scrobbles…');
+        const scrobbles = await fetchRockskyScrobbles(client, sig);
+        onLog('success', `Fetched ${scrobbles.length.toLocaleString()} Rocksky scrobble(s)`);
+        rockskyPlan = buildRockskyDedupPlan(scrobbles);
+      }
+      const plans = rockskyPlan ? [plan, rockskyPlan] : [plan];
+      const totalDups = plan.totalDuplicates + (rockskyPlan?.totalDuplicates ?? 0);
 
       if (totalDups === 0) {
         onLog('success', 'No duplicates found — your records are clean.');
         return { success: 0, errors: 0, cancelled: false };
       }
-      onLog('warn', `Found ${totalDups.toLocaleString()} duplicate(s) across ${plan.groups.length} groups`);
+      onLog('warn', `Found ${plan.totalDuplicates.toLocaleString()} duplicate(s) across ${plan.groups.length} groups`);
+      if (rockskyPlan) {
+        onLog('warn', `Found ${rockskyPlan.totalDuplicates.toLocaleString()} duplicate Rocksky scrobble(s) across ${rockskyPlan.groups.length} groups`);
+      }
 
       if (dryRun) {
         onLog('info', `[DRY RUN] Would remove ${totalDups.toLocaleString()} duplicate record(s).`);
-        for (const group of plan.groups) {
+        for (const group of plans.flatMap((p) => p.groups)) {
           onLog('info', `  • keep ${group.keep.value.trackName} — ${group.keep.value.artists?.[0]?.artistName}`);
         }
         return { success: totalDups, errors: 0, cancelled: false };
       }
 
       onLog('info', 'Removing duplicates…');
-      const removed = await removeDuplicateRecords(
-        client,
-        plan,
-        (n) => onLog('progress', `  Removed ${n}/${totalDups}…`),
-        sig,
-      );
+      let removed = 0;
+      for (const p of plans) {
+        if (p.totalDuplicates === 0) continue;
+        const done = removed;
+        removed += await removeDuplicateRecords(
+          client,
+          p,
+          (n) => onLog('progress', `  Removed ${done + n}/${totalDups}…`),
+          sig,
+        );
+      }
       onLog('success', `Removed ${removed.toLocaleString()} duplicate(s)`);
       return { success: removed, errors: 0, cancelled: false };
     }
 
     // ── Polish mode ───────────────────────────────────────────────────────────
     if (mode === 'polish') {
+      // With the rocksky option, polish also cross-posts teal plays rocksky is
+      // missing. It runs last so that it reads the migrated collection.
+      const crossPostTealPlays = async (): Promise<boolean> =>
+        rocksky ? crossPost((await fetchAllRecordsForDedup(client, undefined, sig)).map((rec) => rec.value)) : false;
+
       onLog('section', '── Polish ───────────────────────────────────────────');
       onLog('info', 'Fetching legacy fm.teal.alpha.feed.play records…');
       const plan = await analyzeLegacyRecords(client, sig);
 
       if (plan.legacyTotal === 0) {
         onLog('success', 'No legacy scrobbles found — nothing to migrate.');
-        return { success: 0, errors: 0, cancelled: false };
+        return { success: 0, errors: 0, cancelled: await crossPostTealPlays() };
       }
 
       onLog('success', `Found ${plan.legacyTotal.toLocaleString()} legacy scrobble(s)`);
@@ -228,7 +326,7 @@ export async function runImport(
 
       if (dryRun) {
         onLog('success', `[DRY RUN] Would backfill ${plan.toBackfill.length.toLocaleString()} record(s) and remove ${plan.legacyTotal.toLocaleString()} legacy copy/copies.`);
-        return { success: plan.legacyTotal, errors: 0, cancelled: false };
+        return { success: plan.legacyTotal, errors: 0, cancelled: await crossPostTealPlays() };
       }
 
       onLog('warn', 'Migrating — legacy copies are only removed after a successful backfill.');
@@ -262,7 +360,7 @@ export async function runImport(
         onLog('warn', `Failed to log toolkit usage: ${(err as Error).message}`);
       }
 
-      return { success: polishRes.backfilled + polishRes.deleted, errors: polishRes.failed, cancelled: false };
+      return { success: polishRes.backfilled + polishRes.deleted, errors: polishRes.failed, cancelled: await crossPostTealPlays() };
     }
 
     // ── Load records ─────────────────────────────────────────────────────────
@@ -379,7 +477,12 @@ export async function runImport(
       }
     }
     const before = records.length;
+    const inputRecords = records;
     records = filterNewRecords(records, existing);
+    // Input plays teal already has. They aren't imported again, but with the
+    // rocksky option they may still be missing from rocksky.
+    const newToTeal = new Set(records);
+    const alreadyInTeal = inputRecords.filter((record) => !newToTeal.has(record));
     if (carSyncOk) {
       const skipped = before - records.length;
       if (skipped > 0) onLog('info', `Skipped ${skipped.toLocaleString()} already-imported record(s)`);
@@ -390,7 +493,7 @@ export async function runImport(
 
     if (records.length === 0) {
       onLog('success', '✓ Nothing to import — all records already exist in Teal!');
-      return { success: 0, errors: 0, cancelled: false };
+      return { success: 0, errors: 0, cancelled: await crossPost(alreadyInTeal) };
     }
 
     // Only genuinely new artist gaps reach MusicBrainz. This preserves the
@@ -409,12 +512,14 @@ export async function runImport(
     }
 
     if (mode !== 'combined') records = sortRecords(records, reverseOrder);
+    // Taken before the resume slice, so a resumed run still cross-posts every play.
+    const rockskyPlays = [...records, ...alreadyInTeal];
 
     // ── Resume support ──────────────────────────────────────────────────────
     if (startIndex > 0) {
       if (startIndex >= records.length) {
         onLog('success', `✓ All ${startIndex.toLocaleString()} records were already published in the previous session. Nothing more to do.`);
-        return { success: 0, errors: 0, cancelled: false };
+        return { success: 0, errors: 0, cancelled: await crossPost(rockskyPlays) };
       }
       onLog('info', `Resuming from record ${startIndex + 1} — skipping ${startIndex.toLocaleString()} already-published record(s)`);
       records = records.slice(startIndex);
@@ -423,12 +528,22 @@ export async function runImport(
     // ── Publish ──────────────────────────────────────────────────────────────
     onLog('section', '── Publishing ───────────────────────────────────────');
     onLog('warn', 'Do not close this tab while publishing.');
+    let lastProgress: PublishProgress | null = null;
     const res = await publishRecords(client, records, dryRun, {
-      onProgress,
+      onProgress: (p) => { lastProgress = p; onProgress(p); },
       onLog: (level, msg) => onLog(level as LogEntry['level'], msg),
       isCancelled,
     }, 'publish', dangerZone ?? false);
-    
+
+    // The page saves progress as the resume offset, and the last update it saw
+    // was the start of the final batch. The Rocksky step can run for hours, so
+    // mark teal as fully processed first: a reload during it then resumes past
+    // teal instead of re-sending that batch.
+    if (rocksky && !dryRun && !res.cancelled && lastProgress) {
+      const done = startIndex + records.length;
+      onProgress({ ...(lastProgress as PublishProgress), recordsProcessed: done, totalRecords: done, successCount: res.successCount, errorCount: res.errorCount });
+    }
+
     if (!dryRun && !res.cancelled && res.successCount > 0) {
       try {
         await client.call(com.atproto.repo.createRecord, {
@@ -449,7 +564,8 @@ export async function runImport(
       }
     }
 
-    return { success: res.successCount, errors: res.errorCount, cancelled: res.cancelled };
+    const stopped = res.cancelled || (await crossPost(rockskyPlays));
+    return { success: res.successCount, errors: res.errorCount, cancelled: stopped };
   };
 
   try {

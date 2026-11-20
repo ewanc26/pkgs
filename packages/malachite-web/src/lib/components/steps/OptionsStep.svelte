@@ -9,6 +9,7 @@
     fresh        = $bindable(false),
     enrichFromMusicBrainz = $bindable(false),
     dangerZone = $bindable(false),
+    rocksky = $bindable(false),
     onstartimport,
     onback,
   }: {
@@ -18,6 +19,7 @@
     fresh: boolean;
     enrichFromMusicBrainz: boolean;
     dangerZone: boolean;
+    rocksky: boolean;
     onstartimport: () => void;
     onback: () => void;
   } = $props();
@@ -47,6 +49,30 @@
         type="button"
         aria-label="Toggle dry run"
         aria-pressed={dryRun}
+      >
+        <span class="toggle-thumb"></span>
+      </button>
+    </div>
+
+    <div class="option-row">
+      <div class="option-info">
+        <span class="option-name">{mode === 'deduplicate' ? 'Include Rocksky scrobbles' : 'Cross-post to Rocksky'}</span>
+        <span class="option-desc">
+          {#if mode === 'deduplicate'}
+            Also remove duplicate <code>app.rocksky.scrobble</code> records
+          {:else}
+            {mode === 'polish' ? 'Also write a Rocksky scrobble for each teal play Rocksky is missing.' : 'Also write each play as a Rocksky scrobble, skipping plays Rocksky already has.'}
+            Leave this off if Rocksky's Teal.fm mirror is on, since it already copies new plays.
+          {/if}
+        </span>
+      </div>
+      <button
+        class="toggle"
+        class:on={rocksky}
+        onclick={() => (rocksky = !rocksky)}
+        type="button"
+        aria-label="Toggle Rocksky"
+        aria-pressed={rocksky}
       >
         <span class="toggle-thumb"></span>
       </button>
