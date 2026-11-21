@@ -24,6 +24,7 @@ import { parseListenBrainzFiles, convertListenBrainzToPlayRecord } from './liste
 import { mergePlayRecords, deduplicateInputRecords, sortRecords } from '@ewanc26/croft-click-core';
 import {
   fetchExistingRecords,
+  clearExistingRecordsCache,
   filterNewRecords,
   fetchAllRecordsForDedup,
   buildDedupPlan,
@@ -44,7 +45,7 @@ import { com } from '@bsky/sdk/lexicons'
 
 export type { PublishProgress };
 
-import { loadRecordsCache, saveRecordsCache } from './web-cache.js';
+import { loadRecordsCache, saveRecordsCache, clearRecordsCache } from './web-cache.js';
 
 /**
  * MusicBrainz rejects or throttles clients that don't identify themselves with
@@ -526,6 +527,14 @@ export async function runImport(
     }
 
     // ── Publish ──────────────────────────────────────────────────────────────
+    // The cached snapshot predates these writes. Drop it before the first one
+    // lands, so a stopped or interrupted run is re-checked against the real
+    // repo next time instead of re-posting everything it published (#98).
+    if (!dryRun) {
+      if (did) clearRecordsCache(did);
+      clearExistingRecordsCache(did);
+    }
+
     onLog('section', '── Publishing ───────────────────────────────────────');
     onLog('warn', 'Do not close this tab while publishing.');
     let lastProgress: PublishProgress | null = null;
