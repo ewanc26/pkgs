@@ -71,6 +71,18 @@ export function recordKey(r: PlayRecord): string {
 /** In-session memory cache — avoids re-fetching within the same process/page. */
 const sessionCache = new Map<string, Map<string, ExistingRecord>>();
 
+/**
+ * Forget the cached existing-records snapshot for `did` (or for every DID).
+ *
+ * The snapshot only describes the repo as it was when it was fetched. Call this
+ * before publishing: once writes start, a later sync in the same session would
+ * otherwise check against the stale snapshot and post the same plays again.
+ */
+export function clearExistingRecordsCache(did?: string): void {
+  if (did) sessionCache.delete(did);
+  else sessionCache.clear();
+}
+
 async function fetchPlayRecords(
   client: Client,
   did: string,

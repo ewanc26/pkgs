@@ -1297,6 +1297,11 @@ export async function runCLI(): Promise<void> {
       log.blank();
     }
 
+    // The cached snapshot predates these writes. Drop it before the first one
+    // lands, so an interrupted run is re-checked against the real repo next
+    // time instead of re-posting everything it published (#98).
+    if (!dryRun && client?.assertDid) clearCache(client.assertDid);
+
     log.section('Publishing Records');
     const result: PublishResult = await publishRecordsWithApplyWrites(
       client,
