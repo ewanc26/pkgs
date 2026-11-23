@@ -216,6 +216,42 @@ describe('Last.fm Record Conversion', () => {
     assert.match(playRecord.originUri ?? '', /last\.fm/);
   });
 
+  it('should normalize MusicBrainz URLs from CSV exporters to mbid: URIs', () => {
+    const csvRecord: LastFmCsvRecord = {
+      uts: '1623801600',
+      utc_time: '2021-06-15T20:00:00Z',
+      artist: 'Test Artist',
+      artist_mbid: 'https://musicbrainz.org/artist/89ad4ac3-39f7-470e-963a-56509c546377',
+      album: 'Test Album',
+      album_mbid: 'https://musicbrainz.org/release-group/d87e52c5-bb8d-4da8-b941-9f4928627dc8',
+      track: 'Test Track',
+      track_mbid: 'https://musicbrainz.org/recording/b3a5364c-8282-4a61-a5db-3dbead027def',
+    };
+
+    const playRecord = convertToPlayRecord(csvRecord, mockConfig);
+
+    assert.strictEqual(playRecord.artists?.[0].artistMbId, 'mbid:89ad4ac3-39f7-470e-963a-56509c546377');
+    assert.strictEqual(playRecord.releaseMbId, 'mbid:d87e52c5-bb8d-4da8-b941-9f4928627dc8');
+    assert.strictEqual(playRecord.recordingMbId, 'mbid:b3a5364c-8282-4a61-a5db-3dbead027def');
+  });
+
+  it('should omit malformed MusicBrainz IDs instead of publishing invalid URIs', () => {
+    const csvRecord: LastFmCsvRecord = {
+      uts: '1623801600',
+      utc_time: '2021-06-15T20:00:00Z',
+      artist: 'Test Artist',
+      album: 'Test Album',
+      album_mbid: 'not-a-musicbrainz-id',
+      track: 'Test Track',
+      track_mbid: 'also-not-a-musicbrainz-id',
+    };
+
+    const playRecord = convertToPlayRecord(csvRecord, mockConfig);
+
+    assert.ok(!('releaseMbId' in playRecord), 'malformed release MBID should be omitted');
+    assert.ok(!('recordingMbId' in playRecord), 'malformed recording MBID should be omitted');
+  });
+
   it('should handle records without optional MBIDs', () => {
     const csvRecord: LastFmCsvRecord = {
       uts: '1623801600',
