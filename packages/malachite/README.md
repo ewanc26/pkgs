@@ -11,22 +11,20 @@ Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/m
 ## Publication rate limiting
 
 Malachite automatically learns the PDS write quota from response headers and
-paces imports below that limit. If another service mirrors Teal records, or you
-otherwise need a stricter ceiling, the CLI accepts an optional hard
-records-per-second limit:
+paces imports below that limit with a 15% safety headroom buffer.
+
+For a PDS you control, the CLI also exposes Danger Zone mode. It disables that
+safety buffer and uses all observed quota:
 
 ```sh
-pnpm start -i lastfm.csv --max-records-per-second 4
+pnpm start -i lastfm.csv --danger-zone
 ```
 
-The ceiling applies to the initial probe as well as every later adaptive batch.
-It does **not** replace PDS safety: the effective throughput is always the slower
-of the configured ceiling and Malachite's PDS-derived safe rate. Fractional
-values are supported, so `--max-records-per-second 0.5` publishes at most one
-record every two seconds. Leave the option unset to use fully automatic pacing.
+Danger Zone may rate-limit every user on a shared PDS. The PDS still enforces
+its own limit. Leave the option unset to use fully automatic pacing.
 
-The web app exposes the same behaviour as **Maximum publish rate** under import
-options.
+The web app exposes the same choice under import options as
+**Danger Zone → Use all observed quota**.
 
 ## Deduplication & sync guarantees
 

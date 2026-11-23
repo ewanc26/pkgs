@@ -71,7 +71,6 @@ export interface CommandLineArgs {
   // Batch configuration
   'batch-size'?: string;
   'batch-delay'?: string;
-  'max-records-per-second'?: string;
   
    // Import options
   reverse?: boolean;
