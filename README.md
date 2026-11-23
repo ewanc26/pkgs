@@ -56,6 +56,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and the checks required 
 
 AGPL-3.0-only (TypeScript/Svelte) · MIT (Rust)
 
+Copyright (C) 2026 Ewan Croft (ewanc26).
+
 ## Star History
 
 <a href="https://www.star-history.com/?repos=ewanc26%2Fpkgs&type=date&legend=bottom-right">
