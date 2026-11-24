@@ -31,7 +31,7 @@ importers:
         version: 0.3.6
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -61,7 +61,7 @@ importers:
         version: 0.4.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/bismuth':
         specifier: workspace:*
         version: link:../bismuth
@@ -174,7 +174,7 @@ importers:
         version: 0.2.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/tid':
         specifier: workspace:*
         version: link:../tid
@@ -211,7 +211,7 @@ importers:
         version: 0.3.17
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
@@ -257,7 +257,7 @@ importers:
         version: 0.3.41
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/jasper':
         specifier: workspace:*
         version: link:../jasper
@@ -355,7 +355,7 @@ importers:
         version: 0.3.17
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
@@ -375,8 +375,8 @@ importers:
         specifier: ^3.12.0
         version: 3.12.0
       csv-parse:
-        specifier: ^6.1.0
-        version: 6.2.1
+        specifier: ^7.0.2
+        version: 7.0.3
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
@@ -413,7 +413,7 @@ importers:
         version: 0.3.41
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
@@ -524,7 +524,7 @@ importers:
         version: 0.3.17
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
@@ -567,7 +567,7 @@ importers:
         version: 0.3.41
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/landing-ui':
         specifier: workspace:*
         version: link:../landing-ui
@@ -708,7 +708,7 @@ importers:
         version: 0.4.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/landing-ui':
         specifier: workspace:*
         version: link:../landing-ui
@@ -776,7 +776,7 @@ importers:
         version: 0.2.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@sveltejs/adapter-auto':
         specifier: ^7.0.1
         version: 7.0.1(@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.9.1)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.9.1)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))
@@ -836,7 +836,7 @@ importers:
         version: 0.2.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/atproto':
         specifier: workspace:*
         version: link:../atproto
@@ -942,7 +942,7 @@ importers:
         version: 0.2.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       dotenv:
         specifier: ^16.0.0
         version: 16.6.1
@@ -982,7 +982,7 @@ importers:
         version: 0.3.42
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
@@ -1351,8 +1351,8 @@ packages:
     peerDependencies:
       '@atproto/lex': ^0.3.0
 
-  '@bsky/sdk@1.5.2':
-    resolution: {integrity: sha512-gIi4UBr5BgV0hTRQI/MwoGz0r1fGDgaWITPXxO8X3Pqnzg0770faZ4wbN9GM33cSh/3p3bCTLN3NtHYrDPPwXQ==}
+  '@bsky/sdk@1.5.3':
+    resolution: {integrity: sha512-Yl9jbGkNyqIbjZUTGEItXIGkfD47v+w7zZMC+Ep1/BDSrAv06+E2BS0D0ooV36GEUPnWWbT/5ZRqXnGkbHGvvA==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
       '@atproto/lex': ^0.3.0
@@ -4095,8 +4095,8 @@ packages:
     resolution: {integrity: sha512-7D2EPVltRrsTkhpQmksIu+LxeWAIEk6wRDMJ1qljlv+CKHJM+cJLlfhWIzNA44eAsHXSNe3+vO6DW1yCYx8SuQ==}
     engines: {node: '>=20'}
 
-  csv-parse@6.2.1:
-    resolution: {integrity: sha512-LRLMV+UCyfMokp8Wb411duBf1gaBKJfOfBWU9eHMJ+b+cJYZsNu3AFmjJf3+yPGd59Exz1TsMjaSFyxnYB9+IQ==}
+  csv-parse@7.0.3:
+    resolution: {integrity: sha512-YFd3QM/yo17vH91L1IOZuvl09zM0zEEtdfTcOCKWcMdM++MNaQSyp09slXyFCLaPXvHstQFx/xC8myiFHSMUvw==}
 
   data-uri-to-buffer@6.0.2:
     resolution: {integrity: sha512-7hvf7/GW8e86rW0ptuwS3OcBGDjIi6SZva7hCyWC0yYry2cOPmLIjXAUHI6DK2HsnwJd9ifmt57i8eV2n4YNpw==}
@@ -6859,7 +6859,7 @@ snapshots:
       '@atproto/syntax': 0.7.4
       tlds: 1.261.0
 
-  '@bsky/sdk@1.5.2(@atproto/lex@0.3.6)':
+  '@bsky/sdk@1.5.3(@atproto/lex@0.3.6)':
     dependencies:
       '@atproto-labs/handle-resolver': 0.4.8
       '@atproto/lex': 0.3.6
@@ -9463,7 +9463,7 @@ snapshots:
       css-tree: 3.2.1
       lru-cache: 11.3.5
 
-  csv-parse@6.2.1: {}
+  csv-parse@7.0.3: {}
 
   data-uri-to-buffer@6.0.2: {}
 
