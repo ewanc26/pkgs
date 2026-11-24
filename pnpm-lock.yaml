@@ -31,7 +31,7 @@ importers:
         version: 0.3.6
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -61,7 +61,7 @@ importers:
         version: 0.4.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/bismuth':
         specifier: workspace:*
         version: link:../bismuth
@@ -174,7 +174,7 @@ importers:
         version: 0.2.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/tid':
         specifier: workspace:*
         version: link:../tid
@@ -211,7 +211,7 @@ importers:
         version: 0.3.17
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
@@ -257,7 +257,7 @@ importers:
         version: 0.3.41
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/jasper':
         specifier: workspace:*
         version: link:../jasper
@@ -355,7 +355,7 @@ importers:
         version: 0.3.17
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
@@ -413,7 +413,7 @@ importers:
         version: 0.3.41
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
@@ -524,7 +524,7 @@ importers:
         version: 0.3.17
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
@@ -567,7 +567,7 @@ importers:
         version: 0.3.41
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/landing-ui':
         specifier: workspace:*
         version: link:../landing-ui
@@ -708,7 +708,7 @@ importers:
         version: 0.4.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/landing-ui':
         specifier: workspace:*
         version: link:../landing-ui
@@ -776,7 +776,7 @@ importers:
         version: 0.2.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@sveltejs/adapter-auto':
         specifier: ^7.0.1
         version: 7.0.1(@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.4)(vite@7.3.2(@types/node@25.9.1)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.4)(typescript@5.9.3)(vite@7.3.2(@types/node@25.9.1)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)))
@@ -836,7 +836,7 @@ importers:
         version: 0.2.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/atproto':
         specifier: workspace:*
         version: link:../atproto
@@ -850,8 +850,8 @@ importers:
         specifier: ^0.577.0
         version: 0.577.0(svelte@5.55.4)
       katex:
-        specifier: ^0.16.38
-        version: 0.16.45
+        specifier: ^0.18.2
+        version: 0.18.10
       rehype-slug:
         specifier: ^6.0.0
         version: 6.0.0
@@ -942,7 +942,7 @@ importers:
         version: 0.2.0
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       dotenv:
         specifier: ^16.0.0
         version: 16.6.1
@@ -982,7 +982,7 @@ importers:
         version: 0.3.42
       '@bsky/sdk':
         specifier: latest
-        version: 1.5.2(@atproto/lex@0.3.6)
+        version: 1.5.3(@atproto/lex@0.3.6)
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
@@ -1351,8 +1351,8 @@ packages:
     peerDependencies:
       '@atproto/lex': ^0.3.0
 
-  '@bsky/sdk@1.5.2':
-    resolution: {integrity: sha512-gIi4UBr5BgV0hTRQI/MwoGz0r1fGDgaWITPXxO8X3Pqnzg0770faZ4wbN9GM33cSh/3p3bCTLN3NtHYrDPPwXQ==}
+  '@bsky/sdk@1.5.3':
+    resolution: {integrity: sha512-Yl9jbGkNyqIbjZUTGEItXIGkfD47v+w7zZMC+Ep1/BDSrAv06+E2BS0D0ooV36GEUPnWWbT/5ZRqXnGkbHGvvA==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
       '@atproto/lex': ^0.3.0
@@ -4007,13 +4007,13 @@ packages:
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
 
+  commander@15.1.0:
+    resolution: {integrity: sha512-cgnQ88TRrWcC7pVq46RzJVRMktu3W2RcbnoidnfBsl1bmDCBwJS/udcIZpKoCrbAYYaCqsz1yZCVIgbIaU3ddQ==}
+    engines: {node: '>=22.12.0'}
+
   commander@4.1.1:
     resolution: {integrity: sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==}
     engines: {node: '>= 6'}
-
-  commander@8.3.0:
-    resolution: {integrity: sha512-OkTL9umf+He2DZkUq8f8J9of7yL6RJKI24dVITBmNfZBmri9zYZQrKkuXiKhyfPSu8tUhnVBB1iKXevvnlR4Ww==}
-    engines: {node: '>= 12'}
 
   concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
@@ -4682,8 +4682,8 @@ packages:
   jsonlines@0.1.1:
     resolution: {integrity: sha512-ekDrAGso79Cvf+dtm+mL8OBI2bmAOt3gssYs833De/C9NmIpWDWyUO4zPgB5x2/OhY366dkhgfPMYfwZF7yOZA==}
 
-  katex@0.16.45:
-    resolution: {integrity: sha512-pQpZbdBu7wCTmQUh7ufPmLr0pFoObnGUoL/yhtwJDgmmQpbkg/0HSVti25Fu4rmd1oCR6NGWe9vqTWuWv3GcNA==}
+  katex@0.18.10:
+    resolution: {integrity: sha512-/B6p9eY9DX7aHBfpkHdpirDTZ5QH9xTwL9y837PWuzuv41O5jFdqNQwVQEQsimY0/iVNkwBY4+4hMfhQ7d4Dbw==}
     hasBin: true
 
   kleur@4.1.5:
@@ -6859,7 +6859,7 @@ snapshots:
       '@atproto/syntax': 0.7.4
       tlds: 1.261.0
 
-  '@bsky/sdk@1.5.2(@atproto/lex@0.3.6)':
+  '@bsky/sdk@1.5.3(@atproto/lex@0.3.6)':
     dependencies:
       '@atproto-labs/handle-resolver': 0.4.8
       '@atproto/lex': 0.3.6
@@ -9393,9 +9393,9 @@ snapshots:
 
   comma-separated-tokens@2.0.3: {}
 
-  commander@4.1.1: {}
+  commander@15.1.0: {}
 
-  commander@8.3.0: {}
+  commander@4.1.1: {}
 
   concat-map@0.0.1: {}
 
@@ -10106,9 +10106,9 @@ snapshots:
 
   jsonlines@0.1.1: {}
 
-  katex@0.16.45:
+  katex@0.18.10:
     dependencies:
-      commander: 8.3.0
+      commander: 15.1.0
 
   kleur@4.1.5: {}
 
