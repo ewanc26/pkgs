@@ -222,6 +222,11 @@
 		<p class="subtitle">Upload your Tumblr export ZIP and convert it into Standard.site documents.</p>
 	</header>
 
+	<div class="alert alert-info" role="note" style="margin-bottom: 1rem;">
+		<strong>Converting a large Tumblr export?</strong> For high-volume conversions, we recommend
+		the CLI — it's built to handle the throughput. This web interface is best for smaller exports.
+	</div>
+
 	{#if !authLoading && !agent}
 		<div class="alert alert-info auth-hint">
 			No account needed to convert. Sign in above if you'd like your conversions counted on

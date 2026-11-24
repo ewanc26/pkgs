@@ -418,6 +418,12 @@
 		</button>
 	</div>
 
+	<div class="alert alert-info" role="note" style="margin-bottom: 1rem;">
+		<strong>Converting a large batch or a whole publication?</strong> For high-volume work, we
+		recommend the CLI — it's built to handle the throughput. This web interface is best for
+		individual documents and smaller jobs.
+	</div>
+
 	{#if mode === "convert"}
 		<div class="card-section">
 			<h2 class="section-title">Convert document</h2>
