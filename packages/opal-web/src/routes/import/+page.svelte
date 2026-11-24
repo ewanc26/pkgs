@@ -209,7 +209,7 @@
 	</header>
 
 	<div class="cli-note" role="note">
-		<strong>Converting a large archive?</strong> For high-volume imports, we recommend the CLI —
+		<strong>Converting a large archive?</strong> For high-volume conversions, we recommend the CLI —
 		it's built to handle the throughput. This web interface is best for smaller batches.
 	</div>
 
