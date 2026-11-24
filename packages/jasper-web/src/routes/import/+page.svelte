@@ -384,6 +384,11 @@
 		</p>
 	</header>
 
+	<p class="alert alert-info cli-alert" role="note">
+		<strong>Importing a large Instagram archive?</strong> For high-volume imports, we recommend
+		the CLI — it's built to handle the throughput. This web interface is best for smaller imports.
+	</p>
+
 	<div class="step-viewport">
 		{#key step}
 			<div
@@ -1323,6 +1328,9 @@
 	.alert-info {
 		background: var(--bg-secondary);
 		border: 1px solid var(--border);
+	}
+	.cli-alert {
+		margin-bottom: 1.5rem;
 	}
 
 	.alert-warning {
