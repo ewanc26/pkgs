@@ -301,6 +301,11 @@
 		{/if}
 	</header>
 
+	<div class="cli-note" role="note">
+		<strong>Importing a large listening history?</strong> For high-volume imports, we recommend
+		the CLI — it's built to handle the throughput. This web interface is best for smaller imports.
+	</div>
+
 	{#if savedImportState}
 		<div class="resume-banner" in:fly={{ y: -20, duration: 300, easing: cubicOut }}>
 			<div class="resume-banner-body">
@@ -422,6 +427,19 @@
 		color: var(--muted);
 		font-size: 0.875rem;
 		margin: 0;
+	}
+
+	.cli-note {
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		color: var(--muted);
+		font-size: 0.9rem;
+		margin-bottom: 1.5rem;
+		padding: 1rem 1.25rem;
+	}
+
+	.cli-note strong {
+		color: var(--text);
 	}
 
 	.step-viewport {
