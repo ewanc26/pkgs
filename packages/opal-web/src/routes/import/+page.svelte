@@ -208,6 +208,11 @@
 		{/if}
 	</header>
 
+	<div class="cli-note" role="note">
+		<strong>Converting a large archive?</strong> For high-volume imports, we recommend the CLI —
+		it's built to handle the throughput. This web interface is best for smaller batches.
+	</div>
+
 	<div class="step-viewport">
 		{#key step}
 			<div
@@ -423,6 +428,19 @@
 		color: var(--muted);
 		font-size: 0.875rem;
 		margin: 0;
+	}
+
+	.cli-note {
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		color: var(--muted);
+		font-size: 0.9rem;
+		margin-bottom: 1.5rem;
+		padding: 1rem 1.25rem;
+	}
+
+	.cli-note strong {
+		color: var(--text);
 	}
 
 	.step-viewport {
