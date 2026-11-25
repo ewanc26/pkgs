@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Node workspace
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.9
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # pds-landing is built with Bun in its own job.
+      - name: Build
+        run: pnpm -r --filter '!pds-landing' run build
+
+      # tangled-sync's `check` script talks to live services, so it is only type-checked.
+      - name: Check
+        run: pnpm -r --filter '!pds-landing' --filter '!@ewanc26/tangled-sync' run check
+
+      - name: Type-check
+        run: pnpm -r --filter '!pds-landing' run type-check
+
+      - name: Test
+        run: pnpm -r --filter '!pds-landing' run test
+
+  pds-landing:
+    name: pds-landing (Bun)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/pds-landing
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run build
+
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: cargo build --locked --all-targets
+      - run: cargo test --locked
+
+  python:
+    name: Python
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 -m py_compile packages/llm-analyser/main.py packages/nix-config-tools/history_dumper.py
