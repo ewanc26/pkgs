@@ -27,7 +27,7 @@
     "svelte-check": "^4.4.6",
     "tailwindcss": "^4.1.18",
     "typescript": "^6.0.2",
-    "vite": "^8.0.7"
+    "vite": "^7.3.7"
   },
   "dependencies": {
     "@atproto/lex": "^0.3.0",
