@@ -1,11 +1,6 @@
 <script lang="ts">
 	/** A single row in the key-value status grid. */
-	export interface KVItem {
-		key: string;
-		value: string;
-		/** Visual state applied to the value cell. */
-		status?: 'ok' | 'warn' | 'err' | 'loading';
-	}
+	import type { KVItem } from '../types.js';
 
 	interface Props {
 		items: KVItem[];

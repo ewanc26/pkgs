@@ -1,14 +1,6 @@
 <script lang="ts">
 	/** A single entry in a link list. */
-	export interface LinkItem {
-		href: string;
-		label: string;
-		/**
-		 * Whether to open in a new tab.
-		 * Defaults to `true` — set to `false` for internal navigation.
-		 */
-		external?: boolean;
-	}
+	import type { LinkItem } from '../types.js';
 
 	interface Props {
 		links: LinkItem[];
