@@ -1,6 +1,7 @@
 import { Client } from '@atproto/lex';
 import { PasswordSession } from '@atproto/lex-password-session';
-import { api, com } from '@bsky/sdk';
+import { api } from '@bsky/sdk';
+import { com } from '@bsky/sdk/lexicons';
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
@@ -14,7 +15,7 @@ const NON_INTERACTIVE = process.argv.includes("--non-interactive");
 
 const BASE_DIR = process.env.BASE_DIR!;
 const GITHUB_USER = process.env.GITHUB_USER!;
-const ATPROTO_DID = process.env.ATPROTO_DID!;
+const ATPROTO_DID = process.env.ATPROTO_DID! as `did:${string}:${string}`;
 const BLUESKY_PDS = process.env.BLUESKY_PDS!;
 const TANGLED_BASE_URL = `git@tangled.sh:${ATPROTO_DID}`;
 
@@ -127,7 +128,7 @@ const recordCache: Record<string, string> = {};
 
 async function ensureTangledRecord(
   client: Client,
-  atprotoDid: string,
+  atprotoDid: `did:${string}:${string}`,
   githubUser: string,
   repoName: string,
   description: string | undefined,
@@ -141,7 +142,7 @@ async function ensureTangledRecord(
   let tid: string | null = null;
 
   do {
-    const res = await client.call(com.atproto.repo.listRecords, {
+    const res: com.atproto.repo.listRecords.$OutputBody = await client.call(com.atproto.repo.listRecords, {
       repo: atprotoDid,
       collection: "sh.tangled.repo",
       limit: 50,
@@ -150,8 +151,9 @@ async function ensureTangledRecord(
 
     for (const record of res.records) {
       const value = record.value as TangledRepoRecord;
-      if (value.name === repoName && record.rkey) {
-        const existingTid = record.rkey as string;
+      const rkey = record.uri.split("/").pop();
+      if (value.name === repoName && rkey) {
+        const existingTid = rkey;
         tid = existingTid;
         recordCache[repoName] = existingTid;
         console.log(
@@ -259,7 +261,7 @@ async function main() {
     const existingRepos = new Set<string>();
 
     do {
-      const res = await client.call(com.atproto.repo.listRecords, {
+      const res: com.atproto.repo.listRecords.$OutputBody = await client.call(com.atproto.repo.listRecords, {
         repo: ATPROTO_DID,
         collection: "sh.tangled.repo",
         limit: 100,
@@ -270,7 +272,7 @@ async function main() {
         const value = record.value as TangledRepoRecord;
         if (value.name) {
           existingRepos.add(value.name);
-          recordCache[value.name] = record.rkey;
+          recordCache[value.name] = record.uri.split("/").pop()!;
         }
       }
 

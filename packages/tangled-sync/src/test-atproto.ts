@@ -1,6 +1,7 @@
 import { Client } from '@atproto/lex';
 import { PasswordSession } from '@atproto/lex-password-session';
-import { api, com } from '@bsky/sdk';
+import { api } from '@bsky/sdk';
+import { com } from '@bsky/sdk/lexicons';
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -34,7 +35,7 @@ async function testAtProtoConnection() {
     console.log("✓ Login successful!");
     console.log(`  DID: ${session.did}`);
     console.log(`  Handle: ${session.handle}`);
-    console.log(`  Email: ${session.email || "N/A"}`);
+    console.log(`  Email: ${session.session.email || "N/A"}`);
 
     if (session.did !== atprotoDid) {
       console.warn(`\n⚠ WARNING: Logged in DID (${session.did}) does not match ATPROTO_DID in .env (${atprotoDid})`);

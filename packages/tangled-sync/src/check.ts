@@ -1,6 +1,7 @@
 import { Client } from '@atproto/lex';
 import { PasswordSession } from '@atproto/lex-password-session';
-import { api, com } from '@bsky/sdk';
+import { api } from '@bsky/sdk';
+import { com } from '@bsky/sdk/lexicons';
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
