@@ -9,9 +9,9 @@ export { default as Tagline } from './components/Tagline.svelte';
 export { default as SectionLabel } from './components/SectionLabel.svelte';
 export { default as Divider } from './components/Divider.svelte';
 export { default as KVGrid } from './components/KVGrid.svelte';
-export type { KVItem } from './components/KVGrid.svelte';
+export type { KVItem } from './types.js';
 export { default as LinkList } from './components/LinkList.svelte';
-export type { LinkItem } from './components/LinkList.svelte';
+export type { LinkItem } from './types.js';
 
 // ─── Smart / data-fetching components ────────────────────────────────────────
 export { default as StatusGrid } from './components/StatusGrid.svelte';

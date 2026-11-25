@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import KVGrid from './KVGrid.svelte';
-	import type { KVItem } from './KVGrid.svelte';
+	import type { KVItem } from '../types.js';
 
 	interface AccountDetail {
 		did: string;

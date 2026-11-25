@@ -19,7 +19,7 @@
 	import LinkList from './LinkList.svelte';
 	import ContactSection from './ContactSection.svelte';
 	import PDSFooter from './PDSFooter.svelte';
-	import type { LinkItem } from './LinkList.svelte';
+	import type { LinkItem } from '../types.js';
 	import { fetchPDSStatus } from '../utils/fetchPDSStatus.js';
 
 	interface Props {
