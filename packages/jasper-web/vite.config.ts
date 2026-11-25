@@ -7,21 +7,28 @@ import { resolve } from 'path';
 const webPkg = JSON.parse(readFileSync(resolve('package.json'), 'utf-8'));
 const cliPkg = JSON.parse(readFileSync(resolve('../jasper/package.json'), 'utf-8'));
 
-// The publishers shared with the CLI import its file logger, which pulls Node's
-// `fs` and `os` into the server bundle and makes Vercel's file tracer walk the
-// build machine's filesystem. Swap in the browser logger instead.
-const jasperBrowserLogger: Plugin = {
-	name: 'jasper-browser-logger',
+// The publishers shared with the CLI also reach Node-only modules: the file
+// logger (`fs`/`os`, which makes Vercel's file tracer walk the build machine's
+// filesystem) and the `sharp` image utilities (a native module that cannot be
+// bundled). Swap in the browser versions.
+const jasperNodeModules: Record<string, string> = {
+	'../utils/logger.js': 'browser-logger.js',
+	'./image-utils.js': 'browser-image-utils.js'
+};
+
+const jasperBrowserModules: Plugin = {
+	name: 'jasper-browser-modules',
 	enforce: 'pre',
 	resolveId(source, importer) {
-		if (source === '../utils/logger.js' && importer?.includes('/jasper/dist/lib/')) {
-			return resolve('../jasper/dist/lib/browser-logger.js');
+		const replacement = jasperNodeModules[source];
+		if (replacement && importer?.includes('/jasper/dist/lib/')) {
+			return resolve('../jasper/dist/lib', replacement);
 		}
 	}
 };
 
 export default defineConfig({
-	plugins: [jasperBrowserLogger, tailwindcss(), sveltekit()],
+	plugins: [jasperBrowserModules, tailwindcss(), sveltekit()],
 
 	server: {
 		host: '127.0.0.1',
