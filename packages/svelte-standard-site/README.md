@@ -6,6 +6,18 @@ SvelteKit library for reading and writing AT Protocol longform content via `site
 pnpm add @ewanc26/svelte-standard-site zod
 ```
 
+Works with SvelteKit 2 and 3. `getConfigFromEnv()` and `validateEnv()` read `$env/dynamic/public`, which SvelteKit 3 deprecates and only fills with declared variables, so on SvelteKit 3 declare them in `src/env.ts`:
+
+```ts
+import { defineEnvVars } from '@sveltejs/kit/env';
+
+export const variables = defineEnvVars({
+	PUBLIC_ATPROTO_DID: { public: true, schema: (value) => value },
+	PUBLIC_ATPROTO_PDS: { public: true, schema: (value) => value },
+	PUBLIC_CACHE_TTL: { public: true, schema: (value) => value }
+});
+```
+
 Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/svelte-standard-site)**.
 
 ## Related projects

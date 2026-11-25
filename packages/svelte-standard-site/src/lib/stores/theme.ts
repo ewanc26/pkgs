@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { browser } from '$app/environment';
+import { BROWSER as browser } from 'esm-env';
 
 interface ThemeState {
 	isDark: boolean;

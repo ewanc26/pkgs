@@ -11,8 +11,7 @@ The `@ewanc26/bismuth-web` package is a SvelteKit-based web interface for `bismu
 ## Core Files
 - `src/routes/`: SvelteKit route definitions.
 - `src/app.html`: Root HTML template.
-- `vite.config.ts`: Vite configuration for the web build.
-- `svelte.config.js`: SvelteKit configuration.
+- `vite.config.ts`: Vite, SvelteKit and adapter configuration.
 
 ## Instructions for Agents
 - When making UI changes, ensure consistent styling using Tailwind CSS as configured in the project.
