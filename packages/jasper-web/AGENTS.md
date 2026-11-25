@@ -12,8 +12,7 @@ The `@ewanc26/jasper-web` package is the SvelteKit web frontend for Jasper — a
 ## Core Files
 - `src/routes/`: SvelteKit route definitions and page components.
 - `src/app.html`: Root HTML template.
-- `svelte.config.js`: SvelteKit and adapter configuration.
-- `vite.config.ts`: Vite build configuration.
+- `vite.config.ts`: Vite, SvelteKit and adapter configuration.
 
 ## Instructions for Agents
 - Run `pnpm --filter @ewanc26/tid build && pnpm --filter @ewanc26/malachite build && pnpm --filter @ewanc26/jasper build` before building this package (handled by the `prebuild` script).

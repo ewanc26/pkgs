@@ -1,3 +1,4 @@
+import adapter from '@sveltejs/adapter-vercel';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig, type Plugin } from 'vite';
@@ -28,7 +29,10 @@ const jasperBrowserModules: Plugin = {
 };
 
 export default defineConfig({
-	plugins: [jasperBrowserModules, tailwindcss(), sveltekit()],
+	plugins: [jasperBrowserModules, tailwindcss(), sveltekit({
+			alias: { $lib: 'src/lib' },
+			adapter: adapter({ runtime: 'nodejs22.x' })
+		})],
 
 	server: {
 		host: '127.0.0.1',

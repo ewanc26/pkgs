@@ -1,3 +1,4 @@
+import adapter from '@sveltejs/adapter-vercel';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
@@ -8,7 +9,10 @@ const webPkg = JSON.parse(readFileSync(resolve('package.json'), 'utf-8'));
 const cliPkg = JSON.parse(readFileSync(resolve('../bismuth/package.json'), 'utf-8'));
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
+	plugins: [tailwindcss(), sveltekit({
+			alias: { $lib: 'src/lib' },
+			adapter: adapter({ runtime: 'nodejs22.x' })
+		})],
 
 	server: {
 		host: '127.0.0.1',
