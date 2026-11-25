@@ -20,7 +20,7 @@
     "deploy": "bun run build && rsync -a --delete --exclude='.well-known/' dist/ /Volumes/Storage/Server/stack/pds-landing/"
   },
   "dependencies": {
-    "svelte": "^5.53.11"
+    "svelte": "^5.55.7"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
