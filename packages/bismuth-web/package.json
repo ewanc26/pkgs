@@ -34,6 +34,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@atproto/api": "^0.20.5",
     "@atproto/lex": "^0.3.0",
     "@atproto/lex-password-session": "^0.2.0",
     "@atproto/oauth-client-browser": "0.4.0",
