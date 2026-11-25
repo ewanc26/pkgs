@@ -96,3 +96,6 @@ export const browserLog = {
   fatal: (msg: string, ...args: unknown[]) => browserLogger.fatal(msg, ...args),
   progress: (msg: string, ...args: unknown[]) => browserLogger.progress(msg, ...args),
 };
+
+/** Drop-in for `log` from `../utils/logger.js`, which browser bundles alias to this file. */
+export const log = browserLog;
