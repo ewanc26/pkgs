@@ -210,7 +210,11 @@ export class RateLimiter {
         this.state.resetAt = now + RATE_LIMIT_FALLBACK_WAIT_SECONDS;
       }
     } else {
-      this.state = { limit: 5000, remaining: 0, resetAt: now + 3600, windowSeconds: 3600 };
+      // A first request can be refused with Retry-After and no ratelimit
+      // headers, so there is no state for the code above to have extended.
+      const retryAfter = parseInt(normalizeHeaders(errHeaders ?? {})['retry-after'] ?? '', 10);
+      const waitSeconds = retryAfter > 0 ? retryAfter : 3600;
+      this.state = { limit: 5000, remaining: 0, resetAt: now + waitSeconds, windowSeconds: 3600 };
     }
     // The server itself confirmed the exhaustion, so `waitForPermit` should
     // honour the full advertised reset rather than capping the wait.

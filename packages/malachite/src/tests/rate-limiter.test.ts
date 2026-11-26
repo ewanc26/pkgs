@@ -52,6 +52,21 @@ describe('RateLimiter', () => {
     assert.strictEqual(o2.remaining, 0);
   });
 
+  it('honours Retry-After on a 429 that arrives before any rate-limit state', () => {
+    const statePath = path.join(getMalachiteStateDir(), 'state', 'rate-limit.json');
+    const resetAfter = (headers?: Record<string, string>) => {
+      fs.rmSync(statePath, { force: true });
+      const now = Math.floor(Date.now() / 1000);
+      new RateLimiter({ headroom: 0.15 }).handleRateLimitHit(headers);
+      return JSON.parse(fs.readFileSync(statePath, 'utf8')).resetAt - now;
+    };
+
+    const asked = resetAfter({ 'retry-after': '30' });
+    assert.ok(asked >= 30 && asked <= 32, `waits about 30s (got ${asked}s)`);
+    const silent = resetAfter();
+    assert.ok(silent >= 3600 && silent <= 3602, `waits about an hour (got ${silent}s)`);
+  });
+
   it('getSafeAvailablePoints respects headroom threshold', () => {
     const rl = new RateLimiter({ headroom: 0.15 }); // 15% headroom
     const now = Math.floor(Date.now() / 1000);

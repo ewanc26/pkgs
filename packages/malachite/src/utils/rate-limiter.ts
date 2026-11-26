@@ -752,17 +752,20 @@ export class RateLimiter {
       this.writeState(state);
       log.warn(`[RateLimiter] 🛑 429 received — zeroed remaining, will wait until ${new Date(state.resetAt * 1000).toISOString()}`);
     } else {
-      // No state yet — create a blocking stub with a 60-second reset.
+      // No state yet — create a blocking stub, lasting as long as Retry-After
+      // asks, or an hour if the 429 did not say.
+      const retryAfter = parseInt(normalizeHeaders(errHeaders ?? {})['retry-after'] ?? '', 10);
+      const waitSeconds = retryAfter > 0 ? retryAfter : 3600;
       this.writeState({
         limit: 5000,
         remaining: 0,
-        resetAt: now + 3600,
+        resetAt: now + waitSeconds,
         windowSeconds: 3600,
         updatedAt: now,
         headroomThreshold: this.headroomThreshold,
       });
       this.hasLearnedFromServer = true;
-      log.warn('[RateLimiter] 🛑 429 received (no prior state) — blocking for 60s');
+      log.warn(`[RateLimiter] 🛑 429 received (no prior state) — blocking for ${waitSeconds}s`);
     }
   }
 
