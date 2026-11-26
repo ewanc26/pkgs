@@ -12,7 +12,7 @@
 
 	function formatDate(dateString: string): string {
 		// Use browser's locale if not specified
-		const userLocale = locale || navigator.language || 'en-US';
+		const userLocale = locale || navigator.language || 'en-GB';
 
 		return new Date(dateString).toLocaleDateString(userLocale, {
 			year: 'numeric',
