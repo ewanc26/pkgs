@@ -10,13 +10,29 @@ export interface RateLimitHeaders {
   windowSeconds?: number;
 }
 
-export function normalizeHeaders(headers: Record<string, string>): Record<string, string> {
+/** A fetch `Headers` instance (what XRPC responses and errors carry) or a plain record. */
+export type HeadersInput = Headers | Record<string, string>;
+
+export function normalizeHeaders(headers: HeadersInput | undefined | null): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(headers)) out[k.toLowerCase()] = v;
+  if (!headers) return out;
+  // `Object.entries()` on a `Headers` instance yields nothing, which silently
+  // turns every response into a headerless one.
+  if (typeof (headers as Headers).forEach === 'function') {
+    (headers as Headers).forEach((v, k) => { out[k.toLowerCase()] = v; });
+  } else {
+    for (const [k, v] of Object.entries(headers)) out[k.toLowerCase()] = v;
+  }
   return out;
 }
 
-export function parseRateLimitHeaders(headers: Record<string, string>): RateLimitHeaders {
+/** Response headers carried by a failed XRPC call, as a lowercase record. */
+export function errorHeaders(err: unknown): Record<string, string> {
+  const e = err as any;
+  return normalizeHeaders(e?.headers ?? e?.response?.headers);
+}
+
+export function parseRateLimitHeaders(headers: HeadersInput): RateLimitHeaders {
   const h = normalizeHeaders(headers);
   const get = (k: string) => h[k] ?? h[`x-${k}`] ?? '';
 

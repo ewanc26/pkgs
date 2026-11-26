@@ -13,6 +13,8 @@
  * throughput once the import is running.
  */
 
+import { QUOTA_RESERVE } from './proactive-rate-pacer.js';
+
 /**
  * Standard repository-write budgets, mirroring the pacer's table. A CREATE
  * costs three points, so both windows apply to a history import at the same
@@ -60,10 +62,21 @@ export function estimateImportDuration(
   serverLimit: number,
   windowSeconds: number,
   pointsPerRecord: number = 3,
+  /** Quota left in the advertised window, when known. */
+  currentRemaining?: number,
 ): ImportEstimate {
   if (records <= 0 || serverLimit <= 0 || windowSeconds <= 0 || pointsPerRecord <= 0) {
     return { bestCaseSeconds: 0, worstCaseSeconds: 0, dailyBudgetKnown: true, isLongImport: false };
   }
+
+  const points = records * pointsPerRecord;
+  if (currentRemaining !== undefined && points <= currentRemaining - serverLimit * QUOTA_RESERVE) {
+    const seconds = Math.ceil(records / 200); // roughly a second per full batch
+    return { bestCaseSeconds: seconds, worstCaseSeconds: seconds, dailyBudgetKnown: true, isLongImport: false };
+  }
+  // Mirrors the pacer: a job that fits the daily budget is not paced against it.
+  const fitsDailyBudget =
+    currentRemaining !== undefined && points <= REFERENCE_DAILY_WINDOW.points * (1 - QUOTA_RESERVE);
 
   const refillPointsPerSecond = serverLimit / windowSeconds;
   const dailyPointsPerSecond = REFERENCE_DAILY_WINDOW.points / REFERENCE_DAILY_WINDOW.seconds;
@@ -73,11 +86,10 @@ export function estimateImportDuration(
   // nothing about a separate daily cap, so the honest upper bound assumes the
   // reference daily budget until observed throughput takes over.
   const dailyBudgetKnown = windowSeconds >= REFERENCE_DAILY_WINDOW.seconds;
-  const worstPointsPerSecond = dailyBudgetKnown
+  const worstPointsPerSecond = dailyBudgetKnown || fitsDailyBudget
     ? refillPointsPerSecond
     : Math.min(refillPointsPerSecond, dailyPointsPerSecond);
 
-  const points = records * pointsPerRecord;
   const bestCaseSeconds = points / (refillPointsPerSecond * TARGET_UTILIZATION);
   const worstCaseSeconds = Math.max(
     bestCaseSeconds,

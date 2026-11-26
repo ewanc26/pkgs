@@ -10,6 +10,9 @@ import { RECORD_TYPES, MAX_PDS_BATCH_SIZE } from './config.js'
 import { fetchRepoViaCARWithClient } from './car-fetch.js'
 import { retryWithBackoff } from './retry-helper.js'
 import { com } from '@bsky/sdk/lexicons'
+import { applyWritesWithHeaders } from './apply-writes.js'
+import { RateLimiter, type PermitWaitInfo } from './rate-limiter.js'
+import { isRateLimitError, errorHeaders } from './rate-limit-headers.js'
 import {
   playRecordKey,
   trackTimeKey,
@@ -467,12 +470,16 @@ export async function removeDuplicateRecords(
   client: Client,
   plan: DedupPlan,
   onProgress?: (removed: number) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  wait: { onWait?: (info: PermitWaitInfo) => void; retryNow?: () => boolean } = {}
 ): Promise<number> {
+  const rl = new RateLimiter()
+  const isAborted = () => signal?.aborted ?? false
   const targets = plan.groups.flatMap((group) => group.remove);
   let removed = 0;
 
   for (let i = 0; i < targets.length; i += MAX_PDS_BATCH_SIZE) {
+    await rl.waitOutBlock(isAborted, wait.onWait, wait.retryNow);
     signal?.throwIfAborted();
     const batch = targets.slice(i, i + MAX_PDS_BATCH_SIZE);
     const writes = batch.map((rec) => ({
@@ -483,10 +490,7 @@ export async function removeDuplicateRecords(
 
     try {
       await retryWithBackoff(
-        () => client.call(com.atproto.repo.applyWrites.main as any,
-          { repo: getDid(client)!, writes: writes as any },
-          { signal }
-        ),
+        () => applyWritesWithHeaders(client, { repo: getDid(client)!, writes }, { signal }),
         {
           maxAttempts: 3,
           initialDelayMs: 1000,
@@ -506,10 +510,18 @@ export async function removeDuplicateRecords(
           ],
         }
       );
+      rl.noteSuccess();
       removed += batch.length;
       onProgress?.(removed);
     } catch (err: unknown) {
       if (signal?.aborted) throw err;
+
+      if (isRateLimitError(err)) {
+        // Falling back to single deletes would only be refused 200 more times.
+        rl.handleRateLimitHit(errorHeaders(err));
+        i -= MAX_PDS_BATCH_SIZE;
+        continue;
+      }
 
       // Batch failed (applyWrites is atomic — one bad rkey fails all 200).
       // Fall back to per-record deletes so salvageable deletions still run.

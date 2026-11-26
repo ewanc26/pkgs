@@ -10,7 +10,7 @@
 
 import type { Client } from '@atproto/lex'
 import type { PlayRecord } from './types.js'
-import { com } from '@bsky/sdk/lexicons'
+import { applyWritesWithHeaders } from './apply-writes.js';
 import { RECORD_TYPE, MAX_PDS_BATCH_SIZE, POINTS_PER_RECORD } from './config.js';
 import { RateLimiter, type PermitWaitInfo } from './rate-limiter.js';
 import { ProactiveRatePacer } from './proactive-rate-pacer.js';
@@ -18,7 +18,7 @@ import { estimateImportDuration, formatImportEstimate } from './import-estimate.
 import { DynamicBatchCalculator } from './dynamic-batch-calculator.js';
 import { retryWithBackoff } from './retry-helper.js';
 import { generateTIDFromISO } from './tid.js';
-import { normalizeHeaders, isRateLimitError } from './rate-limit-headers.js';
+import { errorHeaders, isRateLimitError } from './rate-limit-headers.js';
 import { sanitizePlayRecordMusicBrainzIds } from './mbid.js';
 
 export interface PublishProgress {
@@ -30,12 +30,16 @@ export interface PublishProgress {
   errorCount: number;
   currentBatchSize: number;
   message: string;
+  /** Set while the publisher is paused for quota; absent otherwise. */
+  waiting?: PermitWaitInfo;
 }
 
 export interface PublisherCallbacks {
   onProgress: (p: PublishProgress) => void;
   onLog: (level: 'info' | 'success' | 'warn' | 'error' | 'progress', msg: string) => void;
   isCancelled: () => boolean;
+  /** Polled during a quota wait; return true once to end the wait and retry. */
+  retryNow?: () => boolean;
 }
 
 /** Which collection plays are written to, and how each play becomes a record there. */
@@ -68,19 +72,6 @@ function formatWaitSeconds(seconds: number): string {
   return `${(minutes / 60).toFixed(1)} h`;
 }
 
-function extractHeaders(response: unknown): Record<string, string> {
-  const headers: Record<string, string> = {};
-  const r = response as any;
-  if (r?.headers) {
-    if (typeof r.headers.forEach === 'function') {
-      r.headers.forEach((v: string, k: string) => { headers[k] = v; });
-    } else {
-      Object.assign(headers, r.headers);
-    }
-  }
-  return headers;
-}
-
 export async function publishRecords(
   client: Client,
   records: PlayRecord[],
@@ -91,7 +82,7 @@ export async function publishRecords(
   allowUnresolvedApple = false,
   target: PublishTarget = TEAL_PUBLISH_TARGET
 ): Promise<{ successCount: number; errorCount: number; cancelled: boolean }> {
-  const { onProgress, onLog, isCancelled } = callbacks;
+  const { onProgress, onLog, isCancelled, retryNow } = callbacks;
 
   // Preflight every record before dry-run output or the first write. The shared
   // sanitizer also enforces the Apple-import invariant that a play may not be
@@ -163,6 +154,33 @@ export async function publishRecords(
         return { successCount, errorCount, cancelled: true };
       }
 
+      // Surface limiter waits (reason + duration + heartbeat) so the UI shows
+      // "waiting for quota" instead of a frozen progress card.
+      const emitQuotaWait = (waiting: PermitWaitInfo) => {
+        const { reason, totalWaitSeconds, remainingSeconds, resumeAt } = waiting;
+        if (remainingSeconds === totalWaitSeconds) {
+          onLog('warn', `${reason} -- waiting ${formatWaitSeconds(totalWaitSeconds)}, resuming at ${new Date(resumeAt).toLocaleTimeString()}`);
+        }
+        onProgress({
+          batchIndex: batchCounter,
+          totalBatches: Math.ceil(total / currentBatchSize),
+          recordsProcessed: i,
+          totalRecords: total,
+          successCount,
+          errorCount,
+          currentBatchSize,
+          message: `Waiting for rate-limit window -- ${reason} (${formatWaitSeconds(remainingSeconds)} left)`,
+          waiting,
+        });
+      };
+
+      // Sit out any 429 first, so the batch is sized for the quota that follows.
+      await rl.waitOutBlock(isCancelled, emitQuotaWait, retryNow);
+      if (isCancelled()) {
+        onLog('warn', 'Import cancelled by user.');
+        return { successCount, errorCount, cancelled: true };
+      }
+
       // Get current server capacity and quota
       const capacity = rl.getServerCapacity();
       const actualRemaining = rl.getActualRemaining();
@@ -174,7 +192,8 @@ export async function publishRecords(
           capacity.windowSeconds,
           actualRemaining,
           MAX_PDS_BATCH_SIZE,
-          rl.getPointsPerRecord(POINTS_PER_RECORD)
+          rl.getPointsPerRecord(POINTS_PER_RECORD),
+          total - i
         );
 
         // Apply adaptive scaling from performance metrics
@@ -219,25 +238,7 @@ export async function publishRecords(
       // headroom line in phantom-blocking mode.
       const batchPoints = batch.length * rl.getPointsPerRecord(POINTS_PER_RECORD);
 
-      // Surface limiter waits (reason + duration + heartbeat) so the UI shows
-      // "waiting for quota" instead of a frozen progress card.
-      const emitQuotaWait = ({ reason, totalWaitSeconds, remainingSeconds }: PermitWaitInfo) => {
-        if (remainingSeconds === totalWaitSeconds) {
-          onLog('warn', `${reason} -- waiting ${formatWaitSeconds(totalWaitSeconds)}`);
-        }
-        onProgress({
-          batchIndex: batchCounter,
-          totalBatches: Math.ceil(total / currentBatchSize),
-          recordsProcessed: i,
-          totalRecords: total,
-          successCount,
-          errorCount,
-          currentBatchSize: batch.length,
-          message: `Waiting for rate-limit window -- ${reason} (${formatWaitSeconds(remainingSeconds)} left)`,
-        });
-      };
-
-      await rl.waitForPermit(batchPoints, isCancelled, emitQuotaWait);
+      await rl.waitForPermit(batchPoints, isCancelled, emitQuotaWait, retryNow);
       if (isCancelled()) {
         onLog('warn', 'Import cancelled by user.');
         return { successCount, errorCount, cancelled: true };
@@ -247,8 +248,8 @@ export async function publishRecords(
 
       try {
         const response = await retryWithBackoff(
-          () => client.call(com.atproto.repo.applyWrites.main as any,
-            { repo: client.assertDid, writes: writes as any },
+          () => applyWritesWithHeaders(client,
+            { repo: client.assertDid!, writes },
             { signal: ac.signal }
           ),
           {
@@ -275,7 +276,7 @@ export async function publishRecords(
         );
 
         // Success!
-        const batchSuccessCount = (response as any).results?.length ?? batch.length;
+        const batchSuccessCount = response.results?.length ?? batch.length;
         successCount += batchSuccessCount;
         const batchDuration = Date.now() - batchStartTime;
 
@@ -283,10 +284,9 @@ export async function publishRecords(
         calculator.recordSuccess(batch.length, batchDuration);
 
         // Learn / update rate limits from response headers (continuous adaptation)
-        const rawHeaders = extractHeaders(response);
-        if (Object.keys(rawHeaders).length > 0) {
-          const norm = normalizeHeaders(rawHeaders);
-          rl.updateFromHeaders(norm, batch.length);
+        rl.noteSuccess();
+        if (Object.keys(response.headers).length > 0) {
+          rl.updateFromHeaders(response.headers, batch.length);
 
           // After first response, log the learned capacity and recalculate
           if (batchCounter === 1 && rl.hasServerInfo()) {
@@ -298,7 +298,8 @@ export async function publishRecords(
                 cap.windowSeconds,
                 remaining,
                 MAX_PDS_BATCH_SIZE,
-                rl.getPointsPerRecord(POINTS_PER_RECORD)
+                rl.getPointsPerRecord(POINTS_PER_RECORD),
+                total - successCount
               );
 
               const quotaPercent = ((remaining / cap.limit) * 100).toFixed(1);
@@ -315,6 +316,7 @@ export async function publishRecords(
                 cap.limit,
                 cap.windowSeconds,
                 rl.getPointsPerRecord(POINTS_PER_RECORD),
+                remaining,
               );
               onLog('info', `  Estimated time: ${formatImportEstimate(estimate)}`);
               if (estimate.isLongImport) {
@@ -342,7 +344,8 @@ export async function publishRecords(
               cap.limit,
               cap.windowSeconds,
               actualQuota,
-              rl.getPointsPerRecord(POINTS_PER_RECORD)
+              rl.getPointsPerRecord(POINTS_PER_RECORD),
+              total - i
             );
 
             // Update delay if changed significantly
@@ -364,17 +367,10 @@ export async function publishRecords(
           return { successCount, errorCount, cancelled: true };
         }
         if (isRateLimitError(e)) {
-          onLog('warn', 'Rate limit hit -- waiting for quota reset...');
-
-          const rawErrHeaders: Record<string, string> =
-            typeof e?.response?.headers?.forEach === 'function'
-              ? (() => { const o: Record<string, string> = {}; e.response.headers.forEach((v: string, k: string) => { o[k] = v; }); return o; })()
-              : (e?.response?.headers ?? e?.headers ?? {});
           rl.refund(batchPoints); // this reservation was never actually sent
-          rl.handleRateLimitHit(normalizeHeaders(rawErrHeaders));
-          await rl.waitForPermit(batchPoints, isCancelled, emitQuotaWait);
+          rl.handleRateLimitHit(errorHeaders(e));
           batchCounter--; // the retry is the same batch, not a new one
-          continue; // retry same batch
+          continue; // the top of the loop sits out the block, then retries
         }
         rl.refund(batchPoints); // batch failed before actually costing any quota
         errorCount += batch.length;

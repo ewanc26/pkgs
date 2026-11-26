@@ -3,10 +3,15 @@
  * Tracks quota from response headers and gates requests to stay within limits.
  */
 
-import { normalizeHeaders } from './rate-limit-headers.js';
+import { normalizeHeaders, type HeadersInput } from './rate-limit-headers.js';
 
-/** Minimum wait after a 429 when the server gave no future reset time. */
-const RATE_LIMIT_FALLBACK_WAIT_SECONDS = 60;
+/**
+ * First wait after a 429 that carries neither `Retry-After` nor a usable reset
+ * time. Doubles on each consecutive such refusal, up to the maximum, so one
+ * unexplained 429 costs a minute rather than a whole window.
+ */
+const BACKOFF_INITIAL_SECONDS = 60;
+const BACKOFF_MAX_SECONDS = 15 * 60;
 
 /** How often a long wait re-reports progress through `onWait`. */
 const WAIT_HEARTBEAT_SECONDS = 30;
@@ -39,6 +44,15 @@ export interface PermitWaitInfo {
   totalWaitSeconds: number;
   /** Seconds still to wait (equal to `totalWaitSeconds` on the initial call). */
   remainingSeconds: number;
+  /** Unix time in milliseconds at which the wait ends. */
+  resumeAt: number;
+  /** True when the server refused a request; false for a local headroom pause. */
+  serverConfirmed: boolean;
+}
+
+/** Seconds a client should back off for the `strikes`-th unexplained 429 in a row (0-based). */
+export function rateLimitBackoffSeconds(strikes: number): number {
+  return Math.min(BACKOFF_MAX_SECONDS, BACKOFF_INITIAL_SECONDS * 2 ** Math.min(strikes, 10));
 }
 
 export class RateLimiter {
@@ -46,12 +60,12 @@ export class RateLimiter {
   private readonly headroom: number;
   private readonly maxLedgerWaitSeconds: number;
   /**
-   * True from the moment a 429 zeroes the ledger until a successful response
-   * (or a genuine window reset) refreshes it. Distinguishes a server-confirmed
-   * wait, which must honour the full advertised reset, from a ledger-only
-   * block, which may be phantom and gets capped at `maxLedgerWaitSeconds`.
+   * Unix seconds until which the server has refused further writes, or null.
+   * Kept apart from `state` so that a 429 never has to invent a server capacity.
    */
-  private exhaustedBy429 = false;
+  private blockedUntil: number | null = null;
+  /** Consecutive 429s since the last successful response. */
+  private strikes = 0;
 
   /**
    * Empirically observed points consumed per record, derived from successive
@@ -79,7 +93,19 @@ export class RateLimiter {
    *   whichever bucket the server is reporting; omit for reads/other calls
    *   that shouldn't feed the estimate.
    */
-  updateFromHeaders(headers: Record<string, string>, batchSize?: number): void {
+  updateFromHeaders(headers: HeadersInput, batchSize?: number): void {
+    // A live response supersedes any earlier refusal.
+    if (this.learn(headers, batchSize)) this.noteSuccess();
+  }
+
+  /** Record that a request succeeded, ending any 429 block and its backoff. */
+  noteSuccess(): void {
+    this.blockedUntil = null;
+    this.strikes = 0;
+  }
+
+  /** Absorb quota headers. Returns false when they carry no usable reading. */
+  private learn(headers: HeadersInput, batchSize?: number): boolean {
     const h = normalizeHeaders(headers);
     const get = (k: string) => h[k] ?? h[`x-${k}`] ?? '';
 
@@ -88,7 +114,7 @@ export class RateLimiter {
     const reset = parseInt(get('ratelimit-reset'), 10);
     const policy = get('ratelimit-policy');
 
-    if (!limit || isNaN(limit) || isNaN(remaining)) return;
+    if (!limit || isNaN(limit) || isNaN(remaining)) return false;
 
     let windowSeconds = 3600;
     const m = /;w=(\d+)/.exec(policy);
@@ -139,9 +165,8 @@ export class RateLimiter {
 
     this.lastRemaining = remaining;
     this.lastResetAt = resetAt;
-    // A live response supersedes any previous 429 exhaustion.
-    this.exhaustedBy429 = false;
     this.state = { limit, remaining, resetAt, windowSeconds };
+    return true;
   }
 
   /**
@@ -167,7 +192,7 @@ export class RateLimiter {
   }
 
   getActualRemaining(): number {
-    if (!this.state) return 0;
+    if (!this.state || this.isBlocked()) return 0;
     if (Math.floor(Date.now() / 1000) >= this.state.resetAt) return this.state.limit;
     return this.state.remaining;
   }
@@ -181,44 +206,95 @@ export class RateLimiter {
     return this.state !== null && this.state.limit > 0;
   }
 
+  /** Whether a 429 is still in force. */
+  isBlocked(): boolean {
+    return this.blockedUntil !== null && this.blockedUntil > Math.floor(Date.now() / 1000);
+  }
+
   /**
-   * Called when the server returns a 429. Zeroes remaining so the next
-   * `waitForPermit` actually blocks until the window resets.
-   *
-   * If the 429 carried no usable reset time, the stored `resetAt` can already
-   * be in the past. `waitForPermit` treats a past `resetAt` as a fresh window
-   * and returns immediately, which turns the retry into a tight 429 loop, so
-   * push `resetAt` forward to guarantee a real wait.
+   * Called when the server returns a 429. Blocks until the time the server
+   * names (`Retry-After` or `ratelimit-reset`). When it names none, backs off
+   * from a minute and re-probes, never waiting past an already-known reset.
    */
-  handleRateLimitHit(errHeaders?: Record<string, string>): void {
-    if (errHeaders && Object.keys(errHeaders).length > 0) {
-      this.updateFromHeaders(errHeaders);
-      // A 429's Retry-After (delta seconds) is the server's own statement of
-      // when to come back; honour it even when ratelimit-reset looks shorter.
-      const h = normalizeHeaders(errHeaders);
-      const retryAfter = parseInt(h['retry-after'] ?? '', 10);
-      if (!isNaN(retryAfter) && this.state) {
-        const nowSec = Math.floor(Date.now() / 1000);
-        const retryAt = nowSec + retryAfter;
-        if (retryAt > this.state.resetAt) this.state.resetAt = retryAt;
-      }
-    }
+  handleRateLimitHit(errHeaders?: HeadersInput): void {
+    const h = normalizeHeaders(errHeaders);
+    const learned = this.learn(h);
+    const hasReset = (h['ratelimit-reset'] ?? h['x-ratelimit-reset']) !== undefined;
     const now = Math.floor(Date.now() / 1000);
-    if (this.state) {
-      this.state.remaining = 0;
-      if (this.state.resetAt <= now) {
-        this.state.resetAt = now + RATE_LIMIT_FALLBACK_WAIT_SECONDS;
-      }
-    } else {
-      // A first request can be refused with Retry-After and no ratelimit
-      // headers, so there is no state for the code above to have extended.
-      const retryAfter = parseInt(normalizeHeaders(errHeaders ?? {})['retry-after'] ?? '', 10);
-      const waitSeconds = retryAfter > 0 ? retryAfter : 3600;
-      this.state = { limit: 5000, remaining: 0, resetAt: now + waitSeconds, windowSeconds: 3600 };
+
+    const retryAfter = parseInt(h['retry-after'] ?? '', 10);
+    const retryAt = retryAfter > 0 ? now + retryAfter : 0;
+    const resetAt = learned && hasReset && this.state!.resetAt > now ? this.state!.resetAt : 0;
+
+    let until = Math.max(retryAt, resetAt);
+    if (!until) {
+      until = now + rateLimitBackoffSeconds(this.strikes);
+      if (this.state && this.state.resetAt > now) until = Math.min(until, this.state.resetAt);
     }
-    // The server itself confirmed the exhaustion, so `waitForPermit` should
-    // honour the full advertised reset rather than capping the wait.
-    this.exhaustedBy429 = true;
+    this.strikes++;
+    this.blockedUntil = until;
+    if (this.state) this.state.remaining = 0;
+  }
+
+  /**
+   * Sleep out a 429 block, if one is in force. Call this before sizing the next
+   * batch, so the size reflects the quota available afterwards.
+   *
+   * `retryNow` lets a user cut the wait short; if the server is still refusing,
+   * the next 429 simply blocks again.
+   */
+  async waitOutBlock(
+    isCancelled?: () => boolean,
+    onWait?: (info: PermitWaitInfo) => void,
+    retryNow?: () => boolean,
+  ): Promise<void> {
+    if (this.blockedUntil === null) return;
+    const seconds = this.blockedUntil - Math.floor(Date.now() / 1000);
+    if (seconds > 0) {
+      await this.sleepReporting(
+        seconds + 1,
+        'Your PDS server rate-limited this import',
+        true,
+        isCancelled,
+        onWait,
+        retryNow,
+      );
+      if (isCancelled?.()) return; // keep the block for the next attempt
+    }
+    this.blockedUntil = null;
+    if (this.state) {
+      // Optimistic: the next response's headers report the real remainder.
+      const now = Math.floor(Date.now() / 1000);
+      this.state.remaining = this.state.limit;
+      if (now >= this.state.resetAt) this.state.resetAt = now + this.state.windowSeconds;
+    }
+  }
+
+  private sleepReporting(
+    waitSeconds: number,
+    reason: string,
+    serverConfirmed: boolean,
+    isCancelled?: () => boolean,
+    onWait?: (info: PermitWaitInfo) => void,
+    retryNow?: () => boolean,
+  ): Promise<void> {
+    const end = Date.now() + waitSeconds * 1000;
+    const report = (remainingSeconds: number) =>
+      onWait?.({ reason, totalWaitSeconds: waitSeconds, remainingSeconds, resumeAt: end, serverConfirmed });
+    report(waitSeconds);
+
+    return new Promise<void>((resolve) => {
+      let lastBeatAt = Date.now();
+      const tick = () => {
+        if (isCancelled?.() || retryNow?.() || Date.now() >= end) { resolve(); return; }
+        if (onWait && Date.now() - lastBeatAt >= WAIT_HEARTBEAT_SECONDS * 1000) {
+          lastBeatAt = Date.now();
+          report(Math.max(1, Math.ceil((end - Date.now()) / 1000)));
+        }
+        setTimeout(tick, Math.min(50, end - Date.now()));
+      };
+      tick();
+    });
   }
 
   /**
@@ -229,28 +305,29 @@ export class RateLimiter {
    * immediately, then re-reports remaining time as a heartbeat every
    * `WAIT_HEARTBEAT_SECONDS` so no wait is ever silent.
    *
-   * Waits fall into two classes. A *server-confirmed* wait (this call follows
-   * `handleRateLimitHit`) sleeps out the full advertised reset — the server
-   * itself demands it. A *ledger-only* wait (headers minus headroom say the
-   * batch won't fit, but no 429 backs that up) is capped at
-   * `maxLedgerWaitSeconds`: the tightest reported bucket may not even be the
-   * write-points bucket, so instead of sleeping out a full window on possibly
-   * phantom quota, the permit is granted and the next request's headers
-   * re-learn the real remaining. A genuine limit re-establishes itself the
-   * reactive way, via a 429.
+   * Waits fall into two classes. A *server-confirmed* wait (after
+   * `handleRateLimitHit`) sleeps out the block the server demanded. A
+   * *ledger-only* wait (headers minus headroom say the batch won't fit, but no
+   * 429 backs that up) is capped at `maxLedgerWaitSeconds`: the tightest
+   * reported bucket may not even be the write-points bucket, so instead of
+   * sleeping out a full window on possibly phantom quota, the permit is granted
+   * and the next request's headers re-learn the real remaining. A genuine limit
+   * re-establishes itself the reactive way, via a 429.
    */
   async waitForPermit(
     pointsNeeded: number,
     isCancelled?: () => boolean,
     onWait?: (info: PermitWaitInfo) => void,
+    retryNow?: () => boolean,
   ): Promise<void> {
+    await this.waitOutBlock(isCancelled, onWait, retryNow);
+    if (isCancelled?.()) return;
     if (!this.state) return; // no info yet — let first request probe
 
     const now = Math.floor(Date.now() / 1000);
     if (now >= this.state.resetAt) {
       this.state.remaining = this.state.limit;
       this.state.resetAt = now + this.state.windowSeconds;
-      this.exhaustedBy429 = false;
     }
 
     const headroomPts = Math.floor(this.state.limit * this.headroom);
@@ -261,34 +338,15 @@ export class RateLimiter {
       return;
     }
 
-    const reason = this.exhaustedBy429
-      ? `Server-confirmed rate limit exhausted (${this.state.remaining}/${this.state.limit} pts remaining)`
-      : `Local quota ledger below headroom (${this.state.remaining}/${this.state.limit} pts, ${headroomPts} reserved) — no recent 429, re-probing server`;
-
     const resetWaitSeconds = Math.max(0, this.state.resetAt - Math.floor(Date.now() / 1000)) + 1;
-    const waitSeconds = this.exhaustedBy429
-      ? resetWaitSeconds
-      : Math.min(resetWaitSeconds, this.maxLedgerWaitSeconds);
-
-    onWait?.({ reason, totalWaitSeconds: waitSeconds, remainingSeconds: waitSeconds });
-
-    const end = Date.now() + waitSeconds * 1000;
-    await new Promise<void>((resolve) => {
-      let lastBeatAt = Date.now();
-      const tick = () => {
-        if (isCancelled?.() || Date.now() >= end) { resolve(); return; }
-        if (onWait && Date.now() - lastBeatAt >= WAIT_HEARTBEAT_SECONDS * 1000) {
-          lastBeatAt = Date.now();
-          onWait({
-            reason,
-            totalWaitSeconds: waitSeconds,
-            remainingSeconds: Math.max(1, Math.ceil((end - Date.now()) / 1000)),
-          });
-        }
-        setTimeout(tick, Math.min(50, end - Date.now()));
-      };
-      tick();
-    });
+    await this.sleepReporting(
+      Math.min(resetWaitSeconds, this.maxLedgerWaitSeconds),
+      `Local quota ledger below headroom (${this.state.remaining}/${this.state.limit} pts, ${headroomPts} reserved) — re-probing server`,
+      false,
+      isCancelled,
+      onWait,
+      retryNow,
+    );
 
     if (this.state && !isCancelled?.()) {
       const nowAfter = Math.floor(Date.now() / 1000);
@@ -297,7 +355,6 @@ export class RateLimiter {
         // — the next response headers re-learn real quota either way.
         this.state.remaining = this.state.limit;
         this.state.resetAt = nowAfter + this.state.windowSeconds;
-        this.exhaustedBy429 = false;
       }
       this.state.remaining = Math.max(0, this.state.remaining - pointsNeeded);
     }

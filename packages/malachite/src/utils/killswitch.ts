@@ -39,3 +39,15 @@ export function cancelImport() {
 export function isImportCancelled(): boolean {
   return cancelled;
 }
+
+/** An AbortSignal that fires once the killswitch is flipped, for core calls that take one. */
+export function killswitchSignal(): AbortSignal {
+  const controller = new AbortController();
+  const timer = setInterval(() => {
+    if (!cancelled) return;
+    clearInterval(timer);
+    controller.abort(new Error('Operation cancelled by user'));
+  }, 200);
+  timer.unref();
+  return controller.signal;
+}

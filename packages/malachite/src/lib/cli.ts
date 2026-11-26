@@ -30,11 +30,12 @@ import { prompt, confirm, menu, promptWithValidation, validateFilePath, isNonInt
 import { sortRecords } from '../utils/helpers.js';
 import config, { VERSION, RECORD_TYPE, LEGACY_RECORD_TYPE } from '../config.js';
 import { DEFAULT_DEDUP_WINDOW_MS } from '@ewanc26/croft-click-core';
+import { terminalWaitCallbacks } from '../utils/wait-display.js';
 import { fetchExistingRecords, fetchAllRecords, filterNewRecords, displaySyncStats, deduplicateInputRecords, analyzeDuplicates, displayDedupPlan, removeDuplicateRecords } from './sync.js';
 import { analyzeLegacyRecords, displayPolishPlan, migrateLegacyRecords } from './polish.js';
 import { ensureRockskyAccess, crossPostToRocksky, analyzeRockskyDuplicates } from './rocksky.js';
 import { Logger, LogLevel, setGlobalLogger, log } from '../utils/logger.js';
-import { registerKillswitch } from '../utils/killswitch.js';
+import { registerKillswitch, killswitchSignal, isImportCancelled } from '../utils/killswitch.js';
 import { clearCache, clearAllCaches } from '../utils/teal-cache.js';
 import { 
   loadCredentials, 
@@ -903,11 +904,11 @@ export async function runCLI(): Promise<void> {
 
       // 3. Execute the reviewed plan.
       if (plan.totalDuplicates > 0) {
-        const removed = await removeDuplicateRecords(client, plan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${plan.totalDuplicates.toLocaleString()}…`));
+        const removed = await removeDuplicateRecords(client, plan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${plan.totalDuplicates.toLocaleString()}…`), killswitchSignal(), terminalWaitCallbacks());
         log.success(`Removed ${removed.toLocaleString()} duplicate records from Teal.`);
       }
       if (rockskyPlan && rockskyDuplicates > 0) {
-        const removed = await removeDuplicateRecords(client, rockskyPlan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${rockskyDuplicates.toLocaleString()}…`));
+        const removed = await removeDuplicateRecords(client, rockskyPlan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${rockskyDuplicates.toLocaleString()}…`), killswitchSignal(), terminalWaitCallbacks());
         log.success(`Removed ${removed.toLocaleString()} duplicate Rocksky scrobbles.`);
       }
       return;
@@ -1327,6 +1328,7 @@ export async function runCLI(): Promise<void> {
     log.blank();
     if (result.cancelled) {
       log.warn(`Stopped: ${result.successCount.toLocaleString()} processed`);
+      if (importState) log.info('Progress saved. Run the same command again to resume where you left off.');
     } else if (dryRun) {
       const modeLabel = mode === 'combined' ? 'COMBINED' : mode === 'sync' ? 'SYNC' : '';
       log.success(`Dry run complete${modeLabel ? ` (${modeLabel})` : ''}`);
@@ -1371,7 +1373,7 @@ export async function runCLI(): Promise<void> {
     }
   } catch (error) {
     const err = error as Error;
-    if (err.message === 'Operation cancelled by user') {
+    if (err.message === 'Operation cancelled by user' || isImportCancelled()) {
       log.blank();
       log.warn('Operation cancelled by user');
       process.exit(0);

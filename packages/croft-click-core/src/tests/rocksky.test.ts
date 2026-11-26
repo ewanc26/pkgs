@@ -205,9 +205,9 @@ describe('publishRecords with the rocksky target', () => {
     const calls: { repo: string; writes: { collection: string; value: unknown }[] }[] = [];
     const client = {
       assertDid: 'did:plc:test',
-      call: async (_method: unknown, input: (typeof calls)[number]) => {
-        calls.push(input);
-        return { results: input.writes.map(() => ({})) };
+      xrpc: async (_method: unknown, { body }: { body: (typeof calls)[number] }) => {
+        calls.push(body);
+        return { headers: new Headers(), body: { results: body.writes.map(() => ({})) } };
       },
     } as unknown as Client;
 
