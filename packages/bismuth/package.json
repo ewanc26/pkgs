@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/bismuth",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Convert RTF-block documents (site.standard.document) to Markdown",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
@@ -53,7 +53,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ewanc26/self-update": "workspace:*"
+    "@ewanc26/self-update": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

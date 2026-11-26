@@ -39,7 +39,7 @@ importers:
   packages/bismuth:
     dependencies:
       '@ewanc26/self-update':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../self-update
     devDependencies:
       '@types/node':
@@ -223,7 +223,7 @@ importers:
         specifier: workspace:*
         version: link:../croft-click-core
       '@ewanc26/self-update':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../self-update
       '@ewanc26/tid':
         specifier: workspace:*
@@ -370,7 +370,7 @@ importers:
         specifier: workspace:*
         version: link:../croft-click-core
       '@ewanc26/self-update':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../self-update
       '@ewanc26/tid':
         specifier: workspace:*
@@ -542,7 +542,7 @@ importers:
         specifier: workspace:*
         version: link:../croft-click-core
       '@ewanc26/self-update':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../self-update
       '@ewanc26/tid':
         specifier: workspace:*
@@ -972,7 +972,7 @@ importers:
         specifier: latest
         version: 1.5.2(@atproto/lex@0.3.6)
       '@ewanc26/self-update':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../self-update
       dotenv:
         specifier: ^16.0.0

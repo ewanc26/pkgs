@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/self-update",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Update notice and self-update command for the @ewanc26 CLI tools, from npm or GitHub releases",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",

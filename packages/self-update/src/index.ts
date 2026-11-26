@@ -36,6 +36,8 @@ export interface Context {
   error: (line: string) => void;
   newest: (name: string) => Promise<Release | null>;
   npmRoot: () => string | null;
+  /** Real paths of the packages pnpm has installed globally. */
+  pnpmGlobals: () => string[];
   run: (command: string, args: string[]) => number;
   refresh: (name: string) => void;
 }
@@ -55,6 +57,21 @@ function defaults(): Context {
         return realpathSync(execFileSync('npm', ['root', '-g'], { encoding: 'utf8', shell }).trim());
       } catch {
         return null;
+      }
+    },
+    pnpmGlobals: () => {
+      try {
+        const list = execFileSync('pnpm', ['ls', '-g', '--depth=0', '--parseable'], {
+          encoding: 'utf8',
+          shell,
+          stdio: ['ignore', 'pipe', 'ignore'],
+        });
+        return list
+          .split(/\r?\n/)
+          .filter((line) => line && existsSync(line))
+          .map((line) => realpathSync(line));
+      } catch {
+        return [];
       }
     },
     run: (command, args) => spawnSync(command, args, { stdio: 'inherit', shell }).status ?? 1,
@@ -97,7 +114,7 @@ async function selfUpdate(name: string, from: string, ctx: Context): Promise<num
   }
   ctx.log(`${name} ${release.version} is available from ${release.source} (installed: ${version}).`);
   if (checkOnly) return 0;
-  const install = detectInstallation(dir, name, ctx.npmRoot);
+  const install = detectInstallation(dir, name, ctx.npmRoot, ctx.pnpmGlobals);
   if (install.manager === null) {
     ctx.error(`Not updating: ${install.reason}.`);
     return 1;

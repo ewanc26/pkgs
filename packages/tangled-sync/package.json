@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/tangled-sync",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Sync GitHub repos to Tangled with ATProto records",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
@@ -50,7 +50,7 @@
     "@atproto/lex": "^0.3.0",
     "@atproto/lex-password-session": "^0.2.0",
     "@bsky/sdk": "latest",
-    "@ewanc26/self-update": "workspace:*",
+    "@ewanc26/self-update": "workspace:^",
     "dotenv": "^16.0.0"
   },
   "devDependencies": {

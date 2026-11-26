@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/opal-web",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Web frontend for Opal — convert microblog posts from Twitter, Mastodon, Threads, and Nostr to AT Protocol",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
@@ -27,7 +27,7 @@
   },
   "scripts": {
     "dev": "vite dev",
-    "prebuild": "pnpm --filter @ewanc26/tid build && pnpm --filter @ewanc26/opal... build",
+    "prebuild": "pnpm --filter @ewanc26/tid build && pnpm --filter @ewanc26/self-update build && pnpm --filter @ewanc26/opal build",
     "build": "vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
