@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Client } from '@atproto/lex';
 import { PasswordSession } from '@atproto/lex-password-session';
 import { api } from '@bsky/sdk';
