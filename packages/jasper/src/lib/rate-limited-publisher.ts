@@ -3,7 +3,8 @@
  * Integrates Malachite's RateLimiter with Jasper's publishing
  */
 import type { Client } from '@atproto/lex';
-import { RateLimiter, isRateLimitError } from "@ewanc26/croft-click-core";
+import { RateLimiter } from "@ewanc26/croft-click-core";
+import { withRateLimitRetry } from "./pds.js";
 import {
   publishPhoto,
   createGallery,
@@ -47,9 +48,22 @@ export class RateLimitedPublisher {
   private cancelled = false;
 
   constructor(client: Client, dryRun = false, headroom = 0.15) {
-    this.client = client;
     this.dryRun = dryRun;
     this.rateLimiter = new RateLimiter({ headroom });
+    // 429s are waited out and resent inside the client: the publish helpers
+    // report failures as results, so a retry around them would never fire.
+    this.client = withRateLimitRetry(client, this.rateLimiter, {
+      isCancelled: () => this.cancelled,
+      onWait: ({ reason, resumeAt, remainingSeconds, totalWaitSeconds }) => {
+        if (remainingSeconds !== totalWaitSeconds) return;
+        log.warn(`${reason}. Resuming at ${new Date(resumeAt).toLocaleTimeString()} (Ctrl+C to stop; progress is saved).`);
+      },
+    });
+  }
+
+  /** The rate-limit-aware client, for calls made outside this publisher. */
+  getClient(): Client {
+    return this.client;
   }
 
   /**
@@ -103,34 +117,14 @@ export class RateLimitedPublisher {
   ): Promise<PublishResult> {
     await this.waitForQuota(OPERATION_POINTS.PHOTO);
 
-    try {
-      const result = await publishPhoto(
-        this.client,
-        imageData,
-        aspectRatio,
-        createdAt,
-        alt,
-        this.dryRun,
-      );
-
-      return result;
-    } catch (error) {
-      if (isRateLimitError(error)) {
-        log.warn("Rate limit hit, waiting for reset...");
-        this.rateLimiter.handleRateLimitHit();
-        // Wait and retry once
-        await this.waitForQuota(OPERATION_POINTS.PHOTO);
-        return publishPhoto(
-          this.client,
-          imageData,
-          aspectRatio,
-          createdAt,
-          alt,
-          this.dryRun,
-        );
-      }
-      throw error;
-    }
+    return publishPhoto(
+      this.client,
+      imageData,
+      aspectRatio,
+      createdAt,
+      alt,
+      this.dryRun,
+    );
   }
 
   /**
@@ -143,29 +137,13 @@ export class RateLimitedPublisher {
   ): Promise<GalleryResult> {
     await this.waitForQuota(OPERATION_POINTS.GALLERY);
 
-    try {
-      return await createGallery(
-        this.client,
-        title,
-        description,
-        this.dryRun,
-        createdAt,
-      );
-    } catch (error) {
-      if (isRateLimitError(error)) {
-        log.warn("Rate limit hit, waiting for reset...");
-        this.rateLimiter.handleRateLimitHit();
-        await this.waitForQuota(OPERATION_POINTS.GALLERY);
-        return createGallery(
-          this.client,
-          title,
-          description,
-          this.dryRun,
-          createdAt,
-        );
-      }
-      throw error;
-    }
+    return createGallery(
+      this.client,
+      title,
+      description,
+      this.dryRun,
+      createdAt,
+    );
   }
 
   /**
@@ -179,30 +157,13 @@ export class RateLimitedPublisher {
   ): Promise<PublishResult> {
     await this.waitForQuota(OPERATION_POINTS.GALLERY_ITEM);
 
-    try {
-      return await createGalleryItem(
-        this.client,
-        galleryUri,
-        photoUri,
-        position,
-        createdAt,
-        this.dryRun,
-      );
-    } catch (error) {
-      if (isRateLimitError(error)) {
-        log.warn("Rate limit hit, waiting for reset...");
-        this.rateLimiter.handleRateLimitHit();
-        await this.waitForQuota(OPERATION_POINTS.GALLERY_ITEM);
-        return createGalleryItem(
-          this.client,
-          galleryUri,
-          photoUri,
-          position,
-          createdAt,
-          this.dryRun,
-        );
-      }
-      throw error;
-    }
+    return createGalleryItem(
+      this.client,
+      galleryUri,
+      photoUri,
+      position,
+      createdAt,
+      this.dryRun,
+    );
   }
 }

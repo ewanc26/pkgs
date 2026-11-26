@@ -5,6 +5,7 @@
  * Supports batch record creation via com.atproto.repo.applyWrites
  * for efficient bulk imports (avoids per-record rate limit costs).
  */
+import { uploadBlob } from "./pds.js";
 import type { Client } from '@atproto/lex';
 import { generateTID } from "@ewanc26/tid";
 import type { ParsedPost } from "../core/types.js";
@@ -68,31 +69,6 @@ export interface GalleryItemInput {
  * Maximum writes in a single applyWrites call (AT Protocol hard limit)
  */
 const APPLY_WRITES_MAX = 200;
-
-async function uploadBlob(
-  client: Client,
-  imageData: Uint8Array,
-  mimeType: string,
-): Promise<{ cid: string; mimeType: string }> {
-  const form = new FormData();
-  form.append('file', new Blob([imageData as any], { type: mimeType }));
-
-  const res = await fetch(`${(client as any).service || 'https://bsky.social'}/xrpc/com.atproto.repo.uploadBlob`, {
-    method: 'POST',
-    headers: (client as any).session?.accessJwt ? { Authorization: `Bearer ${(client as any).session.accessJwt}` } : undefined,
-    body: form,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Blob upload failed: ${res.status}`);
-  }
-
-  const data = await res.json() as { blob: { $type: 'blob'; ref: { $link: string }; mimeType: string; size: number } };
-  return {
-    cid: data.blob.ref.toString(),
-    mimeType: data.blob.mimeType,
-  };
-}
 
 /**
  * Publish a single photo to Grain

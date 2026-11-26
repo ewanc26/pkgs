@@ -319,7 +319,7 @@ async function runImport(options: {
 
   // Authenticate
   log.progress("Authenticating...");
-  const agent = await authenticate(options.handle, options.password);
+  let agent = await authenticate(options.handle, options.password);
 
   if (!agent.did) {
     log.error("Authentication failed");
@@ -348,6 +348,8 @@ async function runImport(options: {
 
   // Create rate-limited publisher
   const publisher = new RateLimitedPublisher(agent, options.dryRun);
+  // Spark posts are written straight through the client, so it waits too.
+  agent = publisher.getClient();
 
   // Create import state if new
   if (!importState) {

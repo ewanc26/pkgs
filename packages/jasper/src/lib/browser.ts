@@ -3,6 +3,8 @@
  * Used by jasper-web to run the import pipeline in-browser
  */
 
+import { withRateLimitRetry, type RateLimitHooks } from "./pds.js";
+export type { RateLimitHooks } from "./pds.js";
 import {
   BlobReader,
   BlobWriter,
@@ -557,58 +559,6 @@ async function getImageDimensionsFromBlob(
 }
 
 /**
-  * Wrap an ATProto Client to capture rate-limit headers from all XRPC responses.
- * The proxy intercepts method calls on the client (uploadBlob, com.atproto.repo.*, etc.)
- * and feeds response headers into a RateLimiter for server-driven burst protection.
- */
-function withRateLimitCapture(client: Client, rateLimiter: RateLimiter): Client {
-  const wrapPromise = (p: Promise<unknown>): Promise<unknown> =>
-    p.then(
-      (res) => {
-        const r = res as Record<string, unknown>;
-        if (r.headers && typeof r.headers === "object") {
-          rateLimiter.updateFromHeaders(r.headers as Record<string, string>);
-        }
-        return res;
-      },
-      (err) => {
-        const e = err as Record<string, unknown>;
-        if (e.status === 429) {
-          rateLimiter.handleRateLimitHit(
-            e.headers as Record<string, string> | undefined,
-          );
-        } else if (e.headers && typeof e.headers === "object") {
-          rateLimiter.updateFromHeaders(e.headers as Record<string, string>);
-        }
-        throw err;
-      },
-    );
-
-  const handler: ProxyHandler<object> = {
-    get(target, prop, receiver) {
-      const value = Reflect.get(target, prop, receiver);
-
-      if (typeof value === "function") {
-        return new Proxy(value, {
-          apply(fn, _thisArg, args) {
-            const result = Reflect.apply(fn, target, args);
-            return result instanceof Promise ? wrapPromise(result) : result;
-          },
-        });
-      }
-
-      if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-        return new Proxy(value, handler);
-      }
-
-      return value;
-    },
-  };
-
-  return new Proxy(client, handler) as Client;
-}
-
-/**
  * Run the full import process in browser
  * Creates one Grain gallery per Instagram post, unless a gallery URI is given
  * for the legacy single-gallery behaviour. Supports batch limiting, state
@@ -628,6 +578,7 @@ export async function runImport(
   target: Target = "grain",
   reverseOrder: boolean = false,
   totalLimit?: number,
+  hooks: RateLimitHooks = {},
 ): Promise<{
   success: number;
   errors: number;
@@ -645,7 +596,15 @@ export async function runImport(
     : log;
 
   const rateLimiter = new RateLimiter();
-  client = withRateLimitCapture(client, rateLimiter);
+  client = withRateLimitRetry(client, rateLimiter, {
+    ...hooks,
+    onWait: (info) => {
+      if (info.remainingSeconds === info.totalWaitSeconds) {
+        logger.warn(`${info.reason}. Resuming at ${new Date(info.resumeAt).toLocaleTimeString()}.`);
+      }
+      hooks.onWait?.(info);
+    },
+  });
 
   try {
     logger.info("Parsing Instagram export...");
@@ -819,6 +778,10 @@ export async function runImport(
     };
 
     for (let i = 0; i < postsToProcess.length; i++) {
+      if (hooks.isCancelled?.()) {
+        logger.warn("Import stopped. Progress saved.");
+        break;
+      }
       const post = postsToProcess[i];
       const timestamp = post.createdAt.toISOString();
 
@@ -916,7 +879,7 @@ export async function runImport(
       onProgress?.(i + 1, postsToProcess.length);
 
       // Wait for rate-limit permit before publishing to ATProto
-      await rateLimiter.waitForPermit(1);
+      await rateLimiter.waitForPermit(1, hooks.isCancelled, hooks.onWait, hooks.retryNow);
 
       // Photos for this post only, so a gallery can be created before they
       // enter the shared applyWrites batch.
