@@ -360,9 +360,6 @@ export async function publishRecords(
         const e = err as any;
         const batchDuration = Date.now() - batchStartTime;
 
-        // Record failure metrics
-        calculator.recordFailure(batch.length, batchDuration);
-
         if (ac.signal.aborted || isCancelled()) {
           return { successCount, errorCount, cancelled: true };
         }
@@ -372,6 +369,8 @@ export async function publishRecords(
           batchCounter--; // the retry is the same batch, not a new one
           continue; // the top of the loop sits out the block, then retries
         }
+        // Only real failures shrink the batch; a 429 says nothing about its size.
+        calculator.recordFailure(batch.length, batchDuration);
         rl.refund(batchPoints); // batch failed before actually costing any quota
         errorCount += batch.length;
         onLog('error', `Batch ${batchCounter} failed: ${e?.message ?? e}`);

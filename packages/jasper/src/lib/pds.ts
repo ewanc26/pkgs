@@ -47,7 +47,9 @@ export function withRateLimitRetry(
     while (true) {
       const waited = limiter.isBlocked();
       await limiter.waitOutBlock(hooks.isCancelled, hooks.onWait, hooks.retryNow);
-      if (hooks.isCancelled?.()) throw new Error('Import cancelled');
+      // A stop only abandons requests the server is refusing. Others still go,
+      // so a post already half written (its gallery made) gets finished.
+      if (hooks.isCancelled?.() && limiter.isBlocked()) throw new Error('Import cancelled');
       if (waited) hooks.onResume?.();
       try {
         const response: any = await (client as any).xrpc(...args);
