@@ -81,6 +81,18 @@ describe('RateLimiter', () => {
     forget();
   });
 
+  it('waits only as long as the server asked, with nothing stacked on top', async () => {
+    forget();
+    const rl = new RateLimiter();
+    rl.updateFromHeaders(new Headers({ 'ratelimit-limit': '5000', 'ratelimit-remaining': '4000', 'ratelimit-reset': '2' }));
+    rl.handleRateLimitHit(new Headers({ 'retry-after': '2' }));
+    const start = Date.now();
+    assert.strictEqual(await rl.waitForPermit(3), true);
+    const elapsed = Date.now() - start;
+    assert.ok(elapsed >= 1500 && elapsed < 5000, `waited ${elapsed}ms`);
+    forget();
+  });
+
   it('gives up waiting when the import is cancelled, keeping the block', async () => {
     forget();
     const rl = new RateLimiter({ isCancelled: () => true });
