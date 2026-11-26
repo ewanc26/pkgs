@@ -74,9 +74,15 @@ test('GitHub releases that cannot be trusted or installed are ignored', async ()
 
 test('only global installs are updated', () => {
   const root = () => '/usr/lib/node_modules';
-  const manager = (dir: string) => detectInstallation(dir, NAME, root).manager;
+  const pnpm10 = `/home/a/.local/share/pnpm/global/5/.pnpm/@ewanc26+opal@0.4.0/node_modules/${NAME}`;
+  const pnpm12 = `/home/a/Library/pnpm/store/v11/links/${NAME}/0.4.0/abc/node_modules/${NAME}`;
+  const globals = () => [pnpm10, pnpm12];
+  const manager = (dir: string) => detectInstallation(dir, NAME, root, globals).manager;
   assert.equal(manager(`/usr/lib/node_modules/${NAME}`), 'npm');
-  assert.equal(manager(`/home/a/.local/share/pnpm/global/5/node_modules/${NAME}`), 'pnpm');
+  assert.equal(manager(pnpm10), 'pnpm');
+  assert.equal(manager(pnpm12), 'pnpm');
+  // A project's copy in the same store is not one pnpm lists as global.
+  assert.equal(manager(pnpm12.replace('/abc/', '/def/')), null);
   assert.equal(manager(`/home/a/.bun/install/global/node_modules/${NAME}`), 'bun');
   assert.equal(manager('/home/a/git/pkgs/packages/opal'), null);
   assert.equal(manager(`/home/a/.npm/_npx/abc/node_modules/${NAME}`), null);
@@ -101,6 +107,7 @@ function context(argv: string[], npmRoot: string) {
       error: (l: string) => out.push(l),
       newest: async () => release,
       npmRoot: () => npmRoot,
+      pnpmGlobals: () => [] as string[],
       run: (c: string, a: string[]) => (ran.push([c, ...a].join(' ')), 0),
       refresh: (n: string) => refreshed.push(n),
     },
@@ -112,6 +119,14 @@ test('self-update installs a newer release through npm', async () => {
   const c = context(['self-update'], join(temp, 'global', 'node_modules'));
   assert.equal(await handleSelfUpdate({ packageName: NAME, from }, c.overrides), 0);
   assert.deepEqual(c.ran, [`npm install -g ${NAME}@0.4.0`]);
+});
+
+test('self-update installs through pnpm when pnpm lists the package as global', async () => {
+  const { dir, from } = installed('0.3.1', 'store', 'links', 'abc', 'node_modules');
+  const c = context(['self-update'], '/nowhere');
+  const overrides = { ...c.overrides, pnpmGlobals: () => [dir] };
+  assert.equal(await handleSelfUpdate({ packageName: NAME, from }, overrides), 0);
+  assert.deepEqual(c.ran, [`pnpm add -g ${NAME}@0.4.0`]);
 });
 
 test('--check and a current version install nothing', async () => {

@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/jasper",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Convert Instagram data exports into posts, stories, and videos on Grain or Spark",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
@@ -58,7 +58,7 @@
     "@atproto/oauth-client-node": "^0.3.16",
     "@bsky/sdk": "latest",
     "@ewanc26/croft-click-core": "workspace:*",
-    "@ewanc26/self-update": "workspace:*",
+    "@ewanc26/self-update": "workspace:^",
     "@ewanc26/tid": "workspace:*",
     "@zip.js/zip.js": "^2.7.57",
     "chalk": "^5.6.2",

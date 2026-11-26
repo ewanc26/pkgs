@@ -1,6 +1,6 @@
 {
   "name": "@ewanc26/malachite",
-  "version": "0.22.0",
+  "version": "0.22.1",
   "description": "Import your music listening history to AT Protocol from Last.fm, Spotify, Apple Music, YouTube Music, or ListenBrainz, with deduplication and rate limiting",
   "author": "Ewan Croft",
   "license": "AGPL-3.0-only",
@@ -78,7 +78,7 @@
     "@atproto/oauth-client-node": "^0.3.16",
     "@bsky/sdk": "latest",
     "@ewanc26/croft-click-core": "workspace:*",
-    "@ewanc26/self-update": "workspace:*",
+    "@ewanc26/self-update": "workspace:^",
     "@ewanc26/tid": "workspace:*",
     "@ipld/car": "^5.3.2",
     "@ipld/dag-cbor": "^9.2.2",
