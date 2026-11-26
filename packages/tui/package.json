@@ -32,6 +32,10 @@
     "./detect": {
       "types": "./dist/detect.d.ts",
       "import": "./dist/detect.js"
+    },
+    "./session": {
+      "types": "./dist/session.d.ts",
+      "import": "./dist/session.js"
     }
   },
   "main": "./dist/index.js",

@@ -228,6 +228,9 @@ importers:
       '@ewanc26/tid':
         specifier: workspace:*
         version: link:../tid
+      '@ewanc26/tui':
+        specifier: workspace:^
+        version: link:../tui
       '@zip.js/zip.js':
         specifier: ^2.7.57
         version: 2.8.26

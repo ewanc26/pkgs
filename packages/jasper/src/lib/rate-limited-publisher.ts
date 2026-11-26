@@ -5,6 +5,7 @@
 import type { Client } from '@atproto/lex';
 import { RateLimiter } from "@ewanc26/croft-click-core";
 import { withRateLimitRetry } from "./pds.js";
+import { getTui, waitCallbacks } from "../utils/tui.js";
 import {
   publishPhoto,
   createGallery,
@@ -46,19 +47,28 @@ export class RateLimitedPublisher {
   private client: Client;
   private dryRun: boolean;
   private cancelled = false;
+  private retryNow: () => boolean;
+  private onWait: ReturnType<typeof waitCallbacks>["onWait"];
 
   constructor(client: Client, dryRun = false, headroom = 0.15) {
     this.dryRun = dryRun;
     this.rateLimiter = new RateLimiter({ headroom });
     // 429s are waited out and resent inside the client: the publish helpers
     // report failures as results, so a retry around them would never fire.
+    const countdown = waitCallbacks(() => this.cancelled);
     this.client = withRateLimitRetry(client, this.rateLimiter, {
       isCancelled: () => this.cancelled,
-      onWait: ({ reason, resumeAt, remainingSeconds, totalWaitSeconds }) => {
-        if (remainingSeconds !== totalWaitSeconds) return;
-        log.warn(`${reason}. Resuming at ${new Date(resumeAt).toLocaleTimeString()} (Ctrl+C to stop; progress is saved).`);
+      retryNow: countdown.retryNow,
+      onWait: (info) => {
+        if (info.remainingSeconds === info.totalWaitSeconds) {
+          const hint = getTui() ? "" : " (Ctrl+C to stop; progress is saved)";
+          log.warn(`${info.reason}. Resuming at ${new Date(info.resumeAt).toLocaleTimeString()}${hint}.`);
+        }
+        countdown.onWait(info);
       },
     });
+    this.retryNow = countdown.retryNow;
+    this.onWait = countdown.onWait;
   }
 
   /** The rate-limit-aware client, for calls made outside this publisher. */
@@ -103,7 +113,12 @@ export class RateLimitedPublisher {
    * Wait for quota before an operation
    */
   private async waitForQuota(points: number): Promise<void> {
-    await this.rateLimiter.waitForPermit(points, () => this.cancelled);
+    await this.rateLimiter.waitForPermit(
+      points,
+      () => this.cancelled,
+      this.onWait,
+      this.retryNow,
+    );
   }
 
   /**

@@ -15,6 +15,14 @@ import chalk from "chalk";
 import { log, setGlobalLogger, Logger } from "./utils/logger.js";
 import * as ui from "./utils/ui.js";
 import {
+  getTui,
+  startTui,
+  stopTui,
+  exit,
+  onStopRequest,
+  stopRequested,
+} from "./utils/tui.js";
+import {
   prompt,
   promptWithValidation,
   validateFilePath,
@@ -149,7 +157,7 @@ async function runInteractive(): Promise<void> {
     }
     case 4:
       log.info("Goodbye!");
-      process.exit(0);
+      return exit(0);
   }
 }
 
@@ -182,7 +190,7 @@ async function runImport(options: {
   const absolutePath = path.resolve(options.input);
   if (!fs.existsSync(absolutePath)) {
     log.error(`Path does not exist: ${absolutePath}`);
-    process.exit(1);
+    return exit(1);
   }
 
   // Check for existing import state
@@ -193,7 +201,7 @@ async function runImport(options: {
     if (!importState) {
       log.error("No saved import state found for this export.");
       log.info("Start a new import without --resume first.");
-      process.exit(1);
+      return exit(1);
     }
 
     // Verify export hasn't changed
@@ -202,7 +210,7 @@ async function runImport(options: {
     if (!hashValid) {
       log.error("Export file has changed since last import session.");
       log.info("Start a new import to reset the state.");
-      process.exit(1);
+      return exit(1);
     }
     ui.succeedSpinner("Export verified");
     log.blank();
@@ -334,7 +342,7 @@ async function runImport(options: {
 
   if (!agent.did) {
     log.error("Authentication failed");
-    process.exit(1);
+    return exit(1);
   }
 
   ui.succeedSpinner("Logged in");
@@ -396,6 +404,8 @@ async function runImport(options: {
     status: "imported" | "skipped" | "failed",
   ) => {
     if (!importState) return;
+    // Stopping mid-request is not a failure: leave the post for the resume.
+    if (status === "failed" && stopRequested()) return;
 
     const timestamp = post.createdAt.toISOString();
     if (status === "imported") {
@@ -414,7 +424,12 @@ async function runImport(options: {
     }
   };
 
+  // Under the interface, Ctrl+C finishes the current post and saves.
+  onStopRequest(() => publisher.cancel());
+
   for (let i = 0; i < postsToImport; i++) {
+    if (stopRequested()) break;
+    getTui()?.progress({ label: "Importing", done: i, total: postsToImport });
     const post = posts[i];
     const timestamp = post.createdAt.toISOString();
 
@@ -731,6 +746,11 @@ async function runImport(options: {
     }
   }
 
+  const stopped = stopRequested();
+  onStopRequest(null);
+  ui.stopSpinner();
+  getTui()?.progress(null);
+
   // Final state save
   if (importState) {
     await saveImportState(importState);
@@ -738,13 +758,14 @@ async function runImport(options: {
 
   // Summary
   log.blank();
-  ui.header("Import Complete");
+  ui.header(stopped ? "Import Stopped" : "Import Complete");
+  if (stopped) log.info("Progress saved. Run `jasper --resume` to continue.");
   log.info(`Total: ${postsToImport}`);
   log.success(`Imported: ${imported}`);
   if (skipped > 0) log.info(`Skipped (duplicates/videos): ${skipped}`);
   if (failed > 0) log.error(`Failed: ${failed}`);
 
-  if (!options.dryRun && imported > 0) {
+  if (!options.dryRun && imported > 0 && !stopped) {
     try {
       await agent.call(com.atproto.repo.createRecord, {
         repo: agent.assertDid!,
@@ -779,15 +800,18 @@ async function runImport(options: {
  */
 export async function main(): Promise<void> {
   const updateExit = await handleSelfUpdate({ packageName: "@ewanc26/jasper", from: import.meta.url });
-  if (updateExit !== null) process.exit(updateExit);
+  if (updateExit !== null) return exit(updateExit);
 
   const args = parseCliArgs(process.argv.slice(2));
 
   // Handle help and version
   if (args.help) {
     printHelp();
-    process.exit(0);
+    return exit(0);
   }
+
+  // A person at a terminal gets the full interface.
+  await startTui();
 
   // Set up logging
   const logger = new Logger(getLogLevelFromArgs(args));
@@ -854,7 +878,7 @@ export async function main(): Promise<void> {
     if (states.length === 0) {
       log.error("No pending import sessions to resume.");
       log.info("Start a new import with: jasper -i <export>");
-      process.exit(1);
+      return exit(1);
     }
 
     if (states.length === 1) {
@@ -893,19 +917,19 @@ export async function main(): Promise<void> {
         log.error(
           `Invalid --session ${args.session}. There are ${states.length} pending session(s) (1-${states.length}).`,
         );
-        process.exit(1);
+        return exit(1);
       }
     } else if (isNonInteractive()) {
       log.error(
         `Multiple pending import sessions found (${states.length}). --session <n> is required to pick one in non-interactive mode (see the list above).`,
       );
-      process.exit(1);
+      return exit(1);
     } else {
       const choice = await prompt("Which import to resume? (number): ");
       index = parseInt(choice, 10) - 1;
       if (index < 0 || index >= states.length) {
         log.error("Invalid selection");
-        process.exit(1);
+        return exit(1);
       }
     }
 
@@ -931,7 +955,7 @@ export async function main(): Promise<void> {
     const error = validateImportOptions(options);
     if (error) {
       log.error(error);
-      process.exit(1);
+      return exit(1);
     }
 
     await runImport({
@@ -954,7 +978,7 @@ export async function main(): Promise<void> {
       "Provide -i/--input <path>, or one of --oauth-login / --list-sessions / --resume.",
     );
     log.error("Run `jasper --help` for full usage.");
-    process.exit(1);
+    return exit(1);
   }
 
   // No input provided — run interactive mode
@@ -962,7 +986,9 @@ export async function main(): Promise<void> {
 }
 
 // Run CLI
-main().catch((error) => {
-  log.fatal(error.message);
-  process.exit(1);
-});
+main()
+  .then(stopTui)
+  .catch(async (error) => {
+    log.fatal(error.message);
+    return exit(1);
+  });
