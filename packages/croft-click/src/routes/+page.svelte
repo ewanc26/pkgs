@@ -16,6 +16,8 @@
 <main>
 	<Hero />
 
+	<SupportBand />
+
 	<div class="cards-row">
 		<StatsCard />
 		<ToolkitStatsCard />
@@ -42,8 +44,6 @@
 	</section>
 
 	<PairingGraph />
-
-	<SupportBand />
 
 	<Footer />
 </main>
