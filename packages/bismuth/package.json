@@ -52,6 +52,9 @@
     "test": "pnpm run build && node --test dist/tests/bismuth.test.js",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "@ewanc26/self-update": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^25.5.0",
     "tsup": "^8.5.1",

@@ -59,6 +59,7 @@
     "@atproto/oauth-client-node": "^0.3.16",
     "@bsky/sdk": "latest",
     "@ewanc26/croft-click-core": "workspace:*",
+    "@ewanc26/self-update": "workspace:*",
     "@ewanc26/tid": "workspace:*",
     "chalk": "^5.6.2",
     "cli-progress": "^3.12.0",

@@ -2,6 +2,7 @@ import { Client } from '@atproto/lex';
 import { PasswordSession } from '@atproto/lex-password-session';
 import { api } from '@bsky/sdk';
 import { com } from '@bsky/sdk/lexicons';
+import { handleSelfUpdate } from '@ewanc26/self-update';
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
@@ -232,6 +233,9 @@ Mirrored on Tangled: https://tangled.org/${atprotoDid}/${repoName}
 }
 
 async function main() {
+  const updateExit = await handleSelfUpdate({ packageName: '@ewanc26/tangled-sync', from: import.meta.url });
+  if (updateExit !== null) process.exit(updateExit);
+
   console.log("[STARTUP] Starting Tangled Sync...");
   if (FORCE_SYNC) {
     console.log("[MODE] Force sync enabled - will process all repos");

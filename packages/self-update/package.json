@@ -1,0 +1,49 @@
+{
+  "name": "@ewanc26/self-update",
+  "version": "0.1.0",
+  "description": "Update notice and self-update command for the @ewanc26 CLI tools, from npm or GitHub releases",
+  "author": "Ewan Croft",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewanc26/pkgs.git",
+    "directory": "packages/self-update"
+  },
+  "homepage": "https://github.com/ewanc26/pkgs/tree/main/packages/self-update",
+  "bugs": {
+    "url": "https://github.com/ewanc26/pkgs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "!dist/tests",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepare": "pnpm run build",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "test": "tsc && node --test dist/tests/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3"
+  }
+}
