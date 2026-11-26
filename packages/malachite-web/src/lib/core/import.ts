@@ -31,7 +31,7 @@ import {
   removeDuplicateRecords,
   type ExistingRecord,
 } from '@ewanc26/croft-click-core';
-import { publishRecords, type PublishProgress } from '@ewanc26/croft-click-core';
+import { publishRecords, type PublishProgress, type PermitWaitInfo } from '@ewanc26/croft-click-core';
 import { analyzeLegacyRecords, migrateLegacyRecords } from '@ewanc26/croft-click-core';
 import {
   canWriteRocksky,
@@ -43,7 +43,7 @@ import {
 } from '@ewanc26/croft-click-core';
 import { com } from '@bsky/sdk/lexicons'
 
-export type { PublishProgress };
+export type { PublishProgress, PermitWaitInfo };
 
 import { loadRecordsCache, saveRecordsCache, clearRecordsCache } from './web-cache.js';
 
@@ -79,6 +79,10 @@ export interface ImportCallbacks {
   onLog: (level: LogEntry['level'], message: string) => void;
   onProgress: (p: PublishProgress) => void;
   isCancelled: () => boolean;
+  /** The current quota wait, or null once writing again. */
+  onWaiting: (wait: PermitWaitInfo | null) => void;
+  /** Polled during a quota wait; true once ends it and retries. */
+  retryNow: () => boolean;
 }
 
 /**
@@ -166,7 +170,7 @@ async function crossPostToRocksky(
   plays: PlayRecord[],
   dryRun: boolean,
   dangerZone: boolean,
-  { onLog, isCancelled }: ImportCallbacks,
+  { onLog, isCancelled, onWaiting, retryNow }: ImportCallbacks,
   signal: AbortSignal
 ): Promise<ImportResult> {
   onLog('section', '── Rocksky ──────────────────────────────────────────');
@@ -195,9 +199,10 @@ async function crossPostToRocksky(
   const res = await publishRecords(client, plan.toPublish, dryRun, {
     // The page saves onProgress counts as the teal import's resume offset, so
     // rocksky progress must not reach it. Per-batch log lines still show it.
-    onProgress: () => {},
+    onProgress: (p) => onWaiting(p.waiting ?? null),
     onLog: (level, msg) => onLog(level as LogEntry['level'], msg),
     isCancelled,
+    retryNow,
   }, 'rocksky', dangerZone, false, ROCKSKY_PUBLISH_TARGET);
   if (!dryRun && !res.cancelled) {
     onLog('success', `Cross-posted ${res.successCount.toLocaleString()} scrobble(s) to Rocksky`);
@@ -227,7 +232,7 @@ export async function runImport(
   /** Number of records to skip when resuming a previous import. */
   startIndex = 0,
 ): Promise<ImportResult> {
-  const { onLog, onProgress, isCancelled } = callbacks;
+  const { onLog, onProgress, isCancelled, onWaiting, retryNow } = callbacks;
   // Single AbortController for every network call in this run.
   const ac = new AbortController();
   const poll = setInterval(() => { if (isCancelled()) ac.abort(); }, 50);
@@ -297,8 +302,12 @@ export async function runImport(
         removed += await removeDuplicateRecords(
           client,
           p,
-          (n) => onLog('progress', `  Removed ${done + n}/${totalDups}…`),
+          (n) => {
+            onWaiting(null);
+            onLog('progress', `  Removed ${done + n}/${totalDups}…`);
+          },
           sig,
+          { onWait: onWaiting, retryNow },
         );
       }
       onLog('success', `Removed ${removed.toLocaleString()} duplicate(s)`);
@@ -332,8 +341,12 @@ export async function runImport(
 
       onLog('warn', 'Migrating — legacy copies are only removed after a successful backfill.');
       const polishRes = await migrateLegacyRecords(client, plan, {
-        onProgress: (phase, done, total) =>
-          onLog('progress', `  ${phase === 'backfill' ? 'Backfilled' : 'Removed'} ${done}/${total}…`),
+        onProgress: (phase, done, total) => {
+          onWaiting(null);
+          onLog('progress', `  ${phase === 'backfill' ? 'Backfilled' : 'Removed'} ${done}/${total}…`);
+        },
+        onWait: onWaiting,
+        retryNow,
         signal: sig,
       });
 
@@ -539,9 +552,10 @@ export async function runImport(
     onLog('warn', 'Do not close this tab while publishing.');
     let lastProgress: PublishProgress | null = null;
     const res = await publishRecords(client, records, dryRun, {
-      onProgress: (p) => { lastProgress = p; onProgress(p); },
+      onProgress: (p) => { lastProgress = p; onWaiting(p.waiting ?? null); onProgress(p); },
       onLog: (level, msg) => onLog(level as LogEntry['level'], msg),
       isCancelled,
+      retryNow,
     }, 'publish', dangerZone ?? false);
 
     // The page saves progress as the resume offset, and the last update it saw

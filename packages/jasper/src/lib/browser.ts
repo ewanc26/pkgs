@@ -501,7 +501,9 @@ export async function organizeOrphanPhotos(
   dryRun = false,
   onProgress?: (current: number, total: number) => void,
   onLog?: (level: string, message: string) => void,
+  hooks: RateLimitHooks = {},
 ): Promise<{ success: number; errors: number }> {
+  client = withRateLimitRetry(client, new RateLimiter(), hooks);
   const logger = onLog
     ? {
         info: (msg: string) => onLog("info", msg),
@@ -515,6 +517,7 @@ export async function organizeOrphanPhotos(
   let errors = 0;
 
   for (let i = 0; i < orphanUris.length; i++) {
+    if (hooks.isCancelled?.()) break;
     const photoUri = orphanUris[i];
     onProgress?.(i + 1, orphanUris.length);
 
@@ -759,6 +762,8 @@ export async function runImport(
       status: "imported" | "skipped" | "failed",
     ) => {
       if (!state) return;
+      // Stopping mid-request is not a failure: leave the item for the resume.
+      if (status === "failed" && hooks.isCancelled?.()) return;
 
       if (status === "imported") {
         state.importedTimestamps.push(timestamp);
@@ -880,6 +885,8 @@ export async function runImport(
 
       // Wait for rate-limit permit before publishing to ATProto
       await rateLimiter.waitForPermit(1, hooks.isCancelled, hooks.onWait, hooks.retryNow);
+      hooks.onResume?.();
+      if (hooks.isCancelled?.()) break;
 
       // Photos for this post only, so a gallery can be created before they
       // enter the shared applyWrites batch.
@@ -1160,7 +1167,7 @@ export async function runImport(
       onStateUpdate?.(state);
     }
 
-    if (!dryRun && photosImported > 0) {
+    if (!dryRun && photosImported > 0 && !hooks.isCancelled?.()) {
       try {
         await client.call(com.atproto.repo.createRecord, {
           repo: client.assertDid!,

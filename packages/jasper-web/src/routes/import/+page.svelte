@@ -21,7 +21,13 @@
 		type Target
 	} from '@ewanc26/jasper/browser';
 	import logo from '$lib/assets/favicon.svg';
-	import { SupportSection } from '@ewanc26/landing-ui';
+	import {
+		SupportSection,
+		WaitBanner,
+		createRetryFlag,
+		guardRun,
+		type QuotaWait
+	} from '@ewanc26/landing-ui';
 	import { ZipWriter, BlobWriter, BlobReader } from '@zip.js/zip.js';
 	import {
 		Upload,
@@ -79,6 +85,36 @@
 	let isRunning = $state(false);
 	let logs = $state<{ level: string; message: string }[]>([]);
 	let progress = $state<{ current: number; total: number } | null>(null);
+	let waiting = $state<QuotaWait | null>(null);
+	let stopping = $state(false);
+	// Plain variable: polled synchronously by the importer.
+	let cancelled = false;
+	const retry = createRetryFlag();
+
+	$effect(() => {
+		if (isRunning) return guardRun();
+	});
+
+	function startRun() {
+		isRunning = true;
+		cancelled = false;
+		stopping = false;
+		waiting = null;
+		retry.clear();
+	}
+
+	function stopRun() {
+		cancelled = true;
+		stopping = true;
+		waiting = null;
+	}
+
+	const runHooks = {
+		isCancelled: () => cancelled,
+		onWait: (wait: QuotaWait) => (waiting = wait),
+		onResume: () => (waiting = null),
+		retryNow: retry.consume
+	};
 	let result = $state<{
 		success: number;
 		errors: number;
@@ -165,7 +201,7 @@
 
 	async function handleStartImport() {
 		if (!agent || !file) return;
-		isRunning = true;
+		startRun();
 		logs = [];
 		result = null;
 		goTo(3);
@@ -195,7 +231,8 @@
 				},
 				target,
 				reverseOrder,
-				totalLimit ?? undefined
+				totalLimit ?? undefined,
+				runHooks
 			);
 
 			result = {
@@ -211,7 +248,9 @@
 				savedState = importResult.state;
 			}
 
-			if (importResult.dailyLimitReached) {
+			if (cancelled) {
+				logs = [...logs, { level: 'warn', message: 'Import stopped. Progress saved.' }];
+			} else if (importResult.dailyLimitReached) {
 				logs = [...logs, { level: 'warn', message: 'Daily limit reached. Progress saved.' }];
 			} else {
 				logs = [
@@ -230,7 +269,7 @@
 
 	async function handleOrganizeOrphans() {
 		if (!agent || !orphanGalleryUri || orphans.length === 0) return;
-		isRunning = true;
+		startRun();
 		logs = [];
 		result = null;
 		goTo(5);
@@ -246,13 +285,16 @@
 				},
 				(level, message) => {
 					logs = [...logs, { level, message }];
-				}
+				},
+				runHooks
 			);
 
 			result = { success: orgResult.success, errors: orgResult.errors };
 			logs = [
 				...logs,
-				{ level: 'success', message: dryRun ? 'Dry run complete' : 'Orphans organized' }
+				cancelled
+					? { level: 'warn', message: 'Stopped.' }
+					: { level: 'success', message: dryRun ? 'Dry run complete' : 'Orphans organized' }
 			];
 		} catch (error) {
 			logs = [...logs, { level: 'error', message: `Organization failed: ${error}` }];
@@ -695,6 +737,15 @@
 							</div>
 						{/if}
 
+						{#if isRunning}
+							{#if waiting}
+								<WaitBanner {waiting} onretry={retry.request} />
+							{/if}
+							<button class="btn-secondary" disabled={stopping} onclick={stopRun}>
+								{stopping ? 'Stopping…' : 'Stop'}
+							</button>
+						{/if}
+
 						<div class="logs">
 							{#each logs as log}
 								<p class="log-{log.level}">{log.message}</p>
@@ -816,6 +867,15 @@
 									>
 								{/if}
 							</div>
+						{/if}
+
+						{#if isRunning}
+							{#if waiting}
+								<WaitBanner {waiting} onretry={retry.request} />
+							{/if}
+							<button class="btn-secondary" disabled={stopping} onclick={stopRun}>
+								{stopping ? 'Stopping…' : 'Stop'}
+							</button>
 						{/if}
 
 						<div class="logs">

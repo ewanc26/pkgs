@@ -3,11 +3,11 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import type { Client } from '@atproto/lex';
-	import type { Platform, MicroblogPost, ConvertResult } from '@ewanc26/opal';
+	import type { Platform, MicroblogPost, ConvertResult, PublishProgress } from '@ewanc26/opal';
 	import { initOAuth, signInWithOAuth } from '$lib/core/oauth.js';
 	import { parseExport, runImport } from '$lib/core/import.js';
 	import { ArrowLeft, ExternalLink } from '@lucide/svelte';
-	import { SupportSection } from '@ewanc26/landing-ui';
+	import { SupportSection, WaitBanner, createRetryFlag, guardRun } from '@ewanc26/landing-ui';
 
 	// ─── persistence keys ────────────────────────────────────────────────────────
 
@@ -33,7 +33,12 @@
 	let cancelled = false;
 	let stopping = $state(false);
 	let logs = $state<{ level: string; message: string; timestamp: number }[]>([]);
-	let progress = $state<{ recordsProcessed: number; totalRecords: number; successCount: number; errorCount: number; message: string } | null>(null);
+	let progress = $state<PublishProgress | null>(null);
+	const retry = createRetryFlag();
+
+	$effect(() => {
+		if (isRunning) return guardRun();
+	});
 	let importError = $state<string | null>(null);
 	let authError = $state<string | null>(null);
 
@@ -122,7 +127,9 @@
 		cancelled = false;
 		stopping = false;
 		logs = [];
+		progress = null;
 		importError = null;
+		retry.clear();
 		goTo(4);
 
 		const postsToImport = convertResult.posts.filter((_, i) => selectedPosts.has(i));
@@ -136,6 +143,7 @@
 					onLog: addLog,
 					onProgress: (p) => { progress = p; },
 					isCancelled: () => cancelled,
+					retryNow: retry.consume,
 				},
 			);
 
@@ -363,6 +371,9 @@
 								></div>
 							</div>
 							<p class="progress-text">{progress.recordsProcessed} / {progress.totalRecords}</p>
+						{/if}
+						{#if isRunning && !stopping && progress?.waiting}
+							<WaitBanner waiting={progress.waiting} onretry={retry.request} />
 						{/if}
 						<div class="log-list">
 							{#each logs as log}

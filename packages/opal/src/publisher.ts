@@ -264,14 +264,6 @@ export async function publishRecords(
       batchCounter++;
       const pct = ((successCount / total) * 100).toFixed(1);
 
-      onProgress({
-        recordsProcessed: successCount,
-        totalRecords: total,
-        successCount,
-        errorCount,
-        message: `[${pct}%] Batch ${batchCounter} — ${batch.length} posts (posts ${successCount + 1}–${Math.min(successCount + batch.length, total)} of ${total})`,
-      });
-
       const writes = batch.map(({ rkey, record }) => ({
         $type: 'com.atproto.repo.applyWrites#create' as const,
         collection: RECORD_TYPE,
@@ -287,6 +279,14 @@ export async function publishRecords(
         onLog('warn', 'Import cancelled by user.');
         return { successCount, errorCount, cancelled: true };
       }
+
+      onProgress({
+        recordsProcessed: successCount,
+        totalRecords: total,
+        successCount,
+        errorCount,
+        message: `[${pct}%] Batch ${batchCounter} — ${batch.length} posts (posts ${successCount + 1}–${Math.min(successCount + batch.length, total)} of ${total})`,
+      });
 
       try {
         const response = await retryWithBackoff(

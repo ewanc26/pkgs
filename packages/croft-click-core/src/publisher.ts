@@ -212,17 +212,6 @@ export async function publishRecords(
       batchCounter++;
       const pct = ((i / total) * 100).toFixed(1);
 
-      onProgress({
-        batchIndex: batchCounter,
-        totalBatches: Math.ceil(total / currentBatchSize),
-        recordsProcessed: i,
-        totalRecords: total,
-        successCount,
-        errorCount,
-        currentBatchSize: batch.length,
-        message: `[${pct}%] Batch ${batchCounter} -- records ${i + 1}-${Math.min(i + batch.length, total)}`,
-      });
-
       const writes = batch.map((record) => ({
         $type: 'com.atproto.repo.applyWrites#create',
         collection: target.collection,
@@ -243,6 +232,17 @@ export async function publishRecords(
         onLog('warn', 'Import cancelled by user.');
         return { successCount, errorCount, cancelled: true };
       }
+
+      onProgress({
+        batchIndex: batchCounter,
+        totalBatches: Math.ceil(total / currentBatchSize),
+        recordsProcessed: i,
+        totalRecords: total,
+        successCount,
+        errorCount,
+        currentBatchSize: batch.length,
+        message: `[${pct}%] Batch ${batchCounter} -- records ${i + 1}-${Math.min(i + batch.length, total)}`,
+      });
 
       const batchStartTime = Date.now();
 

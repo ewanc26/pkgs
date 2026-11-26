@@ -16,6 +16,8 @@ export interface RateLimitHooks {
   onWait?: (info: PermitWaitInfo) => void;
   /** Polled during a wait; return true once to end it and retry. */
   retryNow?: () => boolean;
+  /** Called once a wait is over and requests are flowing again. */
+  onResume?: () => void;
   isCancelled?: () => boolean;
 }
 
@@ -43,8 +45,10 @@ export function withRateLimitRetry(
     // Reads report a different quota from writes; only writes teach the limiter.
     const isWrite = (args[0]?.main ?? args[0])?.type === 'procedure';
     while (true) {
+      const waited = limiter.isBlocked();
       await limiter.waitOutBlock(hooks.isCancelled, hooks.onWait, hooks.retryNow);
       if (hooks.isCancelled?.()) throw new Error('Import cancelled');
+      if (waited) hooks.onResume?.();
       try {
         const response: any = await (client as any).xrpc(...args);
         if (isWrite) {

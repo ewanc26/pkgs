@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { createRetryFlag, guardRun } from '@ewanc26/landing-ui';
 	import { ArrowLeft, ExternalLink } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
@@ -7,7 +8,7 @@
 
 	import { initOAuth } from '$lib/core/oauth.js';
 	import { modeNeeds } from '$lib/modes.js';
-	import { runImport, type PublishProgress } from '$lib/core/import.js';
+	import { runImport, type PublishProgress, type PermitWaitInfo } from '$lib/core/import.js';
 	import {
 		saveImportState,
 		loadImportState,
@@ -63,6 +64,12 @@
 	let stopping = $state(false);
 	let logs = $state<LogEntry[]>([]);
 	let progress = $state<PublishProgress | null>(null);
+	let waiting = $state<PermitWaitInfo | null>(null);
+	const retry = createRetryFlag();
+
+	$effect(() => {
+		if (isRunning) return guardRun();
+	});
 	let result = $state<{ success: number; errors: number; cancelled: boolean } | null>(null);
 	let importError = $state<string | null>(null);
 
@@ -123,6 +130,8 @@
 		if (dangerZone && !dryRun && !window.confirm('Danger Zone may rate-limit every user on this PDS. Continue only if you control the PDS?')) return;
 		isRunning = true;
 		cancelled = false;
+		waiting = null;
+		retry.clear();
 		stopping = false;
 		logs = [];
 		importError = null;
@@ -157,7 +166,9 @@
 							});
 						}
 					},
-					isCancelled: () => cancelled
+					isCancelled: () => cancelled,
+					onWaiting: (w) => { waiting = w; },
+					retryNow: retry.consume
 				},
 				startIndex
 			);
@@ -373,6 +384,8 @@
 						{dryRun}
 						{logs}
 						{progress}
+						{waiting}
+						onretry={retry.request}
 						{result}
 						{importError}
 						oncancel={() => {

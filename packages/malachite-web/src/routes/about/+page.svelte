@@ -174,6 +174,8 @@ pnpm start -i lastfm.csv --dry-run</code></pre>
       <li>Reading the <code>ratelimit-*</code> headers from each response</li>
       <li>Maintaining a 15% headroom buffer before the quota ceiling</li>
       <li>Automatically adjusting batch size (up to 200 records) in real time</li>
+      <li>Running imports that fit the available quota at full speed, and pacing larger ones</li>
+      <li>Showing a countdown when it has to wait, with a button to try again early</li>
       <li>Offering an explicit Danger Zone that disables the 15% safety buffer</li>
       <li>Pausing immediately when the abort signal fires if you press Stop</li>
     </ul>

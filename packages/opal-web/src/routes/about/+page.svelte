@@ -231,6 +231,7 @@ opal --source threads --input threads.json</code></pre>
 			<li>Reading the <code>ratelimit-*</code> headers from each response</li>
 			<li>Maintaining a 15% headroom buffer before the quota ceiling</li>
 			<li>Automatically adjusting batch size (up to 200 records) in real time</li>
+			<li>Showing a countdown when it has to wait, with a button to try again early</li>
 			<li>Pausing immediately when the abort signal fires if you press Cancel</li>
 		</ul>
 	</section>

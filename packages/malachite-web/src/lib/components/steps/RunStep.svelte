@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ArrowLeft, Check } from '@lucide/svelte';
+  import { WaitBanner, type QuotaWait } from '@ewanc26/landing-ui';
   import type { ImportMode, LogEntry } from '$lib/types.js';
   import type { PublishProgress } from '$lib/core/import.js';
 
@@ -10,6 +11,8 @@
     dryRun,
     logs,
     progress,
+    waiting = null,
+    onretry,
     result,
     importError,
     oncancel,
@@ -21,6 +24,8 @@
     dryRun: boolean;
     logs: LogEntry[];
     progress: PublishProgress | null;
+    waiting?: QuotaWait | null;
+    onretry: () => void;
     result: { success: number; errors: number; cancelled: boolean } | null;
     importError: string | null;
     oncancel: () => void;
@@ -122,6 +127,10 @@
     {/if}
   </div>
 
+  {#if waiting && isRunning && !result && !stopping}
+    <WaitBanner {waiting} {onretry} />
+  {/if}
+
   {#if progress && !result}
     <div class="progress-wrap">
       <div class="progress-bar" style="width: {pct}%"></div>
@@ -130,7 +139,7 @@
       {progress.recordsProcessed.toLocaleString()} / {progress.totalRecords.toLocaleString()} records
       &nbsp;·&nbsp; batch {progress.batchIndex} · {progress.currentBatchSize} per batch
     </p>
-    {#if timeEstimate && (timeEstimate.minutes > 0 || timeEstimate.hours > 0 || timeEstimate.days > 0 || timeEstimate.seconds > 5)}
+    {#if !waiting && timeEstimate && (timeEstimate.minutes > 0 || timeEstimate.hours > 0 || timeEstimate.days > 0 || timeEstimate.seconds > 5)}
       <p class="estimate-text">
         Est. remaining: ~
         {#if timeEstimate.days > 0}
@@ -179,7 +188,7 @@
           {/if}
         </p>
       {:else}
-        <p class="result-label success inline-flex items-center gap-1">{dryRun ? 'Preview complete' : ''}{dryRun ? '' : ''}{dryRun ? null : ''}{dryRun ? '' : ''}{#if dryRun}Preview complete{:else}<Check size={13} /> Done{/if}</p>
+        <p class="result-label success inline-flex items-center gap-1">{#if dryRun}Preview complete{:else}<Check size={13} /> Done{/if}</p>
         <p class="result-detail">
           {#if isDedup && dryRun}
             {result.success.toLocaleString()} duplicate(s) would be removed.
