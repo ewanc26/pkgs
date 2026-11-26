@@ -187,3 +187,32 @@ describe('RateLimiter observed points-per-record gating (issue #90)', () => {
     );
   });
 });
+
+describe('RateLimiter 429 with no prior state', () => {
+  const blockedFor = async (headers?: Record<string, string>) => {
+    const rl = new RateLimiter();
+    rl.handleRateLimitHit(headers);
+    let waited = 0;
+    // Cancelled at once: only the chosen wait is of interest.
+    await rl.waitForPermit(1, () => true, (info) => { waited = info.totalWaitSeconds; });
+    return waited;
+  };
+
+  it('honours a Retry-After that arrives without ratelimit headers', async () => {
+    const waited = await blockedFor({ 'Retry-After': '30' });
+    assert.ok(waited >= 30 && waited <= 32, `waits about 30s (got ${waited}s)`);
+  });
+
+  it('still waits an hour when the 429 says nothing usable', async () => {
+    const useless: (Record<string, string> | undefined)[] = [
+      undefined,
+      {},
+      { 'retry-after': '0' },
+      { 'retry-after': 'soon' },
+    ];
+    for (const headers of useless) {
+      const waited = await blockedFor(headers);
+      assert.ok(waited >= 3600 && waited <= 3602, `waits about an hour (got ${waited}s)`);
+    }
+  });
+});
