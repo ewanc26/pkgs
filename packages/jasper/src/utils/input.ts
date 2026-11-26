@@ -3,6 +3,7 @@
  */
 import * as readline from "readline";
 import fs from "fs";
+import os from "os";
 import path from "path";
 
 /**
@@ -125,6 +126,19 @@ export async function promptWithValidation(
 }
 
 /**
+ * Turn what a terminal delivers for a typed or dragged-in file into a path:
+ * surrounding quotes, shell backslash escapes and a leading `~` are removed.
+ */
+export function cleanPathInput(raw: string, platform: NodeJS.Platform = process.platform): string {
+  const trimmed = raw.trim();
+  let cleaned = trimmed.replace(/^(['"])(.*)\1$/, "$2");
+  if (cleaned === trimmed && platform !== "win32" && !fs.existsSync(cleaned)) {
+    cleaned = cleaned.replace(/\\(.)/g, "$1");
+  }
+  return cleaned === "~" || cleaned.startsWith("~/") ? os.homedir() + cleaned.slice(1) : cleaned;
+}
+
+/**
  * Validate a file path exists
  */
 export function validateFilePath(
@@ -174,9 +188,11 @@ export async function select(
   const answer = await prompt(`Select [1-${options.length}]: `);
   if (!answer) return defaultIndex;
 
-  const num = parseInt(answer, 10);
-  if (isNaN(num) || num < 1 || num > options.length) {
-    return defaultIndex;
+  const num = Number(answer);
+  if (!Number.isInteger(num) || num < 1 || num > options.length) {
+    // Never guess: the default may start an import.
+    console.log(`Please enter a number from 1 to ${options.length}.`);
+    return select(message, options, defaultIndex);
   }
   return num - 1;
 }

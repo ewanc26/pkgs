@@ -14,7 +14,15 @@ import { handleSelfUpdate } from "@ewanc26/self-update";
 import chalk from "chalk";
 import { log, setGlobalLogger, Logger } from "./utils/logger.js";
 import * as ui from "./utils/ui.js";
-import { prompt, confirm, select, isNonInteractive } from "./utils/input.js";
+import {
+  prompt,
+  promptWithValidation,
+  validateFilePath,
+  cleanPathInput,
+  confirm,
+  select,
+  isNonInteractive,
+} from "./utils/input.js";
 import {
   isZipFile,
   parseExport,
@@ -88,8 +96,11 @@ async function runInteractive(): Promise<void> {
 
   switch (choice) {
     case 0: {
-      const inputPath = await prompt(
-        "Path to Instagram export (ZIP or directory): ",
+      const inputPath = cleanPathInput(
+        await promptWithValidation(
+          "Path to Instagram export (ZIP or directory): ",
+          (answer) => validateFilePath(cleanPathInput(answer)),
+        ),
       );
       const targetChoice = await select(
         "Import to:",
