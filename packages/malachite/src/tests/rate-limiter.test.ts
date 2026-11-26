@@ -1,9 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { RateLimiter } from '../utils/rate-limiter.js';
 import { getMalachiteStateDir } from '../utils/platform.js';
+
+// The limiter persists to the home directory: never touch the real one.
+process.env.HOME = process.env.USERPROFILE = fs.mkdtempSync(path.join(os.tmpdir(), 'malachite-home-'));
 
 const blockPath = () => path.join(getMalachiteStateDir(), 'state', 'rate-limit-block.json');
 
