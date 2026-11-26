@@ -8,6 +8,7 @@ Thumbs.db
 
 # Build output
 dist
+.test-dist
 .svelte-kit
 target
 

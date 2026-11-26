@@ -188,6 +188,12 @@ export async function runCLI(): Promise<void> {
         opts.dryRun ?? false,
         {
           onProgress: (p) => {
+            if (p.waiting) {
+              const minutes = Math.ceil(p.waiting.remainingSeconds / 60);
+              const at = new Date(p.waiting.resumeAt).toLocaleTimeString();
+              process.stdout.write(`\n  waiting: resumes at ${at} (about ${minutes} min) — Ctrl+C to stop`);
+              return;
+            }
             const pct = Math.round((p.recordsProcessed / p.totalRecords) * 100);
             process.stdout.write(`\r  ${pct}% — ${p.recordsProcessed}/${p.totalRecords} — ${p.successCount} ok, ${p.errorCount} failed`);
           },

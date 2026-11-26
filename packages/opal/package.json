@@ -50,7 +50,7 @@
     "dev": "tsup --watch",
     "prepare": "pnpm run build",
     "type-check": "tsc --noEmit",
-    "test": "pnpm run build && node --test dist/tests/**/*.test.js",
+    "test": "pnpm run build && tsup --config tsup.test.config.ts && node --test .test-dist/*.test.js",
     "clean": "rm -rf dist"
   },
   "dependencies": {
