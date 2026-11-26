@@ -37,6 +37,10 @@ importers:
         version: 5.9.3
 
   packages/bismuth:
+    dependencies:
+      '@ewanc26/self-update':
+        specifier: workspace:*
+        version: link:../self-update
     devDependencies:
       '@types/node':
         specifier: ^25.5.0
@@ -218,6 +222,9 @@ importers:
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
+      '@ewanc26/self-update':
+        specifier: workspace:*
+        version: link:../self-update
       '@ewanc26/tid':
         specifier: workspace:*
         version: link:../tid
@@ -362,6 +369,9 @@ importers:
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
+      '@ewanc26/self-update':
+        specifier: workspace:*
+        version: link:../self-update
       '@ewanc26/tid':
         specifier: workspace:*
         version: link:../tid
@@ -531,6 +541,9 @@ importers:
       '@ewanc26/croft-click-core':
         specifier: workspace:*
         version: link:../croft-click-core
+      '@ewanc26/self-update':
+        specifier: workspace:*
+        version: link:../self-update
       '@ewanc26/tid':
         specifier: workspace:*
         version: link:../tid
@@ -762,6 +775,15 @@ importers:
         specifier: ^8.1.6
         version: 8.1.6(@types/node@25.9.1)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.21.0)
 
+  packages/self-update:
+    devDependencies:
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.9.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/supporters:
     dependencies:
       '@ewanc26/tid':
@@ -949,6 +971,9 @@ importers:
       '@bsky/sdk':
         specifier: latest
         version: 1.5.2(@atproto/lex@0.3.6)
+      '@ewanc26/self-update':
+        specifier: workspace:*
+        version: link:../self-update
       dotenv:
         specifier: ^16.0.0
         version: 16.6.1

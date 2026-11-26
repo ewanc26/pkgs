@@ -10,6 +10,7 @@ import {
   printHelp,
   validateImportOptions,
 } from "./lib/cli.js";
+import { handleSelfUpdate } from "@ewanc26/self-update";
 import chalk from "chalk";
 import { log, setGlobalLogger, Logger } from "./utils/logger.js";
 import * as ui from "./utils/ui.js";
@@ -764,6 +765,9 @@ async function runImport(options: {
  * Main entry point
  */
 export async function main(): Promise<void> {
+  const updateExit = await handleSelfUpdate({ packageName: "@ewanc26/jasper", from: import.meta.url });
+  if (updateExit !== null) process.exit(updateExit);
+
   const args = parseCliArgs(process.argv.slice(2));
 
   // Handle help and version

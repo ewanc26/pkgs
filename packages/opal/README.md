@@ -107,3 +107,10 @@ This project is independent and is not affiliated with or endorsed by Bluesky
 Social PBC; the terms are used only to describe compatibility. See the
 [AT Protocol trademark policy](https://atproto.com/about/trademarks/atproto-trademark-policy)
 and this repository's [TRADEMARKS.md](../../TRADEMARKS.md).
+
+## Updating
+
+`opal self-update` installs the newest version from npm or GitHub, whichever is
+higher; add `--check` to only look. `opal` also prints a notice when an update is
+available; set `EWANC26_NO_UPDATE_CHECK` to turn that off. See
+[`@ewanc26/self-update`](../self-update/README.md).

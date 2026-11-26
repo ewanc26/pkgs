@@ -107,3 +107,10 @@ and this repository's [TRADEMARKS.md](../../TRADEMARKS.md).
 ## Licence
 
 AGPL-3.0-only.
+
+## Updating
+
+`malachite self-update` installs the newest version from npm or GitHub, whichever is
+higher; add `--check` to only look. `malachite` also prints a notice when an update is
+available; set `EWANC26_NO_UPDATE_CHECK` to turn that off. See
+[`@ewanc26/self-update`](../self-update/README.md).
