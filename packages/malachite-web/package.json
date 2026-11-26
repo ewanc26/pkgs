@@ -24,7 +24,7 @@
   },
   "scripts": {
     "dev": "vite dev",
-    "prebuild": "pnpm --filter @ewanc26/tid build && pnpm --filter @ewanc26/croft-click-core build && pnpm --filter @ewanc26/self-update build && pnpm --filter @ewanc26/malachite build",
+    "prebuild": "pnpm --filter @ewanc26/tid build && pnpm --filter @ewanc26/croft-click-core build && pnpm --filter @ewanc26/self-update build && pnpm --filter @ewanc26/tui build && pnpm --filter @ewanc26/malachite build",
     "build": "vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",

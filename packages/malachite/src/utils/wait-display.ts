@@ -2,6 +2,7 @@
  * Terminal countdown for quota waits: shows when the import resumes, lets the
  * user retry early, and stays responsive to Ctrl+C.
  */
+import { getTui } from './tui.js';
 import type { PermitWaitInfo } from '@ewanc26/croft-click-core';
 import { log } from './logger.js';
 import { formatDuration } from './helpers.js';
@@ -31,6 +32,12 @@ export function sleepWithCountdown(opts: CountdownOptions): Promise<void> {
   const { resumeAt, reason, isCancelled = isImportCancelled } = opts;
   const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const left = () => Math.max(0, resumeAt - Date.now());
+
+  const tui = getTui();
+  if (tui) {
+    log.warn(`⏸️  ${reason}. Resuming at ${formatResumeTime(resumeAt)}.`);
+    return tui.countdown({ reason, resumeAt, isCancelled });
+  }
 
   log.warn(`⏸️  ${reason}.`);
   log.info(`   Resuming at ${formatResumeTime(resumeAt)} (in ${formatDuration(left())}).`);

@@ -72,7 +72,8 @@ fi
 # Order matters: deps before consumers
 PACKAGES=(
   "@ewanc26/croft-click-core"   # no internal deps — FIRST
-  "@ewanc26/malachite"           # depends on croft-click-core
+  "@ewanc26/tui"                 # terminal interface for the CLIs
+  "@ewanc26/malachite"           # depends on croft-click-core + tui
   "@ewanc26/jasper"              # depends on croft-click-core
   "@ewanc26/opal"                # standalone
   "@ewanc26/malachite-web"       # depends on croft-click-core

@@ -1,30 +1,52 @@
 /**
  * UI utilities for polished CLI output with spinners, progress bars, and colors
  */
+import { getTui } from './tui.js';
 import ora, { Ora } from 'ora';
 import cliProgress from 'cli-progress';
 import chalk from 'chalk';
 
 // Singleton spinner instance
 let currentSpinner: Ora | null = null;
+/** The label on the terminal interface's spinner, when it is showing one. */
+let tuiStatus: string | null = null;
+
+/** Clear the interface's spinner and leave an outcome line behind. */
+function endTuiStatus(mark?: string, text?: string): boolean {
+  const tui = getTui();
+  if (!tui || tuiStatus === null) return false;
+  tui.status(null);
+  if (mark) console.log(`${mark} ${text ?? tuiStatus}`);
+  tuiStatus = null;
+  return true;
+}
 
 /**
  * Create and start a spinner
  */
-export function startSpinner(text: string): Ora {
+export function startSpinner(text: string): void {
   stopSpinner(); // Stop any existing spinner
+  const tui = getTui();
+  if (tui) {
+    tuiStatus = text;
+    tui.status(text);
+    return;
+  }
   currentSpinner = ora({
     text,
     color: 'cyan',
     spinner: 'dots'
   }).start();
-  return currentSpinner;
 }
 
 /**
  * Update spinner text
  */
 export function updateSpinner(text: string): void {
+  if (tuiStatus !== null) {
+    tuiStatus = text;
+    getTui()?.status(text);
+  }
   if (currentSpinner) {
     currentSpinner.text = text;
   }
@@ -34,6 +56,7 @@ export function updateSpinner(text: string): void {
  * Stop and clear spinner with success
  */
 export function succeedSpinner(text?: string): void {
+  if (endTuiStatus(chalk.green('✔'), text)) return;
   if (currentSpinner) {
     currentSpinner.succeed(text);
     currentSpinner = null;
@@ -44,6 +67,7 @@ export function succeedSpinner(text?: string): void {
  * Stop and clear spinner with failure
  */
 export function failSpinner(text?: string): void {
+  if (endTuiStatus(chalk.red('✖'), text)) return;
   if (currentSpinner) {
     currentSpinner.fail(text);
     currentSpinner = null;
@@ -54,6 +78,7 @@ export function failSpinner(text?: string): void {
  * Stop and clear spinner with warning
  */
 export function warnSpinner(text?: string): void {
+  if (endTuiStatus(chalk.yellow('⚠'), text)) return;
   if (currentSpinner) {
     currentSpinner.warn(text);
     currentSpinner = null;
@@ -64,6 +89,7 @@ export function warnSpinner(text?: string): void {
  * Stop and clear spinner without message
  */
 export function stopSpinner(): void {
+  if (endTuiStatus()) return;
   if (currentSpinner) {
     currentSpinner.stop();
     currentSpinner = null;
@@ -73,7 +99,20 @@ export function stopSpinner(): void {
 /**
  * Create a progress bar for batch processing
  */
-export function createProgressBar(total: number, title: string) {
+export interface ProgressBar {
+  update(done: number, payload?: object): void;
+  stop(): void;
+}
+
+export function createProgressBar(total: number, title: string): ProgressBar {
+  const tui = getTui();
+  if (tui) {
+    tui.progress({ label: title, done: 0, total });
+    return {
+      update: (done) => tui.progress({ label: title, done, total }),
+      stop: () => tui.progress(null),
+    };
+  }
   const bar = new cliProgress.SingleBar({
     format: `${chalk.cyan(title)} ${chalk.cyan('│')} {bar} ${chalk.cyan('│')} {percentage}% ${chalk.cyan('│')} {value}/{total} records ${chalk.cyan('│')} {speed} rec/s ${chalk.cyan('│')} ETA: {eta_formatted}`,
     barCompleteChar: '\u2588',

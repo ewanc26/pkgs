@@ -11,6 +11,7 @@ Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/p
 | [`@ewanc26/tid`](./packages/tid)                                   | Zero-dependency AT Protocol TID generation                           |
 | [`@ewanc26/atproto`](./packages/atproto)                           | AT Protocol service layer                                            |
 | [`@ewanc26/ui`](./packages/ui)                                     | Svelte UI component library                                          |
+| [`@ewanc26/tui`](./packages/tui)                                   | Ink terminal interface shared by the command-line importers          |
 | [`@ewanc26/utils`](./packages/utils)                               | Shared utility functions                                             |
 | [`@ewanc26/noise`](./packages/noise)                               | Deterministic value-noise generation                                 |
 | [`@ewanc26/noise-avatar`](./packages/noise-avatar)                 | Noise-based avatar generation                                        |
