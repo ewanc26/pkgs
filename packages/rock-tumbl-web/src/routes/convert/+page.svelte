@@ -3,7 +3,7 @@
 	import { ArrowLeft, LogIn, LogOut, RefreshCw, Download } from '@lucide/svelte';
 	import { SupportSection } from '@ewanc26/landing-ui';
 	import type { Agent } from '@atproto/api';
-	import { initOAuth, signInWithOAuth } from '$lib/core/oauth';
+	import { initOAuth, signInWithOAuth } from '#lib/core/oauth.js';
 
 	type Mode = 'convert';
 

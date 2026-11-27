@@ -33,6 +33,9 @@
     "lint": "prettier --check .",
     "format": "prettier --write ."
   },
+  "imports": {
+    "#lib/*": "./src/lib/*"
+  },
   "dependencies": {
     "@atproto/api": "^0.20.5",
     "@atproto/lex": "^0.3.0",
