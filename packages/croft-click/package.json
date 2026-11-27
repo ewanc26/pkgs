@@ -31,6 +31,9 @@
 		"lint": "prettier --check .",
 		"format": "prettier --write ."
 	},
+	"imports": {
+		"#lib/*": "./src/lib/*"
+	},
 	"dependencies": {
 		"@lucide/svelte": "1.17.0"
 	},

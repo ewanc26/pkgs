@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { projects } from "$lib/data/projects";
+	import { projects } from "#lib/data/projects.js";
 	import { RefreshCw, Users, MessageSquare, Activity } from "@lucide/svelte";
 
 	interface LinkStats {

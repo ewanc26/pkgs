@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { loadGlobalToolkitUsage } from "$lib/server/toolkit-usage";
+import { loadGlobalToolkitUsage } from "#lib/server/toolkit-usage.js";
 
 export const GET: RequestHandler = async ({ setHeaders }) => {
   try {

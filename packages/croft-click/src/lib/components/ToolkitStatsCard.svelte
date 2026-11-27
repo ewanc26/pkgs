@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { RefreshCw, BarChart3 } from '@lucide/svelte';
-	import type { ToolkitUsageSummary, ToolStats } from '$lib/toolkit-usage';
+	import type { ToolkitUsageSummary, ToolStats } from '#lib/toolkit-usage.js';
 
 	let loading = $state(true);
 	let error = $state('');
