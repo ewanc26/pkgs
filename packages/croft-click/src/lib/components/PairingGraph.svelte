@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from "svelte";
-	import { coreProjects, extraProjects } from "$lib/data/projects";
+	import { coreProjects, extraProjects } from "#lib/data/projects.js";
 
 	const W = 980;
 	const H = 520;

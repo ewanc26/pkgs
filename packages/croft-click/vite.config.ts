@@ -5,7 +5,6 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit({
-			alias: { $lib: 'src/lib' },
 			adapter: adapter({ runtime: 'nodejs22.x' })
 		})],
 

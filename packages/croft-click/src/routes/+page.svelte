@@ -3,14 +3,14 @@
 </svelte:head>
 
 <script lang="ts">
-	import { coreProjects, extraProjects } from '$lib/data/projects';
-	import Hero from '$lib/components/Hero.svelte';
-	import StatsCard from '$lib/components/StatsCard.svelte';
-	import ToolkitStatsCard from '$lib/components/ToolkitStatsCard.svelte';
-	import ProjectCard from '$lib/components/ProjectCard.svelte';
-	import Footer from '$lib/components/Footer.svelte';
-	import PairingGraph from '$lib/components/PairingGraph.svelte';
-	import SupportBand from '$lib/components/SupportBand.svelte';
+	import { coreProjects, extraProjects } from '#lib/data/projects.js';
+	import Hero from '#lib/components/Hero.svelte';
+	import StatsCard from '#lib/components/StatsCard.svelte';
+	import ToolkitStatsCard from '#lib/components/ToolkitStatsCard.svelte';
+	import ProjectCard from '#lib/components/ProjectCard.svelte';
+	import Footer from '#lib/components/Footer.svelte';
+	import PairingGraph from '#lib/components/PairingGraph.svelte';
+	import SupportBand from '#lib/components/SupportBand.svelte';
 </script>
 
 <main>

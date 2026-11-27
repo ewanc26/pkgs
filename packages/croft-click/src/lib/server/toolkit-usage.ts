@@ -6,7 +6,7 @@ import {
   TOOLKIT_COLLECTION,
   type AuthoredToolkitRecord,
   type ToolkitUsageSummary,
-} from "$lib/toolkit-usage";
+} from "#lib/toolkit-usage.js";
 
 const RELAYS = [
   "https://relay1.us-east.bsky.network",
