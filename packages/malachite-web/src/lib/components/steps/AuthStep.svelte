@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { ArrowLeft, ArrowRight, Eye, EyeOff } from '@lucide/svelte';
-	import { login } from '$lib/core/auth.js';
-	import { signInWithOAuth } from '$lib/core/oauth.js';
+	import { login } from '#lib/core/auth.js';
+	import { signInWithOAuth } from '#lib/core/oauth.js';
 	import type { Client } from '@atproto/lex';
 	import {
 		saveCredentials,
 		loadCredentials,
 		hasSavedCredentials,
-	} from '$lib/core/web-cache.js';
+	} from '#lib/core/web-cache.js';
 
 	let {
 		onauth,

@@ -7,7 +7,7 @@
  * the import flow — everything falls back to re-fetching gracefully.
  */
 
-import type { ImportMode } from '$lib/types.js';
+import type { ImportMode } from '#lib/types.js';
 
 // ─── Import state (sessionStorage) ─────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ArrowLeft, ArrowRight } from '@lucide/svelte';
-  import type { ImportMode } from '$lib/types.js';
+  import type { ImportMode } from '#lib/types.js';
 
   let {
     mode,

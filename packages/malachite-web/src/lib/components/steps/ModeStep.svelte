@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { MODES } from '$lib/modes.js';
-  import type { ImportMode } from '$lib/types.js';
+  import { MODES } from '#lib/modes.js';
+  import type { ImportMode } from '#lib/types.js';
 
   let {
     onselect,

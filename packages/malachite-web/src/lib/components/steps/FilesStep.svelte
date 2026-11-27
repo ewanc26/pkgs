@@ -1,8 +1,8 @@
 <script lang="ts">
   import { ArrowLeft, ArrowRight, CheckCircle2, Music2, Disc3, Apple, Youtube, Waves } from '@lucide/svelte';
-  import { LISTENBRAINZ_ACCEPT } from '$lib/core/listenbrainz.js';
-  import { fetchLastFmAsFile, type LastFmFetchProgress } from '$lib/core/csv.js';
-  import { saveLastFmApi, loadLastFmApi } from '$lib/core/web-cache.js';
+  import { LISTENBRAINZ_ACCEPT } from '#lib/core/listenbrainz.js';
+  import { fetchLastFmAsFile, type LastFmFetchProgress } from '#lib/core/csv.js';
+  import { saveLastFmApi, loadLastFmApi } from '#lib/core/web-cache.js';
 
   /** A ListenBrainz export is a .zip of per-month .jsonl files. */
   const LB_EXTENSIONS = ['.zip', '.json', '.jsonl'];
