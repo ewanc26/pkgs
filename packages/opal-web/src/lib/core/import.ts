@@ -4,7 +4,7 @@
  */
 
 import type { Client } from '@atproto/lex';
-import type { Platform, MicroblogPost, ConvertResult } from '@ewanc26/opal';
+import type { Platform, MicroblogPost, ConvertResult, PublishProgress } from '@ewanc26/opal';
 import { convertData, parseTwitterArchive, publishRecords } from '@ewanc26/opal';
 import { com } from '@bsky/sdk/lexicons';
 
@@ -16,8 +16,10 @@ export interface ImportResult {
 
 export interface ImportCallbacks {
   onLog: (level: 'info' | 'success' | 'warn' | 'error' | 'progress', message: string) => void;
-  onProgress: (p: { recordsProcessed: number; totalRecords: number; successCount: number; errorCount: number; message: string }) => void;
+  onProgress: (p: PublishProgress) => void;
   isCancelled: () => boolean;
+  /** Polled during a quota wait; true once ends it and retries. */
+  retryNow: () => boolean;
 }
 
 /**
@@ -43,7 +45,7 @@ export async function runImport(
   agent: Client,
   posts: MicroblogPost[],
   dryRun: boolean,
-  { onLog, onProgress, isCancelled }: ImportCallbacks,
+  { onLog, onProgress, isCancelled, retryNow }: ImportCallbacks,
 ): Promise<ImportResult> {
   onLog('info', `Publishing ${posts.length.toLocaleString()} posts to ATProto…`);
 
@@ -51,6 +53,7 @@ export async function runImport(
     onProgress,
     onLog,
     isCancelled,
+    retryNow,
   });
 
   if (!dryRun && !res.cancelled && res.successCount > 0) {

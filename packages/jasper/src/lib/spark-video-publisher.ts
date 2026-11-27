@@ -3,6 +3,7 @@
  * Handles video upload via so.sprk.video.uploadVideo, job polling,
  * and so.sprk.feed.post record creation with so.sprk.media.video
  */
+import { uploadBlob } from "./pds.js";
 import type { Client } from '@atproto/lex';
 import { generateTID } from "@ewanc26/tid";
 import type {
@@ -54,25 +55,11 @@ export async function uploadSparkVideo(
   mimeType: string,
 ): Promise<SparkVideoUploadResult> {
   try {
-    const form = new FormData();
-    form.append('file', new Blob([videoData as any], { type: mimeType }));
-
-    const res = await fetch(`${(client as any).service || 'https://bsky.social'}/xrpc/com.atproto.repo.uploadBlob`, {
-      method: 'POST',
-      headers: (client as any).session?.accessJwt ? { Authorization: `Bearer ${(client as any).session.accessJwt}` } : undefined,
-      body: form,
-    });
-
-    if (!res.ok) {
-      throw new Error(`Video upload failed: ${res.status}`);
-    }
-
-    const data = await res.json() as { blob: { $type: 'blob'; ref: { $link: string }; mimeType: string; size: number } };
-    const blob = data.blob;
+    const blob = await uploadBlob(client, videoData, mimeType);
     return {
       success: true,
       blob: {
-        cid: blob.ref.toString(),
+        cid: blob.cid,
         mimeType: blob.mimeType,
         size: blob.size,
       },

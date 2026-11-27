@@ -102,6 +102,43 @@ export function getEffectiveRepoWriteWindow(
   return tightest;
 }
 
+/** Fraction of each window left untouched so the account can still write elsewhere. */
+export const QUOTA_RESERVE = 0.15;
+
+/** Delay between batches when the whole remaining import fits in available quota. */
+const BURST_DELAY_MS = 500;
+
+/**
+ * Decide how hard an import needs pacing, given how much of it is left.
+ *
+ * Pacing exists to stop a large import exhausting a quota; work that fits in
+ * the quota already available gains nothing from being drip-fed.
+ *
+ * - `burst`: everything left fits in the current window above the reserve.
+ * - otherwise, if everything left fits in the standard daily budget above the
+ *   reserve, only the server-advertised window applies. Should the daily bucket
+ *   become the tightest one, the server reports it and it is paced directly.
+ * - otherwise the inferred daily window applies too.
+ *
+ * Without `remainingRecords` nothing is assumed about the size of the job.
+ */
+export function resolvePacingWindow(
+  serverLimit: number,
+  windowSeconds: number,
+  currentRemaining: number,
+  pointsPerRecord: number,
+  remainingRecords?: number,
+): { window: RateWindow; burst: boolean } {
+  const window = getEffectiveRepoWriteWindow(serverLimit, windowSeconds, currentRemaining, pointsPerRecord);
+  if (remainingRecords === undefined) return { window, burst: false };
+
+  const pointsLeft = remainingRecords * pointsPerRecord;
+  const current: RateWindow = { limit: serverLimit, windowSeconds, remaining: currentRemaining, inferred: false };
+  if (pointsLeft <= currentRemaining - serverLimit * QUOTA_RESERVE) return { window: current, burst: true };
+  if (window.inferred && pointsLeft <= window.limit * (1 - QUOTA_RESERVE)) return { window: current, burst: false };
+  return { window, burst: false };
+}
+
 /** Calculate optimal delays and batch sizes for sustainable imports. */
 export class ProactiveRatePacer {
   /**
@@ -127,14 +164,24 @@ export class ProactiveRatePacer {
     serverLimit: number,
     windowSeconds: number,
     currentRemaining: number,
-    pointsPerRecord: number = this.DEFAULT_POINTS_PER_RECORD
+    pointsPerRecord: number = this.DEFAULT_POINTS_PER_RECORD,
+    remainingRecords?: number
   ): PacingCalculation {
-    const window = getEffectiveRepoWriteWindow(
+    const { window, burst } = resolvePacingWindow(
       serverLimit,
       windowSeconds,
       currentRemaining,
       pointsPerRecord,
+      remainingRecords,
     );
+    if (burst) {
+      return {
+        delayMs: BURST_DELAY_MS,
+        sustainableRate: batchSize / (BURST_DELAY_MS / 1000),
+        utilizationPercent: 100,
+        reason: 'Remaining records fit in the available quota',
+      };
+    }
 
     const pointsPerSecond = window.limit / window.windowSeconds;
     const maxRecordsPerSecond = pointsPerSecond / pointsPerRecord;
@@ -182,14 +229,17 @@ export class ProactiveRatePacer {
     windowSeconds: number,
     currentRemaining: number,
     maxBatchSize: number = 200,
-    pointsPerRecord: number = this.DEFAULT_POINTS_PER_RECORD
+    pointsPerRecord: number = this.DEFAULT_POINTS_PER_RECORD,
+    remainingRecords?: number
   ): number {
-    const window = getEffectiveRepoWriteWindow(
+    const { window, burst } = resolvePacingWindow(
       serverLimit,
       windowSeconds,
       currentRemaining,
       pointsPerRecord,
+      remainingRecords,
     );
+    if (burst) return Math.max(1, Math.min(remainingRecords!, maxBatchSize));
 
     const pointsPerSecond = window.limit / window.windowSeconds;
     const maxRecordsPerSecond = pointsPerSecond / pointsPerRecord;
@@ -232,12 +282,15 @@ export class ProactiveRatePacer {
     currentQuota: number,
     pointsPerRecord: number = this.DEFAULT_POINTS_PER_RECORD
   ): number {
-    const window = getEffectiveRepoWriteWindow(
+    const { window, burst } = resolvePacingWindow(
       serverLimit,
       windowSeconds,
       currentQuota,
       pointsPerRecord,
+      remainingRecords,
     );
+    // Roughly a second per full batch.
+    if (burst) return Math.ceil(remainingRecords / 200);
 
     const pointsPerSecond = window.limit / window.windowSeconds;
     const maxRecordsPerSecond = pointsPerSecond / pointsPerRecord;

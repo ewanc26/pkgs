@@ -11,6 +11,7 @@
  */
 
 export * from './apple-catalog.js';
+export * from './apply-writes.js';
 export * from './apple-music.js';
 export * from './archive.js';
 export * from './auth.js';

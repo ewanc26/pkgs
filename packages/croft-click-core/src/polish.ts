@@ -11,10 +11,10 @@ import type { Client } from '@atproto/lex';
 import { RECORD_TYPE, LEGACY_RECORD_TYPE } from './config.js';
 import { fetchRepoViaCARWithClient } from './car-fetch.js';
 import { retryWithBackoff } from './retry-helper.js';
-import { RateLimiter } from './rate-limiter.js';
+import { RateLimiter, type PermitWaitInfo } from './rate-limiter.js';
 import { ProactiveRatePacer } from './proactive-rate-pacer.js';
-import { isRateLimitError, normalizeHeaders } from './rate-limit-headers.js';
-import { com } from '@bsky/sdk/lexicons'
+import { isRateLimitError, errorHeaders } from './rate-limit-headers.js';
+import { applyWritesWithHeaders } from './apply-writes.js';
 
 export interface PolishRecord {
   rkey: string;
@@ -42,6 +42,10 @@ export interface PolishResult {
 export type PolishPhase = 'backfill' | 'delete';
 
 export interface PolishMigrateOptions {
+  /** Called while paused for quota, with the reason and resume time. */
+  onWait?: (info: PermitWaitInfo) => void;
+  /** Polled during a quota wait; return true once to end the wait and retry. */
+  retryNow?: () => boolean;
   dryRun?: boolean;
   /** Called after each record is processed: (phase, done, total). */
   onProgress?: (phase: PolishPhase, done: number, total: number) => void;
@@ -154,7 +158,7 @@ export async function migrateLegacyRecords(
   const did = getDid(client);
   if (!did) throw new Error('No authenticated session');
 
-  const { dryRun = false, onProgress, signal } = opts;
+  const { dryRun = false, onProgress, onWait, retryNow, signal } = opts;
   signal?.throwIfAborted();
 
   if (dryRun) {
@@ -179,7 +183,8 @@ export async function migrateLegacyRecords(
       const batch = plan.toBackfill.slice(i, i + MAX_WRITES_PER_BATCH);
       const batchPoints = batch.length * rl.getPointsPerRecord(POINTS_PER_RECORD);
 
-      await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false);
+      await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false, onWait, retryNow);
+      signal?.throwIfAborted();
 
       const writes = batch.map((record) => ({
         $type: 'com.atproto.repo.applyWrites#create' as const,
@@ -190,14 +195,7 @@ export async function migrateLegacyRecords(
 
       try {
         const response = (await retryWithBackoff(
-          async () =>
-            await client.call(com.atproto.repo.applyWrites.main as any,
-              {
-                repo: did,
-                writes: writes as any,
-              },
-              { signal }
-            ),
+          async () => await applyWritesWithHeaders(client, { repo: did, writes }, { signal }),
           {
             maxAttempts: 3,
             initialDelayMs: 1000,
@@ -218,14 +216,8 @@ export async function migrateLegacyRecords(
           }
         )) as any;
 
-        try {
-          const respHeaders = (response as any)?.headers as Record<string, string> | undefined;
-          if (respHeaders && Object.keys(respHeaders).length > 0) {
-            rl.updateFromHeaders(normalizeHeaders(respHeaders), batch.length);
-          }
-        } catch {
-          // ignore header parse errors
-        }
+        rl.noteSuccess();
+        if (Object.keys(response.headers).length > 0) rl.updateFromHeaders(response.headers, batch.length);
 
         const results = (response.results ?? []) as any[];
         for (let j = 0; j < batch.length; j++) {
@@ -243,9 +235,9 @@ export async function migrateLegacyRecords(
 
         const rateLimitError = isRateLimitError(err);
         if (rateLimitError) {
-          const errHeaders = (err as any)?.headers as Record<string, string> | undefined;
-          rl.handleRateLimitHit(errHeaders ? normalizeHeaders(errHeaders) : undefined);
-          await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false);
+          rl.refund(batchPoints);
+          rl.handleRateLimitHit(errorHeaders(err));
+          // The next iteration's waitForPermit sits out the block.
           i -= MAX_WRITES_PER_BATCH;
           continue;
         }
@@ -285,7 +277,8 @@ export async function migrateLegacyRecords(
       const batch = toDelete.slice(i, i + MAX_WRITES_PER_BATCH);
       const batchPoints = batch.length * rl.getPointsPerRecord(POINTS_PER_RECORD);
 
-      await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false);
+      await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false, onWait, retryNow);
+      signal?.throwIfAborted();
 
       const writes = batch.map((record) => ({
         $type: 'com.atproto.repo.applyWrites#delete' as const,
@@ -295,14 +288,7 @@ export async function migrateLegacyRecords(
 
       try {
         const response = (await retryWithBackoff(
-          async () =>
-            await client.call(com.atproto.repo.applyWrites.main as any,
-              {
-                repo: did,
-                writes: writes as any,
-              },
-              { signal }
-            ),
+          async () => await applyWritesWithHeaders(client, { repo: did, writes }, { signal }),
           {
             maxAttempts: 3,
             initialDelayMs: 1000,
@@ -323,14 +309,8 @@ export async function migrateLegacyRecords(
           }
         )) as any;
 
-        try {
-          const respHeaders = (response as any)?.headers as Record<string, string> | undefined;
-          if (respHeaders && Object.keys(respHeaders).length > 0) {
-            rl.updateFromHeaders(normalizeHeaders(respHeaders), batch.length);
-          }
-        } catch {
-          // ignore header parse errors
-        }
+        rl.noteSuccess();
+        if (Object.keys(response.headers).length > 0) rl.updateFromHeaders(response.headers, batch.length);
 
         const results = (response.results ?? []) as any[];
         for (let j = 0; j < batch.length; j++) {
@@ -345,9 +325,9 @@ export async function migrateLegacyRecords(
 
         const rateLimitError = isRateLimitError(err);
         if (rateLimitError) {
-          const errHeaders = (err as any)?.headers as Record<string, string> | undefined;
-          rl.handleRateLimitHit(errHeaders ? normalizeHeaders(errHeaders) : undefined);
-          await rl.waitForPermit(batchPoints, () => signal?.aborted ?? false);
+          rl.refund(batchPoints);
+          rl.handleRateLimitHit(errorHeaders(err));
+          // The next iteration's waitForPermit sits out the block.
           i -= MAX_WRITES_PER_BATCH;
           continue;
         }

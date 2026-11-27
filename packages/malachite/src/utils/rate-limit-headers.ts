@@ -85,17 +85,7 @@ export function parseRateLimitHeaders(headers: Record<string, string>): RateLimi
   return result;
 }
 
-/**
- * Normalize header keys to lowercase for consistent access
- * HTTP headers are case-insensitive, but object keys are not
- */
-export function normalizeHeaders(headers: Record<string, string>): Record<string, string> {
-  const normalized: Record<string, string> = {};
-  for (const [key, value] of Object.entries(headers)) {
-    normalized[key.toLowerCase()] = value;
-  }
-  return normalized;
-}
+export { normalizeHeaders } from '@ewanc26/croft-click-core';
 
 /**
  * Check if headers indicate a rate limit error

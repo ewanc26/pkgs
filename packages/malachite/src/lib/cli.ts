@@ -26,15 +26,16 @@ import { parseListenBrainzJson, convertListenBrainzToPlayRecord } from '../lib/l
 import { parseCombinedExports } from '../lib/merge.js';
 import { enrichWithMusicBrainz } from '@ewanc26/croft-click-core';
 import { publishRecordsWithApplyWrites } from './publisher.js';
-import { prompt, confirm, menu, promptWithValidation, validateFilePath, isNonInteractive } from '../utils/input.js';
+import { prompt, confirm, menu, promptPath, isNonInteractive } from '../utils/input.js';
 import { sortRecords } from '../utils/helpers.js';
 import config, { VERSION, RECORD_TYPE, LEGACY_RECORD_TYPE } from '../config.js';
 import { DEFAULT_DEDUP_WINDOW_MS } from '@ewanc26/croft-click-core';
+import { terminalWaitCallbacks } from '../utils/wait-display.js';
 import { fetchExistingRecords, fetchAllRecords, filterNewRecords, displaySyncStats, deduplicateInputRecords, analyzeDuplicates, displayDedupPlan, removeDuplicateRecords } from './sync.js';
 import { analyzeLegacyRecords, displayPolishPlan, migrateLegacyRecords } from './polish.js';
 import { ensureRockskyAccess, crossPostToRocksky, analyzeRockskyDuplicates } from './rocksky.js';
 import { Logger, LogLevel, setGlobalLogger, log } from '../utils/logger.js';
-import { registerKillswitch } from '../utils/killswitch.js';
+import { registerKillswitch, killswitchSignal, isImportCancelled } from '../utils/killswitch.js';
 import { clearCache, clearAllCaches } from '../utils/teal-cache.js';
 import { 
   loadCredentials, 
@@ -354,9 +355,9 @@ async function promptLastFmSource(args: CommandLineArgs, optional: boolean): Pro
     args['lastfm-api-key'] = apiKey;
     console.log('✓ Will fetch scrobbles from Last.fm when the import starts');
   } else if (choice === '2') {
-    args.input = await promptWithValidation(
+    args.input = await promptPath(
       '📄 Path to Last.fm CSV file: ',
-      (input) => validateFilePath(input, 'csv')
+      'csv'
     );
     console.log('✓ File validated');
   }
@@ -422,17 +423,17 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
 
   console.log('\x1b[90m  0 │ Exit\x1b[0m\n');
 
-  const mode = await prompt('\x1b[1mEnter your choice [0-13]:\x1b[0m ');
+  const choices = Array.from({ length: 14 }, (_, n) => String(n));
+  let mode = await prompt('\x1b[1mEnter your choice [0-13]:\x1b[0m ');
+  while (mode && !choices.includes(mode.trim())) {
+    console.log('Invalid choice. Please enter a number from 0 to 13.');
+    mode = await prompt('\x1b[1mEnter your choice [0-13]:\x1b[0m ');
+  }
+  mode = mode.trim();
 
   if (mode === '0' || !mode) {
     console.log('\nGoodbye!');
     process.exit(0);
-  }
-
-  // Validate input
-  if (!['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'].includes(mode)) {
-    console.log('\nInvalid choice. Please run again and select a valid option (0-13).');
-    process.exit(1);
   }
 
   const args: CommandLineArgs = {};
@@ -540,30 +541,30 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
       
       await promptLastFmSource(args, true);
 
-      const spotify = await promptWithValidation('📁 Path to Spotify export (optional, Enter to skip): ', (input) => validateFilePath(input, 'json'), true);
+      const spotify = await promptPath('📁 Path to Spotify export (optional, Enter to skip): ', 'json', { optional: true });
       if (spotify) {
         args['spotify-input'] = spotify;
       }
 
-      const apple = await promptWithValidation('📄 Path to Apple Music CSV file (optional, Enter to skip): ', (input) => validateFilePath(input, 'csv'), true);
+      const apple = await promptPath('📄 Path to Apple Music CSV file (optional, Enter to skip): ', 'csv', { optional: true });
       if (apple) {
         args['apple-input'] = apple;
-        const appleDaily = await promptWithValidation('📄 Path to "Apple Music - Play History Daily Tracks.csv" (optional, helps recover missing artists): ', (input) => validateFilePath(input, 'csv'), true);
+        const appleDaily = await promptPath('📄 Path to "Apple Music - Play History Daily Tracks.csv" (optional, helps recover missing artists): ', 'csv', { optional: true });
         if (appleDaily) {
           args['apple-daily-tracks'] = appleDaily;
         }
-        const appleLibrary = await promptWithValidation('📄 Path to "Library.xml" (optional, fills in missing track lengths and albums): ', (input) => validateFilePath(input, 'xml'), true);
+        const appleLibrary = await promptPath('📄 Path to "Library.xml" (optional, fills in missing track lengths and albums): ', 'xml', { optional: true });
         if (appleLibrary) {
           args['apple-library'] = appleLibrary;
         }
       }
 
-      const youtube = await promptWithValidation('📁 Path to YouTube Music JSON export (optional, Enter to skip): ', (input) => validateFilePath(input, 'json'), true);
+      const youtube = await promptPath('📁 Path to YouTube Music JSON export (optional, Enter to skip): ', 'json', { optional: true });
       if (youtube) {
         args['youtube-input'] = youtube;
       }
 
-      const listenbrainz = await promptWithValidation('📁 Path to ListenBrainz export .zip, directory, or .json/.jsonl file (optional, Enter to skip): ', (input) => validateFilePath(input, 'listenbrainz'), true);
+      const listenbrainz = await promptPath('📁 Path to ListenBrainz export .zip, directory, or .json/.jsonl file (optional, Enter to skip): ', 'listenbrainz', { optional: true });
       if (listenbrainz) {
         args['listenbrainz-input'] = listenbrainz;
       }
@@ -571,27 +572,27 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
       console.log('\n📁 Input File');
       console.log('─'.repeat(50));
       
-      args.input = await promptWithValidation(
+      args.input = await promptPath(
         '📁 Path to Spotify export (file or directory): ',
-        (input) => validateFilePath(input, 'json')
+        'json'
       );
       console.log('✓ File/directory validated');
     } else if (args.mode === 'apple') {
       console.log('\n📁 Input File');
       console.log('─'.repeat(50));
       
-      args.input = await promptWithValidation(
+      args.input = await promptPath(
         '📄 Path to Apple Music CSV file: ',
-        (input) => validateFilePath(input, 'csv')
+        'csv'
       );
       console.log('✓ File validated');
 
-      const appleDaily = await promptWithValidation('📄 Path to "Apple Music - Play History Daily Tracks.csv" (optional, helps recover missing artists): ', (input) => validateFilePath(input, 'csv'), true);
+      const appleDaily = await promptPath('📄 Path to "Apple Music - Play History Daily Tracks.csv" (optional, helps recover missing artists): ', 'csv', { optional: true });
       if (appleDaily) {
         args['apple-daily-tracks'] = appleDaily;
       }
 
-      const appleLibrary = await promptWithValidation('📄 Path to "Library.xml" (optional, fills in missing track lengths and albums): ', (input) => validateFilePath(input, 'xml'), true);
+      const appleLibrary = await promptPath('📄 Path to "Library.xml" (optional, fills in missing track lengths and albums): ', 'xml', { optional: true });
       if (appleLibrary) {
         args['apple-library'] = appleLibrary;
       }
@@ -599,18 +600,18 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
       console.log('\n📁 Input File');
       console.log('─'.repeat(50));
       
-      args.input = await promptWithValidation(
+      args.input = await promptPath(
         '📁 Path to YouTube Music JSON export (file or directory): ',
-        (input) => validateFilePath(input, 'json')
+        'json'
       );
       console.log('✓ File/directory validated');
     } else if (args.mode === 'listenbrainz') {
       console.log('\n📁 Input File');
       console.log('─'.repeat(50));
 
-      args.input = await promptWithValidation(
+      args.input = await promptPath(
         '📁 Path to ListenBrainz export (.zip, directory, or .json/.jsonl file): ',
-        (input) => validateFilePath(input, 'listenbrainz')
+        'listenbrainz'
       );
       console.log('✓ File validated');
     } else {
@@ -648,7 +649,9 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   );
   if (rocksky) args.rocksky = true;
 
-  args.yes = true; // Auto-confirm in interactive mode since user already confirmed via prompts
+  // The prompts above stand in for confirming an import. They never showed what
+  // would be deleted, so modes that delete records still ask after the plan.
+  if (args.mode !== 'deduplicate' && args.mode !== 'polish') args.yes = true;
   
   return args;
 }
@@ -903,11 +906,11 @@ export async function runCLI(): Promise<void> {
 
       // 3. Execute the reviewed plan.
       if (plan.totalDuplicates > 0) {
-        const removed = await removeDuplicateRecords(client, plan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${plan.totalDuplicates.toLocaleString()}…`));
+        const removed = await removeDuplicateRecords(client, plan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${plan.totalDuplicates.toLocaleString()}…`), killswitchSignal(), terminalWaitCallbacks());
         log.success(`Removed ${removed.toLocaleString()} duplicate records from Teal.`);
       }
       if (rockskyPlan && rockskyDuplicates > 0) {
-        const removed = await removeDuplicateRecords(client, rockskyPlan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${rockskyDuplicates.toLocaleString()}…`));
+        const removed = await removeDuplicateRecords(client, rockskyPlan, (n) => log.progress(`Removed ${n.toLocaleString()} / ${rockskyDuplicates.toLocaleString()}…`), killswitchSignal(), terminalWaitCallbacks());
         log.success(`Removed ${removed.toLocaleString()} duplicate Rocksky scrobbles.`);
       }
       return;
@@ -1327,6 +1330,7 @@ export async function runCLI(): Promise<void> {
     log.blank();
     if (result.cancelled) {
       log.warn(`Stopped: ${result.successCount.toLocaleString()} processed`);
+      if (importState) log.info('Progress saved. Run the same command again to resume where you left off.');
     } else if (dryRun) {
       const modeLabel = mode === 'combined' ? 'COMBINED' : mode === 'sync' ? 'SYNC' : '';
       log.success(`Dry run complete${modeLabel ? ` (${modeLabel})` : ''}`);
@@ -1371,7 +1375,7 @@ export async function runCLI(): Promise<void> {
     }
   } catch (error) {
     const err = error as Error;
-    if (err.message === 'Operation cancelled by user') {
+    if (err.message === 'Operation cancelled by user' || isImportCancelled()) {
       log.blank();
       log.warn('Operation cancelled by user');
       process.exit(0);

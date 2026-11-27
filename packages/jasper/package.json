@@ -50,7 +50,8 @@
     "prepare": "pnpm run build",
     "dry-run": "pnpm run build && node dist/index.js --dry-run",
     "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "pnpm run build && node --test dist/tests/*.test.js"
   },
   "dependencies": {
     "@atproto/lex": "^0.3.0",

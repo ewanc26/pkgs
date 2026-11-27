@@ -203,7 +203,7 @@ describe('RateLimiter 429 with no prior state', () => {
     assert.ok(waited >= 30 && waited <= 32, `waits about 30s (got ${waited}s)`);
   });
 
-  it('still waits an hour when the 429 says nothing usable', async () => {
+  it('backs off for a minute, not an hour, when the 429 says nothing usable', async () => {
     const useless: (Record<string, string> | undefined)[] = [
       undefined,
       {},
@@ -212,7 +212,7 @@ describe('RateLimiter 429 with no prior state', () => {
     ];
     for (const headers of useless) {
       const waited = await blockedFor(headers);
-      assert.ok(waited >= 3600 && waited <= 3602, `waits about an hour (got ${waited}s)`);
+      assert.ok(waited >= 60 && waited <= 62, `waits about a minute (got ${waited}s)`);
     }
   });
 });

@@ -64,7 +64,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { getMalachiteStateDir } from './platform.js';
+import { rateLimitBackoffSeconds, type HeadersInput } from '@ewanc26/croft-click-core';
 import { parseRateLimitHeaders, normalizeHeaders } from './rate-limit-headers.js';
+import { sleepWithCountdown } from './wait-display.js';
+import { isImportCancelled } from './killswitch.js';
 import { log } from './logger.js';
 
 /**
@@ -160,6 +163,12 @@ export interface RateLimitState {
 export class RateLimiter {
   /** Path to persisted state file */
   private stateFile: string;
+
+  /**
+   * Path to the persisted 429 block. Kept apart from the capacity state so a
+   * refusal without quota headers never invents a server capacity.
+   */
+  private blockFile: string;
   
   /** Headroom threshold as fraction of limit (default 0.15 = 15%) */
   private headroomThreshold: number;
@@ -181,10 +190,14 @@ export class RateLimiter {
    * @param opts Configuration options
    * @param opts.headroom Headroom threshold (0.0-1.0, default 0.15 = 15%)
    */
-  constructor(opts?: { headroom?: number }) {
+  private isCancelled: () => boolean;
+
+  constructor(opts?: { headroom?: number; isCancelled?: () => boolean }) {
+    this.isCancelled = opts?.isCancelled ?? isImportCancelled;
     this.headroomThreshold = opts?.headroom ?? 0.15; // Default 15% headroom
     const stateDir = path.join(getMalachiteStateDir(), 'state');
     this.stateFile = path.join(stateDir, 'rate-limit.json');
+    this.blockFile = path.join(stateDir, 'rate-limit-block.json');
     
     log.info(`[RateLimiter] 💾 State file: ${this.stateFile}`);
     log.info(`[RateLimiter] 🛡️ Headroom: ${(this.headroomThreshold * 100).toFixed(0)}% buffer before pausing`);
@@ -377,13 +390,24 @@ export class RateLimiter {
    * 
    * @param headers Response headers from server (should be normalized)
    */
-  updateFromHeaders(headers: Record<string, string>): void {
+  updateFromHeaders(headers: HeadersInput): void {
+    // A live response supersedes any earlier refusal.
+    if (this.learn(headers)) this.noteSuccess();
+  }
+
+  /** Record that a request succeeded, ending any 429 block and its backoff. */
+  noteSuccess(): void {
+    fs.rmSync(this.blockFile, { force: true });
+  }
+
+  /** Absorb quota headers. Returns false when they carry no usable reading. */
+  private learn(headers: HeadersInput): boolean {
     const normalizedHeaders = normalizeHeaders(headers);
     const parsed = parseRateLimitHeaders(normalizedHeaders);
     
     if (!parsed.limit || parsed.remaining === undefined) {
-      log.warn('[RateLimiter] Headers missing limit/remaining - cannot learn from server');
-      return;
+      log.debug('[RateLimiter] Headers missing limit/remaining - cannot learn from server');
+      return false;
     }
     
     const now = Math.floor(Date.now() / 1000);
@@ -432,6 +456,7 @@ export class RateLimiter {
     }
     
     this.writeState(state);
+    return true;
   }
   
   /**
@@ -490,89 +515,14 @@ export class RateLimiter {
   }
   
   /**
-   * Calculate optimal wait time when in recovery mode.
-   * In a sliding window system, we need to wait for quota to regenerate.
-   * 
-   * ALGORITHM:
-   * 1. Target quota: aim for 50% of limit (comfortable operating level)
-   * 2. Points needed: target - current remaining
-   * 3. Regeneration rate: limit / window_seconds points/second
-   * 4. Wait time: points_needed / regeneration_rate
-   * 5. If wait would exceed time until reset, just wait for reset
-   * 
-   * @param state Current rate limit state
-   * @returns Milliseconds to wait for recovery
-   */
-  private calculateRecoveryWaitTime(state: RateLimitState): number {
-    const now = Math.floor(Date.now() / 1000);
-    const timeUntilReset = Math.max(0, state.resetAt - now);
-    
-    // Target: rebuild to 50% of capacity for healthy operation
-    const targetQuota = Math.floor(state.limit * 0.5);
-    const neededQuota = Math.max(0, targetQuota - state.remaining);
-    
-    if (neededQuota === 0) {
-      return 0; // Already at target
-    }
-    
-    // Calculate regeneration rate (points per second)
-    const regenerationRate = state.limit / (state.windowSeconds || 3600);
-    
-    // Time needed to regenerate the required quota
-    const waitSeconds = Math.ceil(neededQuota / regenerationRate);
-    
-    // If calculated wait is longer than reset, just wait for reset
-    const finalWaitSeconds = Math.min(waitSeconds, timeUntilReset);
-    
-    const percentTarget = ((state.remaining + neededQuota) / state.limit * 100).toFixed(1);
-    log.info(`[RateLimiter] 💤 Recovery calculation: need ${neededQuota} points to reach ${percentTarget}% (${finalWaitSeconds}s)`);
-    
-    return finalWaitSeconds * 1000; // Convert to milliseconds
-  }
-  
-  /**
-   * Wait for quota to recover in recovery mode.
-   * Called when quota is critically low and we need to pause.
-   * NO RECORDS WILL BE PUSHED during this wait period.
-   * 
-   * @param state Current rate limit state
-   * @returns Promise that resolves after wait completes
-   */
-  private async waitForRecovery(state: RateLimitState): Promise<void> {
-    const waitMs = this.calculateRecoveryWaitTime(state);
-    
-    if (waitMs === 0) {
-      return;
-    }
-    
-    const waitSeconds = Math.floor(waitMs / 1000);
-    const minutes = Math.floor(waitSeconds / 60);
-    const seconds = waitSeconds % 60;
-    
-    log.warn(`[RateLimiter] ⏸️  RECOVERY MODE: Pausing ${minutes}m ${seconds}s to rebuild quota`);
-    log.warn(`[RateLimiter] 🚫 NO RECORDS will be pushed during this wait period`);
-    
-    await new Promise(resolve => setTimeout(resolve, waitMs));
-    
-    log.info('[RateLimiter] ✅ Recovery wait complete - verifying quota before resuming');
-  }
-  
-  /**
    * Reserve quota points before making a request.
    * Actually decrements the remaining count in state.
    * 
    * ALGORITHM:
    * 1. Read current state
    * 2. Check if window has reset (auto-restore)
-   * 3. If quota is critically low (<15%), WAIT for recovery - NO RECORDS pushed
-   * 4. After recovery, verify we have sufficient quota
-   * 5. Check if we have ACTUAL quota for this batch
-   * 6. If sufficient: decrement remaining and save state
-   * 
-   * CRITICAL CHANGE:
-   * When quota drops below 15%, we MUST WAIT for recovery.
-   * NO tiny batches are allowed during this time.
-   * This ensures we never exhaust quota completely.
+   * 3. Check the batch fits above the headroom buffer
+   * 4. If sufficient: decrement remaining and save state
    * 
    * RETURNS:
    * - true if quota reserved successfully
@@ -604,55 +554,11 @@ export class RateLimiter {
       this.writeState(state);
     }
     
-    // CRITICAL: Check if quota is critically low - if so, WAIT (no records pushed)
-    const CRITICAL_THRESHOLD = 0.15;
-    const criticalThresholdPoints = Math.floor(state.limit * CRITICAL_THRESHOLD);
-    const quotaPercent = (state.remaining / state.limit) * 100;
-    
-    if (state.remaining <= criticalThresholdPoints) {
-      // Critical recovery mode: MUST WAIT - no records pushed during this time
-      log.warn(`[RateLimiter] 🚨 Critical quota level: ${state.remaining}/${state.limit} (${quotaPercent.toFixed(1)}%) ≤ ${criticalThresholdPoints}`);
-      log.warn(`[RateLimiter] 🚫 Entering recovery mode - NO RECORDS will be pushed until quota rebuilds`);
-      
-      await this.waitForRecovery(state);
-      
-      // Re-read state after recovery wait
-      const recoveredState = this.readState();
-      if (!recoveredState) {
-        log.error('[RateLimiter] Lost state during recovery wait');
-        return false;
-      }
-      
-      // Update state reference
-      Object.assign(state, recoveredState);
-      
-      const recoveredQuotaPercent = (state.remaining / state.limit) * 100;
-      log.info(`[RateLimiter] ✅ Quota after recovery: ${state.remaining}/${state.limit} (${recoveredQuotaPercent.toFixed(1)}%)`);
-      
-      // Verify we actually have enough quota now
-      if (state.remaining < pointsNeeded) {
-        log.warn(`[RateLimiter] ⚠️  Still insufficient quota after recovery: need ${pointsNeeded}, have ${state.remaining}`);
-        return false;
-      }
-    }
-    
-    // Check if we have ACTUAL quota for this specific batch
-    if (state.remaining < pointsNeeded) {
-      const waitTime = state.resetAt - now;
-      const percentRemaining = ((state.remaining / state.limit) * 100).toFixed(1);
-      log.warn(`[RateLimiter] ❌ Insufficient quota! Need ${pointsNeeded}, have ${state.remaining} (${percentRemaining}%)`);
-      log.warn(`[RateLimiter] ⏳ Must wait ${waitTime}s until ${new Date(state.resetAt * 1000).toISOString()}`);
-      return false;
-    }
-    
-    // Check headroom buffer
+    // Keep the headroom buffer. A full window is always usable, so a batch
+    // larger than the buffered quota can never wait forever.
     const headroomPoints = Math.floor(state.limit * this.headroomThreshold);
-    const effectiveRemaining = state.remaining - headroomPoints;
-    
-    if (effectiveRemaining < pointsNeeded) {
-      // Below headroom - deny to preserve buffer
-      log.warn(`[RateLimiter] ⚠️  Below headroom threshold! Need ${pointsNeeded}, have ${state.remaining} (${quotaPercent.toFixed(1)}%), preserving ${headroomPoints} buffer`);
-      log.warn(`[RateLimiter] ⏳ Waiting for quota to rebuild...`);
+    if (state.remaining < state.limit && state.remaining - headroomPoints < pointsNeeded) {
+      log.debug(`[RateLimiter] Need ${pointsNeeded}, have ${state.remaining}, preserving ${headroomPoints}`);
       return false;
     }
     
@@ -666,107 +572,103 @@ export class RateLimiter {
   }
   
   /**
-   * Wait until the rate limit window resets.
-   * Sleeps until resetAt timestamp + 1 second buffer.
-   * 
-   * USAGE:
-   * Called when quota is exhausted and we need to wait.
-   * Displays countdown timer to user.
-   * 
-   * @returns Promise that resolves after wait completes
+   * Wait until the rate limit window resets, showing a countdown. Resolves early
+   * on cancellation or when the user asks to try again.
    */
   async waitForReset(): Promise<void> {
     const state = this.readState();
     if (!state) {
-      log.warn('[RateLimiter] No state - nothing to wait for');
+      log.debug('[RateLimiter] No state - nothing to wait for');
       return;
     }
-    
-    const now = Math.floor(Date.now() / 1000);
-    const waitTime = Math.max(0, state.resetAt - now);
-    
-    if (waitTime === 0) {
-      log.info('[RateLimiter] Window already reset');
-      return;
-    }
-    
-    const minutes = Math.floor(waitTime / 60);
-    const seconds = waitTime % 60;
-    
-    log.warn(`[RateLimiter] ⏳ Waiting ${minutes}m ${seconds}s for quota reset...`);
-    log.warn(`[RateLimiter] Reset at: ${new Date(state.resetAt * 1000).toISOString()}`);
-    
-    // Wait with 1 second buffer, emitting a heartbeat every minute so a long
-    // silent sleep is never mistaken for a hang.
-    const end = Date.now() + (waitTime + 1) * 1000;
-    await new Promise<void>((resolve) => {
-      let lastBeatAt = Date.now();
-      const tick = () => {
-        if (Date.now() >= end) { resolve(); return; }
-        if (Date.now() - lastBeatAt >= 60_000) {
-          lastBeatAt = Date.now();
-          const left = Math.max(1, Math.ceil((end - Date.now()) / 1000));
-          log.info(`[RateLimiter] ⏳ ${Math.floor(left / 60)}m ${left % 60}s until quota reset...`);
-        }
-        setTimeout(tick, Math.min(1000, end - Date.now()));
-      };
-      tick();
-    });
-    
-    log.info('[RateLimiter] ✅ Wait complete - quota restored');
-  }
-  
-  /**
-   * Called when the server returns a 429.
-   *
-   * Zeroes `remaining` unconditionally so the next `waitForPermit` call
-   * actually blocks until the window resets, regardless of whether the 429
-   * response included rate-limit headers.  If headers ARE present they are
-   * applied first (so we get an accurate `resetAt`), then remaining is
-   * forced to 0.
-   *
-   * @param errHeaders  Optional normalised headers from the 429 error response.
-   */
-  handleRateLimitHit(errHeaders?: Record<string, string>): void {
-    // Apply header info first so resetAt is as accurate as possible.
-    if (errHeaders && Object.keys(errHeaders).length > 0) {
-      this.updateFromHeaders(errHeaders);
-      // A 429's Retry-After (delta seconds) is the server's own statement of
-      // when to come back; honour it even when ratelimit-reset looks shorter.
-      const retryAfter = parseInt(normalizeHeaders(errHeaders)['retry-after'] ?? '', 10);
-      const st = this.readState();
-      if (!isNaN(retryAfter) && st) {
-        const retryAt = Math.floor(Date.now() / 1000) + retryAfter;
-        if (retryAt > st.resetAt) {
-          st.resetAt = retryAt;
-          this.writeState(st);
-        }
-      }
-    }
+    if (Math.floor(Date.now() / 1000) >= state.resetAt) return;
 
+    await sleepWithCountdown({
+      resumeAt: (state.resetAt + 1) * 1000,
+      reason: `Quota used up to the safety margin (${state.remaining}/${state.limit} points left)`,
+      isCancelled: this.isCancelled,
+    });
+    if (this.isCancelled()) return;
+    // Either the window has reset or the user asked to retry: let the next
+    // response headers report the real remainder.
+    this.restoreQuota();
+  }
+
+  private restoreQuota(): void {
+    const state = this.readState();
+    if (!state) return;
+    const now = Math.floor(Date.now() / 1000);
+    state.remaining = state.limit;
+    if (now >= state.resetAt) state.resetAt = now + state.windowSeconds;
+    state.updatedAt = now;
+    this.writeState(state);
+  }
+
+  private readBlock(): { blockedUntil: number; strikes: number } | null {
+    try {
+      return JSON.parse(fs.readFileSync(this.blockFile, 'utf8'));
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Sit out a 429 block, if one is in force. The block survives a restart.
+   */
+  async waitOutBlock(): Promise<void> {
+    const block = this.readBlock();
+    if (!block || block.blockedUntil === 0) return;
+
+    if (block.blockedUntil > Math.floor(Date.now() / 1000)) {
+      await sleepWithCountdown({
+        resumeAt: (block.blockedUntil + 1) * 1000,
+        reason: 'Your PDS server rate-limited this import',
+        isCancelled: this.isCancelled,
+      });
+      if (this.isCancelled()) return; // keep the block for the next run
+    }
+    // Keep the strike count until a request succeeds, so backoff keeps growing.
+    fs.writeFileSync(this.blockFile, JSON.stringify({ blockedUntil: 0, strikes: block.strikes }), 'utf8');
+    this.restoreQuota();
+  }
+
+  /**
+   * Called when the server returns a 429. Blocks until the time the server
+   * names (`Retry-After` or `ratelimit-reset`). When it names none, backs off
+   * from a minute and re-probes, never waiting past an already-known reset.
+   *
+   * @param errHeaders  Headers from the 429 error response.
+   */
+  handleRateLimitHit(errHeaders?: HeadersInput): void {
+    const headers = normalizeHeaders(errHeaders);
+    const learned = this.learnQuietly(headers);
+    const hasReset = (headers['ratelimit-reset'] ?? headers['x-ratelimit-reset']) !== undefined;
     const now = Math.floor(Date.now() / 1000);
     const state = this.readState();
+
+    const retryAfter = parseInt(headers['retry-after'] ?? '', 10);
+    const retryAt = retryAfter > 0 ? now + retryAfter : 0;
+    const resetAt = learned && hasReset && state && state.resetAt > now ? state.resetAt : 0;
+    const strikes = this.readBlock()?.strikes ?? 0;
+
+    let until = Math.max(retryAt, resetAt);
+    if (!until) {
+      until = now + rateLimitBackoffSeconds(strikes);
+      if (state && state.resetAt > now) until = Math.min(until, state.resetAt);
+    }
+
+    this.ensureStateDir();
+    fs.writeFileSync(this.blockFile, JSON.stringify({ blockedUntil: until, strikes: strikes + 1 }), 'utf8');
     if (state) {
       state.remaining = 0;
       state.updatedAt = now;
       this.writeState(state);
-      log.warn(`[RateLimiter] 🛑 429 received — zeroed remaining, will wait until ${new Date(state.resetAt * 1000).toISOString()}`);
-    } else {
-      // No state yet — create a blocking stub, lasting as long as Retry-After
-      // asks, or an hour if the 429 did not say.
-      const retryAfter = parseInt(normalizeHeaders(errHeaders ?? {})['retry-after'] ?? '', 10);
-      const waitSeconds = retryAfter > 0 ? retryAfter : 3600;
-      this.writeState({
-        limit: 5000,
-        remaining: 0,
-        resetAt: now + waitSeconds,
-        windowSeconds: 3600,
-        updatedAt: now,
-        headroomThreshold: this.headroomThreshold,
-      });
-      this.hasLearnedFromServer = true;
-      log.warn(`[RateLimiter] 🛑 429 received (no prior state) — blocking for ${waitSeconds}s`);
     }
+    log.debug(`[RateLimiter] 429 received — blocked until ${new Date(until * 1000).toISOString()}`);
+  }
+
+  private learnQuietly(headers: Record<string, string>): boolean {
+    return headers['ratelimit-limit'] || headers['x-ratelimit-limit'] ? this.learn(headers) : false;
   }
 
   /**
@@ -792,39 +694,19 @@ export class RateLimiter {
   }
 
   /**
-   * Wait for a permit with the given number of points.
-   * Combines reserveQuota and waitForReset - loops until permit granted.
-   * 
-   * ALGORITHM:
-   * 1. Try to reserve quota
-   * 2. If successful: return true
-   * 3. If failed: wait for reset
-   * 4. Loop back to step 1
-   * 
-   * This ensures we ALWAYS get the permit eventually, even if
-   * we have to wait for quota to reset.
-   * 
-   * USAGE:
-   * ```typescript
-   * // This will wait if needed
-   * await rl.waitForPermit(600);
-   * // Quota is now reserved, safe to proceed
-   * await sendBatch();
-   * ```
-   * 
+   * Wait for a permit with the given number of points, sitting out any 429
+   * block or exhausted window first.
+   *
    * @param pointsNeeded Number of points required
-   * @returns Promise<true> when permit is granted
+   * @returns true once reserved, false if the import was cancelled while waiting
    */
   async waitForPermit(pointsNeeded: number): Promise<boolean> {
     while (true) {
-      const reserved = await this.reserveQuota(pointsNeeded);
-      if (reserved) {
-        return true;
-      }
-      
-      log.info(`[RateLimiter] Quota exhausted, waiting for reset...`);
+      await this.waitOutBlock();
+      if (this.isCancelled()) return false;
+      if (await this.reserveQuota(pointsNeeded)) return true;
       await this.waitForReset();
-      log.info(`[RateLimiter] Retrying reservation...`);
+      if (this.isCancelled()) return false;
     }
   }
   

@@ -1,6 +1,7 @@
 import * as readline from 'readline';
 import chalk from 'chalk';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 /**
@@ -93,6 +94,41 @@ export function validateFilePath(
   }
 
   return { valid: true };
+}
+
+/**
+ * Turn what a terminal delivers for a typed or dragged-in file into a path:
+ * surrounding quotes, shell backslash escapes and a leading `~` are removed.
+ */
+export function cleanPathInput(raw: string, platform: NodeJS.Platform = process.platform): string {
+  const trimmed = raw.trim();
+  let cleaned = stripQuotes(trimmed);
+  // Backslashes separate directories on Windows; elsewhere an unquoted one that
+  // does not name a real file is an escape.
+  if (cleaned === trimmed && platform !== 'win32' && !fileExists(cleaned)) {
+    cleaned = cleaned.replace(/\\(.)/g, '$1');
+  }
+  return cleaned === '~' || cleaned.startsWith('~/') ? os.homedir() + cleaned.slice(1) : cleaned;
+}
+
+/**
+ * Ask for a file path until it validates. With `optional`, pressing Enter skips
+ * and returns an empty string.
+ */
+export async function promptPath(
+  question: string,
+  fileType: Parameters<typeof validateFilePath>[1],
+  { optional = false, ask = prompt }: { optional?: boolean; ask?: (question: string) => Promise<string> } = {}
+): Promise<string> {
+  while (true) {
+    const input = cleanPathInput(await ask(question));
+    if (!input && optional) return '';
+
+    const result = validateFilePath(input, fileType);
+    if (result.valid) return input;
+    if (result.message) console.log(result.message);
+    console.log('Please try again.\n');
+  }
 }
 
 /**

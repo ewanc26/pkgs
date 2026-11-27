@@ -13,6 +13,7 @@ import {
 import type { PlayRecord } from '../types.js';
 import * as ui from '../utils/ui.js';
 import { log } from '../utils/logger.js';
+import { terminalWaitCallbacks } from '../utils/wait-display.js';
 import { isImportCancelled } from '../utils/killswitch.js';
 import { confirm, isNonInteractive } from '../utils/input.js';
 
@@ -75,6 +76,7 @@ export async function crossPostToRocksky(
       onProgress: () => {},
       onLog: (level, msg) => (level === 'progress' ? log.progress(msg) : log[level](msg)),
       isCancelled: isImportCancelled,
+      ...terminalWaitCallbacks(),
     },
     'rocksky',
     dangerZone,

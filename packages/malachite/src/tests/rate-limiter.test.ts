@@ -1,9 +1,15 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { RateLimiter } from '../utils/rate-limiter.js';
 import { getMalachiteStateDir } from '../utils/platform.js';
+
+// The limiter persists to the home directory: never touch the real one.
+process.env.HOME = process.env.USERPROFILE = fs.mkdtempSync(path.join(os.tmpdir(), 'malachite-home-'));
+
+const blockPath = () => path.join(getMalachiteStateDir(), 'state', 'rate-limit-block.json');
 
 describe('RateLimiter', () => {
   it('persists state after updateFromHeaders with headroom threshold', () => {
@@ -46,25 +52,58 @@ describe('RateLimiter', () => {
       `delta reset lands ~300s out (got ${o.resetAt}, now ${now})`);
 
     // A 429 carrying Retry-After must push the wait out by that delta.
-    rl.handleRateLimitHit({ 'retry-after': '37531' });
+    rl.handleRateLimitHit(new Headers({ 'retry-after': '37531' }));
     const o2 = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-    assert.ok(o2.resetAt >= now + 37000, 'Retry-After delta honoured');
     assert.strictEqual(o2.remaining, 0);
+    const block = JSON.parse(fs.readFileSync(blockPath(), 'utf8'));
+    assert.ok(block.blockedUntil >= now + 37000, 'Retry-After delta honoured');
   });
 
-  it('honours Retry-After on a 429 that arrives before any rate-limit state', () => {
-    const statePath = path.join(getMalachiteStateDir(), 'state', 'rate-limit.json');
-    const resetAfter = (headers?: Record<string, string>) => {
-      fs.rmSync(statePath, { force: true });
-      const now = Math.floor(Date.now() / 1000);
-      new RateLimiter({ headroom: 0.15 }).handleRateLimitHit(headers);
-      return JSON.parse(fs.readFileSync(statePath, 'utf8')).resetAt - now;
-    };
+  const blockAfter = (headers?: Headers) => {
+    const now = Math.floor(Date.now() / 1000);
+    new RateLimiter({ headroom: 0.15 }).handleRateLimitHit(headers);
+    return JSON.parse(fs.readFileSync(blockPath(), 'utf8')).blockedUntil - now;
+  };
+  const forget = () => {
+    fs.rmSync(path.join(getMalachiteStateDir(), 'state', 'rate-limit.json'), { force: true });
+    fs.rmSync(blockPath(), { force: true });
+  };
 
-    const asked = resetAfter({ 'retry-after': '30' });
+  it('honours Retry-After on a 429 that arrives before any rate-limit state', () => {
+    forget();
+    const asked = blockAfter(new Headers({ 'retry-after': '30' }));
     assert.ok(asked >= 30 && asked <= 32, `waits about 30s (got ${asked}s)`);
-    const silent = resetAfter();
-    assert.ok(silent >= 3600 && silent <= 3602, `waits about an hour (got ${silent}s)`);
+  });
+
+  it('backs off for a minute, then two, and invents no capacity from a bare 429', () => {
+    forget();
+    const first = blockAfter();
+    assert.ok(first >= 60 && first <= 62, `waits about a minute (got ${first}s)`);
+    const second = blockAfter();
+    assert.ok(second >= 120 && second <= 122, `then two (got ${second}s)`);
+    assert.strictEqual(new RateLimiter().getServerCapacity(), null);
+    forget();
+  });
+
+  it('waits only as long as the server asked, with nothing stacked on top', async () => {
+    forget();
+    const rl = new RateLimiter();
+    rl.updateFromHeaders(new Headers({ 'ratelimit-limit': '5000', 'ratelimit-remaining': '4000', 'ratelimit-reset': '2' }));
+    rl.handleRateLimitHit(new Headers({ 'retry-after': '2' }));
+    const start = Date.now();
+    assert.strictEqual(await rl.waitForPermit(3), true);
+    const elapsed = Date.now() - start;
+    assert.ok(elapsed >= 1500 && elapsed < 5000, `waited ${elapsed}ms`);
+    forget();
+  });
+
+  it('gives up waiting when the import is cancelled, keeping the block', async () => {
+    forget();
+    const rl = new RateLimiter({ isCancelled: () => true });
+    rl.handleRateLimitHit(new Headers({ 'retry-after': '3600' }));
+    assert.strictEqual(await rl.waitForPermit(3), false);
+    assert.ok(JSON.parse(fs.readFileSync(blockPath(), 'utf8')).blockedUntil > 0);
+    forget();
   });
 
   it('getSafeAvailablePoints respects headroom threshold', () => {

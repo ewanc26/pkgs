@@ -34,7 +34,7 @@ function play(rkey: string, track: string, $type = 'fm.teal.alpha.feed.play') {
 /**
  * Stand-in for an @atproto/lex Client.
  *
- * Migration writes go through a single `client.call(applyWrites)` per batch,
+ * Migration writes go through a single `applyWrites` XRPC request per batch,
  * so the mock splits the batch back out into the creates and deletes the
  * assertions care about.
  */
@@ -48,7 +48,7 @@ function makeFakeAgent(
   const client = {
     assertDid: 'did:plc:test',
     did: 'did:plc:test',
-    call: async (_nsid: unknown, params: any) => {
+    xrpc: async (_nsid: unknown, { body: params }: any) => {
       const results: unknown[] = [];
       for (const write of params.writes ?? []) {
         const isCreate = write.$type === 'com.atproto.repo.applyWrites#create';
@@ -64,7 +64,7 @@ function makeFakeAgent(
         if (hook) await hook(write);
         results.push({ $type: 'com.atproto.repo.applyWrites#createResult' });
       }
-      return { results };
+      return { headers: new Headers(), body: { results } };
     },
   };
 

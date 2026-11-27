@@ -8,6 +8,8 @@ import {
   analyzeLegacyRecords as coreAnalyze,
   migrateLegacyRecords as coreMigrate,
 } from '@ewanc26/croft-click-core';
+import { killswitchSignal } from '../utils/killswitch.js';
+import { terminalWaitCallbacks } from '../utils/wait-display.js';
 import type { PolishPlan, PolishResult } from '@ewanc26/croft-click-core';
 
 export type { PolishPlan, PolishResult, PolishRecord } from '@ewanc26/croft-click-core';
@@ -132,6 +134,8 @@ export async function migrateLegacyRecords(
 
   const result = await coreMigrate(client, plan, {
     dryRun,
+    signal: killswitchSignal(),
+    ...terminalWaitCallbacks(),
     onProgress: (phase, done, total: number) => {
       if (phase === 'backfill') {
         bars.backfill?.update(done, {});

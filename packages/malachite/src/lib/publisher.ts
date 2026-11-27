@@ -2,7 +2,7 @@ import type { Client } from '@atproto/lex'
 import { formatDuration, formatDate } from '../utils/helpers.js';
 import { isImportCancelled } from '../utils/killswitch.js';
 import { RateLimiter } from '../utils/rate-limiter.js';
-import { DynamicBatchCalculator, ProactiveRatePacer, retryWithBackoff, isRetryableError, isRateLimitError, normalizeHeaders, normalizeMusicBrainzId, sanitizePlayRecordMusicBrainzIds, estimateImportDuration, formatImportEstimate, type ImportEstimate } from '@ewanc26/croft-click-core';
+import { DynamicBatchCalculator, ProactiveRatePacer, retryWithBackoff, isRetryableError, isRateLimitError, errorHeaders, applyWritesWithHeaders, normalizeMusicBrainzId, sanitizePlayRecordMusicBrainzIds, estimateImportDuration, formatImportEstimate, type ImportEstimate } from '@ewanc26/croft-click-core';
 import { formatLocaleNumber } from '../utils/platform.js';
 import { generateTIDFromISO } from '../utils/tid.js';
 import type { PlayRecord, Config, PublishResult } from '../types.js';
@@ -14,7 +14,6 @@ import {
   completeImport,
   getResumeStartIndex,
 } from '../utils/import-state.js';
-import { com } from '@bsky/sdk/lexicons'
 
 /**
  * Publish records using PROACTIVE rate limiting - never hits rate limits
@@ -242,6 +241,12 @@ export async function publishRecordsWithApplyWrites(
       return handleCancellation(successCount, errorCount, totalRecords);
     }
 
+    // Sit out any 429 first, so the batch is sized for the quota that follows.
+    await rl.waitOutBlock();
+    if (isImportCancelled()) {
+      return handleCancellation(successCount, errorCount, totalRecords);
+    }
+
     // Get current server capacity and quota
     const capacity = rl.getServerCapacity();
     const actualRemaining = rl.getActualRemaining();
@@ -256,7 +261,9 @@ export async function publishRecordsWithApplyWrites(
         capacity.limit,
         capacity.windowSeconds,
         actualRemaining,
-        MAX_PDS_BATCH_SIZE
+        MAX_PDS_BATCH_SIZE,
+        POINTS_PER_RECORD,
+        totalRecords - i
       );
       
       // Apply adaptive scaling from performance metrics
@@ -297,16 +304,15 @@ export async function publishRecordsWithApplyWrites(
 
     // Reserve quota
     const batchPoints = batch.length * POINTS_PER_RECORD;
-    await rl.waitForPermit(batchPoints);
+    if (!(await rl.waitForPermit(batchPoints))) {
+      return handleCancellation(successCount, errorCount, totalRecords);
+    }
 
     try {
       // Send batch with retry logic for transient failures
       const response = await retryWithBackoff(
         async () => {
-          return await client.call(com.atproto.repo.applyWrites.main as any, {
-            repo: client.assertDid,
-            writes: writes as any,
-          });
+          return await applyWritesWithHeaders(client, { repo: client.assertDid!, writes });
         },
         {
           maxAttempts: 3,
@@ -333,7 +339,7 @@ export async function publishRecordsWithApplyWrites(
       );
 
       // Success!
-      const batchSuccessCount = (response as any).results?.length || batch.length;
+      const batchSuccessCount = response.results?.length || batch.length;
       successCount += batchSuccessCount;
       const batchDuration = Date.now() - batchStartTime;
       
@@ -347,17 +353,14 @@ export async function publishRecordsWithApplyWrites(
 
       // Update rate limiter from response headers
       try {
-        let respHeaders: Record<string, string> | undefined;
-        if ((response as any)?.headers) {
-          respHeaders = (response as any).headers;
-        }
+        rl.noteSuccess();
+        const respHeaders = response.headers;
         
         if (respHeaders && Object.keys(respHeaders).length > 0) {
-          const normalized = normalizeHeaders(respHeaders);
-          const hasRateLimitHeaders = Object.keys(normalized).some(k => k.includes('ratelimit'));
+          const hasRateLimitHeaders = Object.keys(respHeaders).some(k => k.includes('ratelimit'));
           
           if (hasRateLimitHeaders) {
-            rl.updateFromHeaders(normalized);
+            rl.updateFromHeaders(respHeaders);
             
             // After first response, recalculate optimal settings. Writing the
             // learned state inside updateFromHeaders marks server info as
@@ -372,7 +375,9 @@ export async function publishRecordsWithApplyWrites(
             newCap.limit,
             newCap.windowSeconds,
             actualQuota,
-            MAX_PDS_BATCH_SIZE
+            MAX_PDS_BATCH_SIZE,
+            POINTS_PER_RECORD,
+            totalRecords - successCount
             );
             
             const quotaPercent = ((actualQuota / newCap.limit) * 100).toFixed(1);
@@ -388,7 +393,8 @@ export async function publishRecordsWithApplyWrites(
             totalRecords - successCount,
             newCap.limit,
               newCap.windowSeconds,
-              actualQuota
+              actualQuota,
+              POINTS_PER_RECORD
               );
                 log.info(`   ETA: ~${formatDuration(eta * 1000)}`);
 
@@ -398,7 +404,9 @@ export async function publishRecordsWithApplyWrites(
                 const learnedEstimate = estimateImportDuration(
                   totalRecords - successCount,
                   newCap.limit,
-                  newCap.windowSeconds
+                  newCap.windowSeconds,
+                  POINTS_PER_RECORD,
+                  actualQuota
                 );
                 if (!(await announceLongImport(learnedEstimate, successCount))) {
                   return handleCancellation(successCount, errorCount, totalRecords);
@@ -421,7 +429,9 @@ export async function publishRecordsWithApplyWrites(
           batch.length,
           cap.limit,
           cap.windowSeconds,
-          actualQuota
+          actualQuota,
+          POINTS_PER_RECORD,
+          totalRecords - i
         );
         
         // Update delay if changed significantly
@@ -435,35 +445,17 @@ export async function publishRecordsWithApplyWrites(
       const err = error as any;
       const batchDuration = Date.now() - batchStartTime;
       
-      // Record failure metrics
-      calculator.recordFailure(batch.length, batchDuration);
-
       const rateLimitError = isRateLimitError(err);
 
       if (rateLimitError) {
-        log.warn('⚠️  Rate limit hit — pausing until quota resets…');
-
-        // XRPCError (from @atproto/xrpc) carries response headers directly on
-        // err.headers as a plain Record<string, string> built via
-        // Object.fromEntries(response.headers.entries()), so keys are already
-        // lowercase.  There is no err.response property on this error class.
-        const errHeaders: Record<string, string> | undefined =
-          err?.headers && typeof err.headers === 'object'
-            ? (err.headers as Record<string, string>)
-            : undefined;
-
-        // handleRateLimitHit zeroes remaining unconditionally — this is the
-        // critical fix.  Previously we only called updateFromHeaders when
-        // headers were present, meaning a headerless 429 left state untouched
-        // and waitForPermit returned immediately, sending another request.
-        rl.refund(batchPoints); // this reservation was never actually sent
-        rl.handleRateLimitHit(errHeaders ? normalizeHeaders(errHeaders) : undefined);
-
-        // Now waitForPermit will block until the window resets.
-        await rl.waitForPermit(batchPoints);
-        continue;
+        // Not a performance failure, and the reservation was never spent.
+        rl.refund(batchPoints);
+        rl.handleRateLimitHit(errorHeaders(err));
+        batchCounter--; // the retry is the same batch, not a new one
+        continue; // the top of the loop sits out the block, then retries
 
       } else {
+        calculator.recordFailure(batch.length, batchDuration);
         // Non-retryable error (already retried by retryWithBackoff) — the
         // batch never actually cost quota, so return the reservation rather
         // than letting failed batches drain the local ledger and cause
@@ -501,17 +493,17 @@ export async function publishRecordsWithApplyWrites(
     const elapsed = formatDuration(Date.now() - startTime);
     const recordsPerSecond = successCount / ((Date.now() - startTime) / 1000);
     const remainingRecords = totalRecords - i;
-    const estimatedRemaining = remainingRecords / Math.max(recordsPerSecond, 1);
+    const timeLeft = formatTimeLeft(remainingRecords, recordsPerSecond);
     
     log.debug(
-      `Stats - ${elapsed} | ${recordsPerSecond.toFixed(1)} rec/s | ${successCount}/${totalRecords} | ~${formatDuration(estimatedRemaining * 1000)} remaining`
+      `Stats - ${elapsed} | ${recordsPerSecond.toFixed(2)} rec/s | ${successCount}/${totalRecords} | ${timeLeft}`
     );
 
     // Info-level heartbeat so long imports stay visible without debug logging
     // (#94): every 25 batches, mid-import only.
     if (batchCounter % 25 === 0 && i < totalRecords) {
       const pctDone = ((i / totalRecords) * 100).toFixed(1);
-      log.info(`⏱️  ${formatLocaleNumber(successCount)}/${formatLocaleNumber(totalRecords)} records (${pctDone}%) — ${recordsPerSecond.toFixed(2)} rec/s — ~${formatDuration(estimatedRemaining * 1000)} remaining`);
+      log.info(`⏱️  ${formatLocaleNumber(successCount)}/${formatLocaleNumber(totalRecords)} records (${pctDone}%) — ${recordsPerSecond.toFixed(2)} rec/s — ${timeLeft}`);
     }
     log.blank();
 
@@ -522,7 +514,11 @@ export async function publishRecordsWithApplyWrites(
 
     // Wait before next batch (proactive pacing)
     if (i < totalRecords) {
-      await new Promise((resolve) => setTimeout(resolve, currentDelay));
+      // Pacing delays can run to minutes, so stay responsive to Ctrl+C.
+      const resumeAt = Date.now() + currentDelay;
+      while (Date.now() < resumeAt && !isImportCancelled()) {
+        await new Promise((resolve) => setTimeout(resolve, Math.min(200, resumeAt - Date.now())));
+      }
     }
   }
 
@@ -540,6 +536,12 @@ export async function publishRecordsWithApplyWrites(
   log.info(`Overall: ${formatLocaleNumber(successCount)} records in ${formatDuration(totalDuration * 1000)} (~${avgRate.toFixed(1)} rec/s)`);
 
   return { successCount, errorCount, cancelled: false };
+}
+
+/** Time left at the observed throughput, which may be far below one record a second. */
+export function formatTimeLeft(remainingRecords: number, recordsPerSecond: number): string {
+  if (!(recordsPerSecond > 0)) return 'time left unknown';
+  return `~${formatDuration((remainingRecords / recordsPerSecond) * 1000)} remaining`;
 }
 
 /**

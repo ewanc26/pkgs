@@ -11,7 +11,14 @@ Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/m
 ## Publication rate limiting
 
 Malachite automatically learns the PDS write quota from response headers and
-paces imports below that limit with a 15% safety headroom buffer.
+keeps a 15% safety headroom buffer. An import that fits the quota available now
+runs at full speed; larger ones are paced.
+
+If the PDS refuses a write (HTTP 429), Malachite waits until the time the server
+names. If it names none, it retries after a minute, doubling up to 15 minutes.
+The terminal shows when it will resume: press Enter to try again at once, or
+Ctrl+C to stop and resume later. The web app shows the same countdown with a
+**Try now** button.
 
 For a PDS you control, the CLI also exposes Danger Zone mode. It disables that
 safety buffer and uses all observed quota:

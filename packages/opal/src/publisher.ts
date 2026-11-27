@@ -10,13 +10,15 @@
 
 import type { Client } from '@atproto/lex';
 import type { MicroblogPost, Facet } from './types.js';
-import { com } from '@bsky/sdk/lexicons';
 import { generateTID } from '@ewanc26/tid';
 import {
   RateLimiter,
   retryWithBackoff,
-  normalizeHeaders,
+  errorHeaders,
   isRateLimitError,
+  applyWritesWithHeaders,
+  ProactiveRatePacer,
+  type PermitWaitInfo,
 } from '@ewanc26/croft-click-core';
 
 const RECORD_TYPE = 'app.bsky.feed.post';
@@ -29,12 +31,16 @@ export interface PublishProgress {
   successCount: number;
   errorCount: number;
   message: string;
+  /** Set while the publisher is paused for quota; absent otherwise. */
+  waiting?: PermitWaitInfo;
 }
 
 export interface PublisherCallbacks {
   onProgress: (p: PublishProgress) => void;
   onLog: (level: 'info' | 'success' | 'warn' | 'error' | 'progress', msg: string) => void;
   isCancelled: () => boolean;
+  /** Polled during a quota wait; return true once to end the wait and retry. */
+  retryNow?: () => boolean;
 }
 
 function cancellableSleep(ms: number, isCancelled: () => boolean): Promise<void> {
@@ -46,19 +52,6 @@ function cancellableSleep(ms: number, isCancelled: () => boolean): Promise<void>
     };
     tick();
   });
-}
-
-function extractHeaders(response: unknown): Record<string, string> {
-  const headers: Record<string, string> = {};
-  const r = response as any;
-  if (r?.headers) {
-    if (typeof r.headers.forEach === 'function') {
-      r.headers.forEach((v: string, k: string) => { headers[k] = v; });
-    } else {
-      Object.assign(headers, r.headers);
-    }
-  }
-  return headers;
 }
 
 /**
@@ -172,7 +165,7 @@ export async function publishRecords(
   dryRun: boolean,
   callbacks: PublisherCallbacks,
 ): Promise<{ successCount: number; errorCount: number; cancelled: boolean }> {
-  const { onProgress, onLog, isCancelled } = callbacks;
+  const { onProgress, onLog, isCancelled, retryNow } = callbacks;
   const total = posts.length;
 
   if (dryRun) {
@@ -191,7 +184,7 @@ export async function publishRecords(
   const cancelPoll = setInterval(() => { if (isCancelled()) ac.abort(); }, 50);
 
   const rl = new RateLimiter({ headroom: 0.15 });
-  let delay = 500;
+  const pacer = new ProactiveRatePacer();
   let successCount = 0;
   let errorCount = 0;
   let batchCounter = 0;
@@ -210,12 +203,46 @@ export async function publishRecords(
         return { successCount, errorCount, cancelled: true };
       }
 
+      const emitWait = (waiting: PermitWaitInfo) => {
+        if (waiting.remainingSeconds === waiting.totalWaitSeconds) {
+          onLog('warn', `${waiting.reason}. Resuming at ${new Date(waiting.resumeAt).toLocaleTimeString()}.`);
+        }
+        onProgress({
+          recordsProcessed: successCount + errorCount,
+          totalRecords: total,
+          successCount,
+          errorCount,
+          message: waiting.reason,
+          waiting,
+        });
+      };
+
+      // Sit out any 429 first, so the batch is sized for the quota that follows.
+      await rl.waitOutBlock(isCancelled, emitWait, retryNow);
+      if (isCancelled()) {
+        onLog('warn', 'Import cancelled by user.');
+        return { successCount, errorCount, cancelled: true };
+      }
+
+      const capacity = rl.getServerCapacity();
+      const batchLimit = capacity
+        ? pacer.calculateOptimalBatchSize(
+            capacity.limit,
+            capacity.windowSeconds,
+            rl.getActualRemaining(),
+            MAX_BATCH_SIZE,
+            POINTS_PER_RECORD,
+            total - i,
+          )
+        : 50; // probe until the server's quota is known
+
       // Build a batch: collect consecutive posts whose thread dependencies are
       // already satisfied by previously-published posts. Posts that reference
       // opal-internal: targets not yet in publishedMap are deferred to the next
       // batch so the parent's URI+CID is available.
       const batch: { post: MicroblogPost; rkey: string; record: Record<string, unknown> }[] = [];
-      while (i < total && batch.length < MAX_BATCH_SIZE && dependenciesMet(posts[i], publishedMap)) {
+      const batchStart = i;
+      while (i < total && batch.length < batchLimit && dependenciesMet(posts[i], publishedMap)) {
         const post = posts[i];
         const rkey = generateTID(post.createdAt);
         const record = toPostRecord(post, publishedMap);
@@ -237,14 +264,6 @@ export async function publishRecords(
       batchCounter++;
       const pct = ((successCount / total) * 100).toFixed(1);
 
-      onProgress({
-        recordsProcessed: successCount,
-        totalRecords: total,
-        successCount,
-        errorCount,
-        message: `[${pct}%] Batch ${batchCounter} — ${batch.length} posts (posts ${successCount + 1}–${Math.min(successCount + batch.length, total)} of ${total})`,
-      });
-
       const writes = batch.map(({ rkey, record }) => ({
         $type: 'com.atproto.repo.applyWrites#create' as const,
         collection: RECORD_TYPE,
@@ -255,20 +274,25 @@ export async function publishRecords(
       const batchPoints = batch.length * POINTS_PER_RECORD;
 
       // Wait for rate-limit quota to be available
-      await rl.waitForPermit(batchPoints, isCancelled);
+      await rl.waitForPermit(batchPoints, isCancelled, emitWait, retryNow);
       if (isCancelled()) {
         onLog('warn', 'Import cancelled by user.');
         return { successCount, errorCount, cancelled: true };
       }
 
+      onProgress({
+        recordsProcessed: successCount,
+        totalRecords: total,
+        successCount,
+        errorCount,
+        message: `[${pct}%] Batch ${batchCounter} — ${batch.length} posts (posts ${successCount + 1}–${Math.min(successCount + batch.length, total)} of ${total})`,
+      });
+
       try {
         const response = await retryWithBackoff(
-          () => agent.call(
-            com.atproto.repo.applyWrites,
-            {
-              repo: agent.assertDid ?? '',
-              writes: writes as any,
-            },
+          () => applyWritesWithHeaders(
+            agent,
+            { repo: agent.assertDid ?? '', writes },
             { signal: ac.signal },
           ),
           {
@@ -295,7 +319,7 @@ export async function publishRecords(
         );
 
         // Extract results and build publishedMap for thread reference resolution
-        const results = (response as any)?.results ?? [];
+        const results = response.results ?? [];
         for (let j = 0; j < Math.min(results.length, batch.length); j++) {
           const result = results[j] as { uri?: string; cid?: string } | undefined;
           if (result?.uri && result?.cid) {
@@ -307,21 +331,14 @@ export async function publishRecords(
         successCount += batchSuccessCount;
 
         // Learn / update rate limits from response headers (continuous adaptation)
-        const rawHeaders = extractHeaders(response);
-        if (Object.keys(rawHeaders).length > 0) {
-          rl.updateFromHeaders(normalizeHeaders(rawHeaders));
+        rl.noteSuccess();
+        rl.updateFromHeaders(response.headers);
 
-          // After first batch, log the learned capacity and calculate delay
-          if (batchCounter === 1 && rl.hasServerInfo()) {
-            const cap = rl.getServerCapacity();
-            const remaining = rl.getActualRemaining();
-            if (cap) {
-              const recsPerSec = (cap.limit / cap.windowSeconds / POINTS_PER_RECORD) * 0.8;
-              delay = Math.max(500, Math.floor(1000 / Math.max(recsPerSec, 0.01)));
-              onLog('info', `Server: ${cap.limit} pts/${cap.windowSeconds}s — delay ${delay}ms between batches`);
-              onLog('info', `   Remaining quota: ${remaining}/${cap.limit}`);
-            }
-          }
+        // After first batch, log the learned capacity
+        const cap = rl.getServerCapacity();
+        if (batchCounter === 1 && cap) {
+          onLog('info', `Server: ${cap.limit} pts/${cap.windowSeconds}s`);
+          onLog('info', `   Remaining quota: ${rl.getActualRemaining()}/${cap.limit}`);
         }
 
         const rps = (successCount / ((Date.now() - startTime) / 1000)).toFixed(1);
@@ -335,22 +352,31 @@ export async function publishRecords(
         }
 
         if (isRateLimitError(e)) {
-          onLog('warn', 'Rate limit hit — waiting for quota reset…');
-          const rawErrHeaders: Record<string, string> =
-            typeof e?.response?.headers?.forEach === 'function'
-              ? (() => { const o: Record<string, string> = {}; e.response.headers.forEach((v: string, k: string) => { o[k] = v; }); return o; })()
-              : (e?.response?.headers ?? e?.headers ?? {});
-          rl.handleRateLimitHit(normalizeHeaders(rawErrHeaders));
-          await rl.waitForPermit(batchPoints, isCancelled);
-          continue; // retry same batch
+          rl.refund(batchPoints);
+          rl.handleRateLimitHit(errorHeaders(e));
+          i = batchStart; // these posts were refused: send them again
+          batchCounter--;
+          continue; // the top of the loop sits out the block
         }
 
+        rl.refund(batchPoints);
         errorCount += batch.length;
         onLog('error', `Batch ${batchCounter} failed: ${e?.message ?? e}`);
       }
 
       // Wait before next batch
       if (i < total) {
+        const cap = rl.getServerCapacity();
+        const delay = cap
+          ? pacer.calculateDelay(
+              batch.length,
+              cap.limit,
+              cap.windowSeconds,
+              rl.getActualRemaining(),
+              POINTS_PER_RECORD,
+              total - i,
+            ).delayMs
+          : 500;
         await cancellableSleep(delay, isCancelled);
       }
     }
