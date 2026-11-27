@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Tags } from '@lucide/svelte';
-	import BaseChart from '$lib/components/BaseChart.svelte';
-	import type { TagsProfile } from '$lib/analysis/tags-breakdown';
+	import BaseChart from '#lib/components/BaseChart.svelte';
+	import type { TagsProfile } from '#lib/analysis/tags-breakdown.js';
 
 	let { tags }: { tags: TagsProfile } = $props();
 

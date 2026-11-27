@@ -6,10 +6,10 @@
     import ListeningStats from './ListeningStats.svelte';
     import PersonalityCard from './PersonalityCard.svelte';
     import YearlyWrapped from './YearlyWrapped.svelte';
-    import type { ListenerProfile, TealScrobble } from '$lib/types';
-    import type { SessionStats } from '$lib/analysis/sessions';
-    import type { StoryRecap as StoryRecapData } from '$lib/analysis/story-recap';
-    import type { PersonalityProfile } from '$lib/analysis/personality';
+    import type { ListenerProfile, TealScrobble } from '#lib/types.js';
+    import type { SessionStats } from '#lib/analysis/sessions.js';
+    import type { StoryRecap as StoryRecapData } from '#lib/analysis/story-recap.js';
+    import type { PersonalityProfile } from '#lib/analysis/personality.js';
 
     let { 
         profile, 

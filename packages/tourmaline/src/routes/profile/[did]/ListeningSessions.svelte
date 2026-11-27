@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Moon, Train, Flame, Coffee, Scale } from '@lucide/svelte';
-	import type { SessionStats, SessionPattern } from '$lib/analysis/sessions';
+	import type { SessionStats, SessionPattern } from '#lib/analysis/sessions.js';
 
 	let { stats }: { stats: SessionStats } = $props();
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Chart } from '$lib/chart';
-	import type { ListenerProfile } from '$lib/types';
+	import { Chart } from '#lib/chart.js';
+	import type { ListenerProfile } from '#lib/types.js';
 
 	let {
 		monthlyArtistPlays = [],

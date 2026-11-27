@@ -1,5 +1,5 @@
 import type { AggregatedData } from "./aggregator";
-import type { ArtistInfo } from "$lib/types";
+import type { ArtistInfo } from "#lib/types.js";
 
 export interface RegionEntry {
   area: string;

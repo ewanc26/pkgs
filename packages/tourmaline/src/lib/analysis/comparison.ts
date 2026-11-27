@@ -9,7 +9,7 @@
  * needs no account linking on either side: both profiles are just fetched
  * the same way a single profile is.
  */
-import type { ListenerProfile } from "$lib/types";
+import type { ListenerProfile } from "#lib/types.js";
 
 export interface SharedArtist {
   name: string;

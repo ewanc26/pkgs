@@ -1,10 +1,10 @@
-import type { ListeningPhase } from "$lib/analysis/phases";
-import type { Recommendation } from "$lib/analysis/recommendations";
-import type { AnniversaryGroups } from "$lib/analysis/anniversaries";
-import type { RankMover, RankSnapshot } from "$lib/analysis/rank-history";
-import type { NewArtistMonthStat, MostListenedNewArtist } from "$lib/analysis/new-artists";
-import type { TagsProfile } from "$lib/analysis/tags-breakdown";
-import type { RegionProfile } from "$lib/analysis/region-breakdown";
+import type { ListeningPhase } from "#lib/analysis/phases.js";
+import type { Recommendation } from "#lib/analysis/recommendations.js";
+import type { AnniversaryGroups } from "#lib/analysis/anniversaries.js";
+import type { RankMover, RankSnapshot } from "#lib/analysis/rank-history.js";
+import type { NewArtistMonthStat, MostListenedNewArtist } from "#lib/analysis/new-artists.js";
+import type { TagsProfile } from "#lib/analysis/tags-breakdown.js";
+import type { RegionProfile } from "#lib/analysis/region-breakdown.js";
 
 export interface TealScrobble {
   trackName: string;

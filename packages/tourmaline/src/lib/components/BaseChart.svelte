@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Chart } from '$lib/chart';
+  import { Chart } from '#lib/chart.js';
   import type { ChartConfiguration } from 'chart.js';
 
   let { config }: { config: ChartConfiguration } = $props();

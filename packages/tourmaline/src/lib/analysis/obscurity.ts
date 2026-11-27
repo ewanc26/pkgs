@@ -1,4 +1,4 @@
-import type { ArtistInfo } from "$lib/types";
+import type { ArtistInfo } from "#lib/types.js";
 import type { AggregatedData } from "./aggregator";
 
 /**

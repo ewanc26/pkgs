@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { CalendarHeart } from '@lucide/svelte';
-	import type { OnThisDayEntry } from '$lib/analysis/on-this-day';
+	import type { OnThisDayEntry } from '#lib/analysis/on-this-day.js';
 
 	let { entries = [] }: { entries: OnThisDayEntry[] } = $props();
 

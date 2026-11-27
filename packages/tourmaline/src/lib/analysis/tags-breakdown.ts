@@ -1,5 +1,5 @@
 import type { AggregatedData } from "./aggregator";
-import type { ArtistInfo, GenreEntry } from "$lib/types";
+import type { ArtistInfo, GenreEntry } from "#lib/types.js";
 
 /**
  * Ranked raw genre/tag strings, weighted two ways so callers can toggle

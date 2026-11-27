@@ -12,7 +12,7 @@
  * industry listening-time surveys (roughly 1.5-2.5 hours/day) and
  * presented as an illustrative range, not a precise benchmark.
  */
-import type { ListenerProfile } from "$lib/types";
+import type { ListenerProfile } from "#lib/types.js";
 
 export interface ContextEntry {
   label: string;

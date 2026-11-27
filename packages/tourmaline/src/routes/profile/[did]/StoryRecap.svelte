@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ChevronLeft, ChevronRight, Share2 } from '@lucide/svelte';
-	import type { StoryRecap } from '$lib/analysis/story-recap';
-	import { writeShareEnvelope } from '$lib/share/registry';
+	import type { StoryRecap } from '#lib/analysis/story-recap.js';
+	import { writeShareEnvelope } from '#lib/share/registry.js';
 
 	let { recap, displayName }: { recap: StoryRecap; displayName?: string } = $props();
 

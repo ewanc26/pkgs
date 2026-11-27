@@ -1,4 +1,4 @@
-import type { TealScrobble } from "$lib/types";
+import type { TealScrobble } from "#lib/types.js";
 
 export type DateRangePreset = "7d" | "30d" | "90d" | "365d" | "all";
 

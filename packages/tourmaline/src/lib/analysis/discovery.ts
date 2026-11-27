@@ -1,5 +1,5 @@
 import type { AggregatedData } from "./aggregator";
-import type { ArtistInfo, DiscoveredArtist, DiscoveredItem } from "$lib/types";
+import type { ArtistInfo, DiscoveredArtist, DiscoveredItem } from "#lib/types.js";
 
 /**
  * Build a list of discovered artists — all artists ordered by when

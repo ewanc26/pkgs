@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { MonthlyGenre } from '$lib/types';
+	import type { MonthlyGenre } from '#lib/types.js';
 
 	let { monthlyGenres = [] }: { monthlyGenres: MonthlyGenre[] } = $props();
 

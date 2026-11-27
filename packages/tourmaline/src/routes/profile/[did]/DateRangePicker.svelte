@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { DateRangePreset } from '$lib/analysis/date-range';
-	import { PRESET_LABELS } from '$lib/analysis/date-range';
+	import type { DateRangePreset } from '#lib/analysis/date-range.js';
+	import { PRESET_LABELS } from '#lib/analysis/date-range.js';
 
 	let { value = $bindable('all') }: { value: DateRangePreset } = $props();
 

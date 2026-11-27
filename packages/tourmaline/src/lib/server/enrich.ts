@@ -1,4 +1,4 @@
-import type { ArtistInfo } from "$lib/types";
+import type { ArtistInfo } from "#lib/types.js";
 
 const MB_USER_AGENT =
   "Tourmaline/0.7.0 (https://github.com/ewanc26/pkgs/tree/main/packages/tourmaline)";

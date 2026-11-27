@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Zap, Compass, BarChart2, Ghost } from '@lucide/svelte';
-	import type { RemarkableDay } from '$lib/types';
+	import type { RemarkableDay } from '#lib/types.js';
 
 	let { days = [] }: { days: RemarkableDay[] } = $props();
 

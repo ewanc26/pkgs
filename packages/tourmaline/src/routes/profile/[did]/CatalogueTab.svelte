@@ -7,8 +7,8 @@
     import ListeningCadence from './ListeningCadence.svelte';
     import BiggestGaps from './BiggestGaps.svelte';
     import CatalogueDepth from './CatalogueDepth.svelte';
-    import type { ListenerProfile } from '$lib/types';
-    import type { OnThisDayEntry } from '$lib/analysis/on-this-day';
+    import type { ListenerProfile } from '#lib/types.js';
+    import type { OnThisDayEntry } from '#lib/analysis/on-this-day.js';
 
     let { 
         profile, 

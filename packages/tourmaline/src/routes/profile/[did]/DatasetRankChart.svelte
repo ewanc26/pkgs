@@ -5,8 +5,8 @@
 	 * number (#1, #2, ...) is "better".
 	 */
 	import { onDestroy } from 'svelte';
-	import { Chart } from '$lib/chart';
-	import type { RankSnapshot } from '$lib/analysis/rank-history';
+	import { Chart } from '#lib/chart.js';
+	import type { RankSnapshot } from '#lib/analysis/rank-history.js';
 
 	let { history }: { history: RankSnapshot[] } = $props();
 

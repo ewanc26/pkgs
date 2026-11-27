@@ -1,6 +1,6 @@
 <script lang="ts">
-  import BaseChart from '$lib/components/BaseChart.svelte';
-  import type { ListenerProfile } from '$lib/types';
+  import BaseChart from '#lib/components/BaseChart.svelte';
+  import type { ListenerProfile } from '#lib/types.js';
 
   let { stats }: { stats: ListenerProfile & { years: Record<string, number> } } = $props();
 

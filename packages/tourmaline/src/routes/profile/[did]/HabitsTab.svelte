@@ -5,8 +5,8 @@
     import EddingtonChart from './EddingtonChart.svelte';
     import ServiceOrigins from './ServiceOrigins.svelte';
     import ListeningSessions from './ListeningSessions.svelte';
-    import type { ListenerProfile } from '$lib/types';
-    import type { SessionStats } from '$lib/analysis/sessions';
+    import type { ListenerProfile } from '#lib/types.js';
+    import type { SessionStats } from '#lib/analysis/sessions.js';
 
     let { 
         profile, 

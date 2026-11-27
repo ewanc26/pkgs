@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Sparkles } from '@lucide/svelte';
-	import Skeleton from '$lib/components/Skeleton.svelte';
-	import type { Recommendation } from '$lib/analysis/recommendations';
+	import Skeleton from '#lib/components/Skeleton.svelte';
+	import type { Recommendation } from '#lib/analysis/recommendations.js';
 
 	/**
 	 * `loading` keeps skeleton rows visible while artist enrichment is still

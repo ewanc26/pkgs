@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { CalendarDays } from '@lucide/svelte';
-	import type { DailyScrobble } from '$lib/types';
+	import type { DailyScrobble } from '#lib/types.js';
 
 	let {
 		dailyScrobbles,

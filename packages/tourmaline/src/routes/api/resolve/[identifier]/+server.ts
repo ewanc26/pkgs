@@ -1,5 +1,5 @@
 import { json } from "@sveltejs/kit";
-import { resolveIdentifier, fetchBlueskyProfile } from "$lib/server/resolve";
+import { resolveIdentifier, fetchBlueskyProfile } from "#lib/server/resolve.js";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = async ({ params }) => {

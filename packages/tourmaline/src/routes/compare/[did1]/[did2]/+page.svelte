@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { renderNoiseAvatar } from '@ewanc26/noise-avatar';
 	import { Loader2, Heart, Sparkles, Users } from '@lucide/svelte';
-	import { loadProfile } from '$lib/client/load-profile';
-	import { compareProfiles, compatibilityLabel, type ComparisonResult } from '$lib/analysis/comparison';
-	import type { ListenerProfile } from '$lib/types';
+	import { loadProfile } from '#lib/client/load-profile.js';
+	import { compareProfiles, compatibilityLabel, type ComparisonResult } from '#lib/analysis/comparison.js';
+	import type { ListenerProfile } from '#lib/types.js';
 
 	interface Side {
 		did: string;

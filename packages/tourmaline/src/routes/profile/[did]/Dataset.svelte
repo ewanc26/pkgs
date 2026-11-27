@@ -7,7 +7,7 @@
 	 * lifting that cap needs aggregator.ts changes out of scope here.
 	 */
 	import { Table2, Search, ArrowUp, ArrowDown, ArrowUpDown, Download } from '@lucide/svelte';
-	import type { RankSnapshot } from '$lib/analysis/rank-history';
+	import type { RankSnapshot } from '#lib/analysis/rank-history.js';
 	import DatasetItemModal, { type DatasetCategory, type DatasetRow } from './DatasetItemModal.svelte';
 
 	let {

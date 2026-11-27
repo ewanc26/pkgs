@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Globe } from '@lucide/svelte';
-	import type { RegionProfile } from '$lib/analysis/region-breakdown';
+	import type { RegionProfile } from '#lib/analysis/region-breakdown.js';
 
 	let { regions }: { regions: RegionProfile } = $props();
 

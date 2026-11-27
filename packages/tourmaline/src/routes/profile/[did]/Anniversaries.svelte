@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { PartyPopper } from '@lucide/svelte';
-	import type { AnniversaryGroups, Anniversary } from '$lib/analysis/anniversaries';
+	import type { AnniversaryGroups, Anniversary } from '#lib/analysis/anniversaries.js';
 
 	let { groups }: { groups: AnniversaryGroups } = $props();
 

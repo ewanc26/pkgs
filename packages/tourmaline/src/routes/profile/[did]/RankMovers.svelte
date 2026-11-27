@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ArrowUpRight, ArrowDownRight } from '@lucide/svelte';
-	import type { RankMover } from '$lib/analysis/rank-history';
+	import type { RankMover } from '#lib/analysis/rank-history.js';
 
 	let { climbers, fallers }: { climbers: RankMover[]; fallers: RankMover[] } = $props();
 </script>
