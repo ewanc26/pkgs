@@ -252,7 +252,7 @@ export async function runCLI(): Promise<void> {
 
       publishing = false;
       tui?.progress(null);
-      process.stdout.write('\n');
+      if (!tui) process.stdout.write('\n');
       console.log(
         args.preview
           ? `\nPreview only: ${pubResult.successCount} post(s) would be published.`
@@ -265,7 +265,7 @@ export async function runCLI(): Promise<void> {
         console.log('Import was cancelled.');
       }
     } catch (err: any) {
-      process.stdout.write('\n');
+      if (!tui) process.stdout.write('\n');
       console.error(`\nPublishing failed: ${err.message || err}`);
       return exit(1);
     } finally {

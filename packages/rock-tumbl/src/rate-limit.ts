@@ -1,10 +1,5 @@
 /** Sit out a PDS rate limit and send the refused request again. */
-import {
-  RateLimiter,
-  errorHeaders,
-  isRateLimitError,
-  type PermitWaitInfo,
-} from '@ewanc26/croft-click-core'
+import type { PermitWaitInfo, RateLimiter } from '@ewanc26/croft-click-core'
 
 export interface WaitHooks {
   /** Called when a wait starts, then periodically until it ends. */
@@ -15,8 +10,12 @@ export interface WaitHooks {
 }
 
 export function rateLimitRetry(hooks: WaitHooks = {}) {
-  const limiter = new RateLimiter()
+  let limiter: RateLimiter | undefined
   return async function send<T>(request: () => Promise<T>): Promise<T> {
+    // Loaded on first use: the shared core is ESM only, and a static import
+    // would stop this package's CommonJS build from loading at all.
+    const core = await import('@ewanc26/croft-click-core')
+    limiter ??= new core.RateLimiter()
     while (true) {
       await limiter.waitOutBlock(hooks.isCancelled, hooks.onWait, hooks.retryNow)
       // A stop only abandons requests the server is refusing.
@@ -26,9 +25,9 @@ export function rateLimitRetry(hooks: WaitHooks = {}) {
         limiter.noteSuccess()
         return result
       } catch (error) {
-        if (!isRateLimitError(error)) throw error
+        if (!core.isRateLimitError(error)) throw error
         // A refused request was not applied, so sending it again is safe.
-        limiter.handleRateLimitHit(errorHeaders(error))
+        limiter.handleRateLimitHit(core.errorHeaders(error))
       }
     }
   }

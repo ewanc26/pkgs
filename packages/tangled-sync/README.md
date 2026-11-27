@@ -45,7 +45,7 @@ available; set `EWANC26_NO_UPDATE_CHECK` to turn that off. See
 ## Terminal interface
 
 Run `tangled-sync` without `--force` or `--dry-run` in a terminal to choose between a
-preview and a sync; it asks before pushing. Ctrl+C stops after the current repository.
+preview and a sync; it asks before pushing, then runs with plain output.
 Scheduled and piped runs behave as before.
 
 Pipes, CI, `--non-interactive` and `--no-tui` keep the plain output. The interface
