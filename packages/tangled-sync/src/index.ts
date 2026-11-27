@@ -5,14 +5,15 @@ import { api } from '@bsky/sdk';
 import { com } from '@bsky/sdk/lexicons';
 import { handleSelfUpdate } from '@ewanc26/self-update';
 import dotenv from "dotenv";
+import { startTui, stopTui, exit, getTui } from "@ewanc26/tui/session";
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
 
 dotenv.config();
 
-const FORCE_SYNC = process.argv.includes("--force");
-const DRY_RUN = process.argv.includes("--dry-run");
+let FORCE_SYNC = process.argv.includes("--force");
+let DRY_RUN = process.argv.includes("--dry-run");
 const NON_INTERACTIVE = process.argv.includes("--non-interactive");
 
 const BASE_DIR = process.env.BASE_DIR!;
@@ -235,7 +236,29 @@ Mirrored on Tangled: https://tangled.org/${atprotoDid}/${repoName}
 
 async function main() {
   const updateExit = await handleSelfUpdate({ packageName: '@ewanc26/tangled-sync', from: import.meta.url });
-  if (updateExit !== null) process.exit(updateExit);
+  if (updateExit !== null) return exit(updateExit);
+
+  let running = false;
+  let stopping = false;
+  const tui = await startTui({
+    // Ctrl+C finishes the repository in hand, then stops.
+    onInterrupt: () => running && (stopping = true),
+  });
+  if (tui && !FORCE_SYNC && !DRY_RUN) {
+    const choice = await tui.select("Tangled Sync: what would you like to do?", [
+      { value: "preview", label: "Preview", hint: "No pushes, records or README commits; still clones and sets remotes" },
+      { value: "sync", label: "Sync new repositories", hint: "Pushes, writes records and READMEs" },
+      { value: "force", label: "Sync every repository", hint: "Including ones already synced" },
+      { value: "exit", label: "Exit" },
+    ]);
+    if (choice === "exit") return stopTui();
+    DRY_RUN = choice === "preview";
+    FORCE_SYNC = choice === "force";
+    if (!DRY_RUN) {
+      const question = `Push to Tangled and commit README notes for ${GITHUB_USER}'s repositories?`;
+      if (!(await tui.confirm(question, false))) return stopTui();
+    }
+  }
 
   console.log("[STARTUP] Starting Tangled Sync...");
   if (FORCE_SYNC) {
@@ -304,7 +327,14 @@ async function main() {
   let syncedCount = 0;
   let errorCount = 0;
 
+  running = true;
+  let done = 0;
   for (const { clone_url, name: repoName, description } of reposToProcess) {
+    if (stopping) break;
+    getTui()?.progress({ label: "Syncing", done: done++, total: reposToProcess.length });
+    getTui()?.status(repoName);
+    // git runs synchronously, so let the interface draw before it starts.
+    if (getTui()) await new Promise((resolve) => setTimeout(resolve, 50));
     console.log(`\n[PROGRESS] Processing ${repoName} (${syncedCount + 1}/${reposToProcess.length})`);
     const repoDir = path.join(BASE_DIR, repoName);
 
@@ -329,8 +359,10 @@ async function main() {
     }
   }
 
+  getTui()?.status(null);
+  getTui()?.progress(null);
   console.log(`\n${'='.repeat(50)}`);
-  console.log(`[COMPLETE] Sync finished!`);
+  console.log(stopping ? `[STOPPED] Sync stopped early.` : `[COMPLETE] Sync finished!`);
   console.log(`  ✅ New repos synced: ${syncedCount}`);
   if (!FORCE_SYNC) {
     console.log(`  ⏭️  Repos skipped: ${skippedRepos.length}`);
@@ -341,4 +373,9 @@ async function main() {
   console.log(`${'='.repeat(50)}`);
 }
 
-main().catch(console.error);
+main()
+  .then(stopTui)
+  .catch(async (error) => {
+    console.error(error);
+    await stopTui();
+  });
