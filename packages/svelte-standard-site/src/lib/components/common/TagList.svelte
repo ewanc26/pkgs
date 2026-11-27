@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getThemedAccent } from '$lib/utils/theme-helpers.js';
+	import { getThemedAccent } from '../../utils/theme-helpers.js';
 
 	interface Props {
 		tags: string[];

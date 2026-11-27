@@ -1,7 +1,7 @@
 <script lang="ts">
 	import RichText from './document/RichText.svelte';
 	import Comment from './Comment.svelte';
-	import type { CommentRecord, LinearDocumentQuote } from '$lib/types.js';
+	import type { CommentRecord, LinearDocumentQuote } from '../types.js';
 
 	interface CommentProps extends CommentRecord {
 		uri: string;

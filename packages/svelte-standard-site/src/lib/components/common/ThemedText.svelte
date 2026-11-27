@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getThemedTextColor, getThemedAccent } from '$lib/utils/theme-helpers.js';
+	import { getThemedTextColor, getThemedAccent } from '../../utils/theme-helpers.js';
 
 	interface Props {
 		hasTheme?: boolean;

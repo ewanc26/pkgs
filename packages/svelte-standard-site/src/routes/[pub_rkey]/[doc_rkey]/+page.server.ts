@@ -1,6 +1,6 @@
-import { createClient } from '$lib/index.js';
-import { getConfigFromEnv } from '$lib/config/env.js';
-import { extractRkey } from '$lib/utils/document.js';
+import { createClient } from '#lib/index.js';
+import { getConfigFromEnv } from '#lib/config/env.js';
+import { extractRkey } from '#lib/utils/document.js';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 

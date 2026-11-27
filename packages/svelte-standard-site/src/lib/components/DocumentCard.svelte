@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Document, Publication, AtProtoRecord } from '../types.js';
-	import { extractRkey } from '$lib/index.js';
+	import { extractRkey } from '../index.js';
 	import { ThemedCard, ThemedText, DateDisplay, TagList } from './index.js';
 	import type { Snippet } from 'svelte';
 

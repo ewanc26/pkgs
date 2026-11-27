@@ -20,7 +20,7 @@
 
 <script lang="ts">
 	import Comment from './Comment.svelte';
-	import { organizeCommentsIntoThreads } from '$lib/utils/native-comments.js';
+	import { organizeCommentsIntoThreads } from '../utils/native-comments.js';
 
 	interface Props {
 		/** AT-URI of the document */
