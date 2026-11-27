@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { LandingPage } from '@ewanc26/landing-ui';
 	import { FileText } from '@lucide/svelte';
-	import logo from '$lib/assets/logo.svg';
+	import logo from '#lib/assets/logo.svg';
 </script>
 
 <svelte:head>
