@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { parseWebhook, WebhookError } from '$lib/webhook.js';
-import { appendEvent } from '$lib/store.js';
+import { parseWebhook, WebhookError } from '#lib/webhook.js';
+import { appendEvent } from '#lib/store.js';
 import type { RequestHandler } from './$types.js';
 
 export const POST: RequestHandler = async ({ request }) => {
