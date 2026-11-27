@@ -26,6 +26,8 @@ import { rewriteMediaReferences, uploadArchiveMedia } from './media.js'
 import { normalizePublicationUrl, publicationWellKnownBody, publicationWellKnownPath } from './publication.js'
 import { StandardSitePublisher } from './publisher.js'
 import type { ConvertOptions } from './types.js'
+import { startTui, stopTui, exit, waitCallbacks } from '@ewanc26/tui/session'
+import { runWizard } from './wizard.js'
 
 interface CliArgs {
   help?: boolean
@@ -70,6 +72,7 @@ function parseCliArgs(argv: string[]): CliArgs {
       password: { type: 'string' },
       service: { type: 'string' },
       'non-interactive': { type: 'boolean', default: false },
+      'no-tui': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', default: false },
     },
@@ -130,7 +133,8 @@ Options:
   --handle HANDLE       AT Protocol handle (or ATPROTO_HANDLE)
   --password PASS       App password (or ATPROTO_APP_PASSWORD)
   --service URL         PDS override (default: https://bsky.social)
-  --non-interactive     Accepted for consistency; rock-tumbl never prompts
+  --non-interactive     Never prompt; plain text output
+  --no-tui              Plain text output instead of the terminal interface
   -h, --help            Show this help message
   --version             Print version and exit
 
@@ -142,18 +146,20 @@ Examples:
   rock-tumbl --input export.zip \\
     --site at://did:plc:abc123/site.standard.publication/3abc --publish
 
+Run rock-tumbl with no arguments in a terminal to be asked for everything.
+
 Authentication:
   Set ATPROTO_HANDLE and ATPROTO_APP_PASSWORD, or pass --handle/--password.
 `.trim())
 }
 
-function fail(message: string): never {
+async function fail(message: string): Promise<never> {
   console.error(`Error: ${message}`)
-  process.exit(1)
+  return exit(1)
 }
 
 export async function runCLI(argv: string[] = process.argv.slice(2)): Promise<void> {
-  const args = parseCliArgs(argv)
+  let args = parseCliArgs(argv)
 
   if (args.version) {
     console.log(PKG_VERSION)
@@ -165,30 +171,44 @@ export async function runCLI(argv: string[] = process.argv.slice(2)): Promise<vo
     return
   }
 
+  let publishing = false
+  let stopping = false
+  const tui = await startTui({
+    // While publishing, Ctrl+C stops after the document in flight.
+    onInterrupt: () => publishing && (stopping = true),
+  })
+  const guided = Boolean(tui && !args.input && !args.site)
+  if (tui && guided) args = parseCliArgs(await runWizard(tui))
+
   if (!args.input || !args.site) {
     console.error('Error: --input and --site are required')
     printHelp()
-    process.exit(1)
+    return exit(1)
   }
 
   validateSite(args.site)
 
   if (args.createPublication) {
-    if (!args.publish) fail('--create-publication requires --publish')
-    if (!args.publicationName) fail('--publication-name is required with --create-publication')
+    if (!args.publish) return fail('--create-publication requires --publish')
+    if (!args.publicationName) return fail('--publication-name is required with --create-publication')
     if (args.site.startsWith('at://')) {
-      fail('--site must be the publication URL when using --create-publication')
+      return fail('--site must be the publication URL when using --create-publication')
     }
   }
 
-  if (args.uploadMedia && !args.publish) fail('--upload-media requires --publish')
+  if (args.uploadMedia && !args.publish) return fail('--upload-media requires --publish')
 
   // Prefer environment variables so app passwords need not appear in argv or
   // shell history; explicit flags still win.
-  const handle = args.handle ?? process.env.ATPROTO_HANDLE
-  const password = args.password ?? process.env.ATPROTO_APP_PASSWORD
+  let handle = args.handle ?? process.env.ATPROTO_HANDLE
+  let password = args.password ?? process.env.ATPROTO_APP_PASSWORD
+  if (args.publish && tui) {
+    const required = (what: string) => (answer: string) => (answer.trim() ? null : `Enter ${what}`)
+    handle ??= (await tui.input('Handle or DID:', { validate: required('your handle') })).trim()
+    password ??= await tui.input('App password:', { mask: true, validate: required('an app password') })
+  }
   if (args.publish && (!handle || !password)) {
-    fail(
+    return fail(
       '--handle and --password (or ATPROTO_HANDLE / ATPROTO_APP_PASSWORD) are required when using --publish',
     )
   }
@@ -197,7 +217,7 @@ export async function runCLI(argv: string[] = process.argv.slice(2)): Promise<vo
   if (args.maxMediaBytes !== undefined) {
     const parsed = Number(args.maxMediaBytes)
     if (!Number.isInteger(parsed) || parsed <= 0) {
-      fail('--max-media-bytes must be a positive integer')
+      return fail('--max-media-bytes must be a positive integer')
     }
     maxMediaBytes = parsed
   }
@@ -217,14 +237,32 @@ export async function runCLI(argv: string[] = process.argv.slice(2)): Promise<vo
 
   if (archive.posts.length === 0) {
     console.log('\nNo posts to import.')
-    return
+    return stopTui()
+  }
+
+  if (tui && guided && args.publish) {
+    const question = `Publish ${archive.posts.length} post(s) as ${handle}?`
+    if (!(await tui.confirm(question, false))) {
+      console.log('Nothing was published.')
+      return stopTui()
+    }
   }
 
   let documentSite = args.site
   let publisher: StandardSitePublisher | undefined
 
   if (args.publish) {
+    publishing = true
+    const countdown = waitCallbacks(() => stopping)
     publisher = new StandardSitePublisher({
+      isCancelled: () => stopping,
+      retryNow: countdown.retryNow,
+      onWait: (wait) => {
+        if (wait.remainingSeconds === wait.totalWaitSeconds) {
+          console.log(`  [warn] ${wait.reason}. Resuming at ${new Date(wait.resumeAt).toLocaleTimeString()}.`)
+        }
+        countdown.onWait(wait)
+      },
       handle: handle!,
       password: password!,
       service: args.service,
@@ -265,6 +303,7 @@ export async function runCLI(argv: string[] = process.argv.slice(2)): Promise<vo
           maxBytes: maxMediaBytes,
           onLog: (level, msg) => console.log(`  [${level}] ${msg}`),
           onProgress: (done, total) => {
+            tui?.progress({ label: 'Media', done, total })
             if (done === total || done % 25 === 0) {
               console.log(`  Media:    ${done}/${total} processed`)
             }
@@ -305,23 +344,31 @@ export async function runCLI(argv: string[] = process.argv.slice(2)): Promise<vo
   if (args.publish) {
     if (result.documents.length === 0) {
       console.log('\nNo documents to publish.')
-      return
+      return stopTui()
     }
     console.log(`\nPublishing ${result.documents.length} document(s) to ${documentSite}…`)
 
     let published = 0
     let failed = 0
     for (const doc of result.documents) {
+      if (stopping) break
+      tui?.progress({ label: 'Publishing', done: published + failed, total: result.documents.length })
       try {
         await publisher!.publishDocument(doc, args.dryRun ?? false)
         published++
       } catch (err: any) {
+        if (stopping) break
         failed++
         console.error(`  [error] Failed to publish "${doc.title}": ${err.message ?? err}`)
       }
     }
 
-    console.log(`\nDone! ${published} published${failed ? `, ${failed} failed` : ''}.`)
+    tui?.progress(null)
+    const outcome = stopping ? 'Stopped.' : 'Done!'
+    console.log(`\n${outcome} ${published} published${failed ? `, ${failed} failed` : ''}.`)
+    if (stopping) console.log('Run the same command again to continue; published posts are updated, not duplicated.')
     if (args.dryRun) console.log('(dry run — no records were written)')
   }
+
+  await stopTui()
 }

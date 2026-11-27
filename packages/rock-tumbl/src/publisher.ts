@@ -15,6 +15,7 @@ import { com } from '@bsky/sdk/lexicons'
 import { createHash } from 'node:crypto'
 import { generateNextTID } from '@ewanc26/tid'
 import { buildPublicationValue, PUBLICATION_COLLECTION, type PublicationInput } from './publication.js'
+import { rateLimitRetry, type WaitHooks } from './rate-limit.js'
 import type { AtProtoBlobRef, StandardDocumentValue } from './types.js'
 
 const DOCUMENT_COLLECTION = 'site.standard.document'
@@ -24,7 +25,7 @@ const DOCUMENT_COLLECTION = 'site.standard.document'
 const S32 = '234567abcdefghijklmnopqrstuvwxyz'
 const RECORD_KEY_LENGTH = 13
 
-export interface PublisherConfig {
+export interface PublisherConfig extends WaitHooks {
   handle: string
   password: string
   service?: string
@@ -79,7 +80,12 @@ export class StandardSitePublisher {
   private did: string | null = null
   private pdsUrl: string | null = null
 
-  constructor(private readonly config: PublisherConfig) {}
+  /** Waits out a rate limit and resends, for every write. */
+  private readonly send: ReturnType<typeof rateLimitRetry>
+
+  constructor(private readonly config: PublisherConfig) {
+    this.send = rateLimitRetry(config)
+  }
 
   async login(): Promise<void> {
     const { PasswordSession: PS } = await import('@atproto/lex-password-session')
@@ -143,12 +149,14 @@ export class StandardSitePublisher {
       return { uri, cid: 'dry-run' }
     }
 
-    const response = await (this.client as any).call(com.atproto.repo.createRecord, {
-      repo: this.did,
-      collection: PUBLICATION_COLLECTION,
-      rkey,
-      value,
-    })
+    const response = await this.send(() =>
+      (this.client as any).call(com.atproto.repo.createRecord, {
+        repo: this.did,
+        collection: PUBLICATION_COLLECTION,
+        rkey,
+        value,
+      }),
+    )
 
     const createdUri = (response as any)?.uri
     const cid = (response as any)?.cid
@@ -194,12 +202,14 @@ export class StandardSitePublisher {
       return { uri: `at://${this.did}/${DOCUMENT_COLLECTION}/${rkey}`, cid: 'dry-run' }
     }
 
-    const response = await (this.client as any).call(com.atproto.repo.putRecord, {
-      repo: this.did,
-      collection: DOCUMENT_COLLECTION,
-      rkey,
-      record: value,
-    })
+    const response = await this.send(() =>
+      (this.client as any).call(com.atproto.repo.putRecord, {
+        repo: this.did,
+        collection: DOCUMENT_COLLECTION,
+        rkey,
+        record: value,
+      }),
+    )
 
     const uri = (response as any)?.uri
     const cid = (response as any)?.cid
@@ -220,10 +230,20 @@ export class StandardSitePublisher {
     }
     if (!this.session || !this.pdsUrl) throw new Error('Not logged in — call login() first')
 
-    const response = await this.session.fetchHandler('/xrpc/com.atproto.repo.uploadBlob', {
-      method: 'POST',
-      headers: { 'Content-Type': mimeType },
-      body: data as unknown as BodyInit,
+    const session = this.session
+    const response = await this.send(async () => {
+      const attempt = await session.fetchHandler('/xrpc/com.atproto.repo.uploadBlob', {
+        method: 'POST',
+        headers: { 'Content-Type': mimeType },
+        body: data as unknown as BodyInit,
+      })
+      if (attempt.status === 429) {
+        throw Object.assign(new Error('Blob upload rate limited'), {
+          status: 429,
+          headers: attempt.headers,
+        })
+      }
+      return attempt
     })
 
     if (!response.ok) {

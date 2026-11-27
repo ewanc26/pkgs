@@ -282,3 +282,12 @@ repository.
 ## Licence
 
 AGPL-3.0-only.
+
+## Terminal interface
+
+Run `rock-tumbl` with no arguments in a terminal to be asked for the export, the
+publication and what to do. Publishing shows progress and waits out PDS rate limits;
+Ctrl+C stops after the current document.
+
+Pipes, CI, `--non-interactive` and `--no-tui` keep the plain output. The interface
+needs Node 22 or later.
