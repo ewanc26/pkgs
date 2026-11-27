@@ -75,7 +75,7 @@ PACKAGES=(
   "@ewanc26/tui"                 # terminal interface for the CLIs
   "@ewanc26/malachite"           # depends on croft-click-core + tui
   "@ewanc26/jasper"              # depends on croft-click-core
-  "@ewanc26/opal"                # standalone
+  "@ewanc26/opal"                # depends on croft-click-core + tui
   "@ewanc26/malachite-web"       # depends on croft-click-core
   "@ewanc26/jasper-web"          # depends on jasper + croft-click-core
   "@ewanc26/opal-web"            # depends on opal
