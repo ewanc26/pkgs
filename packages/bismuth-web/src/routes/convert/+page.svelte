@@ -6,7 +6,7 @@
 		offprintContentToMarkdown,
 		resolvePdsEndpoint,
 		listDocuments,
-	} from "$lib/convert";
+	} from "#lib/convert.js";
 	import {
 		ArrowLeft,
 		Copy,
@@ -20,7 +20,7 @@
 	import { SupportSection } from "@ewanc26/landing-ui";
 	import type { StandardDocument } from "@ewanc26/bismuth";
 	import { onMount } from "svelte";
-	import { initOAuth, signInWithOAuth } from "$lib/core/oauth";
+	import { initOAuth, signInWithOAuth } from "#lib/core/oauth.js";
 	import type { Agent } from "@atproto/api";
 
 	type Mode = "convert" | "fetch";
