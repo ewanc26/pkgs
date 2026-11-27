@@ -2,7 +2,7 @@
 	import { LandingLayout } from '@ewanc26/landing-ui';
 	import '@ewanc26/landing-ui/landing.css';
 	import './layout.css';
-	import logo from '$lib/assets/favicon.svg';
+	import logo from '#lib/assets/favicon.svg';
 	let { children } = $props();
 
 	const webVersion: string = __WEB_VERSION__;
