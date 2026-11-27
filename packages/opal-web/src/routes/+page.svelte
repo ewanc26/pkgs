@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { LandingPage } from '@ewanc26/landing-ui';
 	import { Twitter, MessageCircle, AtSign, Zap, ArrowRightLeft, Shield } from '@lucide/svelte';
-	import bluesky from '$lib/assets/bluesky.svg';
+	import bluesky from '#lib/assets/bluesky.svg';
 </script>
 
 <svelte:head>
