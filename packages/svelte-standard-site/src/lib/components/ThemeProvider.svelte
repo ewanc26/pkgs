@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { BasicTheme, ExtendedTheme, BackgroundImage } from '$lib/types.js';
+	import type { BasicTheme, ExtendedTheme, BackgroundImage } from '../types.js';
 	import {
 		anyThemeToCssVars,
 		getBackgroundImageStyles,
 		getFontStyles,
 		getPageWidthStyles
-	} from '$lib/utils/theme-helpers.js';
-	import { getGoogleFontsUrl } from '$lib/utils/theme.js';
+	} from '../utils/theme-helpers.js';
+	import { getGoogleFontsUrl } from '../utils/theme.js';
 
 	interface Props {
 		theme?: BasicTheme | ExtendedTheme;

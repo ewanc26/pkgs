@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { BasicTheme } from '$lib/types.js';
-	import { getThemeVars } from '$lib/utils/theme.js';
+	import type { BasicTheme } from '../../types.js';
+	import { getThemeVars } from '../../utils/theme.js';
 	import type { Snippet } from 'svelte';
 
 	interface Props {

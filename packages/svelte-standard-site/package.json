@@ -95,6 +95,9 @@
     "format": "prettier --write .",
     "lint": "prettier --check ."
   },
+  "imports": {
+    "#lib/*": "./src/lib/*"
+  },
   "dependencies": {
     "@atproto/lex": "^0.3.0",
     "@atproto/lex-password-session": "^0.2.0",

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types.js';
-	import { PublicationCard, DocumentCard, StandardSiteLayout } from '$lib/components/index.js';
+	import { PublicationCard, DocumentCard, StandardSiteLayout } from '#lib/components/index.js';
 
 	const { data }: { data: PageData } = $props();
 </script>

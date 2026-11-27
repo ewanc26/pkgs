@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { setContext, getContext } from 'svelte';
-	import type { Document } from '$lib/types.js';
+	import type { Document } from '../../types.js';
 	import LeafletContentRenderer from './LeafletContentRenderer.svelte';
 	import MarkdownRenderer from './MarkdownRenderer.svelte';
 	import Footnotes from '../Footnotes.svelte';
-	import { mixThemeColor } from '$lib/utils/theme-helpers.js';
+	import { mixThemeColor } from '../../utils/theme-helpers.js';
 
 	interface FootnoteData {
 		footnoteId: string;

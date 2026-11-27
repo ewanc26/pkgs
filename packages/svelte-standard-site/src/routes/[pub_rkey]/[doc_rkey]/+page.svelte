@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { PageData } from './$types.js';
-	import { getThemeVars } from '$lib/utils/theme.js';
-	import { extractRkey } from '$lib/utils/document.js';
-	import { ThemedContainer, ThemedText, DateDisplay, TagList } from '$lib/components/index.js';
-	import { mixThemeColor } from '$lib/utils/theme-helpers.js';
-	import DocumentRenderer from '$lib/components/document/DocumentRenderer.svelte';
+	import { getThemeVars } from '#lib/utils/theme.js';
+	import { extractRkey } from '#lib/utils/document.js';
+	import { ThemedContainer, ThemedText, DateDisplay, TagList } from '#lib/components/index.js';
+	import { mixThemeColor } from '#lib/utils/theme-helpers.js';
+	import DocumentRenderer from '#lib/components/document/DocumentRenderer.svelte';
 
 	const { data }: { data: PageData } = $props();
 

@@ -1,5 +1,5 @@
-import { createClient } from '$lib/index.js';
-import { getConfigFromEnv } from '$lib/config/env.js';
+import { createClient } from '#lib/index.js';
+import { getConfigFromEnv } from '#lib/config/env.js';
 import type { PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async ({ fetch }) => {
