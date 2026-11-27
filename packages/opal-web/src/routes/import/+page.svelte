@@ -4,8 +4,8 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { Client } from '@atproto/lex';
 	import type { Platform, MicroblogPost, ConvertResult, PublishProgress } from '@ewanc26/opal';
-	import { initOAuth, signInWithOAuth } from '$lib/core/oauth.js';
-	import { parseExport, runImport } from '$lib/core/import.js';
+	import { initOAuth, signInWithOAuth } from '#lib/core/oauth.js';
+	import { parseExport, runImport } from '#lib/core/import.js';
 	import { ArrowLeft, ExternalLink } from '@lucide/svelte';
 	import { SupportSection, WaitBanner, createRetryFlag, guardRun } from '@ewanc26/landing-ui';
 

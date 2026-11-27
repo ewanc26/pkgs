@@ -10,7 +10,6 @@ const cliPkg = JSON.parse(readFileSync(resolve('../opal/package.json'), 'utf-8')
 
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit({
-      alias: { $lib: 'src/lib' },
       adapter: adapter({ runtime: 'nodejs22.x' })
     })],
 
