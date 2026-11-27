@@ -7,6 +7,7 @@ import { formatLocaleNumber } from '../utils/platform.js';
 import { generateTIDFromISO } from '../utils/tid.js';
 import type { PlayRecord, Config, PublishResult } from '../types.js';
 import { log } from '../utils/logger.js';
+import { getTui } from '../utils/tui.js';
 import { POINTS_PER_RECORD, MAX_BATCH_SIZE as MAX_PDS_BATCH_SIZE } from '../config.js';
 import {
   ImportState,
@@ -234,6 +235,8 @@ export async function publishRecordsWithApplyWrites(
 
   let i = startIndex;
   let batchCounter = 0;
+  const showProgress = () => getTui()?.progress({ label: 'Importing', done: i, total: totalRecords });
+  showProgress();
   
   while (i < totalRecords) {
     // Check killswitch
@@ -420,6 +423,7 @@ export async function publishRecordsWithApplyWrites(
       }
 
       i += batch.length;
+      showProgress();
       
       // PROACTIVE PACING: Calculate optimal delay for next batch
       const cap = rl.getServerCapacity();
@@ -522,6 +526,8 @@ export async function publishRecordsWithApplyWrites(
     }
   }
 
+  getTui()?.progress(null);
+
   // Complete
   if (importState) {
     completeImport(importState);
@@ -617,6 +623,7 @@ function handleCancellation(
   errorCount: number,
   totalRecords: number
 ): PublishResult {
+  getTui()?.progress(null);
   log.blank();
   log.warn('Import cancelled by user');
   log.info(`Processed: ${successCount.toLocaleString()}/${totalRecords.toLocaleString()} records`);

@@ -1,3 +1,4 @@
+import { getTui } from './tui.js';
 import * as readline from 'readline';
 import chalk from 'chalk';
 import * as fs from 'fs';
@@ -158,6 +159,11 @@ export async function promptWithValidation(
   }
 }
 
+function stripAnsi(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
 /**
  * Strip surrounding quotes from a string (single or double quotes)
  */
@@ -174,6 +180,14 @@ function stripQuotes(str: string): string {
  * Display a menu and get user selection
  */
 export async function menu(title: string, options: Array<{ key: string; label: string; description?: string }>): Promise<string> {
+  const tui = getTui();
+  if (tui) {
+    return tui.select(
+      title,
+      options.map((o) => ({ value: o.key.toLowerCase(), label: o.label, hint: o.description })),
+    );
+  }
+
   console.log(chalk.bold(`\n${title}`));
   console.log(chalk.gray('─'.repeat(50)));
   
@@ -205,6 +219,10 @@ export async function menu(title: string, options: Array<{ key: string; label: s
  * Confirm an action with the user
  */
 export async function confirm(question: string, defaultYes = false): Promise<boolean> {
+  const tui = getTui();
+  // The interface draws its own Yes / No, so drop any typed hint.
+  if (tui) return tui.confirm(question.replace(/\s*\([yY]\/[nN]\)\s*$/, ''), defaultYes);
+
   const suffix = defaultYes ? ' (Y/n) ' : ' (y/N) ';
   const answer = await prompt(question + suffix);
   
@@ -226,6 +244,12 @@ export function prompt(question: string, hideInput = false): Promise<string> {
     console.error(`malachite: refusing to prompt in non-interactive mode: "${question.trim()}"`);
     console.error('Pass the required flag(s) explicitly, or run malachite --help for usage.');
     process.exit(1);
+  }
+  const tui = getTui();
+  if (tui) {
+    return tui
+      .input(stripAnsi(question), { mask: hideInput })
+      .then((answer) => (hideInput ? answer : stripQuotes(answer)));
   }
   return new Promise((resolve) => {
     if (hideInput) {

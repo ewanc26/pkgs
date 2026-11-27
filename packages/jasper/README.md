@@ -39,3 +39,12 @@ AGPL-3.0-only.
 higher; add `--check` to only look. `jasper` also prints a notice when an update is
 available; set `EWANC26_NO_UPDATE_CHECK` to turn that off. See
 [`@ewanc26/self-update`](../self-update/README.md).
+
+## Terminal interface
+
+Run `jasper` in a terminal for menus, prompts, per-post progress and a countdown
+during rate-limit waits. Ctrl+C finishes the current post, saves, and tells you how
+to resume.
+
+Pipes, CI, `--non-interactive` and `--no-tui` keep the plain output. The interface
+needs Node 22 or later.

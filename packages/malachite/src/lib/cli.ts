@@ -31,6 +31,7 @@ import { sortRecords } from '../utils/helpers.js';
 import config, { VERSION, RECORD_TYPE, LEGACY_RECORD_TYPE } from '../config.js';
 import { DEFAULT_DEDUP_WINDOW_MS } from '@ewanc26/croft-click-core';
 import { terminalWaitCallbacks } from '../utils/wait-display.js';
+import { getTui, startTui, stopTui, exit } from '../utils/tui.js';
 import { fetchExistingRecords, fetchAllRecords, filterNewRecords, displaySyncStats, deduplicateInputRecords, analyzeDuplicates, displayDedupPlan, removeDuplicateRecords } from './sync.js';
 import { analyzeLegacyRecords, displayPolishPlan, migrateLegacyRecords } from './polish.js';
 import { ensureRockskyAccess, crossPostToRocksky, analyzeRockskyDuplicates } from './rocksky.js';
@@ -141,6 +142,7 @@ ${'\x1b[1m'}OUTPUT:${'\x1b[0m'}
   -q, --quiet                    Suppress non-essential output
   --dev                          Development mode (verbose + file logging + smaller batches)
   --non-interactive              Fail fast instead of prompting (auto-detected in CI / no TTY)
+  --no-tui                       Plain text output instead of the terminal interface
   --help                         Show this help message
 
 ${'\x1b[1m'}EXAMPLES:${'\x1b[0m'}
@@ -205,6 +207,7 @@ ${'\x1b[1m'}SUPPORT:${'\x1b[0m'}
 export function parseCommandLineArgs(): CommandLineArgs {
   const options = {
     help: { type: 'boolean', default: false },
+    'no-tui': { type: 'boolean' },
     handle: { type: 'string', short: 'h' },
     password: { type: 'string', short: 'p' },
     input: { type: 'string', short: 'i' },
@@ -366,7 +369,28 @@ async function promptLastFmSource(args: CommandLineArgs, optional: boolean): Pro
 /**
  * Interactive mode - prompts user for all required inputs
  */
-async function runInteractiveMode(): Promise<CommandLineArgs> {
+/** The interactive menu, as choices for the terminal interface. */
+const MENU: Array<{ value: string; label: string; group: string; hint?: string; number?: number }> = [
+  { value: '1', group: 'Import', label: 'Import Last.fm scrobbles', hint: 'From the API or a CSV export' },
+  { value: '2', group: 'Import', label: 'Import Spotify history', hint: 'From a Spotify JSON export' },
+  { value: '3', group: 'Import', label: 'Import Apple Music history', hint: 'From an Apple data privacy CSV' },
+  { value: '4', group: 'Import', label: 'Import YouTube Music history', hint: 'From Google Takeout JSON' },
+  { value: '5', group: 'Import', label: 'Import ListenBrainz history', hint: 'From a ListenBrainz export' },
+  { value: '6', group: 'Import', label: 'Combine multiple sources', hint: 'Merge with deduplication' },
+  { value: '7', group: 'Import', label: 'Sync new records only', hint: 'Skip records already in Teal' },
+  { value: '8', group: 'Maintenance', label: 'Remove duplicate records', hint: 'Shows the plan before deleting' },
+  { value: '9', group: 'Maintenance', label: 'Clear cache' },
+  { value: '10', group: 'Maintenance', label: 'Clear saved credentials' },
+  { value: '11', group: 'Maintenance', label: 'Sign in with OAuth', hint: 'Browser-based login, recommended' },
+  { value: '12', group: 'Maintenance', label: 'Sign out (OAuth)' },
+  { value: '13', group: 'Maintenance', label: 'Polish legacy scrobbles', hint: 'Migrate fm.teal.alpha (not the language)' },
+  { value: '0', number: 0, group: 'Maintenance', label: 'Exit' },
+];
+
+async function chooseModeFromMenu(): Promise<string> {
+  const tui = getTui();
+  if (tui) return tui.select('Malachite: what would you like to do?', MENU);
+
   console.log('\n' + '┏' + '━'.repeat(58) + '┓');
   console.log('┃' + ' '.repeat(58) + '┃');
   console.log('┃' + '  Welcome to Malachite - Interactive Mode'.padEnd(58) + '┃');
@@ -431,9 +455,15 @@ async function runInteractiveMode(): Promise<CommandLineArgs> {
   }
   mode = mode.trim();
 
+  return mode;
+}
+
+async function runInteractiveMode(): Promise<CommandLineArgs> {
+  const mode = await chooseModeFromMenu();
+
   if (mode === '0' || !mode) {
     console.log('\nGoodbye!');
-    process.exit(0);
+    await exit(0);
   }
 
   const args: CommandLineArgs = {};
@@ -665,6 +695,9 @@ export async function runCLI(): Promise<void> {
     registerKillswitch();
     let args = parseCommandLineArgs();
     
+    // A person at a terminal gets the full interface; help stays plain text.
+    if (!args.help) await startTui();
+
     // Check if running with no arguments (interactive mode)
     // Modifier flags like --dry-run, --verbose, --yes, etc. don't count as "real" arguments
     const modifierFlags = ['dry-run', 'verbose', 'quiet', 'yes', 'reverse', 'aggressive', 'fresh', 'dev', 'non-interactive'];
@@ -686,7 +719,7 @@ export async function runCLI(): Promise<void> {
         console.error('malachite: no arguments provided and running non-interactively (CI, no TTY, or --non-interactive).');
         console.error('Provide -m/--mode and -i/--input (or --spotify-input etc.), or --oauth-login / --list-sessions.');
         console.error('Run malachite --help for full usage.');
-        process.exit(1);
+        await exit(1);
       }
       // No substantive arguments provided - run interactive mode
       args = await runInteractiveMode();
@@ -897,10 +930,9 @@ export async function runCLI(): Promise<void> {
         if (isNonInteractive()) {
           throw new Error('Deduplicate mode requires confirmation. Pass -y/--yes to proceed, or run interactively.');
         }
-        const answer = await prompt('Are you sure you want to continue? (y/N) ');
-        if (answer.toLowerCase() !== 'y') {
+        if (!(await confirm('Are you sure you want to continue?', false))) {
           log.info('Duplicate removal cancelled by user.');
-          process.exit(0);
+          await exit(0);
         }
       }
 
@@ -983,10 +1015,9 @@ export async function runCLI(): Promise<void> {
         if (isNonInteractive()) {
           throw new Error('Polish mode requires confirmation. Pass -y/--yes to proceed, or run interactively.');
         }
-        const answer = await prompt('Are you sure you want to continue? (y/N) ');
-        if (answer.toLowerCase() !== 'y') {
+        if (!(await confirm('Are you sure you want to continue?', false))) {
           log.info('Migration cancelled by user.');
-          process.exit(0);
+          await exit(0);
         }
         log.blank();
       }
@@ -1136,7 +1167,7 @@ export async function runCLI(): Promise<void> {
       if (records.length === 0 && carSyncOk) {
         log.success('All records already exist in Teal. Nothing to import!');
         if (args.rocksky) await crossPostToRocksky(client, alreadyInTeal, crossPostOptions);
-        process.exit(0);
+        await exit(0);
       }
 
       if (carSyncOk) {
@@ -1235,7 +1266,7 @@ export async function runCLI(): Promise<void> {
         const answer = await prompt('Type DANGER to continue: ');
         if (answer !== 'DANGER') {
           log.info('Danger Zone cancelled.');
-          process.exit(0);
+          await exit(0);
         }
       }
     }
@@ -1262,8 +1293,7 @@ export async function runCLI(): Promise<void> {
             if (isNonInteractive()) {
               throw new Error('Resuming a previous import requires confirmation. Pass -y/--yes to auto-resume, or --fresh to start over.');
             }
-            const answer = await prompt('Resume from previous import? (Y/n) ');
-            if (answer.toLowerCase() === 'n') {
+            if (!(await confirm('Resume from previous import?', true))) {
               importState = null;
               clearImportState(primaryInput, mode);
               log.info('Starting fresh import');
@@ -1292,10 +1322,9 @@ export async function runCLI(): Promise<void> {
       if (isNonInteractive()) {
         throw new Error('Publishing requires confirmation. Pass -y/--yes to proceed, or run interactively.');
       }
-      const answer = await prompt('Continue? (y/N) ');
-      if (answer.toLowerCase() !== 'y') {
+      if (!(await confirm('Continue?', false))) {
         log.info('Cancelled by user.');
-        process.exit(0);
+        await exit(0);
       }
       log.blank();
     }
@@ -1378,7 +1407,7 @@ export async function runCLI(): Promise<void> {
     if (err.message === 'Operation cancelled by user' || isImportCancelled()) {
       log.blank();
       log.warn('Operation cancelled by user');
-      process.exit(0);
+      await exit(0);
     }
     log.blank();
     log.fatal('A fatal error occurred:');
@@ -1386,8 +1415,9 @@ export async function runCLI(): Promise<void> {
     if (log.getLevel() <= LogLevel.DEBUG) {
       console.error(err.stack);
     }
-    process.exit(1);
+    await exit(1);
   } finally {
+    await stopTui();
     if (lastfmTempFile) {
       try { fs.unlinkSync(lastfmTempFile); } catch { /* best-effort cleanup */ }
     }

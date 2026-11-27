@@ -61,6 +61,7 @@
     "@ewanc26/croft-click-core": "workspace:*",
     "@ewanc26/self-update": "workspace:^",
     "@ewanc26/tid": "workspace:*",
+    "@ewanc26/tui": "workspace:^",
     "@zip.js/zip.js": "^2.7.57",
     "chalk": "^5.6.2",
     "open": "^10.1.0",

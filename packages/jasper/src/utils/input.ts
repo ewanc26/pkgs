@@ -1,6 +1,7 @@
 /**
  * Interactive input utilities for CLI
  */
+import { getTui } from "./tui.js";
 import * as readline from "readline";
 import fs from "fs";
 import os from "os";
@@ -42,6 +43,11 @@ export async function prompt(message: string, hidden = false): Promise<string> {
       "Pass the required flag(s) explicitly, or run jasper --help for usage.",
     );
     process.exit(1);
+  }
+  const tui = getTui();
+  if (tui) {
+    const answer = await tui.input(message, { mask: hidden });
+    return hidden ? answer : answer.trim();
   }
   return new Promise((resolve) => {
     const rl = createReadlineInterface();
@@ -102,6 +108,8 @@ export async function confirm(
   message: string,
   defaultYes = false,
 ): Promise<boolean> {
+  const tui = getTui();
+  if (tui) return tui.confirm(message, defaultYes);
   const hint = defaultYes ? "[Y/n]" : "[y/N]";
   const answer = await prompt(`${message} ${hint}: `);
   if (!answer) return defaultYes;
@@ -178,6 +186,14 @@ export async function select(
   options: string[],
   defaultIndex = 0,
 ): Promise<number> {
+  const tui = getTui();
+  if (tui) {
+    return tui.select(
+      message,
+      options.map((label, value) => ({ value, label })),
+      defaultIndex,
+    );
+  }
   console.log(`\n${message}`);
   options.forEach((opt, i) => {
     const marker = i === defaultIndex ? "→" : " ";

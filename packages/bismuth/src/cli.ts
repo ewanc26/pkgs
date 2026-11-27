@@ -40,6 +40,8 @@ import {
   offprintContentToMarkdown,
 } from './convert.js'
 import { fetchPublication } from './fetch.js'
+import { startTui, stopTui } from '@ewanc26/tui/session'
+import { runWizard } from './wizard.js'
 import type {
   StandardDocument,
   LeafletContent,
@@ -53,6 +55,16 @@ const PKG_VERSION = __BISMUTH_VERSION__
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
+  // With nothing to do and a person at the terminal, ask what they want.
+  if (argv.length === 0) {
+    const tui = await startTui()
+    if (tui) {
+      const answers = await runWizard(tui)
+      await stopTui() // the result prints as plain text
+      argv = answers
+    }
+  }
+
   // ── Route subcommands ──────────────────────────────────────────────────────
   if (argv[0] === 'fetch') {
     return fetchCommand(argv.slice(1))
@@ -69,6 +81,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', default: false },
       'non-interactive': { type: 'boolean', default: false },
+      'no-tui': { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: true,
@@ -171,6 +184,7 @@ async function fetchCommand(argv: string[]): Promise<void> {
       pds: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
       'non-interactive': { type: 'boolean', default: false },
+      'no-tui': { type: 'boolean', default: false },
     },
     allowPositionals: false,
     strict: true,
@@ -284,8 +298,10 @@ Options:
   -o, --output FILE     Write output to FILE instead of stdout.
   -h, --help            Show this help text and exit.
       --version          Print version and exit.
-      --non-interactive  Accepted for consistency with other pkgs CLIs;
-                          bismuth never prompts, so this is a no-op.
+      --non-interactive  Never prompt.
+      --no-tui           Do not open the guided terminal interface.
+
+Run bismuth with no arguments in a terminal to be asked what to convert.
 
 Examples:
   # Convert a Standard.site document, with front matter

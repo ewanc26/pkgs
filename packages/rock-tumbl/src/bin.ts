@@ -1,6 +1,7 @@
+import { exit } from '@ewanc26/tui/session'
 import { runCLI } from './cli.js'
 
 runCLI().catch((err: unknown) => {
   console.error(err)
-  process.exit(1)
+  return exit(1)
 })

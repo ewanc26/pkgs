@@ -39,4 +39,11 @@ export default defineConfig([
       __BISMUTH_VERSION__: JSON.stringify(pkg.version),
     },
   },
+  {
+    entry: { 'tests/wizard.test': 'src/tests/wizard.test.ts' },
+    format: ['esm'],
+    dts: false,
+    platform: 'node',
+    removeNodeProtocol: false,
+  },
 ])

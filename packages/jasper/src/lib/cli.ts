@@ -26,6 +26,7 @@ ${chalk.bold("OPTIONS")}
   -y, --yes               Skip confirmation prompts
   --non-interactive       Fail fast instead of prompting (auto-detected in
                           CI, or when stdin isn't a TTY)
+  --no-tui                Plain text output instead of the terminal interface
 
 ${chalk.bold("DAILY LIMIT OPTIONS")}
   --daily-limit <N>       Maximum posts to import per day (default: 100)
@@ -106,6 +107,7 @@ export function parseCliArgs(argv: string[]): CommandLineArgs {
       "clear-imports": { type: "boolean" },
       session: { type: "string" },
       "non-interactive": { type: "boolean" },
+      "no-tui": { type: "boolean" },
     },
     strict: false,
   }) as { values: Record<string, string | boolean | undefined> };

@@ -39,3 +39,11 @@ AGPL-3.0-only
 higher; add `--check` to only look. `bismuth` also prints a notice when an update is
 available; set `EWANC26_NO_UPDATE_CHECK` to turn that off. See
 [`@ewanc26/self-update`](../self-update/README.md).
+
+## Terminal interface
+
+Run `bismuth` with no arguments in a terminal to be asked which file to convert or
+which publication to fetch. Piping works as before.
+
+Pipes, CI, `--non-interactive` and `--no-tui` keep the plain output. The interface
+needs Node 22 or later.

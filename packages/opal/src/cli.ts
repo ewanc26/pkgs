@@ -10,6 +10,8 @@ import { resolve } from 'node:path';
 import { readFile, writeFile } from 'node:fs/promises';
 import { convertData, parseTwitterArchive } from './convert.js';
 import { publishRecords } from './publisher.js';
+import { startTui, stopTui, exit, waitCallbacks } from '@ewanc26/tui/session';
+import { askCredentials, runWizard } from './wizard.js';
 import type { ConvertOptions, Platform } from './types.js';
 
 const VALID_SOURCES: Platform[] = ['twitter', 'mastodon', 'threads', 'nostr'];
@@ -31,6 +33,9 @@ function parseArgs(argv: string[]): CliArgs {
     if (arg === '--dry-run') {
       opts.dryRun = true;
       continue;
+    }
+    if (arg === '--no-tui') {
+      continue; // read by the terminal detection
     }
     if (arg === '--publish') {
       opts.publish = true;
@@ -69,8 +74,11 @@ Options:
   --handle <handle>     AT Protocol handle or DID (required for --publish)
   --password <password> App password (required for --publish)
   --dry-run             Show what would be published without publishing
-  --non-interactive     No-op — accepted for consistency with other pkgs CLIs
+  --non-interactive     Never prompt; plain text output
+  --no-tui              Plain text output instead of the terminal interface
   -h, --help            Show this help message
+
+Run opal with no arguments in a terminal to be asked for everything.
 
 Examples:
   opal --source twitter --input tweets.js --output posts.json
@@ -99,28 +107,43 @@ async function login(handle: string, password: string) {
 }
 
 export async function runCLI(): Promise<void> {
-  const args = parseArgs(process.argv);
+  const args: CliArgs & { preview?: boolean } = parseArgs(process.argv);
 
   if (args.help) {
     printHelp();
     return;
   }
 
+  let publishing = false;
+  const tui = await startTui({
+    // While publishing, Ctrl+C stops after the batch in flight.
+    onInterrupt: () => publishing && process.emit('SIGINT', 'SIGINT'),
+  });
+  const guided = Boolean(tui && !args.source && !args.input);
+  if (tui && guided) {
+    const answers = await runWizard(tui);
+    Object.assign(args, answers, { dryRun: answers.preview });
+  }
+
   if (!args.source || !args.input) {
     console.error('Error: --source and --input are required');
     printHelp();
-    process.exit(1);
+    return exit(1);
   }
 
   if (!VALID_SOURCES.includes(args.source as Platform)) {
     console.error(`Error: invalid source "${args.source}". Must be one of: ${VALID_SOURCES.join(', ')}`);
-    process.exit(1);
+    return exit(1);
   }
 
-  if (args.publish && (!args.handle || !args.password)) {
+  if (args.publish && !args.preview && (!args.handle || !args.password) && tui) {
+    Object.assign(args, await askCredentials(tui, args));
+  }
+
+  if (args.publish && !args.preview && (!args.handle || !args.password)) {
     console.error('Error: --handle and --password are required when using --publish');
     console.error('  Use --handle <your.handle> --password <app-password>');
-    process.exit(1);
+    return exit(1);
   }
 
   const opts: ConvertOptions = {
@@ -166,6 +189,14 @@ export async function runCLI(): Promise<void> {
       return;
     }
 
+    if (tui && guided && !args.preview) {
+      const question = `Publish ${result.posts.length} post(s) to Bluesky as ${args.handle}?`;
+      if (!(await tui.confirm(question, false))) {
+        console.log('Nothing was published.');
+        return stopTui();
+      }
+    }
+
     console.log(`\nPublishing ${result.posts.length} post(s) to Bluesky…`);
 
     let cancelled = false;
@@ -180,7 +211,12 @@ export async function runCLI(): Promise<void> {
     process.once('SIGINT', onSigInt);
 
     try {
-      const client = await login(args.handle!, args.password!);
+      tui?.status(args.preview ? 'Preparing preview…' : 'Signing in…');
+      // A preview sends nothing, so it needs no session.
+      const client = args.preview ? (null as never) : await login(args.handle!, args.password!);
+      tui?.status(null);
+      publishing = true;
+      const countdown = waitCallbacks(() => cancelled);
 
       const pubResult = await publishRecords(
         client,
@@ -188,6 +224,11 @@ export async function runCLI(): Promise<void> {
         opts.dryRun ?? false,
         {
           onProgress: (p) => {
+            if (tui) {
+              tui.progress({ label: 'Publishing', done: p.recordsProcessed, total: p.totalRecords });
+              if (p.waiting) countdown.onWait(p.waiting);
+              return;
+            }
             if (p.waiting) {
               const minutes = Math.ceil(p.waiting.remainingSeconds / 60);
               const at = new Date(p.waiting.resumeAt).toLocaleTimeString();
@@ -200,15 +241,23 @@ export async function runCLI(): Promise<void> {
           onLog: (level, msg) => {
             // Only show non-progress logs
             if (level !== 'progress') {
-              process.stdout.write(`\n  [${level}] ${msg}`);
+              if (tui) console.log(`  [${level}] ${msg}`);
+              else process.stdout.write(`\n  [${level}] ${msg}`);
             }
           },
           isCancelled: () => cancelled,
+          retryNow: countdown.retryNow,
         },
       );
 
-      process.stdout.write('\n');
-      console.log(`\nDone! ${pubResult.successCount} post(s) published.`);
+      publishing = false;
+      tui?.progress(null);
+      if (!tui) process.stdout.write('\n');
+      console.log(
+        args.preview
+          ? `\nPreview only: ${pubResult.successCount} post(s) would be published.`
+          : `\nDone! ${pubResult.successCount} post(s) published.`,
+      );
       if (pubResult.errorCount > 0) {
         console.log(`${pubResult.errorCount} post(s) failed.`);
       }
@@ -216,11 +265,13 @@ export async function runCLI(): Promise<void> {
         console.log('Import was cancelled.');
       }
     } catch (err: any) {
-      process.stdout.write('\n');
+      if (!tui) process.stdout.write('\n');
       console.error(`\nPublishing failed: ${err.message || err}`);
-      process.exit(1);
+      return exit(1);
     } finally {
       process.removeListener('SIGINT', onSigInt);
     }
   }
+
+  await stopTui();
 }

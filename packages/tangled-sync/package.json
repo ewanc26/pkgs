@@ -51,6 +51,7 @@
     "@atproto/lex-password-session": "^0.2.0",
     "@bsky/sdk": "latest",
     "@ewanc26/self-update": "workspace:^",
+    "@ewanc26/tui": "workspace:^",
     "dotenv": "^16.0.0"
   },
   "devDependencies": {

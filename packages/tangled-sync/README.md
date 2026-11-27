@@ -41,3 +41,12 @@ AGPL-3.0-only.
 higher; add `--check` to only look. `tangled-sync` also prints a notice when an update is
 available; set `EWANC26_NO_UPDATE_CHECK` to turn that off. See
 [`@ewanc26/self-update`](../self-update/README.md).
+
+## Terminal interface
+
+Run `tangled-sync` without `--force` or `--dry-run` in a terminal to choose between a
+preview and a sync; it asks before pushing, then runs with plain output.
+Scheduled and piped runs behave as before.
+
+Pipes, CI, `--non-interactive` and `--no-tui` keep the plain output. The interface
+needs Node 22 or later.

@@ -28,4 +28,12 @@ export default defineConfig([
     noBundle: true,
     removeNodeProtocol: false,
   },
+  // The interface tests are bundled, as they import sources that are not built one by one.
+  {
+    entry: { 'tests/tui.test': 'src/tests/tui.test.ts' },
+    format: ['esm'],
+    dts: false,
+    platform: 'node',
+    removeNodeProtocol: false,
+  },
 ])

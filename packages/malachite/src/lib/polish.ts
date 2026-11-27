@@ -1,5 +1,4 @@
 import type { Client } from '@atproto/lex';
-import type { SingleBar } from 'cli-progress';
 import { RECORD_TYPE, LEGACY_RECORD_TYPE } from '../config.js';
 import { formatDate } from '../utils/helpers.js';
 import * as ui from '../utils/ui.js';
@@ -109,7 +108,7 @@ export async function migrateLegacyRecords(
   const start = Date.now();
   const bars = {
     backfill: plan.toBackfill.length > 0 ? ui.createProgressBar(plan.toBackfill.length, 'Backfilling') : null,
-    delete: null as SingleBar | null,
+    delete: null as ui.ProgressBar | null,
   };
 
   if (bars.backfill) {

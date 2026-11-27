@@ -5,14 +5,15 @@ import { api } from '@bsky/sdk';
 import { com } from '@bsky/sdk/lexicons';
 import { handleSelfUpdate } from '@ewanc26/self-update';
 import dotenv from "dotenv";
+import { startTui, stopTui, exit } from "@ewanc26/tui/session";
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
 
 dotenv.config();
 
-const FORCE_SYNC = process.argv.includes("--force");
-const DRY_RUN = process.argv.includes("--dry-run");
+let FORCE_SYNC = process.argv.includes("--force");
+let DRY_RUN = process.argv.includes("--dry-run");
 const NON_INTERACTIVE = process.argv.includes("--non-interactive");
 
 const BASE_DIR = process.env.BASE_DIR!;
@@ -235,7 +236,27 @@ Mirrored on Tangled: https://tangled.org/${atprotoDid}/${repoName}
 
 async function main() {
   const updateExit = await handleSelfUpdate({ packageName: '@ewanc26/tangled-sync', from: import.meta.url });
-  if (updateExit !== null) process.exit(updateExit);
+  if (updateExit !== null) return exit(updateExit);
+
+  const tui = await startTui();
+  if (tui && !FORCE_SYNC && !DRY_RUN) {
+    const choice = await tui.select("Tangled Sync: what would you like to do?", [
+      { value: "preview", label: "Preview", hint: "No pushes, records or README commits; still clones and sets remotes" },
+      { value: "sync", label: "Sync new repositories", hint: "Pushes, writes records and READMEs" },
+      { value: "force", label: "Sync every repository", hint: "Including ones already synced" },
+      { value: "exit", label: "Exit" },
+    ]);
+    if (choice === "exit") return stopTui();
+    DRY_RUN = choice === "preview";
+    FORCE_SYNC = choice === "force";
+    if (!DRY_RUN) {
+      const question = `Push to Tangled and commit README notes for ${GITHUB_USER}'s repositories?`;
+      if (!(await tui.confirm(question, false))) return stopTui();
+    }
+  }
+  // The interface only asks the questions. git runs synchronously, so it has to
+  // run with the terminal restored or Ctrl+C could not interrupt it.
+  await stopTui();
 
   console.log("[STARTUP] Starting Tangled Sync...");
   if (FORCE_SYNC) {
@@ -341,4 +362,7 @@ async function main() {
   console.log(`${'='.repeat(50)}`);
 }
 
-main().catch(console.error);
+main().catch(async (error) => {
+  await stopTui();
+  console.error(error);
+});

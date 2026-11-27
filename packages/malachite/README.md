@@ -8,6 +8,13 @@ Import your music listening history to AT Protocol as `fm.teal.feed.play` record
 
 Full documentation at **[docs.ewancroft.uk](https://docs.ewancroft.uk/projects/malachite)**.
 
+## Terminal interface
+
+Run `malachite` in a terminal for menus, prompts, a progress bar and a live
+countdown during rate-limit waits. Ctrl+C stops after the current batch; press it
+again to force quit. Pipes, CI and `--non-interactive` get plain text output, as
+does `--no-tui`. The interface needs Node 22 or later.
+
 ## Publication rate limiting
 
 Malachite automatically learns the PDS write quota from response headers and

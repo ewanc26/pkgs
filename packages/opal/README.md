@@ -114,3 +114,10 @@ and this repository's [TRADEMARKS.md](../../TRADEMARKS.md).
 higher; add `--check` to only look. `opal` also prints a notice when an update is
 available; set `EWANC26_NO_UPDATE_CHECK` to turn that off. See
 [`@ewanc26/self-update`](../self-update/README.md).
+
+## Terminal interface
+
+Run `opal` with no arguments in a terminal for a guided flow: choose the export,
+drag in the file, then preview, convert or publish. Publishing shows a progress
+bar and a countdown during rate-limit waits. Pipes, CI, `--non-interactive` and
+`--no-tui` keep the plain output. The interface needs Node 22 or later.

@@ -49,11 +49,12 @@
     "dev": "tsup --watch",
     "prepare": "pnpm run build",
     "type-check": "tsc --noEmit",
-    "test": "pnpm run build && node --test dist/tests/bismuth.test.js",
+    "test": "pnpm run build && node --test dist/tests/bismuth.test.js dist/tests/wizard.test.js",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ewanc26/self-update": "workspace:^"
+    "@ewanc26/self-update": "workspace:^",
+    "@ewanc26/tui": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
