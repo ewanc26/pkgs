@@ -30,7 +30,6 @@ const jasperBrowserModules: Plugin = {
 
 export default defineConfig({
 	plugins: [jasperBrowserModules, tailwindcss(), sveltekit({
-			alias: { $lib: 'src/lib' },
 			adapter: adapter({ runtime: 'nodejs22.x' })
 		})],
 

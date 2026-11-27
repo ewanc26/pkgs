@@ -4,7 +4,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { Client } from '@atproto/lex';
 	import { com } from '@bsky/sdk/lexicons';
-	import { initOAuth, signInWithOAuth } from '$lib/core/oauth';
+	import { initOAuth, signInWithOAuth } from '#lib/core/oauth.js';
 	import {
 		runImport,
 		fetchUserGalleries,
@@ -20,7 +20,7 @@
 		type BrowserImportState,
 		type Target
 	} from '@ewanc26/jasper/browser';
-	import logo from '$lib/assets/favicon.svg';
+	import logo from '#lib/assets/favicon.svg';
 	import {
 		SupportSection,
 		WaitBanner,

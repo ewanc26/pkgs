@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { LandingPage } from '@ewanc26/landing-ui';
 	import { Calendar, Lock, Zap } from '@lucide/svelte';
-	import logo from '$lib/assets/favicon.svg';
-	import grain from '$lib/assets/grain.svg';
-	import spark from '$lib/assets/spark.svg';
+	import logo from '#lib/assets/favicon.svg';
+	import grain from '#lib/assets/grain.svg';
+	import spark from '#lib/assets/spark.svg';
 </script>
 
 <svelte:head>

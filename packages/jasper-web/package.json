@@ -34,6 +34,9 @@
     "lint": "prettier --check .",
     "format": "prettier --write ."
   },
+  "imports": {
+    "#lib/*": "./src/lib/*"
+  },
   "dependencies": {
     "@atproto/common-web": "^0.4.12",
     "@atproto/lex": "^0.3.0",
