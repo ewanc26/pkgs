@@ -6,24 +6,24 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { Client } from '@atproto/lex';
 
-	import { initOAuth } from '$lib/core/oauth.js';
-	import { modeNeeds } from '$lib/modes.js';
-	import { runImport, type PublishProgress, type PermitWaitInfo } from '$lib/core/import.js';
+	import { initOAuth } from '#lib/core/oauth.js';
+	import { modeNeeds } from '#lib/modes.js';
+	import { runImport, type PublishProgress, type PermitWaitInfo } from '#lib/core/import.js';
 	import {
 		saveImportState,
 		loadImportState,
 		clearImportState,
 		saveResumeOffset,
 		loadResumeOffset
-	} from '$lib/core/web-cache.js';
-	import type { ImportMode, LogEntry } from '$lib/types.js';
+	} from '#lib/core/web-cache.js';
+	import type { ImportMode, LogEntry } from '#lib/types.js';
 	import { SupportSection } from '@ewanc26/landing-ui';
 
-	import ModeStep from '$lib/components/steps/ModeStep.svelte';
-	import AuthStep from '$lib/components/steps/AuthStep.svelte';
-	import FilesStep from '$lib/components/steps/FilesStep.svelte';
-	import OptionsStep from '$lib/components/steps/OptionsStep.svelte';
-	import RunStep from '$lib/components/steps/RunStep.svelte';
+	import ModeStep from '#lib/components/steps/ModeStep.svelte';
+	import AuthStep from '#lib/components/steps/AuthStep.svelte';
+	import FilesStep from '#lib/components/steps/FilesStep.svelte';
+	import OptionsStep from '#lib/components/steps/OptionsStep.svelte';
+	import RunStep from '#lib/components/steps/RunStep.svelte';
 
 	// ─── persistence keys ────────────────────────────────────────────────────────
 

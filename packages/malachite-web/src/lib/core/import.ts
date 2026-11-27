@@ -8,7 +8,7 @@
  */
 
 import type { Client } from '@atproto/lex';
-import type { ImportMode, LogEntry, PlayRecord } from '$lib/types.js';
+import type { ImportMode, LogEntry, PlayRecord } from '#lib/types.js';
 import { CLIENT_AGENT } from '../config.js';
 import { parseLastFmFile, convertToPlayRecord } from './csv.js';
 import { parseSpotifyFiles, convertSpotifyToPlayRecord } from './spotify.js';

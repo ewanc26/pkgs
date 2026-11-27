@@ -1,6 +1,6 @@
 // All shared types live in @ewanc26/croft-click-core — single source of truth.
 // Re-export everything from there so the rest of the web app can import
-// from '$lib/types.js' as before without any path changes.
+// from '#lib/types.js' as before without any path changes.
 export type {
   LastFmCsvRecord,
   PlayRecordArtist,

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { ArrowLeft, Check } from '@lucide/svelte';
   import { WaitBanner, type QuotaWait } from '@ewanc26/landing-ui';
-  import type { ImportMode, LogEntry } from '$lib/types.js';
-  import type { PublishProgress } from '$lib/core/import.js';
+  import type { ImportMode, LogEntry } from '#lib/types.js';
+  import type { PublishProgress } from '#lib/core/import.js';
 
   let {
     isRunning,

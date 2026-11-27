@@ -1,5 +1,5 @@
 import { Music2, Disc3, Layers2, RefreshCw, ListFilter, Apple, Youtube, Waves, Sparkles } from '@lucide/svelte';
-import type { ImportMode } from '$lib/types.js';
+import type { ImportMode } from '#lib/types.js';
 import type { Component } from 'svelte';
 
 export type IconComponent = Component<{ size?: number; strokeWidth?: number; color?: string }>;
