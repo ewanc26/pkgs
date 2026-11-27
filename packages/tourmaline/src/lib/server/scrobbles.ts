@@ -1,6 +1,6 @@
 import { TEAL_LEXICON, TEAL_LEGACY_LEXICON } from "@ewanc26/utils";
 import { iterateRepoCollectionsViaCAR } from "@ewanc26/croft-click-core";
-import type { TealScrobble } from "$lib/types";
+import type { TealScrobble } from "#lib/types.js";
 
 const TEAL_LEXICONS = [TEAL_LEGACY_LEXICON, TEAL_LEXICON] as const;
 const CAR_FETCH_TIMEOUT_MS = 55_000;

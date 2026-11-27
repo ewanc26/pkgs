@@ -3,7 +3,7 @@
  * during artist enrichment (Last.fm similar-artist data via ArtistInfo.similar)
  * — no extra API calls.
  */
-import type { ArtistInfo } from "$lib/types";
+import type { ArtistInfo } from "#lib/types.js";
 
 export interface Recommendation {
   name: string;

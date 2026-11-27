@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Copy, Check } from '@lucide/svelte';
-	import type { ListenerProfile } from '$lib/types';
+	import type { ListenerProfile } from '#lib/types.js';
 
 	let {
 		profile,

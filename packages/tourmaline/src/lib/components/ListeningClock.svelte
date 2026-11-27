@@ -1,5 +1,5 @@
 <script lang="ts">
-  /* import BaseChart from '$lib/components/BaseChart.svelte'; */
+  /* import BaseChart from '#lib/components/BaseChart.svelte'; */
   /* import type { TempStats } from '$lib/analysis/statsBuilder'; */
 
   let { stats }: { stats: any } = $props();

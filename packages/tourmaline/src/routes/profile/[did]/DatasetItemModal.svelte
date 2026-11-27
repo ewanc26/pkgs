@@ -6,7 +6,7 @@
 	 * per-month rank history in this codebase (see rank-history.ts).
 	 */
 	import { X } from '@lucide/svelte';
-	import type { RankSnapshot } from '$lib/analysis/rank-history';
+	import type { RankSnapshot } from '#lib/analysis/rank-history.js';
 	import CountUp from './CountUp.svelte';
 	import DatasetRankChart from './DatasetRankChart.svelte';
 

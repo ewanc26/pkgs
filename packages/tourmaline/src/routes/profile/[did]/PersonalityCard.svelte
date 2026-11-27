@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Share2 } from '@lucide/svelte';
-	import type { ListenerProfile } from '$lib/types';
-	import type { PersonalityProfile } from '$lib/analysis/personality';
-	import { writeShareEnvelope } from '$lib/share/registry';
-	import { GENRE_COLORS, MOOD_COLORS } from '$lib/share/theme';
+	import type { ListenerProfile } from '#lib/types.js';
+	import type { PersonalityProfile } from '#lib/analysis/personality.js';
+	import { writeShareEnvelope } from '#lib/share/registry.js';
+	import { GENRE_COLORS, MOOD_COLORS } from '#lib/share/theme.js';
 
 	let { profile, displayName, personality }: { profile: ListenerProfile; displayName: string; personality: PersonalityProfile } = $props();
 

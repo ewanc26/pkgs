@@ -2,22 +2,22 @@
 	import { onMount } from 'svelte';
 	import { renderNoiseAvatar } from '@ewanc26/noise-avatar';
 	import { Loader2, Cpu, Sparkles, Music2, Users, LayoutGrid, Gem, Receipt, Ticket } from '@lucide/svelte';
-	import type { DateRangePreset } from '$lib/analysis/date-range';
-	import { PRESET_LABELS } from '$lib/analysis/date-range';
-	import { writeShareEnvelope } from '$lib/share/registry';
+	import type { DateRangePreset } from '#lib/analysis/date-range.js';
+	import { PRESET_LABELS } from '#lib/analysis/date-range.js';
+	import { writeShareEnvelope } from '#lib/share/registry.js';
 	import {
 		loadProfile,
 		emptyResults,
 		type RangeKey,
 		type LoadPhase,
 		type ProfileResults
-	} from '$lib/client/load-profile';
+	} from '#lib/client/load-profile.js';
 	import GenreChart from './GenreChart.svelte';
 	import TagsChart from './TagsChart.svelte';
 	import RegionBreakdown from './RegionBreakdown.svelte';
 	import TimelineHeatmap from './TimelineHeatmap.svelte';
-	import TimelineChart from '$lib/components/TimelineChart.svelte';
-	import TopArtistsChart from '$lib/components/TopArtistsChart.svelte';
+	import TimelineChart from '#lib/components/TimelineChart.svelte';
+	import TopArtistsChart from '#lib/components/TopArtistsChart.svelte';
 	import MoodRadar from './MoodRadar.svelte';
 	import EraBarChart from './EraBarChart.svelte';
 	import PersonalityCard from './PersonalityCard.svelte';
@@ -57,9 +57,9 @@
 	import EddingtonChart from './EddingtonChart.svelte';
 	import RaceChart from './RaceChart.svelte';
 	import Recommendations from './Recommendations.svelte';
-	import TrackPreview from '$lib/components/TrackPreview.svelte';
+	import TrackPreview from '#lib/components/TrackPreview.svelte';
 	import ListeningContext from './ListeningContext.svelte';
-	import { checkInAndComputeDelta, type VisitDelta } from '$lib/client/visit-history';
+	import { checkInAndComputeDelta, type VisitDelta } from '#lib/client/visit-history.js';
 
 	function noiseAvatar(canvas: HTMLCanvasElement, seed: string) {
 		renderNoiseAvatar(canvas, seed, { displaySize: 32, gridSize: 5 });

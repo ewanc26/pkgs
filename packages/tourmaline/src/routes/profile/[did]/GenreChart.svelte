@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Chart } from '$lib/chart';
-	import type { GenreEntry } from '$lib/types';
+	import { Chart } from '#lib/chart.js';
+	import type { GenreEntry } from '#lib/types.js';
 
 	let { genres = [] }: { genres: GenreEntry[] } = $props();
 

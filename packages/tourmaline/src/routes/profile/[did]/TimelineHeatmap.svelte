@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DailyScrobble } from '$lib/types';
+	import type { DailyScrobble } from '#lib/types.js';
 
 	let { dailyScrobbles = [] }: { dailyScrobbles: DailyScrobble[] } = $props();
 

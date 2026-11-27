@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Chart } from '$lib/chart';
-	import type { EraEntry } from '$lib/types';
+	import { Chart } from '#lib/chart.js';
+	import type { EraEntry } from '#lib/types.js';
 
 	let { era = [] }: { era: EraEntry[] } = $props();
 

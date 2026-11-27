@@ -1,4 +1,4 @@
-import type { ListenerProfile } from "$lib/types";
+import type { ListenerProfile } from "#lib/types.js";
 import { calculateGini } from "./diversity";
 
 export interface PersonalityTrait {

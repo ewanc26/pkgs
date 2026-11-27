@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Chart } from '$lib/chart';
-	import type { DailyScrobble } from '$lib/types';
+	import { Chart } from '#lib/chart.js';
+	import type { DailyScrobble } from '#lib/types.js';
 
 	let {
 		dailyScrobbles = [],

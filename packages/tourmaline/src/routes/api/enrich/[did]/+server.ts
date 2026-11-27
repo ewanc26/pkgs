@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
-import { enrichArtistBatch } from "$lib/server/enrich";
-import type { ArtistInfo } from "$lib/types";
+import { enrichArtistBatch } from "#lib/server/enrich.js";
+import type { ArtistInfo } from "#lib/types.js";
 import type { RequestHandler } from "./$types";
 
 interface EnrichRequestBody {

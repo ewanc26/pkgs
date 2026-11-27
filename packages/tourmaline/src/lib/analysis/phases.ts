@@ -1,5 +1,5 @@
 import type { AggregatedData } from "./aggregator";
-import type { ArtistInfo, MonthlyGenre } from "$lib/types";
+import type { ArtistInfo, MonthlyGenre } from "#lib/types.js";
 
 export interface ListeningPhase {
   startMonth: string; // YYYY-MM

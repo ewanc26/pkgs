@@ -6,7 +6,7 @@
  * renders them correctly (external @import doesn't work in Image → canvas).
  */
 
-import type { PersonalityTrait } from "$lib/analysis/personality";
+import type { PersonalityTrait } from "#lib/analysis/personality.js";
 import {
   BG,
   SURFACE,

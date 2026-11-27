@@ -1,5 +1,5 @@
 import type { AggregatedData } from "./aggregator";
-import type { RemarkableDay } from "$lib/types";
+import type { RemarkableDay } from "#lib/types.js";
 import { detectMonthlySpikes } from "./zscore";
 
 function formatDate(d: string): string {

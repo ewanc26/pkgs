@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Flame, TrendingUp, Calendar, Hash, Clock, User, Zap, Star, Disc, Sparkle, UserPlus } from '@lucide/svelte';
-	import type { DailyScrobble, Gap, DiscoveredArtist } from '$lib/types';
-	import type { NewArtistMonthStat, MostListenedNewArtist } from '$lib/analysis/new-artists';
+	import type { DailyScrobble, Gap, DiscoveredArtist } from '#lib/types.js';
+	import type { NewArtistMonthStat, MostListenedNewArtist } from '#lib/analysis/new-artists.js';
 
 	interface StatsData {
 		daysScrobbled: number;

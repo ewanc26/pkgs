@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import { CARFetchUnauthorizedError } from "@ewanc26/croft-click-core";
-import { streamScrobbleBatch, type ScrobbleStreamEvent } from "$lib/server/scrobbles";
-import { isValidDid, safeCursor, safeEndpoint } from "$lib/server/validate";
+import { streamScrobbleBatch, type ScrobbleStreamEvent } from "#lib/server/scrobbles.js";
+import { isValidDid, safeCursor, safeEndpoint } from "#lib/server/validate.js";
 import type { RequestHandler } from "./$types";
 
 // Large PDS exports can take tens of seconds to index before records begin to

@@ -1,4 +1,4 @@
-import type { ListenerProfile } from "$lib/types";
+import type { ListenerProfile } from "#lib/types.js";
 import type { ListeningPhase } from "./phases";
 
 export interface StoryRecapCard {

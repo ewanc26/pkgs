@@ -8,7 +8,6 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     sveltekit({
-      alias: { $lib: "src/lib" },
       preprocess: vitePreprocess(),
       compilerOptions: {
         runes: ({ filename }) =>

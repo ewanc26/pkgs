@@ -1,6 +1,6 @@
 import type { AggregatedData } from "./aggregator";
-import type { ArtistInfo, GenreEntry, MonthlyGenre } from "$lib/types";
-import GENRE_MAP from "$lib/data/genre-map.json";
+import type { ArtistInfo, GenreEntry, MonthlyGenre } from "#lib/types.js";
+import GENRE_MAP from "#lib/data/genre-map.json";
 
 /**
  * Top-level genre categories.

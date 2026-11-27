@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { TimelineBucket } from '$lib/types';
+	import type { TimelineBucket } from '#lib/types.js';
 
 	let { timeline = [] }: { timeline: TimelineBucket[] } = $props();
 

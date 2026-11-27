@@ -1,5 +1,5 @@
 import { json } from "@sveltejs/kit";
-import { dzSearchTrackPreview } from "$lib/server/enrich";
+import { dzSearchTrackPreview } from "#lib/server/enrich.js";
 import type { RequestHandler } from "./$types";
 
 const MAX_LEN = 256;

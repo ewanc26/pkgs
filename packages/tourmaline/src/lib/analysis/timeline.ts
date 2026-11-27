@@ -1,5 +1,5 @@
 import type { AggregatedData } from "./aggregator";
-import type { TimelineBucket } from "$lib/types";
+import type { TimelineBucket } from "#lib/types.js";
 
 export function buildTimeline(data: AggregatedData): TimelineBucket[] {
   const buckets: TimelineBucket[] = [];

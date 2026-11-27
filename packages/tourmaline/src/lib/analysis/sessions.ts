@@ -1,4 +1,4 @@
-import type { TealScrobble } from "$lib/types";
+import type { TealScrobble } from "#lib/types.js";
 
 /** A contiguous listening session — scrobbles with ≤30 min gaps. */
 export interface ListeningSession {

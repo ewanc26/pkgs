@@ -1,5 +1,5 @@
 import type { AggregatedData } from "./aggregator";
-import type { ArtistInfo, EraEntry } from "$lib/types";
+import type { ArtistInfo, EraEntry } from "#lib/types.js";
 
 /**
  * Build an era preference profile from artist start years.

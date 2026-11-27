@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { renderNoiseAvatar } from '@ewanc26/noise-avatar';
-	import type { DiscoveredArtist, DiscoveredItem } from '$lib/types';
+	import type { DiscoveredArtist, DiscoveredItem } from '#lib/types.js';
 
 	let {
 		artists = [],

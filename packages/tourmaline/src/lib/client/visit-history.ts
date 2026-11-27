@@ -8,7 +8,7 @@
  * it on this browser, and surface what's changed since, computed the
  * moment they return rather than pushed to them.
  */
-import type { ListenerProfile } from "$lib/types";
+import type { ListenerProfile } from "#lib/types.js";
 
 interface VisitSnapshot {
   totalScrobbles: number;

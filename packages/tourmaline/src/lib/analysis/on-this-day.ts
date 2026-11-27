@@ -1,4 +1,4 @@
-import type { TealScrobble } from "$lib/types";
+import type { TealScrobble } from "#lib/types.js";
 import { localDateKey } from "./date-range";
 
 export interface OnThisDayEntry {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Info } from '@lucide/svelte';
-	import { buildListeningContext } from '$lib/analysis/listening-context';
-	import type { ListenerProfile } from '$lib/types';
+	import { buildListeningContext } from '#lib/analysis/listening-context.js';
+	import type { ListenerProfile } from '#lib/types.js';
 
 	let { profile }: { profile: ListenerProfile } = $props();
 

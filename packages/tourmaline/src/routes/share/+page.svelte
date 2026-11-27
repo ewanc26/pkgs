@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { Client } from '@atproto/lex';
-	import { initOAuth, signInWithOAuth } from '$lib/atproto/oauth';
-	import { renderCard, shareCard, type ShareEnvelope } from '$lib/share/registry';
+	import { initOAuth, signInWithOAuth } from '#lib/atproto/oauth.js';
+	import { renderCard, shareCard, type ShareEnvelope } from '#lib/share/registry.js';
 	import { ExternalLink, ArrowLeft } from '@lucide/svelte';
 
 	const STORAGE_KEY = 'tourmaline:share';

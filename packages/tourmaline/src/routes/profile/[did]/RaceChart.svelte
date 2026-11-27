@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Chart } from '$lib/chart';
+	import { Chart } from '#lib/chart.js';
 	import { Play, Pause, TrendingUp } from '@lucide/svelte';
 
 	let {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { Milestone } from '$lib/types';
+	import type { Milestone } from '#lib/types.js';
 	import { Trophy, Music, Users, LayoutGrid } from '@lucide/svelte';
 
 	let {

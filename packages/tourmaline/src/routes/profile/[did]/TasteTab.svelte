@@ -7,7 +7,7 @@
     import RemarkableDays from './RemarkableDays.svelte';
     import Milestones from './Milestones.svelte';
     import Recommendations from './Recommendations.svelte';
-    import type { ListenerProfile } from '$lib/types';
+    import type { ListenerProfile } from '#lib/types.js';
 
     let { profile, loading = false }: { profile: ListenerProfile; loading?: boolean } = $props();
 </script>

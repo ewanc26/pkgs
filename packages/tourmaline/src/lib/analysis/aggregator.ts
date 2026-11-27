@@ -1,4 +1,4 @@
-import type { TealScrobble, Milestone, Gap } from "$lib/types";
+import type { TealScrobble, Milestone, Gap } from "#lib/types.js";
 import { calcEddington, daysToNextEddington } from "./eddington";
 import { calcScrobbleStreaks, ItemStreakStack, type Streak } from "./streaks";
 export interface AggregatedData {

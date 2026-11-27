@@ -1,6 +1,6 @@
 <script lang="ts">
-	import BaseChart from '$lib/components/BaseChart.svelte';
-	import { buildLetterDistribution } from '$lib/analysis/letter-distribution';
+	import BaseChart from '#lib/components/BaseChart.svelte';
+	import { buildLetterDistribution } from '#lib/analysis/letter-distribution.js';
 
 	let { names }: { names: string[] } = $props();
 

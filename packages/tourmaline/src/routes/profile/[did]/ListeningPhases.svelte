@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { ListeningPhase } from '$lib/analysis/phases';
+	import type { ListeningPhase } from '#lib/analysis/phases.js';
 
 	let { phases = [] }: { phases: ListeningPhase[] } = $props();
 

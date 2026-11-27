@@ -1,5 +1,5 @@
 <script lang="ts">
-  import BaseChart from '$lib/components/BaseChart.svelte';
+  import BaseChart from '#lib/components/BaseChart.svelte';
 
   type TopArtistsStats = {
     seenArtists: Record<string, { scrobbles: any[] }>;
